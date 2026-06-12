@@ -1,8 +1,12 @@
 import { createBrowserClient } from "@supabase/ssr";
+import {
+  getSupabasePublishableKey,
+  getSupabaseUrl
+} from "@/lib/supabase/config";
 
 export function createSupabaseBrowserClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = getSupabaseUrl();
+  const publishableKey = getSupabasePublishableKey();
 
   if (!url || !publishableKey) {
     throw new Error("Supabase no esta configurado en el navegador.");
