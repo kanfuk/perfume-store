@@ -14,21 +14,36 @@ class ProductRepositoryStub implements ProductRepository {
         nombre: "Pan amasado",
         precioVenta: 500,
         activo: true
+      },
+      {
+        id: "queque",
+        nombre: "Queque",
+        precioVenta: 4500,
+        activo: true
       }
     ];
   }
 
   async buscarProductoPorId(id: string) {
-    if (id !== "pan-amasado") {
-      return null;
+    if (id === "pan-amasado") {
+      return {
+        id: "pan-amasado",
+        nombre: "Pan amasado",
+        precioVenta: 500,
+        activo: true
+      };
     }
 
-    return {
-      id: "pan-amasado",
-      nombre: "Pan amasado",
-      precioVenta: 500,
-      activo: true
-    };
+    if (id === "queque") {
+      return {
+        id: "queque",
+        nombre: "Queque",
+        precioVenta: 4500,
+        activo: true
+      };
+    }
+
+    return null;
   }
 }
 
@@ -88,15 +103,18 @@ describe("PedidoService", () => {
       nombre: "Rodrigo",
       telefono: "999999999",
       lugarTrabajo: "Finanzas",
-      productoId: "pan-amasado",
-      cantidad: 2
+      items: [
+        { productoId: "pan-amasado", cantidad: 2 },
+        { productoId: "queque", cantidad: 1 }
+      ]
     });
 
-    expect(result.total).toBe(1000);
+    expect(result.total).toBe(5500);
     expect(result.estadoPedido).toBe("PENDIENTE");
     expect(result.estadoPago).toBe("SIN_PAGO");
-    expect(result.producto.precioUnitario).toBe(500);
-    expect(pedidoRepository.itemsRegistrados).toBe(1);
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]?.precioUnitario).toBe(500);
+    expect(pedidoRepository.itemsRegistrados).toBe(2);
   });
 
   it("rechaza un producto inexistente o inactivo", async () => {
@@ -111,9 +129,8 @@ describe("PedidoService", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
-        productoId: "otro",
-        cantidad: 1
+        items: [{ productoId: "otro", cantidad: 1 }]
       })
-    ).rejects.toThrow("Selecciona un producto activo.");
+    ).rejects.toThrow("Todos los items deben usar productos activos.");
   });
 });

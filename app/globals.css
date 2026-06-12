@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: light;
-  --app-revision: "2026-06-12-admin-style-fix";
+  --app-revision: "2026-06-12-multiproduct-ui";
 }
 
 * {
@@ -12,17 +12,18 @@
 }
 
 html {
-  background: #fff7e8;
+  background: #f7efe2;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(242, 200, 121, 0.35), transparent 35%),
-    #fff7e8;
+    radial-gradient(circle at top left, rgba(242, 200, 121, 0.32), transparent 28%),
+    radial-gradient(circle at top right, rgba(168, 107, 50, 0.08), transparent 22%),
+    linear-gradient(180deg, #fbf6ef 0%, #f7efe2 100%);
   color: #3a2a1a;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, Arial, Helvetica, sans-serif;
 }
 
 a {
@@ -35,4 +36,8 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+::selection {
+  background: rgba(168, 107, 50, 0.18);
 }

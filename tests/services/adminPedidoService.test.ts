@@ -153,6 +153,15 @@ function buildOrder(estadoPedido: string): PedidoListItemRecord {
     cantidad: 2,
     precioUnitario: 500,
     subtotal: 1000,
+    items: [
+      {
+        productoId: "pan-amasado",
+        productoNombre: "Pan amasado",
+        cantidad: 2,
+        precioUnitario: 500,
+        subtotal: 1000
+      }
+    ],
     estadoPedido,
     estadoPago: "SIN_PAGO",
     total: 1000,

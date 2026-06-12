@@ -9,12 +9,16 @@ export type ProductRecord = {
   tipoProducto?: string;
 };
 
+export type CustomerOrderLineInput = {
+  productoId: string;
+  cantidad: number;
+};
+
 export type CustomerOrderRequest = {
   nombre: string;
   telefono: string;
   lugarTrabajo: string;
-  productoId: string;
-  cantidad: number;
+  items: CustomerOrderLineInput[];
 };
 
 export type CustomerOrderResponse = {
@@ -23,11 +27,21 @@ export type CustomerOrderResponse = {
   total: number;
   estadoPedido: string;
   estadoPago: string;
-  producto: {
-    id: string;
+  items: Array<{
+    productoId: string;
     nombre: string;
+    cantidad: number;
     precioUnitario: number;
-  };
+    subtotal: number;
+  }>;
+};
+
+export type AdminOrderItemSummary = {
+  productoId: string;
+  productoNombre: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
 };
 
 export type AdminOrderSummary = {
@@ -41,6 +55,7 @@ export type AdminOrderSummary = {
   cantidad: number;
   precioUnitario: number;
   subtotal: number;
+  items: AdminOrderItemSummary[];
   estadoPedido: string;
   estadoPago: string;
   total: number;

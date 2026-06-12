@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatCurrency } from "@/lib/format";
-import type { ProductRecord } from "@/lib/types";
+import type { CustomerOrderResponse, ProductRecord } from "@/lib/types";
 import {
   type CustomerFormData,
   validateCustomerOrderForm
@@ -12,14 +12,13 @@ const initialForm: CustomerFormData = {
   nombre: "",
   telefono: "",
   lugarTrabajo: "",
-  productoId: "",
-  cantidad: 1
+  items: []
 };
 
 export function OrderForm() {
   const [form, setForm] = useState<CustomerFormData>(initialForm);
   const [products, setProducts] = useState<ProductRecord[]>([]);
-  const [submitted, setSubmitted] = useState<null | { total: number }>(null);
+  const [submitted, setSubmitted] = useState<CustomerOrderResponse | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -58,26 +57,76 @@ export function OrderForm() {
       }
     }
 
-    loadProducts();
+    void loadProducts();
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const selectedProduct = useMemo(
-    () => products.find((product) => product.id === form.productoId) ?? null,
-    [form.productoId, products]
+  const validation = validateCustomerOrderForm(form, products);
+
+  const cartLines = useMemo(
+    () =>
+      form.items.map((item) => {
+        const product = products.find((current) => current.id === item.productoId);
+        return {
+          ...item,
+          product,
+          subtotal: product ? product.precioVenta * item.cantidad : 0
+        };
+      }),
+    [form.items, products]
   );
 
-  const validation = validateCustomerOrderForm(form, products);
-  const total = selectedProduct ? selectedProduct.precioVenta * form.cantidad : 0;
+  const total = cartLines.reduce((sum, item) => sum + item.subtotal, 0);
+  const productCount = cartLines.reduce((sum, item) => sum + item.cantidad, 0);
+
+  function addProduct(productId: string) {
+    setForm((current) => {
+      const existing = current.items.find((item) => item.productoId === productId);
+
+      if (existing) {
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.productoId === productId
+              ? { ...item, cantidad: item.cantidad + 1 }
+              : item
+          )
+        };
+      }
+
+      return {
+        ...current,
+        items: [...current.items, { productoId: productId, cantidad: 1 }]
+      };
+    });
+  }
+
+  function updateQuantity(productId: string, nextQuantity: number) {
+    setForm((current) => ({
+      ...current,
+      items: current.items
+        .map((item) =>
+          item.productoId === productId ? { ...item, cantidad: nextQuantity } : item
+        )
+        .filter((item) => item.cantidad > 0)
+    }));
+  }
+
+  function removeItem(productId: string) {
+    setForm((current) => ({
+      ...current,
+      items: current.items.filter((item) => item.productoId !== productId)
+    }));
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setServerError("");
 
-    if (!validation.isValid || !selectedProduct) {
+    if (!validation.isValid) {
       setSubmitted(null);
       return;
     }
@@ -92,15 +141,15 @@ export function OrderForm() {
         body: JSON.stringify(form)
       });
 
-      const data = (await response.json()) as { total?: number; error?: string };
+      const data = (await response.json()) as CustomerOrderResponse & {
+        error?: string;
+      };
 
       if (!response.ok) {
         throw new Error(data.error ?? "No fue posible registrar el pedido.");
       }
 
-      setSubmitted({
-        total: data.total ?? 0
-      });
+      setSubmitted(data);
       setForm(initialForm);
     } catch (error) {
       setSubmitted(null);
@@ -113,35 +162,42 @@ export function OrderForm() {
   };
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+    <section className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
       <form
-        className="space-y-6 rounded-lg border border-border bg-panel p-5 shadow-soft sm:p-6"
+        className="space-y-6 rounded-xl border border-border/70 bg-white/90 p-5 shadow-soft backdrop-blur sm:p-6"
         onSubmit={handleSubmit}
       >
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold text-ink">Registrar pedido</h2>
-          <p className="text-sm leading-6 text-ink/75">
-            Completa tus datos, elige un producto y revisa tu total antes de
-            enviar.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-semibold text-ink">Arma tu pedido</h2>
+            <p className="text-sm leading-6 text-ink/75">
+              Puedes mezclar varios productos en un mismo pedido y ajustar cantidades
+              antes de enviarlo.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-ink/75">
+            {productCount} unidades · {cartLines.length} lineas
+          </div>
         </div>
 
-        <div className="space-y-4 rounded-lg border border-border bg-background p-4">
+        <div className="space-y-4 rounded-xl border border-border/70 bg-background/80 p-4">
           <h3 className="text-lg font-semibold text-ink">Tus datos</h3>
-          <Field
-            label="Nombre del cliente"
-            value={form.nombre}
-            onChange={(value) => setForm((current) => ({ ...current, nombre: value }))}
-            error={validation.errors.nombre}
-          />
-          <Field
-            label="Numero de telefono"
-            value={form.telefono}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, telefono: value }))
-            }
-            error={validation.errors.telefono}
-          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              label="Nombre del cliente"
+              value={form.nombre}
+              onChange={(value) => setForm((current) => ({ ...current, nombre: value }))}
+              error={validation.errors.nombre}
+            />
+            <Field
+              label="Numero de telefono"
+              value={form.telefono}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, telefono: value }))
+              }
+              error={validation.errors.telefono}
+            />
+          </div>
           <Field
             label="Lugar de trabajo"
             value={form.lugarTrabajo}
@@ -152,144 +208,199 @@ export function OrderForm() {
           />
         </div>
 
-        <div className="space-y-4 rounded-lg border border-border bg-background p-4">
-          <h3 className="text-lg font-semibold text-ink">Elige tu producto</h3>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="space-y-4 rounded-xl border border-border/70 bg-background/80 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-ink">Catalogo</h3>
+              <p className="text-sm text-ink/70">
+                Agrega productos al pedido y luego ajusta cantidades en el carrito.
+              </p>
+            </div>
+            {loadingProducts ? (
+              <span className="text-sm text-ink/60">Cargando...</span>
+            ) : null}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
             {products.map((product) => {
-              const isSelected = form.productoId === product.id;
+              const currentItem = form.items.find(
+                (item) => item.productoId === product.id
+              );
 
               return (
-                <button
+                <article
                   key={product.id}
-                  type="button"
-                  className={`rounded-lg border p-4 text-left transition ${
-                    isSelected
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-panel hover:border-primary/60"
-                  }`}
-                  onClick={() =>
-                    setForm((current) => ({ ...current, productoId: product.id }))
-                  }
+                  className="rounded-xl border border-border/80 bg-white p-4 shadow-sm"
                 >
-                  <div className="space-y-1">
-                    <div className="text-base font-semibold text-ink">
-                      {product.nombre}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <h4 className="text-base font-semibold text-ink">{product.nombre}</h4>
+                      <p className="text-sm leading-6 text-ink/70">
+                        {product.descripcion}
+                      </p>
                     </div>
-                    <p className="text-sm leading-6 text-ink/70">
-                      {product.descripcion}
-                    </p>
+                    {currentItem ? (
+                      <span className="rounded-full bg-secondary/50 px-3 py-1 text-xs font-semibold text-ink">
+                        x{currentItem.cantidad}
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="mt-4 text-sm font-semibold text-primary">
-                    {formatCurrency(product.precioVenta)}
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-primary">
+                      {formatCurrency(product.precioVenta)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addProduct(product.id)}
+                      className="rounded-lg bg-ink px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"
+                    >
+                      {currentItem ? "Sumar uno" : "Agregar"}
+                    </button>
                   </div>
-                </button>
+                </article>
               );
             })}
           </div>
-          {loadingProducts ? (
-            <p className="text-sm text-ink/70">Cargando productos activos...</p>
-          ) : null}
-          {validation.errors.productoId ? (
-            <p className="text-sm text-danger">{validation.errors.productoId}</p>
+          {validation.errors.items ? (
+            <p className="text-sm text-danger">{validation.errors.items}</p>
           ) : null}
         </div>
 
-        <div className="space-y-4 rounded-lg border border-border bg-background p-4">
-          <h3 className="text-lg font-semibold text-ink">Cantidad</h3>
-          <div className="flex items-center gap-3">
-            <QuantityButton
-              label="Reducir cantidad"
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  cantidad: Math.max(1, current.cantidad - 1)
-                }))
-              }
-            >
-              -
-            </QuantityButton>
-            <div className="min-w-16 rounded-lg border border-border bg-panel px-4 py-3 text-center text-lg font-semibold text-ink">
-              {form.cantidad}
+        <div className="space-y-4 rounded-xl border border-border/70 bg-background/80 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-ink">Tu carrito</h3>
+              <p className="text-sm text-ink/70">
+                Puedes subir, bajar o quitar productos antes de registrar.
+              </p>
             </div>
-            <QuantityButton
-              label="Aumentar cantidad"
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  cantidad: current.cantidad + 1
-                }))
-              }
-            >
-              +
-            </QuantityButton>
+            <div className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-ink">
+              {formatCurrency(total)}
+            </div>
           </div>
-          {validation.errors.cantidad ? (
-            <p className="text-sm text-danger">{validation.errors.cantidad}</p>
-          ) : null}
+
+          {cartLines.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-white p-6 text-sm text-ink/65">
+              Todavia no agregas productos al pedido.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cartLines.map((item) => (
+                <div
+                  key={item.productoId}
+                  className="grid gap-3 rounded-xl border border-border/80 bg-white p-4 md:grid-cols-[minmax(0,1fr)_auto_auto]"
+                >
+                  <div className="space-y-1">
+                    <div className="font-semibold text-ink">
+                      {item.product?.nombre ?? "Producto"}
+                    </div>
+                    <div className="text-sm text-ink/70">
+                      {item.product?.descripcion ?? "Producto sin descripcion"}
+                    </div>
+                    <div className="text-sm font-medium text-primary">
+                      {formatCurrency(item.product?.precioVenta ?? 0)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <QuantityButton
+                      label="Reducir cantidad"
+                      onClick={() => updateQuantity(item.productoId, item.cantidad - 1)}
+                    >
+                      -
+                    </QuantityButton>
+                    <div className="min-w-14 rounded-lg border border-border bg-background px-3 py-2 text-center font-semibold text-ink">
+                      {item.cantidad}
+                    </div>
+                    <QuantityButton
+                      label="Aumentar cantidad"
+                      onClick={() => updateQuantity(item.productoId, item.cantidad + 1)}
+                    >
+                      +
+                    </QuantityButton>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:flex-col md:items-end">
+                    <div className="text-sm font-semibold text-ink">
+                      {formatCurrency(item.subtotal)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.productoId)}
+                      className="text-sm font-medium text-danger"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
           type="submit"
           disabled={submitting || loadingProducts || products.length === 0}
-          className="w-full rounded-lg bg-primary px-4 py-3 text-base font-semibold text-white transition hover:bg-[#8e5725]"
+          className="w-full rounded-xl bg-primary px-4 py-3 text-base font-semibold text-white transition hover:opacity-90"
         >
-          {submitting ? "Registrando..." : "Registrar mi pedido"}
+          {submitting ? "Registrando pedido..." : "Registrar pedido completo"}
         </button>
         {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
       </form>
 
       <aside className="space-y-4">
-        <div className="rounded-lg border border-border bg-panel p-5 shadow-soft">
-          <h3 className="text-lg font-semibold text-ink">Resumen</h3>
-          <dl className="mt-4 space-y-3 text-sm text-ink/80">
-            <div className="flex items-center justify-between gap-4">
-              <dt>Producto</dt>
-              <dd className="font-medium text-ink">
-                {selectedProduct?.nombre ?? "Sin seleccionar"}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt>Costo unitario</dt>
-              <dd className="font-medium text-ink">
-                {selectedProduct
-                  ? formatCurrency(selectedProduct.precioVenta)
-                  : "$0"}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt>Cantidad</dt>
-              <dd className="font-medium text-ink">{form.cantidad}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-t border-border pt-3 text-base">
-              <dt className="font-semibold text-ink">Total</dt>
-              <dd className="font-semibold text-primary">
-                {formatCurrency(total)}
-              </dd>
-            </div>
-          </dl>
+        <div className="rounded-xl border border-border/70 bg-white/90 p-5 shadow-soft">
+          <h3 className="text-lg font-semibold text-ink">Resumen del pedido</h3>
+          <div className="mt-4 space-y-3">
+            {cartLines.length === 0 ? (
+              <p className="text-sm text-ink/70">Agrega productos para ver el resumen.</p>
+            ) : (
+              cartLines.map((item) => (
+                <div
+                  key={item.productoId}
+                  className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-background/80 px-4 py-3"
+                >
+                  <div>
+                    <div className="font-medium text-ink">{item.product?.nombre}</div>
+                    <div className="text-sm text-ink/65">x{item.cantidad}</div>
+                  </div>
+                  <div className="text-sm font-semibold text-primary">
+                    {formatCurrency(item.subtotal)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-base">
+            <span className="font-semibold text-ink">Total</span>
+            <span className="font-semibold text-primary">{formatCurrency(total)}</span>
+          </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-panel p-5 shadow-soft">
-          <h3 className="text-lg font-semibold text-ink">Reglas activas</h3>
-          <ul className="mt-4 space-y-2 text-sm leading-6 text-ink/75">
-            <li>Todo pedido nuevo nace como PENDIENTE.</li>
-            <li>Todo pago nuevo nace como SIN_PAGO.</li>
-            <li>El total se recalcula a partir del producto activo.</li>
+        <div className="rounded-xl border border-border/70 bg-white/90 p-5 shadow-soft">
+          <h3 className="text-lg font-semibold text-ink">Como funciona</h3>
+          <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/75">
+            <li>Agrega uno o varios productos al mismo pedido.</li>
+            <li>El sistema recalcula subtotales y total en tiempo real.</li>
+            <li>Todo pedido nuevo entra como PENDIENTE y SIN_PAGO.</li>
           </ul>
         </div>
 
         {submitted ? (
-          <div className="rounded-lg border border-success/30 bg-success/10 p-5 text-sm leading-6 text-ink">
-            <p className="font-semibold text-success">
-              Pedido registrado correctamente.
+          <div className="rounded-xl border border-success/30 bg-white/95 p-5 shadow-soft">
+            <p className="font-semibold text-success">Pedido registrado correctamente.</p>
+            <p className="mt-2 text-sm leading-6 text-ink/75">
+              Pauli revisara disponibilidad y pasara el pedido a agenda si corresponde.
             </p>
-            <p>
-              Tu pedido quedo pendiente de confirmacion. Pauli revisara
-              disponibilidad y, si corresponde, lo dejara agendado.
-            </p>
-            <p className="mt-2 font-medium text-ink">
-              Total registrado: {formatCurrency(submitted.total)}
-            </p>
+            <div className="mt-4 rounded-lg border border-border/70 bg-background/80 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-ink/65">Pedido</span>
+                <span className="font-medium text-ink">{submitted.pedidoId}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-ink/65">Total</span>
+                <span className="font-semibold text-primary">
+                  {formatCurrency(submitted.total)}
+                </span>
+              </div>
+            </div>
           </div>
         ) : null}
       </aside>
@@ -311,7 +422,7 @@ function Field({ label, value, error, onChange }: FieldProps) {
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-border bg-panel px-4 py-3 text-base text-ink outline-none transition focus:border-primary"
+        className="w-full rounded-xl border border-border/80 bg-white px-4 py-3 text-base text-ink outline-none transition focus:border-primary"
       />
       {error ? <span className="text-sm text-danger">{error}</span> : null}
     </label>
@@ -329,7 +440,7 @@ function QuantityButton({ children, label, onClick }: QuantityButtonProps) {
     <button
       type="button"
       aria-label={label}
-      className="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-panel text-xl font-semibold text-ink transition hover:border-primary hover:text-primary"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-white text-xl font-semibold text-ink transition hover:border-primary hover:text-primary"
       onClick={onClick}
     >
       {children}

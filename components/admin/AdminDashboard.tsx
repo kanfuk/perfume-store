@@ -433,7 +433,11 @@ function OrderSection({
                   <h3 className="text-base font-semibold text-ink">
                     {order.clienteNombre}
                   </h3>
-                  <p className="text-sm text-ink/70">{order.productoNombre}</p>
+                  <p className="text-sm text-ink/70">
+                    {order.items.length > 1
+                      ? `${order.items.length} productos en el pedido`
+                      : order.productoNombre}
+                  </p>
                   <p className="text-sm text-ink/70">
                     {order.clienteLugarTrabajo || "Sin lugar de trabajo"}
                   </p>
@@ -510,8 +514,35 @@ function OrderDetailPanel({ order }: { order: AdminOrderSummary | null }) {
           label="Lugar de trabajo"
           value={order.clienteLugarTrabajo || "No informado"}
         />
-        <InfoItem label="Producto" value={order.productoNombre} />
-        <InfoItem label="Cantidad" value={String(order.cantidad)} />
+        <InfoItem
+          label="Items"
+          value={`${order.items.length} linea${order.items.length === 1 ? "" : "s"}`}
+        />
+        <InfoItem label="Cantidad total" value={String(order.cantidad)} />
+      </div>
+
+      <div className="rounded-lg border border-border bg-background p-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/70">
+          Detalle de productos
+        </h3>
+        <div className="mt-4 space-y-3">
+          {order.items.map((item) => (
+            <div
+              key={`${order.id}-${item.productoId}`}
+              className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-white px-4 py-3"
+            >
+              <div>
+                <div className="font-medium text-ink">{item.productoNombre}</div>
+                <div className="text-sm text-ink/65">
+                  {formatCurrency(item.precioUnitario)} · x{item.cantidad}
+                </div>
+              </div>
+              <div className="text-sm font-semibold text-primary">
+                {formatCurrency(item.subtotal)}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-lg border border-border bg-background p-4">

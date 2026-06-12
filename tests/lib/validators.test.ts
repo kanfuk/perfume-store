@@ -9,8 +9,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
-        productoId: "pan-amasado",
-        cantidad: 2
+        items: [{ productoId: "pan-amasado", cantidad: 2 }]
       },
       mockProducts
     );
@@ -25,8 +24,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "",
         telefono: "",
         lugarTrabajo: "",
-        productoId: "",
-        cantidad: 0
+        items: []
       },
       mockProducts
     );
@@ -35,8 +33,7 @@ describe("validateCustomerOrderForm", () => {
     expect(result.errors.nombre).toBe("Ingresa tu nombre.");
     expect(result.errors.telefono).toBe("Ingresa tu numero de telefono.");
     expect(result.errors.lugarTrabajo).toBe("Ingresa tu lugar de trabajo.");
-    expect(result.errors.productoId).toBe("Selecciona un producto.");
-    expect(result.errors.cantidad).toBe("La cantidad debe ser al menos 1.");
+    expect(result.errors.items).toBe("Agrega al menos un producto al pedido.");
   });
 
   it("rechaza productos inactivos", () => {
@@ -45,8 +42,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
-        productoId: "producto-inactivo",
-        cantidad: 1
+        items: [{ productoId: "producto-inactivo", cantidad: 1 }]
       },
       [
         ...mockProducts,
@@ -60,6 +56,6 @@ describe("validateCustomerOrderForm", () => {
     );
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.productoId).toBe("Selecciona un producto activo.");
+    expect(result.errors.items).toBe("Todos los items deben usar productos activos.");
   });
 });

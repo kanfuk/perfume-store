@@ -8,13 +8,13 @@
  */
 
 import type { ProductoProps } from "@/domain/Producto";
+import type { CustomerOrderLineInput } from "@/lib/types";
 
 export type CustomerFormData = {
   nombre: string;
   telefono: string;
   lugarTrabajo: string;
-  productoId: string;
-  cantidad: number;
+  items: CustomerOrderLineInput[];
 };
 
 type CustomerFormErrors = Partial<Record<keyof CustomerFormData, string>>;
@@ -37,18 +37,27 @@ export function validateCustomerOrderForm(
     errors.lugarTrabajo = "Ingresa tu lugar de trabajo.";
   }
 
-  if (!data.productoId) {
-    errors.productoId = "Selecciona un producto.";
+  if (!Array.isArray(data.items) || data.items.length === 0) {
+    errors.items = "Agrega al menos un producto al pedido.";
   } else {
-    const producto = products.find((item) => item.id === data.productoId);
+    for (const item of data.items) {
+      const producto = products.find((product) => product.id === item.productoId);
 
-    if (!producto || producto.activo === false) {
-      errors.productoId = "Selecciona un producto activo.";
+      if (!item.productoId) {
+        errors.items = "Todos los items deben tener un producto.";
+        break;
+      }
+
+      if (!producto || producto.activo === false) {
+        errors.items = "Todos los items deben usar productos activos.";
+        break;
+      }
+
+      if (!Number.isInteger(item.cantidad) || item.cantidad < 1) {
+        errors.items = "Cada item debe tener cantidad minima de 1.";
+        break;
+      }
     }
-  }
-
-  if (!Number.isInteger(data.cantidad) || data.cantidad < 1) {
-    errors.cantidad = "La cantidad debe ser al menos 1.";
   }
 
   return {

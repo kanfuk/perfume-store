@@ -9,6 +9,7 @@
 
 import { DetallePedido } from "@/domain/DetallePedido";
 import { Pedido } from "@/domain/Pedido";
+import type { AdminOrderItemSummary } from "@/lib/types";
 import { isSupabaseConfigured } from "@/lib/env";
 import { localStore } from "@/lib/local-store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -24,6 +25,7 @@ export type PedidoListItemRecord = {
   cantidad: number;
   precioUnitario: number;
   subtotal: number;
+  items: AdminOrderItemSummary[];
   estadoPedido: string;
   estadoPago: string;
   total: number;
@@ -127,14 +129,27 @@ class MemoryPedidoRepository implements PedidoRepository {
         const customer = localStore.customers.find(
           (item) => item.id === order.clienteId
         );
-        const orderItem = localStore.orderItems.find(
-          (item) => item.pedidoId === order.id
-        );
-        const product = localStore.products.find(
-          (item) => item.id === orderItem?.productoId
-        );
+        const orderItems = localStore.orderItems.filter((item) => item.pedidoId === order.id);
+        const normalizedItems = orderItems.map((orderItem) => {
+          const product = localStore.products.find(
+            (item) => item.id === orderItem.productoId
+          );
 
-        if (!customer || !orderItem || !product) {
+          if (!product) {
+            throw new Error("El pedido local esta inconsistente.");
+          }
+
+          return {
+            productoId: product.id,
+            productoNombre: product.nombre,
+            cantidad: orderItem.cantidad,
+            precioUnitario: orderItem.precioUnitario,
+            subtotal: orderItem.subtotal
+          };
+        });
+        const firstItem = normalizedItems[0];
+
+        if (!customer || normalizedItems.length === 0) {
           throw new Error("El pedido local esta inconsistente.");
         }
 
@@ -144,11 +159,15 @@ class MemoryPedidoRepository implements PedidoRepository {
           clienteNombre: customer.nombre,
           clienteTelefono: customer.telefono,
           clienteLugarTrabajo: customer.lugarTrabajo,
-          productoId: product.id,
-          productoNombre: product.nombre,
-          cantidad: orderItem.cantidad,
-          precioUnitario: orderItem.precioUnitario,
-          subtotal: orderItem.subtotal,
+          productoId: firstItem?.productoId ?? "",
+          productoNombre:
+            normalizedItems.length > 1
+              ? `${normalizedItems.length} productos`
+              : firstItem?.productoNombre ?? "Producto",
+          cantidad: normalizedItems.reduce((sum, item) => sum + item.cantidad, 0),
+          precioUnitario: firstItem?.precioUnitario ?? 0,
+          subtotal: firstItem?.subtotal ?? 0,
+          items: normalizedItems,
           estadoPedido: order.estadoPedido,
           estadoPago: order.estadoPago,
           total: order.total,
@@ -344,12 +363,33 @@ class SupabasePedidoRepository implements PedidoRepository {
 
     return data.map((order) => {
       const customer = Array.isArray(order.clientes) ? order.clientes[0] : order.clientes;
-      const firstItem = Array.isArray(order.pedido_items)
-        ? order.pedido_items[0]
-        : order.pedido_items;
-      const product = Array.isArray(firstItem?.productos)
-        ? firstItem.productos[0]
-        : firstItem?.productos;
+      const items = Array.isArray(order.pedido_items)
+        ? order.pedido_items
+        : order.pedido_items
+          ? [order.pedido_items]
+          : [];
+      const normalizedItems = items.map((currentItem) => {
+        const product = Array.isArray(currentItem?.productos)
+          ? currentItem.productos[0]
+          : currentItem?.productos;
+
+        return {
+          productoId: currentItem?.producto_id ?? "",
+          productoNombre: product?.nombre ?? "Producto",
+          cantidad: currentItem?.cantidad ?? 0,
+          precioUnitario: currentItem?.precio_unitario ?? 0,
+          subtotal: currentItem?.subtotal ?? 0
+        };
+      });
+      const firstItem = normalizedItems[0];
+      const totalCantidad = normalizedItems.reduce(
+        (sum, currentItem) => sum + currentItem.cantidad,
+        0
+      );
+      const summaryProductName =
+        normalizedItems.length <= 1
+          ? firstItem?.productoNombre ?? "Producto"
+          : `${normalizedItems.length} productos`;
 
       return {
         id: order.id,
@@ -357,11 +397,12 @@ class SupabasePedidoRepository implements PedidoRepository {
         clienteNombre: customer?.nombre ?? "Sin nombre",
         clienteTelefono: customer?.telefono ?? "",
         clienteLugarTrabajo: customer?.lugar_trabajo ?? "",
-        productoId: firstItem?.producto_id ?? "",
-        productoNombre: product?.nombre ?? "Producto",
-        cantidad: firstItem?.cantidad ?? 0,
-        precioUnitario: firstItem?.precio_unitario ?? 0,
+        productoId: firstItem?.productoId ?? "",
+        productoNombre: summaryProductName,
+        cantidad: totalCantidad,
+        precioUnitario: firstItem?.precioUnitario ?? 0,
         subtotal: firstItem?.subtotal ?? 0,
+        items: normalizedItems,
         estadoPedido: order.estado_pedido,
         estadoPago: order.estado_pago,
         total: order.total,

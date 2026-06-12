@@ -49,28 +49,30 @@ export class PedidoService {
       throw new Error(Object.values(validation.errors)[0] ?? "Formulario invalido.");
     }
 
-    const productData = await this.productRepository.buscarProductoPorId(input.productoId);
-
-    if (!productData || productData.activo === false) {
-      throw new Error("El producto seleccionado no esta disponible.");
-    }
-
     const cliente = new Cliente({
       nombre: input.nombre,
       telefono: input.telefono,
       lugarTrabajo: input.lugarTrabajo
     });
+    const productMap = new Map(products.map((product) => [product.id, product]));
+    const items = input.items.map((line) => {
+      const productData = productMap.get(line.productoId);
 
-    const producto = new Producto(productData);
-    const item = new DetallePedido({
-      producto,
-      cantidad: input.cantidad,
-      precioUnitario: producto.precioVenta
+      if (!productData || productData.activo === false) {
+        throw new Error("El producto seleccionado no esta disponible.");
+      }
+
+      const producto = new Producto(productData);
+      return new DetallePedido({
+        producto,
+        cantidad: line.cantidad,
+        precioUnitario: producto.precioVenta
+      });
     });
 
     const pedido = new Pedido({
       cliente,
-      items: [item]
+      items
     });
 
     const { id: clienteId } = await this.clienteRepository.insertarCliente(cliente);
@@ -79,10 +81,14 @@ export class PedidoService {
       clienteId
     });
 
-    await this.pedidoRepository.insertarPedidoItem({
-      pedidoId,
-      item
-    });
+    await Promise.all(
+      items.map((item) =>
+        this.pedidoRepository.insertarPedidoItem({
+          pedidoId,
+          item
+        })
+      )
+    );
 
     return {
       pedidoId,
@@ -90,11 +96,13 @@ export class PedidoService {
       total: pedido.total,
       estadoPedido: pedido.estadoPedido,
       estadoPago: pedido.estadoPago,
-      producto: {
-        id: producto.id,
-        nombre: producto.nombre,
-        precioUnitario: producto.precioVenta
-      }
+      items: items.map((item) => ({
+        productoId: item.producto.id,
+        nombre: item.producto.nombre,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        subtotal: item.subtotal
+      }))
     };
   }
 
@@ -311,17 +319,39 @@ export class PedidoService {
       precioVenta: order.precioUnitario,
       activo: true
     });
+    const sourceItems = order.items.length > 0
+      ? order.items
+      : [
+          {
+            productoId: order.productoId,
+            productoNombre: order.productoNombre,
+            cantidad: order.cantidad,
+            precioUnitario: order.precioUnitario,
+            subtotal: order.subtotal
+          }
+        ];
+    const items = sourceItems.map((currentItem) => {
+      const currentProduct =
+        currentItem.productoId === producto.id
+          ? producto
+          : new Producto({
+              id: currentItem.productoId,
+              nombre: currentItem.productoNombre,
+              precioVenta: currentItem.precioUnitario,
+              activo: true
+            });
 
-    const item = new DetallePedido({
-      producto,
-      cantidad: order.cantidad,
-      precioUnitario: order.precioUnitario
+      return new DetallePedido({
+        producto: currentProduct,
+        cantidad: currentItem.cantidad,
+        precioUnitario: currentItem.precioUnitario
+      });
     });
 
     return new Pedido({
       id: order.id,
       cliente,
-      items: [item],
+      items,
       estadoPedido: order.estadoPedido,
       estadoPago: order.estadoPago,
       fechaPedido: new Date(order.fechaPedido),
