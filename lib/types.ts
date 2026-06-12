@@ -49,4 +49,19 @@ export type AdminOrderSummary = {
   fechaCierre?: string;
   fechaCancelacion?: string;
   motivoCancelacion?: string;
+  totalPagado: number;
+  saldoPendiente: number;
+  pagosRegistrados: number;
+  fechaUltimoPago?: string;
+  fiadoEstado?: string;
+  fechaFiado?: string;
+  fechaPagoFiado?: string;
+};
+
+export type AdminDashboardData = {
+  pendientes: AdminOrderSummary[];
+  agendados: AdminOrderSummary[];
+  finalizados: AdminOrderSummary[];
+  cancelados: AdminOrderSummary[];
+  fiadosPendientes: AdminOrderSummary[];
 };

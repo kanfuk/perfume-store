@@ -12,8 +12,10 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as {
-      action?: "agendar" | "cancelar" | "pagado" | "fiado";
+      action?: "agendar" | "cancelar" | "pagado" | "fiado" | "abonar";
       motivoCancelacion?: string;
+      monto?: number;
+      metodoPago?: string;
     };
     const { pedidoId } = await context.params;
     const pedidoService = createPedidoService();
@@ -33,6 +35,13 @@ export async function PATCH(
         break;
       case "fiado":
         await pedidoService.marcarPedidoFiado(pedidoId);
+        break;
+      case "abonar":
+        await pedidoService.registrarAbonoFiado(
+          pedidoId,
+          body.monto ?? 0,
+          body.metodoPago || "EFECTIVO"
+        );
         break;
       default:
         return NextResponse.json(

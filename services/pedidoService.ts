@@ -16,9 +16,11 @@ import {
   ESTADO_PAGO_PAGADO,
   ESTADO_PEDIDO_AGENDADO,
   ESTADO_PEDIDO_CANCELADO,
+  ESTADO_PEDIDO_FINALIZADO,
   ESTADO_PEDIDO_PENDIENTE
 } from "@/lib/constants";
 import type {
+  AdminDashboardData,
   AdminOrderSummary,
   CustomerOrderRequest,
   CustomerOrderResponse
@@ -27,6 +29,7 @@ import { validateCustomerOrderForm } from "@/lib/validators";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
 import type { PedidoRepository } from "@/repositories/pedidoRepository";
+import type { PedidoListItemRecord } from "@/repositories/pedidoRepository";
 import { getPedidoRepository } from "@/repositories/pedidoRepository";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
@@ -96,7 +99,54 @@ export class PedidoService {
   }
 
   async obtenerPedidosPorEstado(estadoPedido: string): Promise<AdminOrderSummary[]> {
-    return this.pedidoRepository.buscarPedidosPorEstado(estadoPedido);
+    const orders = await this.pedidoRepository.buscarPedidosPorEstado(estadoPedido);
+    return this.enriquecerPedidosAdmin(orders);
+  }
+
+  async obtenerDashboardAdmin(): Promise<AdminDashboardData> {
+    const [pendientes, agendados, finalizados, cancelados] = await Promise.all([
+      this.pedidoRepository.buscarPedidosPorEstado(ESTADO_PEDIDO_PENDIENTE),
+      this.pedidoRepository.buscarPedidosPorEstado(ESTADO_PEDIDO_AGENDADO),
+      this.pedidoRepository.buscarPedidosPorEstado(ESTADO_PEDIDO_FINALIZADO),
+      this.pedidoRepository.buscarPedidosPorEstado(ESTADO_PEDIDO_CANCELADO)
+    ]);
+    const enriched = await this.enriquecerPedidosAdmin([
+      ...pendientes,
+      ...agendados,
+      ...finalizados,
+      ...cancelados
+    ]);
+
+    const byId = new Map(enriched.map((order) => [order.id, order]));
+    const finalizadosEnriched = finalizados
+      .map((order) => byId.get(order.id))
+      .filter((order): order is AdminOrderSummary => Boolean(order))
+      .sort((a, b) =>
+        (b.fechaCierre ?? b.fechaPedido).localeCompare(a.fechaCierre ?? a.fechaPedido)
+      );
+
+    const fiadosPendientes = finalizadosEnriched.filter(
+      (order) => order.estadoPago === ESTADO_PAGO_FIADO && order.saldoPendiente > 0
+    );
+
+    return {
+      pendientes: pendientes
+        .map((order) => byId.get(order.id))
+        .filter((order): order is AdminOrderSummary => Boolean(order)),
+      agendados: agendados
+        .map((order) => byId.get(order.id))
+        .filter((order): order is AdminOrderSummary => Boolean(order)),
+      finalizados: finalizadosEnriched,
+      cancelados: cancelados
+        .map((order) => byId.get(order.id))
+        .filter((order): order is AdminOrderSummary => Boolean(order))
+        .sort((a, b) =>
+          (b.fechaCancelacion ?? b.fechaPedido).localeCompare(
+            a.fechaCancelacion ?? a.fechaPedido
+          )
+        ),
+      fiadosPendientes
+    };
   }
 
   async agendarPedido(pedidoId: string) {
@@ -148,6 +198,13 @@ export class PedidoService {
       fechaAgendado: domainPedido.fechaAgendado?.toISOString(),
       fechaCierre: domainPedido.fechaCierre?.toISOString()
     });
+    await this.pedidoRepository.insertarPago({
+      pedidoId,
+      monto: domainPedido.total,
+      metodoPago: "EFECTIVO",
+      estadoPago: ESTADO_PAGO_PAGADO,
+      fechaPago: domainPedido.fechaCierre?.toISOString()
+    });
   }
 
   async marcarPedidoFiado(pedidoId: string) {
@@ -162,6 +219,71 @@ export class PedidoService {
       fechaAgendado: domainPedido.fechaAgendado?.toISOString(),
       fechaCierre: domainPedido.fechaCierre?.toISOString()
     });
+    await this.pedidoRepository.upsertFiado({
+      pedidoId,
+      clienteId: pedido.clienteId,
+      montoPendiente: domainPedido.total,
+      estado: "PENDIENTE",
+      fechaFiado: domainPedido.fechaCierre?.toISOString()
+    });
+  }
+
+  async registrarAbonoFiado(
+    pedidoId: string,
+    monto: number,
+    metodoPago = "EFECTIVO"
+  ) {
+    const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_FINALIZADO);
+
+    if (pedido.estadoPago !== ESTADO_PAGO_FIADO) {
+      throw new Error("Solo se pueden abonar pedidos fiados.");
+    }
+
+    const [fiado] = await this.pedidoRepository.buscarFiadosPorPedidoIds([pedidoId]);
+
+    if (!fiado || fiado.montoPendiente <= 0) {
+      throw new Error("No existe deuda pendiente para este pedido.");
+    }
+
+    const abono = Math.trunc(monto);
+
+    if (!Number.isFinite(abono) || abono <= 0) {
+      throw new Error("El abono debe ser mayor a cero.");
+    }
+
+    if (abono > fiado.montoPendiente) {
+      throw new Error("El abono no puede superar el saldo pendiente.");
+    }
+
+    const fechaPago = new Date().toISOString();
+    const saldoPendiente = fiado.montoPendiente - abono;
+
+    await this.pedidoRepository.insertarPago({
+      pedidoId,
+      monto: abono,
+      metodoPago,
+      estadoPago: saldoPendiente === 0 ? ESTADO_PAGO_PAGADO : ESTADO_PAGO_FIADO,
+      fechaPago
+    });
+
+    await this.pedidoRepository.upsertFiado({
+      pedidoId,
+      clienteId: pedido.clienteId,
+      montoPendiente: saldoPendiente,
+      estado: saldoPendiente === 0 ? "PAGADO" : "PENDIENTE",
+      fechaFiado: fiado.fechaFiado,
+      fechaPagoFiado: saldoPendiente === 0 ? fechaPago : undefined
+    });
+
+    if (saldoPendiente === 0) {
+      await this.pedidoRepository.actualizarEstadoPedido({
+        pedidoId,
+        estadoPedido: ESTADO_PEDIDO_FINALIZADO,
+        estadoPago: ESTADO_PAGO_PAGADO,
+        fechaAgendado: pedido.fechaAgendado,
+        fechaCierre: pedido.fechaCierre ?? fechaPago
+      });
+    }
   }
 
   private async obtenerPedidoUnico(pedidoId: string, estadoPedido: string) {
@@ -175,7 +297,7 @@ export class PedidoService {
     return pedido;
   }
 
-  private mapListItemToPedido(order: AdminOrderSummary) {
+  private mapListItemToPedido(order: AdminOrderSummary | PedidoListItemRecord) {
     const cliente = new Cliente({
       id: order.clienteId,
       nombre: order.clienteNombre,
@@ -209,6 +331,56 @@ export class PedidoService {
         ? new Date(order.fechaCancelacion)
         : undefined,
       motivoCancelacion: order.motivoCancelacion
+    });
+  }
+
+  private async enriquecerPedidosAdmin(
+    orders: Array<AdminOrderSummary | PedidoListItemRecord>
+  ): Promise<AdminOrderSummary[]> {
+    if (orders.length === 0) {
+      return [];
+    }
+
+    const orderIds = orders.map((order) => order.id);
+    const [payments, fiados] = await Promise.all([
+      this.pedidoRepository.buscarPagosPorPedidoIds(orderIds),
+      this.pedidoRepository.buscarFiadosPorPedidoIds(orderIds)
+    ]);
+
+    const paymentsByOrderId = new Map<string, typeof payments>();
+    payments.forEach((payment) => {
+      const current = paymentsByOrderId.get(payment.pedidoId) ?? [];
+      current.push(payment);
+      paymentsByOrderId.set(payment.pedidoId, current);
+    });
+
+    const fiadosByOrderId = new Map(fiados.map((fiado) => [fiado.pedidoId, fiado]));
+
+    return orders.map((order) => {
+      const currentPayments = paymentsByOrderId.get(order.id) ?? [];
+      const currentFiado = fiadosByOrderId.get(order.id);
+      const totalPagado = currentPayments.reduce((sum, payment) => sum + payment.monto, 0);
+      const fechaUltimoPago =
+        currentPayments
+          .slice()
+          .sort((a, b) => b.fechaPago.localeCompare(a.fechaPago))[0]?.fechaPago ??
+        undefined;
+
+      return {
+        ...order,
+        totalPagado:
+          order.estadoPago === ESTADO_PAGO_PAGADO && totalPagado === 0
+            ? order.total
+            : totalPagado,
+        saldoPendiente:
+          currentFiado?.montoPendiente ??
+          (order.estadoPago === ESTADO_PAGO_FIADO ? order.total - totalPagado : 0),
+        pagosRegistrados: currentPayments.length,
+        fechaUltimoPago,
+        fiadoEstado: currentFiado?.estado,
+        fechaFiado: currentFiado?.fechaFiado,
+        fechaPagoFiado: currentFiado?.fechaPagoFiado
+      };
     });
   }
 }

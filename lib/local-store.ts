@@ -30,9 +30,30 @@ export type LocalOrderItemRecord = {
   subtotal: number;
 };
 
+export type LocalPaymentRecord = {
+  id: string;
+  pedidoId: string;
+  monto: number;
+  metodoPago?: string;
+  estadoPago: string;
+  fechaPago: string;
+};
+
+export type LocalFiadoRecord = {
+  id: string;
+  pedidoId: string;
+  clienteId: string;
+  montoPendiente: number;
+  estado: string;
+  fechaFiado: string;
+  fechaPagoFiado?: string;
+};
+
 export const localStore = {
   customers: [] as LocalCustomerRecord[],
   orders: [] as LocalOrderRecord[],
   orderItems: [] as LocalOrderItemRecord[],
+  payments: [] as LocalPaymentRecord[],
+  fiados: [] as LocalFiadoRecord[],
   products: [...mockProducts]
 };

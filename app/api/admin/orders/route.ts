@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { ESTADO_PEDIDO_AGENDADO, ESTADO_PEDIDO_PENDIENTE } from "@/lib/constants";
 import { createPedidoService } from "@/services/pedidoService";
 
 export async function GET() {
@@ -10,12 +9,9 @@ export async function GET() {
 
   try {
     const pedidoService = createPedidoService();
-    const [pendientes, agendados] = await Promise.all([
-      pedidoService.obtenerPedidosPorEstado(ESTADO_PEDIDO_PENDIENTE),
-      pedidoService.obtenerPedidosPorEstado(ESTADO_PEDIDO_AGENDADO)
-    ]);
+    const dashboard = await pedidoService.obtenerDashboardAdmin();
 
-    return NextResponse.json({ pendientes, agendados });
+    return NextResponse.json(dashboard);
   } catch (error) {
     return NextResponse.json(
       {

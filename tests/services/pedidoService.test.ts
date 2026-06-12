@@ -54,6 +54,22 @@ class PedidoRepositoryStub implements PedidoRepository {
     return [];
   }
 
+  async buscarPagosPorPedidoIds() {
+    return [];
+  }
+
+  async buscarFiadosPorPedidoIds() {
+    return [];
+  }
+
+  async insertarPago() {
+    return { id: "pago-1" };
+  }
+
+  async upsertFiado() {
+    return;
+  }
+
   async actualizarEstadoPedido() {
     return;
   }

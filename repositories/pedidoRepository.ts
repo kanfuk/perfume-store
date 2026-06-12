@@ -34,6 +34,25 @@ export type PedidoListItemRecord = {
   motivoCancelacion?: string;
 };
 
+export type PedidoPagoRecord = {
+  id: string;
+  pedidoId: string;
+  monto: number;
+  metodoPago?: string;
+  estadoPago: string;
+  fechaPago: string;
+};
+
+export type PedidoFiadoRecord = {
+  id: string;
+  pedidoId: string;
+  clienteId: string;
+  montoPendiente: number;
+  estado: string;
+  fechaFiado: string;
+  fechaPagoFiado?: string;
+};
+
 export interface PedidoRepository {
   insertarPedido(args: {
     pedido: Pedido;
@@ -52,6 +71,23 @@ export interface PedidoRepository {
     fechaCierre?: string;
     fechaCancelacion?: string;
     motivoCancelacion?: string;
+  }): Promise<void>;
+  buscarPagosPorPedidoIds(pedidoIds: string[]): Promise<PedidoPagoRecord[]>;
+  buscarFiadosPorPedidoIds(pedidoIds: string[]): Promise<PedidoFiadoRecord[]>;
+  insertarPago(args: {
+    pedidoId: string;
+    monto: number;
+    metodoPago?: string;
+    estadoPago: string;
+    fechaPago?: string;
+  }): Promise<{ id: string }>;
+  upsertFiado(args: {
+    pedidoId: string;
+    clienteId: string;
+    montoPendiente: number;
+    estado: string;
+    fechaFiado?: string;
+    fechaPagoFiado?: string;
   }): Promise<void>;
 }
 
@@ -149,6 +185,90 @@ class MemoryPedidoRepository implements PedidoRepository {
     order.fechaCierre = args.fechaCierre;
     order.fechaCancelacion = args.fechaCancelacion;
     order.motivoCancelacion = args.motivoCancelacion;
+  }
+
+  async buscarPagosPorPedidoIds(pedidoIds: string[]) {
+    if (pedidoIds.length === 0) {
+      return [];
+    }
+
+    return localStore.payments
+      .filter((payment) => pedidoIds.includes(payment.pedidoId))
+      .map((payment) => ({
+        id: payment.id,
+        pedidoId: payment.pedidoId,
+        monto: payment.monto,
+        metodoPago: payment.metodoPago,
+        estadoPago: payment.estadoPago,
+        fechaPago: payment.fechaPago
+      }));
+  }
+
+  async buscarFiadosPorPedidoIds(pedidoIds: string[]) {
+    if (pedidoIds.length === 0) {
+      return [];
+    }
+
+    return localStore.fiados
+      .filter((fiado) => pedidoIds.includes(fiado.pedidoId))
+      .map((fiado) => ({
+        id: fiado.id,
+        pedidoId: fiado.pedidoId,
+        clienteId: fiado.clienteId,
+        montoPendiente: fiado.montoPendiente,
+        estado: fiado.estado,
+        fechaFiado: fiado.fechaFiado,
+        fechaPagoFiado: fiado.fechaPagoFiado
+      }));
+  }
+
+  async insertarPago(args: {
+    pedidoId: string;
+    monto: number;
+    metodoPago?: string;
+    estadoPago: string;
+    fechaPago?: string;
+  }) {
+    const id = crypto.randomUUID();
+    localStore.payments.push({
+      id,
+      pedidoId: args.pedidoId,
+      monto: args.monto,
+      metodoPago: args.metodoPago,
+      estadoPago: args.estadoPago,
+      fechaPago: args.fechaPago ?? new Date().toISOString()
+    });
+
+    return { id };
+  }
+
+  async upsertFiado(args: {
+    pedidoId: string;
+    clienteId: string;
+    montoPendiente: number;
+    estado: string;
+    fechaFiado?: string;
+    fechaPagoFiado?: string;
+  }) {
+    const current = localStore.fiados.find((item) => item.pedidoId === args.pedidoId);
+
+    if (current) {
+      current.montoPendiente = args.montoPendiente;
+      current.estado = args.estado;
+      current.fechaFiado = args.fechaFiado ?? current.fechaFiado;
+      current.fechaPagoFiado = args.fechaPagoFiado;
+      return;
+    }
+
+    localStore.fiados.push({
+      id: crypto.randomUUID(),
+      pedidoId: args.pedidoId,
+      clienteId: args.clienteId,
+      montoPendiente: args.montoPendiente,
+      estado: args.estado,
+      fechaFiado: args.fechaFiado ?? new Date().toISOString(),
+      fechaPagoFiado: args.fechaPagoFiado
+    });
   }
 }
 
@@ -278,6 +398,127 @@ class SupabasePedidoRepository implements PedidoRepository {
 
     if (error) {
       throw new Error("No fue posible actualizar el pedido.");
+    }
+  }
+
+  async buscarPagosPorPedidoIds(pedidoIds: string[]) {
+    if (pedidoIds.length === 0) {
+      return [];
+    }
+
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("pagos")
+      .select("id, pedido_id, monto, metodo_pago, estado_pago, fecha_pago")
+      .in("pedido_id", pedidoIds)
+      .order("fecha_pago", { ascending: false });
+
+    if (error) {
+      throw new Error("No fue posible obtener pagos.");
+    }
+
+    return data.map((payment) => ({
+      id: payment.id,
+      pedidoId: payment.pedido_id,
+      monto: payment.monto,
+      metodoPago: payment.metodo_pago ?? undefined,
+      estadoPago: payment.estado_pago,
+      fechaPago: payment.fecha_pago
+    }));
+  }
+
+  async buscarFiadosPorPedidoIds(pedidoIds: string[]) {
+    if (pedidoIds.length === 0) {
+      return [];
+    }
+
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("fiados")
+      .select(
+        "id, pedido_id, cliente_id, monto_pendiente, estado, fecha_fiado, fecha_pago_fiado"
+      )
+      .in("pedido_id", pedidoIds);
+
+    if (error) {
+      throw new Error("No fue posible obtener fiados.");
+    }
+
+    return data.map((fiado) => ({
+      id: fiado.id,
+      pedidoId: fiado.pedido_id,
+      clienteId: fiado.cliente_id,
+      montoPendiente: fiado.monto_pendiente,
+      estado: fiado.estado,
+      fechaFiado: fiado.fecha_fiado,
+      fechaPagoFiado: fiado.fecha_pago_fiado ?? undefined
+    }));
+  }
+
+  async insertarPago(args: {
+    pedidoId: string;
+    monto: number;
+    metodoPago?: string;
+    estadoPago: string;
+    fechaPago?: string;
+  }) {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("pagos")
+      .insert({
+        pedido_id: args.pedidoId,
+        monto: args.monto,
+        metodo_pago: args.metodoPago ?? null,
+        estado_pago: args.estadoPago,
+        fecha_pago: args.fechaPago ?? new Date().toISOString()
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      throw new Error("No fue posible registrar el pago.");
+    }
+
+    return { id: data.id };
+  }
+
+  async upsertFiado(args: {
+    pedidoId: string;
+    clienteId: string;
+    montoPendiente: number;
+    estado: string;
+    fechaFiado?: string;
+    fechaPagoFiado?: string;
+  }) {
+    const supabase = createSupabaseServerClient();
+    const { data: existing, error: readError } = await supabase
+      .from("fiados")
+      .select("id, fecha_fiado")
+      .eq("pedido_id", args.pedidoId)
+      .maybeSingle();
+
+    if (readError) {
+      throw new Error("No fue posible consultar el fiado.");
+    }
+
+    const payload = {
+      pedido_id: args.pedidoId,
+      cliente_id: args.clienteId,
+      monto_pendiente: args.montoPendiente,
+      estado: args.estado,
+      fecha_fiado:
+        args.fechaFiado ?? existing?.fecha_fiado ?? new Date().toISOString(),
+      fecha_pago_fiado: args.fechaPagoFiado ?? null
+    };
+
+    const query = existing?.id
+      ? supabase.from("fiados").update(payload).eq("id", existing.id)
+      : supabase.from("fiados").insert(payload);
+
+    const { error } = await query;
+
+    if (error) {
+      throw new Error("No fue posible actualizar el fiado.");
     }
   }
 }
