@@ -14,7 +14,6 @@ export function AdminLoginForm({
   defaultEmail
 }: AdminLoginFormProps) {
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,6 +25,7 @@ export function AdminLoginForm({
 
     try {
       setSubmitting(true);
+      const supabase = createSupabaseBrowserClient();
       const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
