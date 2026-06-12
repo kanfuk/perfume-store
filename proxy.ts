@@ -10,6 +10,10 @@ export async function proxy(request: NextRequest) {
     request
   });
 
+  if (request.nextUrl.pathname === "/admin/login") {
+    return response;
+  }
+
   const url = getSupabaseUrl();
   const publishableKey = getSupabasePublishableKey();
 
