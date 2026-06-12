@@ -162,26 +162,46 @@ export function OrderForm() {
   };
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+    <section className="grid gap-6 xl:grid-cols-[1.25fr_0.85fr]">
       <form
-        className="space-y-6 rounded-xl border border-border/70 bg-white/90 p-5 shadow-soft backdrop-blur sm:p-6"
+        className="space-y-6 rounded-[28px] border border-border/60 bg-white/92 p-5 shadow-soft backdrop-blur sm:p-6"
         onSubmit={handleSubmit}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold text-ink">Arma tu pedido</h2>
-            <p className="text-sm leading-6 text-ink/75">
+        <div className="overflow-hidden rounded-[24px] border border-border/60 bg-[linear-gradient(180deg,#ff8e90_0%,#f5b2a7_100%)] p-5 text-white sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+              <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+                Arma tu pedido
+              </span>
+              <h2 className="text-3xl font-bold">Pedido rapido</h2>
+              <p className="max-w-xl text-sm leading-6 text-white/88">
               Puedes mezclar varios productos en un mismo pedido y ajustar cantidades
               antes de enviarlo.
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/70 bg-background px-4 py-3 text-sm text-ink/75">
-            {productCount} unidades · {cartLines.length} lineas
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-center text-sm">
+              <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur">
+                <div className="text-white/74">Unidades</div>
+                <div className="mt-1 text-lg font-semibold">{productCount}</div>
+              </div>
+              <div className="rounded-2xl bg-white/18 px-4 py-3 backdrop-blur">
+                <div className="text-white/74">Lineas</div>
+                <div className="mt-1 text-lg font-semibold">{cartLines.length}</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-4 rounded-xl border border-border/70 bg-background/80 p-4">
-          <h3 className="text-lg font-semibold text-ink">Tus datos</h3>
+        <div className="space-y-4 rounded-[24px] border border-border/60 bg-[#fffaf6] p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
+              👤
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-ink">Tus datos</h3>
+              <p className="text-sm text-ink/70">Solo pedimos lo necesario para confirmar.</p>
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Field
               label="Nombre del cliente"
@@ -208,13 +228,18 @@ export function OrderForm() {
           />
         </div>
 
-        <div className="space-y-4 rounded-xl border border-border/70 bg-background/80 p-4">
+        <div className="space-y-4 rounded-[24px] border border-border/60 bg-[#fffaf6] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-ink">Catalogo</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
+                🛍️
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-ink">Catalogo</h3>
               <p className="text-sm text-ink/70">
                 Agrega productos al pedido y luego ajusta cantidades en el carrito.
               </p>
+              </div>
             </div>
             {loadingProducts ? (
               <span className="text-sm text-ink/60">Cargando...</span>
@@ -229,7 +254,7 @@ export function OrderForm() {
               return (
                 <article
                   key={product.id}
-                  className="rounded-xl border border-border/80 bg-white p-4 shadow-sm"
+                  className="rounded-[22px] border border-border/70 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
@@ -237,6 +262,9 @@ export function OrderForm() {
                       <p className="text-sm leading-6 text-ink/70">
                         {product.descripcion}
                       </p>
+                      <div className="inline-flex rounded-full bg-[#fff4eb] px-2.5 py-1 text-xs font-medium text-primary">
+                        {product.tipoProducto ?? "simple"}
+                      </div>
                     </div>
                     {currentItem ? (
                       <span className="rounded-full bg-secondary/50 px-3 py-1 text-xs font-semibold text-ink">
@@ -251,7 +279,7 @@ export function OrderForm() {
                     <button
                       type="button"
                       onClick={() => addProduct(product.id)}
-                      className="rounded-lg bg-ink px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"
+                      className="rounded-xl bg-ink px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"
                     >
                       {currentItem ? "Sumar uno" : "Agregar"}
                     </button>
@@ -265,21 +293,26 @@ export function OrderForm() {
           ) : null}
         </div>
 
-        <div className="space-y-4 rounded-xl border border-border/70 bg-background/80 p-4">
+        <div className="space-y-4 rounded-[24px] border border-border/60 bg-[#fffaf6] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-ink">Tu carrito</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
+                🧺
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-ink">Tu carrito</h3>
               <p className="text-sm text-ink/70">
                 Puedes subir, bajar o quitar productos antes de registrar.
               </p>
+              </div>
             </div>
-            <div className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-ink">
+            <div className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm">
               {formatCurrency(total)}
             </div>
           </div>
 
           {cartLines.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-white p-6 text-sm text-ink/65">
+            <div className="rounded-[22px] border border-dashed border-border bg-white p-6 text-sm text-ink/65">
               Todavia no agregas productos al pedido.
             </div>
           ) : (
@@ -287,7 +320,7 @@ export function OrderForm() {
               {cartLines.map((item) => (
                 <div
                   key={item.productoId}
-                  className="grid gap-3 rounded-xl border border-border/80 bg-white p-4 md:grid-cols-[minmax(0,1fr)_auto_auto]"
+                  className="grid gap-3 rounded-[22px] border border-border/70 bg-white p-4 md:grid-cols-[minmax(0,1fr)_auto_auto]"
                 >
                   <div className="space-y-1">
                     <div className="font-semibold text-ink">
@@ -338,16 +371,22 @@ export function OrderForm() {
         <button
           type="submit"
           disabled={submitting || loadingProducts || products.length === 0}
-          className="w-full rounded-xl bg-primary px-4 py-3 text-base font-semibold text-white transition hover:opacity-90"
+          className="w-full rounded-[22px] bg-ink px-4 py-4 text-base font-semibold text-white transition hover:opacity-90"
         >
           {submitting ? "Registrando pedido..." : "Registrar pedido completo"}
         </button>
         {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
       </form>
 
-      <aside className="space-y-4">
-        <div className="rounded-xl border border-border/70 bg-white/90 p-5 shadow-soft">
-          <h3 className="text-lg font-semibold text-ink">Resumen del pedido</h3>
+      <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
+        <div className="overflow-hidden rounded-[28px] border border-border/60 bg-white/92 shadow-soft">
+          <div className="bg-[linear-gradient(180deg,#fff1ec_0%,#fff7f2_100%)] p-5">
+            <h3 className="text-lg font-semibold text-ink">Resumen del pedido</h3>
+            <p className="mt-1 text-sm text-ink/70">
+              Revisa lineas, cantidades y total antes de enviar.
+            </p>
+          </div>
+          <div className="space-y-3 p-5">
           <div className="mt-4 space-y-3">
             {cartLines.length === 0 ? (
               <p className="text-sm text-ink/70">Agrega productos para ver el resumen.</p>
@@ -355,7 +394,7 @@ export function OrderForm() {
               cartLines.map((item) => (
                 <div
                   key={item.productoId}
-                  className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-background/80 px-4 py-3"
+                  className="flex items-start justify-between gap-4 rounded-[20px] border border-border/70 bg-background/80 px-4 py-3"
                 >
                   <div>
                     <div className="font-medium text-ink">{item.product?.nombre}</div>
@@ -372,10 +411,11 @@ export function OrderForm() {
             <span className="font-semibold text-ink">Total</span>
             <span className="font-semibold text-primary">{formatCurrency(total)}</span>
           </div>
+          </div>
         </div>
 
-        <div className="rounded-xl border border-border/70 bg-white/90 p-5 shadow-soft">
-          <h3 className="text-lg font-semibold text-ink">Como funciona</h3>
+        <div className="rounded-[28px] border border-border/60 bg-white/92 p-5 shadow-soft">
+          <h3 className="text-lg font-semibold text-ink">Flujo del pedido</h3>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/75">
             <li>Agrega uno o varios productos al mismo pedido.</li>
             <li>El sistema recalcula subtotales y total en tiempo real.</li>
@@ -384,12 +424,12 @@ export function OrderForm() {
         </div>
 
         {submitted ? (
-          <div className="rounded-xl border border-success/30 bg-white/95 p-5 shadow-soft">
+          <div className="rounded-[28px] border border-success/30 bg-white/95 p-5 shadow-soft">
             <p className="font-semibold text-success">Pedido registrado correctamente.</p>
             <p className="mt-2 text-sm leading-6 text-ink/75">
               Pauli revisara disponibilidad y pasara el pedido a agenda si corresponde.
             </p>
-            <div className="mt-4 rounded-lg border border-border/70 bg-background/80 p-4">
+            <div className="mt-4 rounded-[20px] border border-border/70 bg-background/80 p-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-ink/65">Pedido</span>
                 <span className="font-medium text-ink">{submitted.pedidoId}</span>
@@ -422,7 +462,7 @@ function Field({ label, value, error, onChange }: FieldProps) {
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-border/80 bg-white px-4 py-3 text-base text-ink outline-none transition focus:border-primary"
+        className="w-full rounded-[18px] border border-border/80 bg-white px-4 py-3 text-base text-ink outline-none transition focus:border-primary"
       />
       {error ? <span className="text-sm text-danger">{error}</span> : null}
     </label>

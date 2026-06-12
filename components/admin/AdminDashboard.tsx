@@ -764,7 +764,7 @@ function OrderDetailPanel({ order }: { order: AdminOrderSummary | null }) {
               <div>
                 <div className="font-medium text-ink">{item.productoNombre}</div>
                 <div className="text-sm text-ink/65">
-                  {formatCurrency(item.precioUnitario)} · x{item.cantidad}
+                  {formatCurrency(item.precioUnitario)} - x{item.cantidad}
                 </div>
               </div>
               <div className="text-sm font-semibold text-primary">
@@ -819,7 +819,7 @@ function OrderDetailPanel({ order }: { order: AdminOrderSummary | null }) {
             <TimelineItem
               label="Cancelado"
               value={`${formatDate(order.fechaCancelacion)}${
-                order.motivoCancelacion ? ` · ${order.motivoCancelacion}` : ""
+                order.motivoCancelacion ? ` - ${order.motivoCancelacion}` : ""
               }`}
             />
           ) : null}
@@ -860,7 +860,7 @@ function AdminActionModal({
             {state.type === "cancelar" ? "Cancelar pedido" : "Registrar abono"}
           </h3>
           <p className="text-sm text-ink/70">
-            {state.order.clienteNombre} · {state.order.productoNombre}
+            {state.order.clienteNombre} - {state.order.productoNombre}
           </p>
         </div>
 
