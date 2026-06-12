@@ -173,12 +173,12 @@ export function OrderForm() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-2">
               <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                Arma tu pedido
+                Pedido del dia
               </span>
-              <h2 className="text-3xl font-bold">Pedido rapido</h2>
+              <h2 className="text-3xl font-bold">Tu pedido, a tu gusto</h2>
               <p className="max-w-xl text-sm leading-6 text-white/88">
-              Puedes mezclar varios productos en un mismo pedido y ajustar cantidades
-              antes de enviarlo.
+                Elige lo que quieras llevar, suma cantidades y deja el pedido listo
+                para coordinar contigo.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-center text-sm">
@@ -196,12 +196,14 @@ export function OrderForm() {
 
         <div className="space-y-4 rounded-[24px] border border-border/60 bg-[#fffaf6] p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
-              👤
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sm font-semibold uppercase tracking-wide text-primary shadow-sm">
+              Tu
             </div>
             <div>
               <h3 className="text-lg font-semibold text-ink">Tus datos</h3>
-              <p className="text-sm text-ink/70">Solo pedimos lo necesario para confirmar.</p>
+              <p className="text-sm text-ink/70">
+                Solo lo justo para confirmar y entregarte bien.
+              </p>
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -210,6 +212,8 @@ export function OrderForm() {
               value={form.nombre}
               onChange={(value) => setForm((current) => ({ ...current, nombre: value }))}
               error={validation.errors.nombre}
+              placeholder="Ejemplo: Rodrigo"
+              autoComplete="name"
             />
             <Field
               label="Numero de telefono"
@@ -218,6 +222,9 @@ export function OrderForm() {
                 setForm((current) => ({ ...current, telefono: value }))
               }
               error={validation.errors.telefono}
+              placeholder="Ejemplo: 999999999"
+              autoComplete="tel"
+              inputMode="tel"
             />
           </div>
           <Field
@@ -227,6 +234,8 @@ export function OrderForm() {
               setForm((current) => ({ ...current, lugarTrabajo: value }))
             }
             error={validation.errors.lugarTrabajo}
+            placeholder="Ejemplo: Finanzas o Recepcion"
+            autoComplete="organization"
           />
           <input
             tabIndex={-1}
@@ -246,14 +255,14 @@ export function OrderForm() {
         <div className="space-y-4 rounded-[24px] border border-border/60 bg-[#fffaf6] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
-                🛍️
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sm font-semibold uppercase tracking-wide text-primary shadow-sm">
+                Hoy
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-ink">Catalogo</h3>
-              <p className="text-sm text-ink/70">
-                Agrega productos al pedido y luego ajusta cantidades en el carrito.
-              </p>
+                <h3 className="text-lg font-semibold text-ink">Lo que preparamos hoy</h3>
+                <p className="text-sm text-ink/70">
+                  Productos caseros listos para compartir, regalar o disfrutar.
+                </p>
               </div>
             </div>
             {loadingProducts ? (
@@ -311,14 +320,14 @@ export function OrderForm() {
         <div className="space-y-4 rounded-[24px] border border-border/60 bg-[#fffaf6] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
-                🧺
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sm font-semibold uppercase tracking-wide text-primary shadow-sm">
+                Mix
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-ink">Tu carrito</h3>
-              <p className="text-sm text-ink/70">
-                Puedes subir, bajar o quitar productos antes de registrar.
-              </p>
+                <p className="text-sm text-ink/70">
+                  Agrega tus favoritos y luego ajusta el pedido a tu gusto.
+                </p>
               </div>
             </div>
             <div className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm">
@@ -328,7 +337,7 @@ export function OrderForm() {
 
           {cartLines.length === 0 ? (
             <div className="rounded-[22px] border border-dashed border-border bg-white p-6 text-sm text-ink/65">
-              Todavia no agregas productos al pedido.
+              Aun no agregas productos al pedido.
             </div>
           ) : (
             <div className="space-y-3">
@@ -388,7 +397,7 @@ export function OrderForm() {
           disabled={submitting || loadingProducts || products.length === 0}
           className="w-full rounded-[22px] bg-ink px-4 py-4 text-base font-semibold text-white transition hover:opacity-90"
         >
-          {submitting ? "Registrando pedido..." : "Registrar pedido completo"}
+          {submitting ? "Enviando pedido..." : "Enviar pedido"}
         </button>
         {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
       </form>
@@ -398,43 +407,45 @@ export function OrderForm() {
           <div className="bg-[linear-gradient(180deg,#fff1ec_0%,#fff7f2_100%)] p-5">
             <h3 className="text-lg font-semibold text-ink">Resumen del pedido</h3>
             <p className="mt-1 text-sm text-ink/70">
-              Revisa lineas, cantidades y total antes de enviar.
+              Revisa cantidades y total antes de enviarnos tu pedido.
             </p>
           </div>
           <div className="space-y-3 p-5">
-          <div className="mt-4 space-y-3">
-            {cartLines.length === 0 ? (
-              <p className="text-sm text-ink/70">Agrega productos para ver el resumen.</p>
-            ) : (
-              cartLines.map((item) => (
-                <div
-                  key={item.productoId}
-                  className="flex items-start justify-between gap-4 rounded-[20px] border border-border/70 bg-background/80 px-4 py-3"
-                >
-                  <div>
-                    <div className="font-medium text-ink">{item.product?.nombre}</div>
-                    <div className="text-sm text-ink/65">x{item.cantidad}</div>
+            <div className="mt-4 space-y-3">
+              {cartLines.length === 0 ? (
+                <p className="text-sm text-ink/70">
+                  Agrega productos para ver el resumen.
+                </p>
+              ) : (
+                cartLines.map((item) => (
+                  <div
+                    key={item.productoId}
+                    className="flex items-start justify-between gap-4 rounded-[20px] border border-border/70 bg-background/80 px-4 py-3"
+                  >
+                    <div>
+                      <div className="font-medium text-ink">{item.product?.nombre}</div>
+                      <div className="text-sm text-ink/65">x{item.cantidad}</div>
+                    </div>
+                    <div className="text-sm font-semibold text-primary">
+                      {formatCurrency(item.subtotal)}
+                    </div>
                   </div>
-                  <div className="text-sm font-semibold text-primary">
-                    {formatCurrency(item.subtotal)}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-base">
-            <span className="font-semibold text-ink">Total</span>
-            <span className="font-semibold text-primary">{formatCurrency(total)}</span>
-          </div>
+                ))
+              )}
+            </div>
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-base">
+              <span className="font-semibold text-ink">Total</span>
+              <span className="font-semibold text-primary">{formatCurrency(total)}</span>
+            </div>
           </div>
         </div>
 
         <div className="rounded-[28px] border border-border/60 bg-white/92 p-5 shadow-soft">
-          <h3 className="text-lg font-semibold text-ink">Flujo del pedido</h3>
+          <h3 className="text-lg font-semibold text-ink">Nuestro toque</h3>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-ink/75">
-            <li>Agrega uno o varios productos al mismo pedido.</li>
-            <li>El sistema recalcula subtotales y total en tiempo real.</li>
-            <li>Todo pedido nuevo entra como PENDIENTE y SIN_PAGO.</li>
+            <li>Productos caseros preparados con dedicacion y detalle.</li>
+            <li>Puedes pedir varias cosas en un solo envio.</li>
+            <li>Te confirmamos con calma para coordinar de la mejor manera.</li>
           </ul>
         </div>
 
@@ -442,7 +453,8 @@ export function OrderForm() {
           <div className="rounded-[28px] border border-success/30 bg-white/95 p-5 shadow-soft">
             <p className="font-semibold text-success">Pedido registrado correctamente.</p>
             <p className="mt-2 text-sm leading-6 text-ink/75">
-              Pauli revisara disponibilidad y pasara el pedido a agenda si corresponde.
+              Gracias por confiar en Pauli Store. Te confirmaremos disponibilidad y
+              coordinacion lo antes posible.
             </p>
             <div className="mt-4 rounded-[20px] border border-border/70 bg-background/80 p-4">
               <div className="flex items-center justify-between text-sm">
@@ -488,17 +500,31 @@ type FieldProps = {
   label: string;
   value: string;
   error?: string;
+  placeholder?: string;
+  autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   onChange: (value: string) => void;
 };
 
-function Field({ label, value, error, onChange }: FieldProps) {
+function Field({
+  label,
+  value,
+  error,
+  placeholder,
+  autoComplete,
+  inputMode,
+  onChange
+}: FieldProps) {
   return (
     <label className="block space-y-2">
       <span className="text-sm font-medium text-ink">{label}</span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-[18px] border border-border/80 bg-white px-4 py-3 text-base text-ink outline-none transition focus:border-primary"
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        className="w-full rounded-[18px] border border-border/80 bg-white px-4 py-3 text-base text-ink outline-none transition placeholder:text-ink/35 focus:border-primary"
       />
       {error ? <span className="text-sm text-danger">{error}</span> : null}
     </label>

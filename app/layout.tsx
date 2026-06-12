@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Pauli Store",
-  description: "Pedidos caseros de forma rapida y simple."
+  description: "Pedidos caseros hechos con dedicacion para compartir, regalar o disfrutar en casa."
 };
 
 type RootLayoutProps = Readonly<{
