@@ -1,6 +1,4 @@
-function readEnv(name: string) {
-  const value = process.env[name];
-
+function normalizeEnv(value: string | undefined) {
   if (!value) {
     return undefined;
   }
@@ -10,17 +8,17 @@ function readEnv(name: string) {
 }
 
 export function getSupabaseUrl() {
-  return readEnv("NEXT_PUBLIC_SUPABASE_URL");
+  return normalizeEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
 }
 
 export function getSupabasePublishableKey() {
-  return readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  return normalizeEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 export function getSupabaseServerKey() {
   return (
-    readEnv("SUPABASE_SECRET_KEY") ||
-    readEnv("SUPABASE_SERVICE_ROLE_KEY") ||
+    normalizeEnv(process.env.SUPABASE_SECRET_KEY) ||
+    normalizeEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
     getSupabasePublishableKey()
   );
 }
