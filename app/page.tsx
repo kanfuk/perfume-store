@@ -2,8 +2,8 @@ import { OrderForm } from "@/components/OrderForm";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-[28px] border border-border/60 bg-white/90 shadow-soft backdrop-blur">
+    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-4 sm:px-6 lg:gap-8 lg:px-8 lg:py-6">
+      <section className="overflow-hidden rounded-[32px] border border-border/60 bg-white/92 shadow-soft backdrop-blur">
         <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="bg-[linear-gradient(180deg,#ff7f86_0%,#f28c8f_58%,#fff1ec_100%)] p-6 sm:p-8">
             <div className="space-y-5">
@@ -63,6 +63,36 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-white/92 p-4 shadow-soft">
+          <div className="text-xs font-semibold uppercase tracking-wide text-ink/55">
+            Paso 1
+          </div>
+          <div className="mt-2 text-base font-semibold text-ink">Completa tus datos</div>
+          <div className="mt-1 text-sm leading-6 text-ink/70">
+            Nombre, telefono y lugar para confirmar el pedido sin friccion.
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-white/92 p-4 shadow-soft">
+          <div className="text-xs font-semibold uppercase tracking-wide text-ink/55">
+            Paso 2
+          </div>
+          <div className="mt-2 text-base font-semibold text-ink">Arma el carrito</div>
+          <div className="mt-1 text-sm leading-6 text-ink/70">
+            Mezcla panes, queques o packs dentro del mismo pedido.
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-white/92 p-4 shadow-soft">
+          <div className="text-xs font-semibold uppercase tracking-wide text-ink/55">
+            Paso 3
+          </div>
+          <div className="mt-2 text-base font-semibold text-ink">Envia y listo</div>
+          <div className="mt-1 text-sm leading-6 text-ink/70">
+            El panel admin lo recibe para agendar, cobrar o dejar fiado.
           </div>
         </div>
       </section>

@@ -162,8 +162,9 @@ export function OrderForm() {
   };
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[1.25fr_0.85fr]">
+    <section className="grid gap-6 pb-24 xl:grid-cols-[1.2fr_0.8fr] xl:pb-0">
       <form
+        id="customer-order-form"
         className="space-y-6 rounded-[28px] border border-border/60 bg-white/92 p-5 shadow-soft backdrop-blur sm:p-6"
         onSubmit={handleSubmit}
       >
@@ -444,6 +445,27 @@ export function OrderForm() {
           </div>
         ) : null}
       </aside>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-white/94 px-4 py-3 shadow-[0_-12px_30px_rgba(58,42,26,0.08)] backdrop-blur xl:hidden">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-wide text-ink/55">
+              Total del carrito
+            </div>
+            <div className="truncate text-lg font-semibold text-ink">
+              {formatCurrency(total)}
+            </div>
+          </div>
+          <button
+            type="submit"
+            form="customer-order-form"
+            disabled={submitting || loadingProducts || products.length === 0}
+            className="shrink-0 rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            {submitting ? "Enviando..." : "Enviar pedido"}
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
