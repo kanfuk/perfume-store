@@ -45,6 +45,56 @@ class ProductRepositoryStub implements ProductRepository {
 
     return null;
   }
+
+  async buscarTodosProductos() {
+    return this.buscarProductosActivos();
+  }
+
+  async crearProducto(producto: {
+    id?: string;
+    nombre: string;
+    descripcion?: string;
+    precioVenta: number;
+    costoUnitario?: number;
+    stockActual?: number;
+    activo?: boolean;
+    tipoProducto?: string;
+  }) {
+    return {
+      id: producto.id ?? "nuevo-producto",
+      nombre: producto.nombre,
+      descripcion: producto.descripcion ?? "",
+      precioVenta: producto.precioVenta,
+      costoUnitario: producto.costoUnitario ?? 0,
+      stockActual: producto.stockActual ?? 0,
+      activo: producto.activo ?? true,
+      tipoProducto: producto.tipoProducto ?? "simple"
+    };
+  }
+
+  async actualizarProducto(
+    id: string,
+    cambios: {
+      nombre?: string;
+      descripcion?: string;
+      precioVenta?: number;
+      costoUnitario?: number;
+      stockActual?: number;
+      activo?: boolean;
+      tipoProducto?: string;
+    }
+  ) {
+    return {
+      id,
+      nombre: cambios.nombre ?? "Producto",
+      descripcion: cambios.descripcion ?? "",
+      precioVenta: cambios.precioVenta ?? 0,
+      costoUnitario: cambios.costoUnitario ?? 0,
+      stockActual: cambios.stockActual ?? 0,
+      activo: cambios.activo ?? true,
+      tipoProducto: cambios.tipoProducto ?? "simple"
+    };
+  }
 }
 
 class ClienteRepositoryStub implements ClienteRepository {

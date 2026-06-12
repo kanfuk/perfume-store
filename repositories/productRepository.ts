@@ -14,7 +14,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface ProductRepository {
   buscarProductosActivos(): Promise<ProductoProps[]>;
+  buscarTodosProductos(): Promise<ProductoProps[]>;
   buscarProductoPorId(id: string): Promise<ProductoProps | null>;
+  crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }): Promise<ProductoProps>;
+  actualizarProducto(
+    id: string,
+    cambios: Partial<Omit<ProductoProps, "id">>
+  ): Promise<ProductoProps>;
 }
 
 class MockProductRepository implements ProductRepository {
@@ -22,8 +28,35 @@ class MockProductRepository implements ProductRepository {
     return localStore.products.filter((product) => product.activo !== false);
   }
 
+  async buscarTodosProductos() {
+    return [...localStore.products].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
   async buscarProductoPorId(id: string) {
     return localStore.products.find((product) => product.id === id) ?? null;
+  }
+
+  async crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }) {
+    const record: ProductoProps = {
+      ...producto,
+      id: producto.id ?? crypto.randomUUID()
+    };
+    localStore.products.push(record);
+    return record;
+  }
+
+  async actualizarProducto(
+    id: string,
+    cambios: Partial<Omit<ProductoProps, "id">>
+  ) {
+    const current = localStore.products.find((product) => product.id === id);
+
+    if (!current) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    Object.assign(current, cambios);
+    return current;
   }
 }
 
@@ -49,6 +82,22 @@ class SupabaseProductRepository implements ProductRepository {
     return data.map(mapSupabaseProduct);
   }
 
+  async buscarTodosProductos() {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("productos")
+      .select(
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+      )
+      .order("nombre", { ascending: true });
+
+    if (error) {
+      throw new Error(`No fue posible obtener el catalogo. ${error.message}`);
+    }
+
+    return data.map(mapSupabaseProduct);
+  }
+
   async buscarProductoPorId(id: string) {
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
@@ -68,6 +117,68 @@ class SupabaseProductRepository implements ProductRepository {
     }
 
     return data ? mapSupabaseProduct(data) : null;
+  }
+
+  async crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }) {
+    const supabase = createSupabaseServerClient();
+    const payload = {
+      id: producto.id,
+      nombre: producto.nombre,
+      descripcion: producto.descripcion ?? "",
+      precio_venta: producto.precioVenta,
+      costo_unitario: producto.costoUnitario ?? 0,
+      stock_actual: producto.stockActual ?? 0,
+      activo: producto.activo ?? true,
+      tipo_producto: producto.tipoProducto ?? "simple"
+    };
+    const { data, error } = await supabase
+      .from("productos")
+      .insert(payload)
+      .select(
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+      )
+      .single();
+
+    if (error || !data) {
+      throw new Error(`No fue posible crear el producto. ${error?.message ?? ""}`.trim());
+    }
+
+    return mapSupabaseProduct(data);
+  }
+
+  async actualizarProducto(
+    id: string,
+    cambios: Partial<Omit<ProductoProps, "id">>
+  ) {
+    const supabase = createSupabaseServerClient();
+    const payload: Record<string, unknown> = {};
+
+    if (cambios.nombre !== undefined) payload.nombre = cambios.nombre;
+    if (cambios.descripcion !== undefined) payload.descripcion = cambios.descripcion;
+    if (cambios.precioVenta !== undefined) payload.precio_venta = cambios.precioVenta;
+    if (cambios.costoUnitario !== undefined)
+      payload.costo_unitario = cambios.costoUnitario;
+    if (cambios.stockActual !== undefined) payload.stock_actual = cambios.stockActual;
+    if (cambios.activo !== undefined) payload.activo = cambios.activo;
+    if (cambios.tipoProducto !== undefined)
+      payload.tipo_producto = cambios.tipoProducto;
+
+    const { data, error } = await supabase
+      .from("productos")
+      .update(payload)
+      .eq("id", id)
+      .select(
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+      )
+      .single();
+
+    if (error || !data) {
+      throw new Error(
+        `No fue posible actualizar el producto. ${error?.message ?? ""}`.trim()
+      );
+    }
+
+    return mapSupabaseProduct(data);
   }
 }
 

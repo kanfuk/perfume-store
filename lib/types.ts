@@ -9,6 +9,18 @@ export type ProductRecord = {
   tipoProducto?: string;
 };
 
+export type AdminProductRecord = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  precioVenta: number;
+  costoUnitario: number;
+  stockActual: number;
+  activo: boolean;
+  tipoProducto: string;
+  utilidadUnitaria: number;
+};
+
 export type CustomerOrderLineInput = {
   productoId: string;
   cantidad: number;
@@ -79,4 +91,9 @@ export type AdminDashboardData = {
   finalizados: AdminOrderSummary[];
   cancelados: AdminOrderSummary[];
   fiadosPendientes: AdminOrderSummary[];
+};
+
+export type AdminPageData = {
+  dashboard: AdminDashboardData;
+  productos: AdminProductRecord[];
 };

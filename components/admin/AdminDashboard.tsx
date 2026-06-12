@@ -3,7 +3,12 @@
 import { useMemo, useState } from "react";
 import { formatCurrency } from "@/lib/format";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import type { AdminDashboardData, AdminOrderSummary } from "@/lib/types";
+import type {
+  AdminDashboardData,
+  AdminOrderSummary,
+  AdminPageData,
+  AdminProductRecord
+} from "@/lib/types";
 
 type AdminAction = "agendar" | "cancelar" | "pagado" | "fiado" | "abonar";
 type StatusFilter =
@@ -13,9 +18,13 @@ type StatusFilter =
   | "fiados"
   | "finalizados"
   | "cancelados";
-type ModalState =
+type OrderModalState =
   | { type: "cancelar"; order: AdminOrderSummary }
   | { type: "abonar"; order: AdminOrderSummary }
+  | null;
+type ProductModalState =
+  | { mode: "create" }
+  | { mode: "edit"; product: AdminProductRecord }
   | null;
 
 const statusOptions: Array<{ value: StatusFilter; label: string }> = [
@@ -28,25 +37,30 @@ const statusOptions: Array<{ value: StatusFilter; label: string }> = [
 ];
 
 type AdminDashboardProps = {
-  initialData: AdminDashboardData;
+  initialData: AdminPageData;
 };
 
 export function AdminDashboard({ initialData }: AdminDashboardProps) {
-  const [data, setData] = useState<AdminDashboardData>(initialData);
+  const [data, setData] = useState<AdminDashboardData>(initialData.dashboard);
+  const [products, setProducts] = useState<AdminProductRecord[]>(initialData.productos);
   const [loading, setLoading] = useState(false);
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const [error, setError] = useState("");
   const [busyOrderId, setBusyOrderId] = useState("");
+  const [busyProductId, setBusyProductId] = useState("");
   const [search, setSearch] = useState("");
+  const [productSearch, setProductSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [selectedOrderId, setSelectedOrderId] = useState(
-    initialData.pendientes[0]?.id ??
-      initialData.agendados[0]?.id ??
-      initialData.fiadosPendientes[0]?.id ??
-      initialData.finalizados[0]?.id ??
-      initialData.cancelados[0]?.id ??
+    initialData.dashboard.pendientes[0]?.id ??
+      initialData.dashboard.agendados[0]?.id ??
+      initialData.dashboard.fiadosPendientes[0]?.id ??
+      initialData.dashboard.finalizados[0]?.id ??
+      initialData.dashboard.cancelados[0]?.id ??
       ""
   );
-  const [modalState, setModalState] = useState<ModalState>(null);
+  const [orderModalState, setOrderModalState] = useState<OrderModalState>(null);
+  const [productModalState, setProductModalState] = useState<ProductModalState>(null);
 
   const allOrders = useMemo(
     () => [
@@ -63,6 +77,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
     allOrders.find((order) => order.id === selectedOrderId) ?? allOrders[0] ?? null;
 
   const normalizedSearch = search.trim().toLowerCase();
+  const normalizedProductSearch = productSearch.trim().toLowerCase();
 
   const filteredData = useMemo(() => {
     function matches(order: AdminOrderSummary) {
@@ -92,6 +107,24 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
       cancelados: data.cancelados.filter(matches)
     };
   }, [data, normalizedSearch]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      if (!normalizedProductSearch) {
+        return true;
+      }
+
+      return [
+        product.nombre,
+        product.descripcion,
+        product.tipoProducto,
+        product.activo ? "activo" : "inactivo"
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedProductSearch);
+    });
+  }, [normalizedProductSearch, products]);
 
   const resumen = useMemo(
     () => [
@@ -137,6 +170,31 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
     }
   }
 
+  async function loadProducts() {
+    try {
+      setCatalogLoading(true);
+      const response = await fetch("/api/admin/products", { cache: "no-store" });
+      const currentData = (await response.json()) as {
+        products?: AdminProductRecord[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(currentData.error ?? "No fue posible cargar productos.");
+      }
+
+      setProducts(currentData.products ?? []);
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible cargar productos."
+      );
+    } finally {
+      setCatalogLoading(false);
+    }
+  }
+
   async function runAction(
     pedidoId: string,
     action: AdminAction,
@@ -162,7 +220,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
         throw new Error(currentData.error ?? "No fue posible actualizar el pedido.");
       }
 
-      setModalState(null);
+      setOrderModalState(null);
       await loadOrders();
     } catch (currentError) {
       setError(
@@ -172,6 +230,84 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
       );
     } finally {
       setBusyOrderId("");
+    }
+  }
+
+  async function saveProduct(payload: {
+    id?: string;
+    nombre: string;
+    descripcion: string;
+    precioVenta: number;
+    costoUnitario: number;
+    stockActual: number;
+    tipoProducto: string;
+    activo: boolean;
+  }) {
+    try {
+      setBusyProductId(payload.id ?? "new");
+      setError("");
+      const url = payload.id
+        ? `/api/admin/products/${payload.id}`
+        : "/api/admin/products";
+      const method = payload.id ? "PATCH" : "POST";
+      const body = payload.id
+        ? JSON.stringify({ mode: "update", ...payload })
+        : JSON.stringify(payload);
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body
+      });
+      const currentData = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(currentData.error ?? "No fue posible guardar el producto.");
+      }
+
+      setProductModalState(null);
+      await loadProducts();
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible guardar el producto."
+      );
+    } finally {
+      setBusyProductId("");
+    }
+  }
+
+  async function toggleProduct(product: AdminProductRecord) {
+    try {
+      setBusyProductId(product.id);
+      setError("");
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          mode: "toggle",
+          activo: !product.activo
+        })
+      });
+      const currentData = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(currentData.error ?? "No fue posible cambiar el estado.");
+      }
+
+      await loadProducts();
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible cambiar el estado."
+      );
+    } finally {
+      setBusyProductId("");
     }
   }
 
@@ -202,8 +338,8 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
       visible: statusFilter === "todos" || statusFilter === "pendientes",
       emptyText: "No hay pedidos pendientes.",
       actions: [
-        { key: "agendar" as const, label: "Agendar", tone: "primary" },
-        { key: "cancelar" as const, label: "Cancelar", tone: "muted" }
+        { key: "agendar", label: "Agendar", tone: "primary" },
+        { key: "cancelar", label: "Cancelar", tone: "muted" }
       ]
     },
     {
@@ -214,9 +350,9 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
       visible: statusFilter === "todos" || statusFilter === "agendados",
       emptyText: "No hay pedidos agendados.",
       actions: [
-        { key: "pagado" as const, label: "Marcar pagado", tone: "primary" },
-        { key: "fiado" as const, label: "Marcar fiado", tone: "warning" },
-        { key: "cancelar" as const, label: "Cancelar", tone: "muted" }
+        { key: "pagado", label: "Marcar pagado", tone: "primary" },
+        { key: "fiado", label: "Marcar fiado", tone: "warning" },
+        { key: "cancelar", label: "Cancelar", tone: "muted" }
       ]
     },
     {
@@ -226,7 +362,7 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
       orders: filteredData.fiadosPendientes,
       visible: statusFilter === "todos" || statusFilter === "fiados",
       emptyText: "No hay fiados pendientes.",
-      actions: [{ key: "abonar" as const, label: "Registrar abono", tone: "warning" }]
+      actions: [{ key: "abonar", label: "Registrar abono", tone: "warning" }]
     },
     {
       key: "finalizados",
@@ -255,10 +391,10 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
           <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-sm font-semibold text-ink">
             Panel admin
           </span>
-          <h1 className="text-3xl font-bold text-ink">Gestion de pedidos</h1>
+          <h1 className="text-3xl font-bold text-ink">Gestion de pedidos y catalogo</h1>
           <p className="max-w-2xl text-sm leading-6 text-ink/75">
-            Seguimiento diario de pendientes, agenda, cobros y fiados con acceso
-            controlado por Supabase Auth.
+            Seguimiento diario de agenda, cobros, fiados y administracion de
+            productos con sus precios desde un solo panel.
           </p>
         </div>
 
@@ -334,12 +470,12 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
                 onSelect={setSelectedOrderId}
                 onAction={(order, action) => {
                   if (action === "cancelar") {
-                    setModalState({ type: "cancelar", order });
+                    setOrderModalState({ type: "cancelar", order });
                     return;
                   }
 
                   if (action === "abonar") {
-                    setModalState({ type: "abonar", order });
+                    setOrderModalState({ type: "abonar", order });
                     return;
                   }
 
@@ -354,19 +490,116 @@ export function AdminDashboard({ initialData }: AdminDashboardProps) {
         </aside>
       </section>
 
-      {modalState ? (
+      <section className="rounded-lg border border-border bg-panel p-5 shadow-soft">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-semibold text-ink">Catalogo de productos</h2>
+            <p className="text-sm text-ink/70">
+              Define productos, precios, costos, stock y si estan visibles para el
+              cliente.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              value={productSearch}
+              onChange={(event) => setProductSearch(event.target.value)}
+              placeholder="Buscar producto, tipo o estado"
+              className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink"
+            />
+            <button
+              type="button"
+              onClick={() => setProductModalState({ mode: "create" })}
+              className="rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white"
+            >
+              Nuevo producto
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {catalogLoading ? (
+            <p className="text-sm text-ink/70">Cargando catalogo...</p>
+          ) : null}
+          {!catalogLoading && filteredProducts.length === 0 ? (
+            <p className="text-sm text-ink/70">No hay productos para esta busqueda.</p>
+          ) : null}
+          {filteredProducts.map((product) => (
+            <article
+              key={product.id}
+              className="rounded-lg border border-border bg-background p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-semibold text-ink">{product.nombre}</h3>
+                    <StatusBadge
+                      tone={product.activo ? "pedido" : "neutral"}
+                      label={product.activo ? "ACTIVO" : "INACTIVO"}
+                    />
+                  </div>
+                  <p className="text-sm text-ink/70">{product.descripcion || "Sin descripcion"}</p>
+                  <p className="text-xs uppercase tracking-wide text-ink/55">
+                    {product.tipoProducto}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProductModalState({ mode: "edit", product })}
+                  className="rounded-lg border border-border bg-panel px-3 py-2 text-sm font-medium text-ink"
+                >
+                  Editar
+                </button>
+              </div>
+
+              <dl className="mt-4 grid gap-3 text-sm text-ink/80 sm:grid-cols-2">
+                <InfoItem label="Precio venta" value={formatCurrency(product.precioVenta)} />
+                <InfoItem label="Costo" value={formatCurrency(product.costoUnitario)} />
+                <InfoItem label="Utilidad" value={formatCurrency(product.utilidadUnitaria)} />
+                <InfoItem label="Stock" value={String(product.stockActual)} />
+              </dl>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busyProductId === product.id}
+                  onClick={() => void toggleProduct(product)}
+                  className={buttonToneClass(product.activo ? "muted" : "primary")}
+                >
+                  {busyProductId === product.id
+                    ? "Guardando..."
+                    : product.activo
+                      ? "Desactivar"
+                      : "Activar"}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {orderModalState ? (
         <AdminActionModal
-          state={modalState}
-          busy={busyOrderId === modalState.order.id}
-          onClose={() => setModalState(null)}
+          state={orderModalState}
+          busy={busyOrderId === orderModalState.order.id}
+          onClose={() => setOrderModalState(null)}
           onConfirm={(payload) => {
-            if (modalState.type === "cancelar") {
-              void runAction(modalState.order.id, "cancelar", payload);
+            if (orderModalState.type === "cancelar") {
+              void runAction(orderModalState.order.id, "cancelar", payload);
               return;
             }
 
-            void runAction(modalState.order.id, "abonar", payload);
+            void runAction(orderModalState.order.id, "abonar", payload);
           }}
+        />
+      ) : null}
+
+      {productModalState ? (
+        <ProductModal
+          state={productModalState}
+          busy={busyProductId === (productModalState.mode === "edit" ? productModalState.product.id : "new")}
+          onClose={() => setProductModalState(null)}
+          onSave={saveProduct}
         />
       ) : null}
     </main>
@@ -454,10 +687,7 @@ function OrderSection({
               <dl className="mt-4 grid gap-3 text-sm text-ink/80 sm:grid-cols-3">
                 <InfoItem label="Cantidad" value={String(order.cantidad)} />
                 <InfoItem label="Total" value={formatCurrency(order.total)} />
-                <InfoItem
-                  label="Saldo"
-                  value={formatCurrency(order.saldoPendiente || 0)}
-                />
+                <InfoItem label="Saldo" value={formatCurrency(order.saldoPendiente || 0)} />
               </dl>
             </button>
 
@@ -557,10 +787,7 @@ function OrderDetailPanel({ order }: { order: AdminOrderSummary | null }) {
             value={formatCurrency(order.saldoPendiente)}
             highlight={order.saldoPendiente > 0}
           />
-          <InfoRow
-            label="Pagos registrados"
-            value={String(order.pagosRegistrados)}
-          />
+          <InfoRow label="Pagos registrados" value={String(order.pagosRegistrados)} />
         </dl>
       </div>
 
@@ -569,24 +796,15 @@ function OrderDetailPanel({ order }: { order: AdminOrderSummary | null }) {
           Historial
         </h3>
         <ul className="mt-4 space-y-3 text-sm text-ink/80">
-          <TimelineItem
-            label="Pedido recibido"
-            value={formatDate(order.fechaPedido)}
-          />
+          <TimelineItem label="Pedido recibido" value={formatDate(order.fechaPedido)} />
           {order.fechaAgendado ? (
-            <TimelineItem
-              label="Agendado"
-              value={formatDate(order.fechaAgendado)}
-            />
+            <TimelineItem label="Agendado" value={formatDate(order.fechaAgendado)} />
           ) : null}
           {order.fechaFiado ? (
             <TimelineItem label="Fiado generado" value={formatDate(order.fechaFiado)} />
           ) : null}
           {order.fechaUltimoPago ? (
-            <TimelineItem
-              label="Ultimo pago"
-              value={formatDate(order.fechaUltimoPago)}
-            />
+            <TimelineItem label="Ultimo pago" value={formatDate(order.fechaUltimoPago)} />
           ) : null}
           {order.fechaPagoFiado ? (
             <TimelineItem
@@ -617,7 +835,7 @@ function AdminActionModal({
   onClose,
   onConfirm
 }: {
-  state: Exclude<ModalState, null>;
+  state: Exclude<OrderModalState, null>;
   busy: boolean;
   onClose: () => void;
   onConfirm: (payload: {
@@ -712,6 +930,148 @@ function AdminActionModal({
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
           >
             {busy ? "Guardando..." : "Confirmar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductModal({
+  state,
+  busy,
+  onClose,
+  onSave
+}: {
+  state: Exclude<ProductModalState, null>;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (payload: {
+    id?: string;
+    nombre: string;
+    descripcion: string;
+    precioVenta: number;
+    costoUnitario: number;
+    stockActual: number;
+    tipoProducto: string;
+    activo: boolean;
+  }) => void;
+}) {
+  const current = state.mode === "edit" ? state.product : null;
+  const [nombre, setNombre] = useState(current?.nombre ?? "");
+  const [descripcion, setDescripcion] = useState(current?.descripcion ?? "");
+  const [precioVenta, setPrecioVenta] = useState(String(current?.precioVenta ?? 0));
+  const [costoUnitario, setCostoUnitario] = useState(
+    String(current?.costoUnitario ?? 0)
+  );
+  const [stockActual, setStockActual] = useState(String(current?.stockActual ?? 0));
+  const [tipoProducto, setTipoProducto] = useState(current?.tipoProducto ?? "simple");
+  const [activo, setActivo] = useState(current?.activo ?? true);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
+      <div className="w-full max-w-xl rounded-lg border border-border bg-panel p-5 shadow-soft">
+        <div className="space-y-1">
+          <h3 className="text-xl font-semibold text-ink">
+            {state.mode === "create" ? "Nuevo producto" : "Editar producto"}
+          </h3>
+          <p className="text-sm text-ink/70">
+            Define nombre, precios, costo, stock y disponibilidad.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <label className="block space-y-2 sm:col-span-2">
+            <span className="text-sm font-medium text-ink">Nombre</span>
+            <input
+              value={nombre}
+              onChange={(event) => setNombre(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink"
+            />
+          </label>
+          <label className="block space-y-2 sm:col-span-2">
+            <span className="text-sm font-medium text-ink">Descripcion</span>
+            <textarea
+              value={descripcion}
+              onChange={(event) => setDescripcion(event.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-ink">Precio venta</span>
+            <input
+              type="number"
+              min={0}
+              value={precioVenta}
+              onChange={(event) => setPrecioVenta(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-ink">Costo unitario</span>
+            <input
+              type="number"
+              min={0}
+              value={costoUnitario}
+              onChange={(event) => setCostoUnitario(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-ink">Stock actual</span>
+            <input
+              type="number"
+              min={0}
+              value={stockActual}
+              onChange={(event) => setStockActual(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-ink">Tipo</span>
+            <input
+              value={tipoProducto}
+              onChange={(event) => setTipoProducto(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink"
+            />
+          </label>
+          <label className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-sm text-ink sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={activo}
+              onChange={(event) => setActivo(event.target.checked)}
+            />
+            Producto activo en catalogo
+          </label>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-ink"
+          >
+            Cerrar
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              onSave({
+                id: current?.id,
+                nombre,
+                descripcion,
+                precioVenta: Number(precioVenta),
+                costoUnitario: Number(costoUnitario),
+                stockActual: Number(stockActual),
+                tipoProducto,
+                activo
+              })
+            }
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+          >
+            {busy ? "Guardando..." : "Guardar producto"}
           </button>
         </div>
       </div>
