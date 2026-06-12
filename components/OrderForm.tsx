@@ -12,7 +12,8 @@ const initialForm: CustomerFormData = {
   nombre: "",
   telefono: "",
   lugarTrabajo: "",
-  items: []
+  items: [],
+  contactoOculto: ""
 };
 
 export function OrderForm() {
@@ -226,6 +227,19 @@ export function OrderForm() {
               setForm((current) => ({ ...current, lugarTrabajo: value }))
             }
             error={validation.errors.lugarTrabajo}
+          />
+          <input
+            tabIndex={-1}
+            autoComplete="off"
+            value={form.contactoOculto ?? ""}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                contactoOculto: event.target.value
+              }))
+            }
+            className="hidden"
+            aria-hidden="true"
           />
         </div>
 

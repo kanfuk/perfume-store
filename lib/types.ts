@@ -31,6 +31,7 @@ export type CustomerOrderRequest = {
   telefono: string;
   lugarTrabajo: string;
   items: CustomerOrderLineInput[];
+  contactoOculto?: string;
 };
 
 export type CustomerOrderResponse = {

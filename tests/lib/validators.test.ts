@@ -58,4 +58,19 @@ describe("validateCustomerOrderForm", () => {
     expect(result.isValid).toBe(false);
     expect(result.errors.items).toBe("Todos los items deben usar productos activos.");
   });
+
+  it("rechaza telefonos demasiado cortos", () => {
+    const result = validateCustomerOrderForm(
+      {
+        nombre: "Rodrigo",
+        telefono: "1234",
+        lugarTrabajo: "Finanzas",
+        items: [{ productoId: "pan-amasado", cantidad: 1 }]
+      },
+      mockProducts
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.telefono).toBe("Ingresa un numero de telefono valido.");
+  });
 });

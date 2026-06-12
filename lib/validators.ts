@@ -15,6 +15,7 @@ export type CustomerFormData = {
   telefono: string;
   lugarTrabajo: string;
   items: CustomerOrderLineInput[];
+  contactoOculto?: string;
 };
 
 type CustomerFormErrors = Partial<Record<keyof CustomerFormData, string>>;
@@ -31,6 +32,12 @@ export function validateCustomerOrderForm(
 
   if (!data.telefono.trim()) {
     errors.telefono = "Ingresa tu numero de telefono.";
+  } else {
+    const normalizedPhone = data.telefono.replace(/\D/g, "");
+
+    if (normalizedPhone.length < 8) {
+      errors.telefono = "Ingresa un numero de telefono valido.";
+    }
   }
 
   if (!data.lugarTrabajo.trim()) {
