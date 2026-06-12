@@ -8,6 +8,8 @@ export async function GET() {
 
     return NextResponse.json({ products });
   } catch (error) {
+    console.error("GET /api/products failed", error);
+
     return NextResponse.json(
       {
         error:

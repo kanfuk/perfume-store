@@ -39,7 +39,11 @@ class SupabaseProductRepository implements ProductRepository {
       .order("nombre", { ascending: true });
 
     if (error) {
-      throw new Error("No fue posible obtener productos activos.");
+      throw new Error(
+        `No fue posible obtener productos activos. ${error.message}${
+          error.details ? ` Detalle: ${error.details}` : ""
+        }${error.hint ? ` Hint: ${error.hint}` : ""}`
+      );
     }
 
     return data.map(mapSupabaseProduct);
@@ -56,7 +60,11 @@ class SupabaseProductRepository implements ProductRepository {
       .maybeSingle();
 
     if (error) {
-      throw new Error("No fue posible obtener el producto solicitado.");
+      throw new Error(
+        `No fue posible obtener el producto solicitado. ${error.message}${
+          error.details ? ` Detalle: ${error.details}` : ""
+        }${error.hint ? ` Hint: ${error.hint}` : ""}`
+      );
     }
 
     return data ? mapSupabaseProduct(data) : null;
