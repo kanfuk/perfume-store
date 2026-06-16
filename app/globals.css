@@ -12,17 +12,17 @@
 }
 
 html {
-  background: #f7efe2;
+  background: #fff6f8;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(242, 200, 121, 0.32), transparent 28%),
-    radial-gradient(circle at top right, rgba(168, 107, 50, 0.08), transparent 22%),
-    linear-gradient(180deg, #fbf6ef 0%, #f7efe2 100%);
-  color: #3a2a1a;
+    radial-gradient(circle at top left, rgba(255, 177, 198, 0.34), transparent 28%),
+    radial-gradient(circle at top right, rgba(248, 214, 224, 0.48), transparent 24%),
+    linear-gradient(180deg, #fffafc 0%, #fff3f6 100%);
+  color: #5f3041;
   font-family: Inter, Arial, Helvetica, sans-serif;
 }
 
@@ -39,5 +39,5 @@ textarea {
 }
 
 ::selection {
-  background: rgba(168, 107, 50, 0.18);
+  background: rgba(214, 123, 148, 0.2);
 }
