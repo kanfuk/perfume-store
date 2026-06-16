@@ -3,7 +3,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Pauli Store",
-  description: "Pedidos caseros hechos con dedicacion para compartir, regalar o disfrutar en casa."
+  description: "Pedidos caseros hechos con dedicacion para compartir, regalar o disfrutar en casa.",
+  icons: {
+    icon: "/favicon.ico"
+  }
 };
 
 type RootLayoutProps = Readonly<{

@@ -65,9 +65,7 @@ class SupabaseProductRepository implements ProductRepository {
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from("productos")
-      .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
-      )
+      .select("*")
       .eq("activo", true)
       .order("nombre", { ascending: true });
 
@@ -86,9 +84,7 @@ class SupabaseProductRepository implements ProductRepository {
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from("productos")
-      .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
-      )
+      .select("*")
       .order("nombre", { ascending: true });
 
     if (error) {
@@ -102,9 +98,7 @@ class SupabaseProductRepository implements ProductRepository {
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from("productos")
-      .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
-      )
+      .select("*")
       .eq("id", id)
       .maybeSingle();
 
@@ -126,25 +120,28 @@ class SupabaseProductRepository implements ProductRepository {
       nombre: producto.nombre,
       descripcion: producto.descripcion ?? "",
       precio_venta: producto.precioVenta,
+      image_url: producto.imageUrl,
+      badge_label: producto.badgeLabel,
       costo_unitario: producto.costoUnitario ?? 0,
       stock_actual: producto.stockActual ?? 0,
       stock_agenda: producto.stockAgenda ?? producto.stockActual ?? 0,
       activo: producto.activo ?? true,
       tipo_producto: producto.tipoProducto ?? "simple"
     };
-    const { data, error } = await supabase
-      .from("productos")
-      .insert(payload)
-      .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
-      )
-      .single();
+    let response = await supabase.from("productos").insert(payload).select("*").single();
 
-    if (error || !data) {
-      throw new Error(`No fue posible crear el producto. ${error?.message ?? ""}`.trim());
+    if (hasMissingProductsColumnError(response.error)) {
+      const fallbackPayload = omitExtendedProductColumns(payload);
+      response = await supabase.from("productos").insert(fallbackPayload).select("*").single();
     }
 
-    return mapSupabaseProduct(data);
+    if (response.error || !response.data) {
+      throw new Error(
+        `No fue posible crear el producto. ${response.error?.message ?? ""}`.trim()
+      );
+    }
+
+    return mapSupabaseProduct(response.data);
   }
 
   async actualizarProducto(
@@ -157,6 +154,8 @@ class SupabaseProductRepository implements ProductRepository {
     if (cambios.nombre !== undefined) payload.nombre = cambios.nombre;
     if (cambios.descripcion !== undefined) payload.descripcion = cambios.descripcion;
     if (cambios.precioVenta !== undefined) payload.precio_venta = cambios.precioVenta;
+    if (cambios.imageUrl !== undefined) payload.image_url = cambios.imageUrl;
+    if (cambios.badgeLabel !== undefined) payload.badge_label = cambios.badgeLabel;
     if (cambios.costoUnitario !== undefined)
       payload.costo_unitario = cambios.costoUnitario;
     if (cambios.stockActual !== undefined) payload.stock_actual = cambios.stockActual;
@@ -165,22 +164,29 @@ class SupabaseProductRepository implements ProductRepository {
     if (cambios.tipoProducto !== undefined)
       payload.tipo_producto = cambios.tipoProducto;
 
-    const { data, error } = await supabase
+    let response = await supabase
       .from("productos")
       .update(payload)
       .eq("id", id)
-      .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
-      )
+      .select("*")
       .single();
 
-    if (error || !data) {
+    if (hasMissingProductsColumnError(response.error)) {
+      response = await supabase
+        .from("productos")
+        .update(omitExtendedProductColumns(payload))
+        .eq("id", id)
+        .select("*")
+        .single();
+    }
+
+    if (response.error || !response.data) {
       throw new Error(
-        `No fue posible actualizar el producto. ${error?.message ?? ""}`.trim()
+        `No fue posible actualizar el producto. ${response.error?.message ?? ""}`.trim()
       );
     }
 
-    return mapSupabaseProduct(data);
+    return mapSupabaseProduct(response.data);
   }
 }
 
@@ -189,6 +195,8 @@ function mapSupabaseProduct(data: {
   nombre: string;
   descripcion: string | null;
   precio_venta: number;
+  image_url?: string | null;
+  badge_label?: string | null;
   costo_unitario: number | null;
   stock_actual: number | null;
   stock_agenda: number | null;
@@ -200,12 +208,33 @@ function mapSupabaseProduct(data: {
     nombre: data.nombre,
     descripcion: data.descripcion ?? "",
     precioVenta: data.precio_venta,
+    imageUrl: data.image_url ?? "",
+    badgeLabel: data.badge_label ?? "",
     costoUnitario: data.costo_unitario ?? 0,
     stockActual: data.stock_actual ?? 0,
     stockAgenda: data.stock_agenda ?? data.stock_actual ?? 0,
     activo: data.activo ?? true,
     tipoProducto: data.tipo_producto ?? "simple"
   };
+}
+
+function hasMissingProductsColumnError(error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  return (
+    error.code === "PGRST204" ||
+    error.message?.includes("badge_label") === true ||
+    error.message?.includes("image_url") === true
+  );
+}
+
+function omitExtendedProductColumns(payload: Record<string, unknown>) {
+  const fallbackPayload = { ...payload };
+  delete fallbackPayload.image_url;
+  delete fallbackPayload.badge_label;
+  return fallbackPayload;
 }
 
 export function getProductRepository(): ProductRepository {

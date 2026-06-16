@@ -34,6 +34,8 @@ export async function POST(request: Request) {
       nombre: string;
       descripcion?: string;
       precioVenta: number;
+      imageUrl?: string;
+      badgeLabel?: string;
       costoUnitario?: number;
       stockActual?: number;
       stockAgenda?: number;

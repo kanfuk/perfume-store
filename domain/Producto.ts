@@ -12,6 +12,8 @@ export type ProductoProps = {
   nombre: string;
   descripcion?: string;
   precioVenta: number;
+  imageUrl?: string;
+  badgeLabel?: string;
   costoUnitario?: number;
   stockActual?: number;
   stockAgenda?: number;
@@ -23,6 +25,8 @@ export class Producto {
   readonly id: string;
   readonly nombre: string;
   readonly descripcion: string;
+  readonly imageUrl: string;
+  readonly badgeLabel: string;
   readonly tipoProducto: string;
   private _precioVenta: number;
   private _costoUnitario: number;
@@ -34,6 +38,8 @@ export class Producto {
     this.id = props.id;
     this.nombre = props.nombre.trim();
     this.descripcion = (props.descripcion ?? "").trim();
+    this.imageUrl = (props.imageUrl ?? "").trim();
+    this.badgeLabel = (props.badgeLabel ?? "").trim();
     this.tipoProducto = (props.tipoProducto ?? "simple").trim();
     this._precioVenta = props.precioVenta;
     this._costoUnitario = props.costoUnitario ?? 0;

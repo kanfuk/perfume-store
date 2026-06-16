@@ -16,6 +16,8 @@ export async function PATCH(
       nombre?: string;
       descripcion?: string;
       precioVenta?: number;
+      imageUrl?: string;
+      badgeLabel?: string;
       costoUnitario?: number;
       stockActual?: number;
       stockAgenda?: number;
@@ -32,6 +34,8 @@ export async function PATCH(
         nombre: body.nombre ?? "",
         descripcion: body.descripcion ?? "",
         precioVenta: body.precioVenta ?? 0,
+        imageUrl: body.imageUrl ?? "",
+        badgeLabel: body.badgeLabel ?? "",
         costoUnitario: body.costoUnitario ?? 0,
         stockActual: body.stockActual ?? 0,
         stockAgenda: body.stockAgenda ?? body.stockActual ?? 0,

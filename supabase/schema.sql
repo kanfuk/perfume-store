@@ -17,6 +17,8 @@ create table if not exists productos (
   nombre text not null,
   descripcion text,
   precio_venta integer not null,
+  image_url text,
+  badge_label text,
   costo_unitario integer not null default 0,
   stock_actual integer default 0,
   stock_agenda integer default 0,
@@ -84,6 +86,28 @@ create table if not exists usuarios_admin (
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'productos' and column_name = 'image_url'
+  ) then
+    alter table productos add column image_url text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'productos' and column_name = 'badge_label'
+  ) then
+    alter table productos add column badge_label text;
+  end if;
+end $$;
 
 do $$
 begin

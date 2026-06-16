@@ -30,7 +30,12 @@ export class ProductoService {
           nombre: product.nombre,
           descripcion: product.descripcion,
           precioVenta: product.precioVenta,
-          imageUrl: visual.imageUrl,
+          imageUrl: product.imageUrl || visual.imageUrl,
+          badgeLabel:
+            product.badgeLabel ||
+            visual.badgeLabel ||
+            product.tipoProducto ||
+            "PRODUCTO CASERO",
           stockActual: product.stockActual,
           tipoProducto: product.tipoProducto
         };
@@ -49,7 +54,12 @@ export class ProductoService {
         nombre: domainProduct.nombre,
         descripcion: domainProduct.descripcion,
         precioVenta: domainProduct.precioVenta,
-        imageUrl: visual.imageUrl,
+        imageUrl: domainProduct.imageUrl || visual.imageUrl,
+        badgeLabel:
+          domainProduct.badgeLabel ||
+          visual.badgeLabel ||
+          domainProduct.tipoProducto ||
+          "PRODUCTO CASERO",
         costoUnitario: domainProduct.costoUnitario,
         stockActual: domainProduct.stockActual,
         stockAgenda: domainProduct.stockAgenda,
@@ -64,6 +74,8 @@ export class ProductoService {
     nombre: string;
     descripcion?: string;
     precioVenta: number;
+    imageUrl?: string;
+    badgeLabel?: string;
     costoUnitario?: number;
     stockActual?: number;
     stockAgenda?: number;
@@ -75,6 +87,8 @@ export class ProductoService {
       nombre: input.nombre,
       descripcion: input.descripcion,
       precioVenta: input.precioVenta,
+      imageUrl: input.imageUrl,
+      badgeLabel: input.badgeLabel,
       costoUnitario: input.costoUnitario ?? 0,
       stockActual: input.stockActual ?? 0,
       stockAgenda: input.stockAgenda ?? input.stockActual ?? 0,
@@ -87,6 +101,8 @@ export class ProductoService {
       nombre: product.nombre,
       descripcion: product.descripcion,
       precioVenta: product.precioVenta,
+      imageUrl: product.imageUrl,
+      badgeLabel: product.badgeLabel,
       costoUnitario: product.costoUnitario,
       stockActual: product.stockActual,
       stockAgenda: product.stockAgenda,
@@ -101,6 +117,8 @@ export class ProductoService {
       nombre: string;
       descripcion?: string;
       precioVenta: number;
+      imageUrl?: string;
+      badgeLabel?: string;
       costoUnitario?: number;
       stockActual?: number;
       stockAgenda?: number;
@@ -119,6 +137,8 @@ export class ProductoService {
       nombre: input.nombre,
       descripcion: input.descripcion,
       precioVenta: input.precioVenta,
+      imageUrl: input.imageUrl,
+      badgeLabel: input.badgeLabel,
       costoUnitario: input.costoUnitario ?? 0,
       stockActual: input.stockActual ?? 0,
       stockAgenda: input.stockAgenda ?? input.stockActual ?? 0,
@@ -130,6 +150,8 @@ export class ProductoService {
       nombre: domainProduct.nombre,
       descripcion: domainProduct.descripcion,
       precioVenta: domainProduct.precioVenta,
+      imageUrl: domainProduct.imageUrl,
+      badgeLabel: domainProduct.badgeLabel,
       costoUnitario: domainProduct.costoUnitario,
       stockActual: domainProduct.stockActual,
       stockAgenda: domainProduct.stockAgenda,

@@ -13,6 +13,7 @@ import {
   Trash2,
   UserRound
 } from "lucide-react";
+import { AppFooter } from "@/components/AppFooter";
 import { ProductImage } from "@/components/ProductImage";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
@@ -497,7 +498,7 @@ export function OrderForm() {
                     />
                     <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
                       <span className="rounded-full bg-white/88 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#8f5728] shadow-sm">
-                        {product.tipoProducto ?? "del dia"}
+                        {product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
                       </span>
                       {currentItem ? (
                         <span className="rounded-full bg-[#fff2d8] px-3 py-1 text-xs font-semibold text-[#8f5728] shadow-sm">
@@ -760,6 +761,8 @@ export function OrderForm() {
           </button>
         </div>
       </div>
+
+      <AppFooter className="pb-24 xl:pb-6" />
 
       {submitted ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#5f3041]/30 px-4 backdrop-blur-sm">

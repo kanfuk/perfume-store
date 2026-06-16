@@ -1,28 +1,28 @@
 type ProductVisualMeta = {
   imageUrl: string;
-  eyebrow: string;
+  badgeLabel: string;
 };
 
 const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {
   "dobladita-solo-queso": {
     imageUrl: "/images/products/dobladita-solo-queso.jpeg",
-    eyebrow: "Clasica del dia"
+    badgeLabel: "DOBLADITA QUESO"
   },
   "dobladita-jamon-pavo-queso": {
     imageUrl: "/images/products/dobladita-jamon-pavo-queso.jpeg",
-    eyebrow: "Favorita de oficina"
+    badgeLabel: "JAMON PAVO / QUESO"
   },
   "dobladita-jamon-de-pavo-acaramelado-queso": {
     imageUrl: "/images/products/dobladita-jamon-pavo-queso.jpeg",
-    eyebrow: "Favorita de oficina"
+    badgeLabel: "JAMON PAVO / QUESO"
   },
   "dobladita-huevo": {
     imageUrl: "/images/products/dobladita-huevo.jpeg",
-    eyebrow: "Mas contundente"
+    badgeLabel: "DOBLADITA HUEVO"
   },
   "dobladita-reserva-ave-pimenton": {
     imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
-    eyebrow: "Reserva"
+    badgeLabel: "PRODUCTO CASERO"
   }
 };
 
@@ -51,6 +51,6 @@ export function getProductVisualMeta(product: { id?: string; nombre?: string }) 
 
   return {
     imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
-    eyebrow: "Hecho en casa"
+    badgeLabel: "PRODUCTO CASERO"
   };
 }

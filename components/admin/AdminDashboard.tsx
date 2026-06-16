@@ -32,6 +32,7 @@ import {
   UserRound,
   WalletCards
 } from "lucide-react";
+import { AppFooter } from "@/components/AppFooter";
 import { ProductImage } from "@/components/ProductImage";
 import { formatCurrency } from "@/lib/format";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -530,6 +531,8 @@ export function AdminDashboard({
     nombre: string;
     descripcion: string;
     precioVenta: number;
+    imageUrl?: string;
+    badgeLabel?: string;
     costoUnitario: number;
     stockActual: number;
     stockAgenda: number;
@@ -612,6 +615,8 @@ export function AdminDashboard({
       nombre: product.nombre,
       descripcion: product.descripcion,
       precioVenta: Number(draft?.precioVenta ?? product.precioVenta),
+      imageUrl: product.imageUrl,
+      badgeLabel: product.badgeLabel,
       costoUnitario: product.costoUnitario,
       stockActual: Number(draft?.stockActual ?? product.stockActual),
       stockAgenda: Number(draft?.stockAgenda ?? product.stockAgenda),
@@ -1571,6 +1576,7 @@ export function AdminDashboard({
         />
       ) : null}
 
+      <AppFooter className="pb-24 md:pb-8" />
       <MobileAdminNav currentView={view} onChange={navigateToView} />
     </main>
   );
@@ -1852,7 +1858,10 @@ function StockProductCard({
           />
           {busy ? "Guardando..." : product.activo ? "Catalogo activo" : "Pausado"}
         </button>
-        <StatusBadge tone="neutral" label={product.tipoProducto} />
+        <StatusBadge
+          tone="neutral"
+          label={product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
+        />
         <StatusBadge
           tone={product.stockActual > 0 ? "pedido" : "warning"}
           label={`Stock hoy ${product.stockActual}`}
@@ -1886,6 +1895,11 @@ function StockProductCard({
           Ver detalle del producto
         </summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <MiniMetric
+            label="Badge"
+            value={product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
+          />
+          <MiniMetric label="Imagen" value={product.imageUrl ? "Configurada" : "Fallback"} />
           <MiniMetric label="Costo unitario" value={formatCurrency(product.costoUnitario)} />
           <MiniMetric label="Utilidad aprox." value={formatCurrency(product.utilidadUnitaria)} />
         </div>
@@ -2351,6 +2365,8 @@ function ProductModal({
     nombre: string;
     descripcion: string;
     precioVenta: number;
+    imageUrl?: string;
+    badgeLabel?: string;
     costoUnitario: number;
     stockActual: number;
     stockAgenda: number;
@@ -2362,6 +2378,8 @@ function ProductModal({
   const [nombre, setNombre] = useState(current?.nombre ?? "");
   const [descripcion, setDescripcion] = useState(current?.descripcion ?? "");
   const [precioVenta, setPrecioVenta] = useState(String(current?.precioVenta ?? 0));
+  const [imageUrl, setImageUrl] = useState(current?.imageUrl ?? "");
+  const [badgeLabel, setBadgeLabel] = useState(current?.badgeLabel ?? "");
   const [costoUnitario, setCostoUnitario] = useState(
     String(current?.costoUnitario ?? 0)
   );
@@ -2406,7 +2424,10 @@ function ProductModal({
                 value={activo ? "Activo" : "Pausado"}
               />
               <MiniMetric label="Stock hoy" value={stockActual} />
-              <MiniMetric label="Stock agenda" value={stockAgenda} />
+              <MiniMetric
+                label="Badge"
+                value={badgeLabel || tipoProducto || "PRODUCTO CASERO"}
+              />
             </section>
 
             <label className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900">
@@ -2447,6 +2468,24 @@ function ProductModal({
               value={descripcion}
               onChange={(event) => setDescripcion(event.target.value)}
               rows={3}
+              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+            />
+          </label>
+          <label className="space-y-2 sm:col-span-2">
+            <span className="text-sm font-semibold text-rose-900">Badge visible</span>
+            <input
+              value={badgeLabel}
+              onChange={(event) => setBadgeLabel(event.target.value)}
+              placeholder="Ejemplo: DOBLADITA QUESO"
+              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+            />
+          </label>
+          <label className="space-y-2 sm:col-span-2">
+            <span className="text-sm font-semibold text-rose-900">Ruta publica de imagen</span>
+            <input
+              value={imageUrl}
+              onChange={(event) => setImageUrl(event.target.value)}
+              placeholder="/images/products/dobladita-solo-queso.jpeg"
               className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
             />
           </label>
@@ -2518,6 +2557,8 @@ function ProductModal({
                   nombre,
                   descripcion,
                   precioVenta: Number(precioVenta),
+                  imageUrl,
+                  badgeLabel,
                   costoUnitario: Number(costoUnitario),
                   stockActual: Number(stockActual),
                   stockAgenda: Number(stockAgenda),

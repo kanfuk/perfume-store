@@ -4,6 +4,7 @@ export type ProductRecord = {
   descripcion?: string;
   precioVenta: number;
   imageUrl?: string;
+  badgeLabel?: string;
   costoUnitario?: number;
   stockActual?: number;
   activo?: boolean;
@@ -16,6 +17,7 @@ export type AdminProductRecord = {
   descripcion: string;
   precioVenta: number;
   imageUrl?: string;
+  badgeLabel?: string;
   costoUnitario: number;
   stockActual: number;
   stockAgenda: number;
