@@ -99,42 +99,6 @@ export default function HomePage() {
       </section>
 
       <OrderForm />
-
-      <section className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-[24px] border border-[#f2d9df] bg-white/92 p-4 shadow-soft">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#a46c7c]">
-            Encargos
-          </div>
-          <div className="mt-2 text-base font-semibold text-[#5f3041]">
-            Para compartir o sorprender
-          </div>
-          <div className="mt-1 text-sm leading-6 text-[#7f5b67]">
-            Perfecto para la oficina, una once especial o un regalo con cariño.
-          </div>
-        </div>
-        <div className="rounded-[24px] border border-[#f2d9df] bg-white/92 p-4 shadow-soft">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#a46c7c]">
-            Preparacion
-          </div>
-          <div className="mt-2 text-base font-semibold text-[#5f3041]">
-            Casero y bien presentado
-          </div>
-          <div className="mt-1 text-sm leading-6 text-[#7f5b67]">
-            Productos ricos, cercanos y con una presentacion que se siente especial.
-          </div>
-        </div>
-        <div className="rounded-[24px] border border-[#f2d9df] bg-white/92 p-4 shadow-soft">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#a46c7c]">
-            Coordinacion
-          </div>
-          <div className="mt-2 text-base font-semibold text-[#5f3041]">
-            Te confirmamos directo
-          </div>
-          <div className="mt-1 text-sm leading-6 text-[#7f5b67]">
-            Recibimos tu pedido y coordinamos contigo la mejor forma de entrega.
-          </div>
-        </div>
-      </section>
     </main>
   );
 }
