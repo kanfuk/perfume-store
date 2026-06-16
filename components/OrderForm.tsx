@@ -328,7 +328,7 @@ export function OrderForm() {
                   Clientes frecuentes
                 </h3>
                 <p className="text-sm text-[#7f5b67]">
-                  Si ya pediste desde este equipo, puedes rellenar todo con un toque.
+                  Si ya pediste desde este equipo, toca tu nombre y seguimos.
                 </p>
               </div>
             </div>
@@ -338,7 +338,7 @@ export function OrderForm() {
                   key={customer.telefono}
                   type="button"
                   onClick={() => applyRecentCustomer(customer)}
-                  className="rounded-2xl border border-[#f0d6da] bg-white px-4 py-3 text-left transition hover:border-[#d37b94] hover:shadow-sm"
+                  className="rounded-full border border-[#f0d6da] bg-white px-4 py-3 text-left transition hover:border-[#d37b94] hover:shadow-sm"
                 >
                   <div className="text-sm font-semibold text-[#5f3041]">
                     {customer.nombre}
@@ -361,7 +361,7 @@ export function OrderForm() {
                   Elige tus productos
                 </h3>
                 <p className="text-sm text-[#7f5b67]">
-                  Empieza aqui. Todo lo que agregues aparecera altiro en tu carrito.
+                  Toca &quot;Agregar&quot; y arma tu pedido.
                 </p>
               </div>
             </div>
@@ -378,7 +378,7 @@ export function OrderForm() {
               return (
                 <article
                   key={product.id}
-                  className="rounded-[24px] border border-[#f2d9df] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft"
+                  className="rounded-[26px] border border-[#f2d9df] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
@@ -394,12 +394,12 @@ export function OrderForm() {
                     </div>
                     {currentItem ? (
                       <span className="rounded-full bg-[#ffe2e9] px-3 py-1 text-xs font-semibold text-[#7b4256]">
-                        x{currentItem.cantidad}
+                        En carrito x{currentItem.cantidad}
                       </span>
                     ) : null}
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-3">
-                    <div className="text-sm font-semibold text-[#b85f79]">
+                    <div className="rounded-full bg-[#fff5f7] px-3 py-1.5 text-sm font-semibold text-[#b85f79]">
                       {formatCurrency(product.precioVenta)}
                     </div>
                     <button
@@ -430,7 +430,7 @@ export function OrderForm() {
                 Dejanos tus datos para agendar pedido
               </h3>
               <p className="text-sm text-[#7f5b67]">
-                Solo lo justo para reconocer tu pedido y coordinar contigo.
+                Completa esto y nosotros te escribimos.
               </p>
             </div>
           </div>
@@ -502,17 +502,22 @@ export function OrderForm() {
         <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
           <div className="overflow-hidden rounded-[30px] border border-[#f0d6da] bg-white/95 shadow-soft">
             <div className="bg-[linear-gradient(180deg,#fff1f4_0%,#fff8fa_100%)] p-5">
-              <h3 className="text-lg font-semibold text-[#5f3041]">Resumen de compra</h3>
-              <p className="mt-1 text-sm text-[#7f5b67]">
-                Revisa tu total mientras armas el pedido.
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#5f3041]">Tu pedido</h3>
+                  <p className="mt-1 text-sm text-[#7f5b67]">Aqui ves lo que llevas.</p>
+                </div>
+                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#b85f79]">
+                  {cartLines.length} producto{cartLines.length === 1 ? "" : "s"}
+                </span>
+              </div>
             </div>
             <div className="space-y-3 p-5">
               <div className="mt-4 space-y-3">
                 {cartLines.length === 0 ? (
-                  <p className="text-sm text-[#7f5b67]">
+                  <div className="rounded-[22px] border border-dashed border-[#f0d6da] bg-[#fff8fa] px-4 py-5 text-sm text-[#7f5b67]">
                     Tu resumen aparecera apenas agregues productos.
-                  </p>
+                  </div>
                 ) : (
                   cartLines.map((item) => (
                     <div
@@ -562,12 +567,12 @@ export function OrderForm() {
                   ))
                 )}
               </div>
-              <div className="mt-4 flex items-center justify-between border-t border-[#f0d6da] pt-4 text-base">
-                <span className="font-semibold text-[#5f3041]">Total</span>
-                <span className="font-semibold text-[#b85f79]">{formatCurrency(total)}</span>
-              </div>
+            <div className="mt-4 flex items-center justify-between border-t border-[#f0d6da] pt-4 text-base">
+              <span className="font-semibold text-[#5f3041]">Total</span>
+              <span className="font-semibold text-[#b85f79]">{formatCurrency(total)}</span>
             </div>
           </div>
+        </div>
 
           <div className="rounded-[30px] border border-[#f0d6da] bg-white/95 p-5 shadow-soft">
             <div className="flex items-center gap-3">
@@ -577,7 +582,7 @@ export function OrderForm() {
               <div>
                 <h3 className="text-lg font-semibold text-[#5f3041]">Compra protegida</h3>
                 <p className="text-sm text-[#7f5b67]">
-                  Solo nosotros podemos cambiar estados o confirmar pagos.
+                  Tu pedido solo se puede crear. Los cambios internos los hacemos nosotros.
                 </p>
               </div>
             </div>
