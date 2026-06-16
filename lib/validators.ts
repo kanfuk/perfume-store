@@ -8,6 +8,7 @@
  */
 
 import type { ProductoProps } from "@/domain/Producto";
+import { isValidChileanMobilePhone } from "@/lib/chile-phone";
 import type { CustomerOrderLineInput } from "@/lib/types";
 
 export type CustomerFormData = {
@@ -32,12 +33,8 @@ export function validateCustomerOrderForm(
 
   if (!data.telefono.trim()) {
     errors.telefono = "Ingresa tu numero de telefono.";
-  } else {
-    const normalizedPhone = data.telefono.replace(/\D/g, "");
-
-    if (normalizedPhone.length < 8) {
-      errors.telefono = "Ingresa un numero de telefono valido.";
-    }
+  } else if (!isValidChileanMobilePhone(data.telefono)) {
+    errors.telefono = "Ingresa un celular chileno valido. Ejemplo: +56 9 1234 5678.";
   }
 
   if (!data.lugarTrabajo.trim()) {

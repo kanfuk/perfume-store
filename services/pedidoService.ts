@@ -19,6 +19,7 @@ import {
   ESTADO_PEDIDO_FINALIZADO,
   ESTADO_PEDIDO_PENDIENTE
 } from "@/lib/constants";
+import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import type {
   AdminDashboardData,
   AdminOrderSummary,
@@ -49,10 +50,16 @@ export class PedidoService {
       throw new Error(Object.values(validation.errors)[0] ?? "Formulario invalido.");
     }
 
+    const normalizedPhone = parseChileanMobilePhone(input.telefono);
+
+    if (!normalizedPhone) {
+      throw new Error("Ingresa un celular chileno valido. Ejemplo: +56 9 1234 5678.");
+    }
+
     const cliente = new Cliente({
-      nombre: input.nombre,
-      telefono: input.telefono,
-      lugarTrabajo: input.lugarTrabajo
+      nombre: input.nombre.trim(),
+      telefono: normalizedPhone.e164,
+      lugarTrabajo: input.lugarTrabajo.trim()
     });
     const productMap = new Map(products.map((product) => [product.id, product]));
     const items = input.items.map((line) => {
@@ -75,7 +82,7 @@ export class PedidoService {
       items
     });
 
-    const { id: clienteId } = await this.clienteRepository.insertarCliente(cliente);
+    const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
     const { id: pedidoId } = await this.pedidoRepository.insertarPedido({
       pedido,
       clienteId

@@ -98,7 +98,7 @@ class ProductRepositoryStub implements ProductRepository {
 }
 
 class ClienteRepositoryStub implements ClienteRepository {
-  async insertarCliente(cliente: Cliente) {
+  async upsertCliente(cliente: Cliente) {
     return { id: `cliente-${cliente.nombre}` };
   }
 }
@@ -165,6 +165,7 @@ describe("PedidoService", () => {
     expect(result.items).toHaveLength(2);
     expect(result.items[0]?.precioUnitario).toBe(500);
     expect(pedidoRepository.itemsRegistrados).toBe(2);
+    expect(result.clienteId).toBe("cliente-Rodrigo");
   });
 
   it("rechaza un producto inexistente o inactivo", async () => {
@@ -182,5 +183,31 @@ describe("PedidoService", () => {
         items: [{ productoId: "otro", cantidad: 1 }]
       })
     ).rejects.toThrow("Todos los items deben usar productos activos.");
+  });
+
+  it("normaliza el celular chileno antes de guardar", async () => {
+    let telefonoGuardado = "";
+
+    class ClienteRepositoryPhoneStub implements ClienteRepository {
+      async upsertCliente(cliente: Cliente) {
+        telefonoGuardado = cliente.telefono;
+        return { id: "cliente-telefono" };
+      }
+    }
+
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryPhoneStub(),
+      new PedidoRepositoryStub()
+    );
+
+    await service.crearPedido({
+      nombre: "Rodrigo",
+      telefono: "9 1234 5678",
+      lugarTrabajo: "Finanzas",
+      items: [{ productoId: "pan-amasado", cantidad: 1 }]
+    });
+
+    expect(telefonoGuardado).toBe("+56912345678");
   });
 });

@@ -13,11 +13,22 @@ import { localStore } from "@/lib/local-store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface ClienteRepository {
-  insertarCliente(cliente: Cliente): Promise<{ id: string }>;
+  upsertCliente(cliente: Cliente): Promise<{ id: string }>;
 }
 
 class MemoryClienteRepository implements ClienteRepository {
-  async insertarCliente(cliente: Cliente) {
+  async upsertCliente(cliente: Cliente) {
+    const existing = localStore.customers.find(
+      (item) => item.telefono === cliente.telefono
+    );
+
+    if (existing) {
+      existing.nombre = cliente.nombre;
+      existing.telefono = cliente.telefono;
+      existing.lugarTrabajo = cliente.lugarTrabajo;
+      return { id: existing.id };
+    }
+
     const id = crypto.randomUUID();
     localStore.customers.push({
       id,
@@ -32,8 +43,37 @@ class MemoryClienteRepository implements ClienteRepository {
 }
 
 class SupabaseClienteRepository implements ClienteRepository {
-  async insertarCliente(cliente: Cliente) {
+  async upsertCliente(cliente: Cliente) {
     const supabase = createSupabaseServerClient();
+    const { data: existing, error: existingError } = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("telefono", cliente.telefono)
+      .limit(1);
+
+    if (existingError) {
+      throw new Error("No fue posible consultar el cliente.");
+    }
+
+    const existingId = existing?.[0]?.id;
+
+    if (existingId) {
+      const { error } = await supabase
+        .from("clientes")
+        .update({
+          nombre: cliente.nombre,
+          telefono: cliente.telefono || null,
+          lugar_trabajo: cliente.lugarTrabajo
+        })
+        .eq("id", existingId);
+
+      if (error) {
+        throw new Error("No fue posible actualizar el cliente.");
+      }
+
+      return { id: existingId };
+    }
+
     const { data, error } = await supabase
       .from("clientes")
       .insert({

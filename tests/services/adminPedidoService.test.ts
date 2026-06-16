@@ -82,7 +82,7 @@ class ProductRepositoryStub implements ProductRepository {
 }
 
 class ClienteRepositoryStub implements ClienteRepository {
-  async insertarCliente(cliente: Cliente) {
+  async upsertCliente(cliente: Cliente) {
     return { id: cliente.id ?? "cliente-1" };
   }
 }
@@ -196,7 +196,7 @@ function buildOrder(estadoPedido: string): PedidoListItemRecord {
     id: "pedido-1",
     clienteId: "cliente-1",
     clienteNombre: "Rodrigo",
-    clienteTelefono: "999999999",
+    clienteTelefono: "+56999999999",
     clienteLugarTrabajo: "Finanzas",
     productoId: "pan-amasado",
     productoNombre: "Pan amasado",

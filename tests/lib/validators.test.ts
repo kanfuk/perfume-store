@@ -71,6 +71,39 @@ describe("validateCustomerOrderForm", () => {
     );
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.telefono).toBe("Ingresa un numero de telefono valido.");
+    expect(result.errors.telefono).toBe(
+      "Ingresa un celular chileno valido. Ejemplo: +56 9 1234 5678."
+    );
+  });
+
+  it("acepta celular chileno con codigo pais", () => {
+    const result = validateCustomerOrderForm(
+      {
+        nombre: "Rodrigo",
+        telefono: "+56 9 1234 5678",
+        lugarTrabajo: "Finanzas",
+        items: [{ productoId: "pan-amasado", cantidad: 1 }]
+      },
+      mockProducts
+    );
+
+    expect(result.isValid).toBe(true);
+  });
+
+  it("rechaza numeros que no son celular chileno", () => {
+    const result = validateCustomerOrderForm(
+      {
+        nombre: "Rodrigo",
+        telefono: "+56 2 2345 6789",
+        lugarTrabajo: "Finanzas",
+        items: [{ productoId: "pan-amasado", cantidad: 1 }]
+      },
+      mockProducts
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.telefono).toBe(
+      "Ingresa un celular chileno valido. Ejemplo: +56 9 1234 5678."
+    );
   });
 });
