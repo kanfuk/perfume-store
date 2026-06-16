@@ -50,6 +50,7 @@ export function AdminLoginForm({
 
   return (
     <form
+      method="post"
       onSubmit={handleSubmit}
       className="w-full space-y-6 rounded-lg border border-border bg-panel p-6 shadow-soft"
     >

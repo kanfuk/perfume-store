@@ -19,6 +19,7 @@ create table if not exists productos (
   precio_venta integer not null,
   costo_unitario integer not null default 0,
   stock_actual integer default 0,
+  stock_agenda integer default 0,
   activo boolean default true,
   tipo_producto text,
   created_at timestamp with time zone default now(),
@@ -34,6 +35,7 @@ create table if not exists pedidos (
   observacion text,
   motivo_cancelacion text,
   fecha_pedido timestamp with time zone default now(),
+  fecha_entrega date,
   fecha_agendado timestamp with time zone,
   fecha_cierre timestamp with time zone,
   fecha_cancelacion timestamp with time zone,
@@ -87,6 +89,28 @@ do $$
 begin
   if not exists (
     select 1
+    from information_schema.columns
+    where table_name = 'productos' and column_name = 'stock_agenda'
+  ) then
+    alter table productos add column stock_agenda integer default 0;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedidos' and column_name = 'fecha_entrega'
+  ) then
+    alter table pedidos add column fecha_entrega date;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
     from pg_constraint
     where conname = 'pedidos_estado_pedido_check'
   ) then
@@ -131,13 +155,14 @@ begin
   ) then
     alter table productos
     add constraint productos_precio_check
-    check (precio_venta >= 0 and costo_unitario >= 0);
+    check (precio_venta >= 0 and costo_unitario >= 0 and stock_actual >= 0 and stock_agenda >= 0);
   end if;
 end $$;
 
 create or replace function set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -183,6 +208,8 @@ alter table pagos enable row level security;
 alter table fiados enable row level security;
 alter table usuarios_admin enable row level security;
 
+drop function if exists public.rls_auto_enable();
+
 -- Politicas iniciales minimas para MVP.
 drop policy if exists "public_can_read_active_products" on productos;
 create policy "public_can_read_active_products"
@@ -190,11 +217,45 @@ on productos
 for select
 using (activo = true);
 
+drop policy if exists "admin_can_manage_productos" on productos;
+create policy "admin_can_manage_productos"
+on productos
+for all
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+)
+with check (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
 drop policy if exists "public_can_insert_clientes" on clientes;
-create policy "public_can_insert_clientes"
+-- Los inserts de clientes se hacen desde el servidor con service role.
+-- No dejamos una politica publica abierta para evitar inserciones directas.
+
+drop policy if exists "admin_can_read_clientes" on clientes;
+create policy "admin_can_read_clientes"
 on clientes
-for insert
-with check (true);
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
 
 drop policy if exists "public_can_insert_pedidos" on pedidos;
 create policy "public_can_insert_pedidos"
@@ -206,6 +267,28 @@ with check (
   and total >= 0
 );
 
+drop policy if exists "admin_can_manage_pedidos" on pedidos;
+create policy "admin_can_manage_pedidos"
+on pedidos
+for all
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+)
+with check (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
 drop policy if exists "public_can_insert_pedido_items" on pedido_items;
 create policy "public_can_insert_pedido_items"
 on pedido_items
@@ -215,4 +298,67 @@ with check (
   and subtotal >= 0
 );
 
--- Las politicas admin autenticadas se afinan cuando integremos Supabase Auth.
+drop policy if exists "admin_can_read_pedido_items" on pedido_items;
+create policy "admin_can_read_pedido_items"
+on pedido_items
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_manage_pagos" on pagos;
+create policy "admin_can_manage_pagos"
+on pagos
+for all
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+)
+with check (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_manage_fiados" on fiados;
+create policy "admin_can_manage_fiados"
+on fiados
+for all
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+)
+with check (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_read_own_profile" on usuarios_admin;
+create policy "admin_can_read_own_profile"
+on usuarios_admin
+for select
+to authenticated
+using (email = auth.email() and activo = true);

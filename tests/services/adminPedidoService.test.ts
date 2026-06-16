@@ -16,6 +16,8 @@ class ProductRepositoryStub implements ProductRepository {
         id: "pan-amasado",
         nombre: "Pan amasado",
         precioVenta: 500,
+        stockActual: 10,
+        stockAgenda: 10,
         activo: true
       }
     ];
@@ -26,6 +28,8 @@ class ProductRepositoryStub implements ProductRepository {
       id: "pan-amasado",
       nombre: "Pan amasado",
       precioVenta: 500,
+      stockActual: 10,
+      stockAgenda: 10,
       activo: true
     };
   }
@@ -41,6 +45,7 @@ class ProductRepositoryStub implements ProductRepository {
     precioVenta: number;
     costoUnitario?: number;
     stockActual?: number;
+    stockAgenda?: number;
     activo?: boolean;
     tipoProducto?: string;
   }) {
@@ -51,6 +56,7 @@ class ProductRepositoryStub implements ProductRepository {
       precioVenta: producto.precioVenta,
       costoUnitario: producto.costoUnitario ?? 0,
       stockActual: producto.stockActual ?? 0,
+      stockAgenda: producto.stockAgenda ?? producto.stockActual ?? 0,
       activo: producto.activo ?? true,
       tipoProducto: producto.tipoProducto ?? "simple"
     };
@@ -64,6 +70,7 @@ class ProductRepositoryStub implements ProductRepository {
       precioVenta?: number;
       costoUnitario?: number;
       stockActual?: number;
+      stockAgenda?: number;
       activo?: boolean;
       tipoProducto?: string;
     }
@@ -75,6 +82,7 @@ class ProductRepositoryStub implements ProductRepository {
       precioVenta: cambios.precioVenta ?? 0,
       costoUnitario: cambios.costoUnitario ?? 0,
       stockActual: cambios.stockActual ?? 0,
+      stockAgenda: cambios.stockAgenda ?? cambios.stockActual ?? 0,
       activo: cambios.activo ?? true,
       tipoProducto: cambios.tipoProducto ?? "simple"
     };
@@ -93,6 +101,7 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
         pedidoId: string;
         estadoPedido: string;
         estadoPago?: string;
+        fechaEntrega?: string;
         fechaAgendado?: string;
         fechaCierre?: string;
       }
@@ -128,6 +137,7 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
+    fechaEntrega?: string;
     fechaAgendado?: string;
     fechaCierre?: string;
   }) {
@@ -230,11 +240,61 @@ describe("PedidoService admin transitions", () => {
       repository
     );
 
-    await service.agendarPedido("pedido-1");
+    await service.agendarPedido("pedido-1", "2026-06-13");
 
     expect(repository.actualizado?.pedidoId).toBe("pedido-1");
     expect(repository.actualizado?.estadoPedido).toBe("AGENDADO");
     expect(repository.actualizado?.estadoPago).toBe("SIN_PAGO");
+    expect(repository.actualizado?.fechaEntrega).toBe("2026-06-13");
+  });
+
+  it("bloquea la agenda si el stock del dia ya esta comprometido", async () => {
+    const repository = new AdminPedidoRepositoryStub({
+      PENDIENTE: [buildOrder("PENDIENTE")],
+      AGENDADO: [
+        {
+          ...buildOrder("AGENDADO"),
+          id: "pedido-2",
+          fechaEntrega: "2026-06-13"
+        }
+      ]
+    });
+
+    class ProductRepositorySinStockStub extends ProductRepositoryStub {
+      override async buscarProductosActivos() {
+        return [
+          {
+            id: "pan-amasado",
+            nombre: "Pan amasado",
+            precioVenta: 500,
+            stockActual: 2,
+            stockAgenda: 2,
+            activo: true
+          }
+        ];
+      }
+
+      override async buscarProductoPorId() {
+        return {
+          id: "pan-amasado",
+          nombre: "Pan amasado",
+          precioVenta: 500,
+          stockActual: 2,
+          stockAgenda: 2,
+          activo: true
+        };
+      }
+    }
+
+    const service = new PedidoService(
+      new ProductRepositorySinStockStub(),
+      new ClienteRepositoryStub(),
+      repository
+    );
+
+    await expect(service.agendarPedido("pedido-1", "2026-06-13")).rejects.toThrow(
+      "No alcanza el stock de agenda para Pan amasado"
+    );
   });
 
   it("marca pagado un pedido agendado", async () => {

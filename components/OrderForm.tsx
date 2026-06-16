@@ -13,6 +13,7 @@ import {
   Trash2,
   UserRound
 } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
 import type { CustomerOrderResponse, ProductRecord } from "@/lib/types";
@@ -36,6 +37,13 @@ type SavedCustomerProfile = {
   telefono: string;
   lugarTrabajo: string;
   lastUsedAt: string;
+};
+
+type StockLimitState = {
+  productId: string;
+  productName: string;
+  available: number;
+  apply: () => void;
 };
 
 function readRecentCustomers(): SavedCustomerProfile[] {
@@ -104,15 +112,14 @@ function mergeRecentCustomer(
 export function OrderForm() {
   const [form, setForm] = useState<CustomerFormData>(initialForm);
   const [products, setProducts] = useState<ProductRecord[]>([]);
-  const [recentCustomers, setRecentCustomers] = useState<SavedCustomerProfile[]>(
-    () => readRecentCustomers()
-  );
+  const [recentCustomers, setRecentCustomers] = useState<SavedCustomerProfile[]>([]);
   const [submitted, setSubmitted] = useState<CustomerOrderResponse | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   const [autoFillMessage, setAutoFillMessage] = useState("");
   const [lastAutoFilledPhone, setLastAutoFilledPhone] = useState("");
+  const [stockLimitState, setStockLimitState] = useState<StockLimitState | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -155,6 +162,14 @@ export function OrderForm() {
     };
   }, []);
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setRecentCustomers(readRecentCustomers());
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
   const validation = validateCustomerOrderForm(form, products);
 
   const cartLines = useMemo(
@@ -171,10 +186,74 @@ export function OrderForm() {
   );
 
   const total = cartLines.reduce((sum, item) => sum + item.subtotal, 0);
-  function addProduct(productId: string) {
-    setForm((current) => {
-      const existing = current.items.find((item) => item.productoId === productId);
 
+  function requestStockAdjustment(
+    product: ProductRecord,
+    nextQuantity: number,
+    onAccept: () => void
+  ) {
+    const available = Math.max(product.stockActual ?? 0, 0);
+
+    if (nextQuantity <= available) {
+      onAccept();
+      return;
+    }
+
+    setStockLimitState({
+      productId: product.id,
+      productName: product.nombre,
+      available,
+      apply: onAccept
+    });
+  }
+
+  function addProduct(productId: string) {
+    const product = products.find((item) => item.id === productId);
+
+    if (!product) {
+      return;
+    }
+    const existing = form.items.find((item) => item.productoId === productId);
+    const nextQuantity = (existing?.cantidad ?? 0) + 1;
+
+    if ((product.stockActual ?? 0) <= 0) {
+      setServerError(`${product.nombre} no tiene stock disponible por ahora.`);
+      return;
+    }
+
+    if (nextQuantity > (product.stockActual ?? 0)) {
+      requestStockAdjustment(product, nextQuantity, () => {
+        setForm((latest) => {
+          const latestExisting = latest.items.find((item) => item.productoId === productId);
+
+          if (latestExisting) {
+            return {
+              ...latest,
+              items: latest.items.map((item) =>
+                item.productoId === productId
+                  ? { ...item, cantidad: Math.max(product.stockActual ?? 0, 0) }
+                  : item
+              )
+            };
+          }
+
+          return {
+            ...latest,
+            items: [
+              ...latest.items,
+              {
+                productoId: productId,
+                cantidad: Math.max(product.stockActual ?? 0, 0)
+              }
+            ]
+          };
+        });
+      });
+      return;
+    }
+
+    setServerError("");
+    setForm((current) => {
       if (existing) {
         return {
           ...current,
@@ -194,6 +273,34 @@ export function OrderForm() {
   }
 
   function updateQuantity(productId: string, nextQuantity: number) {
+    const product = products.find((item) => item.id === productId);
+
+    if (!product) {
+      return;
+    }
+
+    if (nextQuantity <= 0) {
+      removeItem(productId);
+      return;
+    }
+
+    if (nextQuantity > (product.stockActual ?? 0)) {
+      requestStockAdjustment(product, nextQuantity, () => {
+        setForm((current) => ({
+          ...current,
+          items: current.items.map((item) =>
+            item.productoId === productId
+              ? {
+                  ...item,
+                  cantidad: Math.max(product.stockActual ?? 0, 0)
+                }
+              : item
+          )
+        }));
+      });
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       items: current.items
@@ -314,13 +421,14 @@ export function OrderForm() {
       >
         <form
           id="customer-order-form"
-          className="space-y-6 rounded-[30px] border border-[#f0d6da] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
+          method="post"
+          className="space-y-6 rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
           onSubmit={handleSubmit}
         >
         {recentCustomers.length > 0 ? (
-          <div className="rounded-[26px] border border-[#f2d9df] bg-[#fff8fa] p-4 sm:p-5">
+          <div className="rounded-[26px] border border-[#eedcc3] bg-[#fff9ef] p-4 sm:p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#b85f79] shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#a86b32] shadow-sm">
                 <Clock3 className="h-5 w-5" />
               </div>
               <div>
@@ -338,7 +446,7 @@ export function OrderForm() {
                   key={customer.telefono}
                   type="button"
                   onClick={() => applyRecentCustomer(customer)}
-                  className="rounded-full border border-[#f0d6da] bg-white px-4 py-3 text-left transition hover:border-[#d37b94] hover:shadow-sm"
+                  className="rounded-full border border-[#eedcc3] bg-white px-4 py-3 text-left transition hover:border-[#d8a55d] hover:shadow-sm"
                 >
                   <div className="text-sm font-semibold text-[#5f3041]">
                     {customer.nombre}
@@ -350,18 +458,18 @@ export function OrderForm() {
           </div>
         ) : null}
 
-        <div className="space-y-4 rounded-[26px] border border-[#f2d9df] bg-[#fff8fa] p-4 sm:p-5">
+        <div className="space-y-4 rounded-[26px] border border-[#eedcc3] bg-[linear-gradient(180deg,#fffaf2_0%,#fff6fb_100%)] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#b85f79] shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#a86b32] shadow-sm">
                 <ShoppingBag className="h-5 w-5" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-[#5f3041]">
-                  Elige tus productos
+                  Catalogo del dia
                 </h3>
                 <p className="text-sm text-[#7f5b67]">
-                  Toca &quot;Agregar&quot; y arma tu pedido.
+                  Elige tu dobladita favorita y suma las que necesites.
                 </p>
               </div>
             </div>
@@ -369,7 +477,7 @@ export function OrderForm() {
               <span className="text-sm text-[#8f6070]">Cargando...</span>
             ) : null}
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {products.map((product) => {
               const currentItem = form.items.find(
                 (item) => item.productoId === product.id
@@ -378,38 +486,64 @@ export function OrderForm() {
               return (
                 <article
                   key={product.id}
-                  className="rounded-[26px] border border-[#f2d9df] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft"
+                  className="overflow-hidden rounded-[28px] border border-[#eedcc3] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <h4 className="text-base font-semibold text-[#5f3041]">
+                  <div className="relative h-52 bg-[#fff5e8]">
+                    <ProductImage
+                      src={product.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
+                      alt={product.nombre}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
+                      <span className="rounded-full bg-white/88 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#8f5728] shadow-sm">
+                        {product.tipoProducto ?? "del dia"}
+                      </span>
+                      {currentItem ? (
+                        <span className="rounded-full bg-[#fff2d8] px-3 py-1 text-xs font-semibold text-[#8f5728] shadow-sm">
+                          En carrito x{currentItem.cantidad}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="space-y-4 p-4">
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-semibold text-[#5f3041]">
                         {product.nombre}
                       </h4>
                       <p className="text-sm leading-6 text-[#7f5b67]">
                         {product.descripcion}
                       </p>
-                      <div className="inline-flex rounded-full bg-[#fff0f4] px-2.5 py-1 text-xs font-medium text-[#b85f79]">
-                        {product.tipoProducto ?? "simple"}
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-[#a86b32]">
+                          Valor unitario
+                        </div>
+                        <div className="mt-1 text-2xl font-bold text-[#5f3041]">
+                          {formatCurrency(product.precioVenta)}
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => addProduct(product.id)}
+                        disabled={(product.stockActual ?? 0) <= 0}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
+                      >
+                        <Plus className="h-4 w-4" />
+                        {(product.stockActual ?? 0) <= 0
+                          ? "Sin stock"
+                          : currentItem
+                            ? "Agregar otra"
+                            : "Elegir"}
+                      </button>
                     </div>
-                    {currentItem ? (
-                      <span className="rounded-full bg-[#ffe2e9] px-3 py-1 text-xs font-semibold text-[#7b4256]">
-                        En carrito x{currentItem.cantidad}
+                    <div className="flex items-center justify-between rounded-[18px] bg-[#fff6e7] px-4 py-3 text-sm">
+                      <span className="font-medium text-[#7f5b67]">Disponibles hoy</span>
+                      <span className="font-semibold text-[#8f5728]">
+                        {Math.max(product.stockActual ?? 0, 0)}
                       </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <div className="rounded-full bg-[#fff5f7] px-3 py-1.5 text-sm font-semibold text-[#b85f79]">
-                      {formatCurrency(product.precioVenta)}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => addProduct(product.id)}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-[#b85f79] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#a8526c]"
-                    >
-                      <Plus className="h-4 w-4" />
-                      {currentItem ? "Sumar uno" : "Agregar"}
-                    </button>
                   </div>
                 </article>
               );
@@ -420,17 +554,17 @@ export function OrderForm() {
           ) : null}
         </div>
 
-        <div className="space-y-4 rounded-[26px] border border-[#f2d9df] bg-[#fff8fa] p-4 sm:p-5">
+        <div className="space-y-4 rounded-[26px] border border-[#eedcc3] bg-[#fff9ef] p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#b85f79] shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#a86b32] shadow-sm">
               <UserRound className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-[#5f3041]">
-                Dejanos tus datos para agendar pedido
+                Tus datos
               </h3>
               <p className="text-sm text-[#7f5b67]">
-                Completa esto y nosotros te escribimos.
+                Completa esto y Pauli te confirma disponibilidad por WhatsApp.
               </p>
             </div>
           </div>
@@ -438,9 +572,9 @@ export function OrderForm() {
           {autoFillMessage ? (
             <div
               aria-live="polite"
-              className="flex items-start gap-2 rounded-2xl border border-[#eecbd5] bg-white px-4 py-3 text-sm text-[#7f5b67]"
+              className="flex items-start gap-2 rounded-2xl border border-[#eedcc3] bg-white px-4 py-3 text-sm text-[#7f5b67]"
             >
-              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#b85f79]" />
+              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#a86b32]" />
               <span>{autoFillMessage}</span>
             </div>
           ) : null}
@@ -491,23 +625,25 @@ export function OrderForm() {
         <button
           type="submit"
           disabled={submitting || loadingProducts || products.length === 0}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#b85f79] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#a8526c] disabled:cursor-not-allowed disabled:bg-[#ddb7c2]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#a86b32] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
         >
           <ShoppingBag className="h-5 w-5" />
-          {submitting ? "Agendando pedido..." : "Agendar pedido"}
+          {submitting ? "Registrando pedido..." : "Registrar mi pedido"}
         </button>
         {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
         </form>
 
         <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
-          <div className="overflow-hidden rounded-[30px] border border-[#f0d6da] bg-white/95 shadow-soft">
-            <div className="bg-[linear-gradient(180deg,#fff1f4_0%,#fff8fa_100%)] p-5">
+          <div className="overflow-hidden rounded-[30px] border border-[#ecd7b3] bg-white/95 shadow-soft">
+            <div className="bg-[linear-gradient(180deg,#fff3df_0%,#fffaf2_100%)] p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-[#5f3041]">Tu pedido</h3>
-                  <p className="mt-1 text-sm text-[#7f5b67]">Aqui ves lo que llevas.</p>
+                  <p className="mt-1 text-sm text-[#7f5b67]">
+                    Revisa cantidad, valor unitario y total antes de enviarlo.
+                  </p>
                 </div>
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#b85f79]">
+                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#a86b32]">
                   {cartLines.length} producto{cartLines.length === 1 ? "" : "s"}
                 </span>
               </div>
@@ -515,18 +651,30 @@ export function OrderForm() {
             <div className="space-y-3 p-5">
               <div className="mt-4 space-y-3">
                 {cartLines.length === 0 ? (
-                  <div className="rounded-[22px] border border-dashed border-[#f0d6da] bg-[#fff8fa] px-4 py-5 text-sm text-[#7f5b67]">
-                    Tu resumen aparecera apenas agregues productos.
+                  <div className="rounded-[22px] border border-dashed border-[#ecd7b3] bg-[#fff9ef] px-4 py-5 text-sm text-[#7f5b67]">
+                    Tu resumen aparecera apenas elijas una dobladita.
                   </div>
                 ) : (
                   cartLines.map((item) => (
                     <div
                       key={item.productoId}
-                      className="flex items-start justify-between gap-4 rounded-[22px] border border-[#f2d9df] bg-[#fff8fa] px-4 py-3"
+                      className="flex items-start justify-between gap-4 rounded-[22px] border border-[#eedcc3] bg-[#fff9ef] px-4 py-3"
                     >
-                      <div>
+                      <div className="flex gap-3">
+                        <div className="relative hidden h-16 w-16 shrink-0 overflow-hidden rounded-[16px] border border-[#ecd7b3] bg-white sm:block">
+                          <ProductImage
+                            src={item.product?.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
+                            alt={item.product?.nombre ?? "Producto"}
+                            sizes="64px"
+                            className="object-cover"
+                          />
+                        </div>
+                        <div>
                         <div className="font-medium text-[#5f3041]">
                           {item.product?.nombre}
+                        </div>
+                        <div className="mt-1 text-sm text-[#7f5b67]">
+                          Valor unitario: {formatCurrency(item.product?.precioVenta ?? 0)}
                         </div>
                         <div className="mt-2 flex items-center gap-2">
                           <QuantityButton
@@ -550,8 +698,9 @@ export function OrderForm() {
                           </QuantityButton>
                         </div>
                       </div>
+                      </div>
                       <div className="flex flex-col items-end gap-3">
-                        <div className="text-sm font-semibold text-[#b85f79]">
+                        <div className="text-sm font-semibold text-[#a86b32]">
                           {formatCurrency(item.subtotal)}
                         </div>
                         <button
@@ -567,22 +716,22 @@ export function OrderForm() {
                   ))
                 )}
               </div>
-            <div className="mt-4 flex items-center justify-between border-t border-[#f0d6da] pt-4 text-base">
+            <div className="mt-4 flex items-center justify-between border-t border-[#ecd7b3] pt-4 text-base">
               <span className="font-semibold text-[#5f3041]">Total</span>
-              <span className="font-semibold text-[#b85f79]">{formatCurrency(total)}</span>
+              <span className="font-semibold text-[#a86b32]">{formatCurrency(total)}</span>
             </div>
           </div>
         </div>
 
-          <div className="rounded-[30px] border border-[#f0d6da] bg-white/95 p-5 shadow-soft">
+          <div className="rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff4f7] text-[#b85f79]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff6e7] text-[#a86b32]">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-[#5f3041]">Compra protegida</h3>
+                <h3 className="text-lg font-semibold text-[#5f3041]">Pedido simple</h3>
                 <p className="text-sm text-[#7f5b67]">
-                  Tu pedido solo se puede crear. Los cambios internos los hacemos nosotros.
+                  Tu pedido queda pendiente de confirmacion. Pauli revisa stock y luego te escribe.
                 </p>
               </div>
             </div>
@@ -590,7 +739,7 @@ export function OrderForm() {
         </aside>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#f0d6da] bg-white/94 px-4 py-3 shadow-[0_-12px_30px_rgba(91,49,65,0.08)] backdrop-blur xl:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#ecd7b3] bg-white/94 px-4 py-3 shadow-[0_-12px_30px_rgba(91,49,65,0.08)] backdrop-blur xl:hidden">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-[#8b6a74]">
@@ -604,10 +753,10 @@ export function OrderForm() {
             type="submit"
             form="customer-order-form"
             disabled={submitting || loadingProducts || products.length === 0}
-            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-[#b85f79] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#a8526c] disabled:cursor-not-allowed disabled:bg-[#ddb7c2]"
+            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
           >
             <ShoppingBag className="h-4 w-4" />
-            {submitting ? "Agendando..." : "Agendar pedido"}
+            {submitting ? "Registrando..." : "Registrar pedido"}
           </button>
         </div>
       </div>
@@ -621,10 +770,10 @@ export function OrderForm() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-[#5f3041]">
-                  Tu pedido ha sido agendado con exito
+                  Pedido registrado correctamente
                 </h3>
                 <p className="text-sm leading-6 text-[#7f5b67]">
-                  Pronto confirmaremos via WhatsApp tu pedido.
+                  Tu pedido quedo pendiente de confirmacion. Pauli revisara disponibilidad y te avisara por WhatsApp.
                 </p>
               </div>
             </div>
@@ -636,7 +785,7 @@ export function OrderForm() {
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="text-[#8b6a74]">Total</span>
-                <span className="font-semibold text-[#b85f79]">
+                <span className="font-semibold text-[#a86b32]">
                   {formatCurrency(submitted.total)}
                 </span>
               </div>
@@ -645,10 +794,53 @@ export function OrderForm() {
             <button
               type="button"
               onClick={() => setSubmitted(null)}
-              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#b85f79] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#a8526c]"
+              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#8f5728]"
             >
               Entendido
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {stockLimitState ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#5f3041]/30 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[28px] border border-[#f0d6da] bg-white p-6 shadow-[0_24px_60px_rgba(91,49,65,0.18)]">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff4f7] text-[#b85f79]">
+                <ShoppingBag className="h-5 w-5" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-[#5f3041]">
+                  Stock disponible
+                </h3>
+                <p className="text-sm leading-6 text-[#7f5b67]">
+                  {stockLimitState.productName} solo cuenta con{" "}
+                  {stockLimitState.available} disponible(s). Si quieres, dejamos esa
+                  cantidad en tu pedido.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setStockLimitState(null)}
+                className="rounded-2xl border border-[#f0d6da] bg-white px-4 py-3 text-sm font-semibold text-[#5f3041]"
+              >
+                Mantener como esta
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  stockLimitState.apply();
+                  setStockLimitState(null);
+                  setServerError("");
+                }}
+                className="rounded-2xl bg-[#b85f79] px-4 py-3 text-sm font-semibold text-white"
+              >
+                Agendar lo disponible
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

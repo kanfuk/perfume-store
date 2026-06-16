@@ -69,6 +69,14 @@ export class PedidoService {
         throw new Error("El producto seleccionado no esta disponible.");
       }
 
+      const stockActual = productData.stockActual ?? 0;
+
+      if (line.cantidad > stockActual) {
+        throw new Error(
+          `${productData.nombre} solo tiene ${stockActual} disponible(s) por ahora.`
+        );
+      }
+
       const producto = new Producto(productData);
       return new DetallePedido({
         producto,
@@ -164,15 +172,19 @@ export class PedidoService {
     };
   }
 
-  async agendarPedido(pedidoId: string) {
+  async agendarPedido(pedidoId: string, fechaEntrega: string) {
     const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_PENDIENTE);
     const domainPedido = this.mapListItemToPedido(pedido);
-    domainPedido.agendar();
+    const fechaProgramada = this.parseFechaEntrega(fechaEntrega);
+
+    await this.validarStockAgenda(pedido, fechaProgramada, pedidoId);
+    domainPedido.agendar(fechaProgramada);
 
     await this.pedidoRepository.actualizarEstadoPedido({
       pedidoId,
       estadoPedido: domainPedido.estadoPedido,
       estadoPago: domainPedido.estadoPago,
+      fechaEntrega: toDateOnlyString(fechaProgramada),
       fechaAgendado: domainPedido.fechaAgendado?.toISOString()
     });
   }
@@ -362,6 +374,7 @@ export class PedidoService {
       estadoPedido: order.estadoPedido,
       estadoPago: order.estadoPago,
       fechaPedido: new Date(order.fechaPedido),
+      fechaEntrega: order.fechaEntrega ? new Date(`${order.fechaEntrega}T00:00:00`) : undefined,
       fechaAgendado: order.fechaAgendado ? new Date(order.fechaAgendado) : undefined,
       fechaCierre: order.fechaCierre ? new Date(order.fechaCierre) : undefined,
       fechaCancelacion: order.fechaCancelacion
@@ -409,6 +422,7 @@ export class PedidoService {
           order.estadoPago === ESTADO_PAGO_PAGADO && totalPagado === 0
             ? order.total
             : totalPagado,
+        fechaEntrega: order.fechaEntrega,
         saldoPendiente:
           currentFiado?.montoPendiente ??
           (order.estadoPago === ESTADO_PAGO_FIADO ? order.total - totalPagado : 0),
@@ -420,6 +434,75 @@ export class PedidoService {
       };
     });
   }
+
+  private parseFechaEntrega(rawValue: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+      throw new Error("Selecciona una fecha valida para la entrega.");
+    }
+
+    const fecha = new Date(`${rawValue}T00:00:00`);
+
+    if (Number.isNaN(fecha.getTime())) {
+      throw new Error("Selecciona una fecha valida para la entrega.");
+    }
+
+    return fecha;
+  }
+
+  private async validarStockAgenda(
+    pedido: PedidoListItemRecord,
+    fechaEntrega: Date,
+    pedidoId: string
+  ) {
+    const [agendados, productos] = await Promise.all([
+      this.pedidoRepository.buscarPedidosPorEstado(ESTADO_PEDIDO_AGENDADO),
+      this.productRepository.buscarTodosProductos()
+    ]);
+
+    const fechaKey = toDateOnlyString(fechaEntrega);
+    const consumoPorProducto = new Map<string, number>();
+
+    agendados
+      .filter((order) => order.id !== pedidoId && order.fechaEntrega === fechaKey)
+      .forEach((order) => {
+        order.items.forEach((item) => {
+          consumoPorProducto.set(
+            item.productoId,
+            (consumoPorProducto.get(item.productoId) ?? 0) + item.cantidad
+          );
+        });
+      });
+
+    for (const item of pedido.items) {
+      const producto = productos.find((product) => product.id === item.productoId);
+
+      if (!producto) {
+        throw new Error("Uno de los productos del pedido ya no existe.");
+      }
+
+      const domainProduct = new Producto(producto);
+      const stockDisponible = domainProduct.stockAgenda;
+      const comprometido = consumoPorProducto.get(item.productoId) ?? 0;
+      const restante = stockDisponible - comprometido;
+
+      if (item.cantidad > restante) {
+        throw new Error(
+          `No alcanza el stock de agenda para ${domainProduct.nombre} el ${formatDateOnly(fechaKey)}. Disponible: ${Math.max(
+            restante,
+            0
+          )}.`
+        );
+      }
+    }
+  }
+}
+
+function toDateOnlyString(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function formatDateOnly(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString("es-CL");
 }
 
 export function createPedidoService() {

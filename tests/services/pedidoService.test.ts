@@ -13,12 +13,16 @@ class ProductRepositoryStub implements ProductRepository {
         id: "pan-amasado",
         nombre: "Pan amasado",
         precioVenta: 500,
+        stockActual: 20,
+        stockAgenda: 20,
         activo: true
       },
       {
         id: "queque",
         nombre: "Queque",
         precioVenta: 4500,
+        stockActual: 10,
+        stockAgenda: 10,
         activo: true
       }
     ];
@@ -30,6 +34,8 @@ class ProductRepositoryStub implements ProductRepository {
         id: "pan-amasado",
         nombre: "Pan amasado",
         precioVenta: 500,
+        stockActual: 20,
+        stockAgenda: 20,
         activo: true
       };
     }
@@ -39,6 +45,8 @@ class ProductRepositoryStub implements ProductRepository {
         id: "queque",
         nombre: "Queque",
         precioVenta: 4500,
+        stockActual: 10,
+        stockAgenda: 10,
         activo: true
       };
     }
@@ -57,6 +65,7 @@ class ProductRepositoryStub implements ProductRepository {
     precioVenta: number;
     costoUnitario?: number;
     stockActual?: number;
+    stockAgenda?: number;
     activo?: boolean;
     tipoProducto?: string;
   }) {
@@ -67,6 +76,7 @@ class ProductRepositoryStub implements ProductRepository {
       precioVenta: producto.precioVenta,
       costoUnitario: producto.costoUnitario ?? 0,
       stockActual: producto.stockActual ?? 0,
+      stockAgenda: producto.stockAgenda ?? producto.stockActual ?? 0,
       activo: producto.activo ?? true,
       tipoProducto: producto.tipoProducto ?? "simple"
     };
@@ -80,6 +90,7 @@ class ProductRepositoryStub implements ProductRepository {
       precioVenta?: number;
       costoUnitario?: number;
       stockActual?: number;
+      stockAgenda?: number;
       activo?: boolean;
       tipoProducto?: string;
     }
@@ -91,6 +102,7 @@ class ProductRepositoryStub implements ProductRepository {
       precioVenta: cambios.precioVenta ?? 0,
       costoUnitario: cambios.costoUnitario ?? 0,
       stockActual: cambios.stockActual ?? 0,
+      stockAgenda: cambios.stockAgenda ?? cambios.stockActual ?? 0,
       activo: cambios.activo ?? true,
       tipoProducto: cambios.tipoProducto ?? "simple"
     };
@@ -209,5 +221,22 @@ describe("PedidoService", () => {
     });
 
     expect(telefonoGuardado).toBe("+56912345678");
+  });
+
+  it("rechaza cantidades mayores al stock actual disponible", async () => {
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      new PedidoRepositoryStub()
+    );
+
+    await expect(
+      service.crearPedido({
+        nombre: "Rodrigo",
+        telefono: "999999999",
+        lugarTrabajo: "Finanzas",
+        items: [{ productoId: "pan-amasado", cantidad: 21 }]
+      })
+    ).rejects.toThrow("El producto Pan amasado solo tiene 20 disponible(s).");
   });
 });

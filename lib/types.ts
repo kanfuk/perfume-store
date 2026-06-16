@@ -3,6 +3,7 @@ export type ProductRecord = {
   nombre: string;
   descripcion?: string;
   precioVenta: number;
+  imageUrl?: string;
   costoUnitario?: number;
   stockActual?: number;
   activo?: boolean;
@@ -14,8 +15,10 @@ export type AdminProductRecord = {
   nombre: string;
   descripcion: string;
   precioVenta: number;
+  imageUrl?: string;
   costoUnitario: number;
   stockActual: number;
+  stockAgenda: number;
   activo: boolean;
   tipoProducto: string;
   utilidadUnitaria: number;
@@ -73,6 +76,7 @@ export type AdminOrderSummary = {
   estadoPago: string;
   total: number;
   fechaPedido: string;
+  fechaEntrega?: string;
   fechaAgendado?: string;
   fechaCierre?: string;
   fechaCancelacion?: string;
@@ -93,6 +97,8 @@ export type AdminDashboardData = {
   cancelados: AdminOrderSummary[];
   fiadosPendientes: AdminOrderSummary[];
 };
+
+export type AdminOrdersAction = "agendar" | "cancelar" | "pagado" | "fiado" | "abonar";
 
 export type AdminPageData = {
   dashboard: AdminDashboardData;

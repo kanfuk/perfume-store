@@ -1,10 +1,8 @@
 # 17 - SQL base sugerido para Supabase
 
-> Este archivo es una guía inicial. Codex puede transformarlo en migraciones o scripts SQL reales.
+> Este archivo representa el esquema objetivo del MVP. La fuente ejecutable principal sigue siendo `supabase/schema.sql`.
 
-## Estados sugeridos
-
-Usar texto controlado por la aplicación:
+## Estados oficiales
 
 ```text
 PENDIENTE
@@ -16,122 +14,43 @@ PAGADO
 FIADO
 ```
 
-## Tablas base
+## Tablas principales
 
-```sql
-create table if not exists clientes (
-  id uuid primary key default gen_random_uuid(),
-  nombre text not null,
-  telefono text,
-  lugar_trabajo text not null,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+- `clientes`
+- `productos`
+- `pedidos`
+- `pedido_items`
+- `pagos`
+- `fiados`
+- `usuarios_admin`
 
-create table if not exists productos (
-  id uuid primary key default gen_random_uuid(),
-  nombre text not null,
-  descripcion text,
-  precio_venta integer not null,
-  costo_unitario integer not null default 0,
-  stock_actual integer default 0,
-  activo boolean default true,
-  tipo_producto text,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+## Puntos importantes del esquema actual
 
-create table if not exists pedidos (
-  id uuid primary key default gen_random_uuid(),
-  cliente_id uuid references clientes(id),
-  estado_pedido text not null default 'PENDIENTE',
-  estado_pago text not null default 'SIN_PAGO',
-  total integer not null,
-  observacion text,
-  motivo_cancelacion text,
-  fecha_pedido timestamp with time zone default now(),
-  fecha_agendado timestamp with time zone,
-  fecha_cierre timestamp with time zone,
-  fecha_cancelacion timestamp with time zone,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+- `productos` incluye `stock_actual` y `stock_agenda`
+- `pedidos` incluye `fecha_entrega`
+- `usuarios_admin` controla acceso adicional al panel
+- `set_updated_at()` fija `search_path = public`
+- RLS esta habilitado en tablas principales
 
-create table if not exists pedido_items (
-  id uuid primary key default gen_random_uuid(),
-  pedido_id uuid references pedidos(id),
-  producto_id uuid references productos(id),
-  cantidad integer not null,
-  precio_unitario integer not null,
-  subtotal integer not null,
-  created_at timestamp with time zone default now()
-);
+## Politica de acceso esperada
 
-create table if not exists pagos (
-  id uuid primary key default gen_random_uuid(),
-  pedido_id uuid references pedidos(id),
-  monto integer not null,
-  metodo_pago text,
-  estado_pago text not null,
-  fecha_pago timestamp with time zone default now(),
-  created_at timestamp with time zone default now()
-);
+Publico:
 
-create table if not exists fiados (
-  id uuid primary key default gen_random_uuid(),
-  pedido_id uuid references pedidos(id),
-  cliente_id uuid references clientes(id),
-  monto_pendiente integer not null,
-  estado text not null default 'FIADO',
-  fecha_fiado timestamp with time zone default now(),
-  fecha_pago_fiado timestamp with time zone,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+- leer productos activos
+- crear pedidos
+- crear items de pedido
 
-create table if not exists usuarios_admin (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique,
-  nombre text,
-  rol text not null default 'ADMIN',
-  activo boolean default true,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
-```
+Admin autenticado:
 
-## Constraints sugeridas
+- leer clientes
+- gestionar productos
+- gestionar pedidos
+- gestionar pagos
+- gestionar fiados
+- leer su propio perfil admin
 
-```sql
-alter table pedidos
-add constraint pedidos_estado_pedido_check
-check (estado_pedido in ('PENDIENTE', 'AGENDADO', 'FINALIZADO', 'CANCELADO'));
+## Notas operativas
 
-alter table pedidos
-add constraint pedidos_estado_pago_check
-check (estado_pago in ('SIN_PAGO', 'PAGADO', 'FIADO'));
-
-alter table pedido_items
-add constraint pedido_items_cantidad_check
-check (cantidad >= 1);
-
-alter table productos
-add constraint productos_precio_check
-check (precio_venta >= 0 and costo_unitario >= 0);
-```
-
-## RLS
-
-Activar RLS antes de producción.
-
-```sql
-alter table clientes enable row level security;
-alter table productos enable row level security;
-alter table pedidos enable row level security;
-alter table pedido_items enable row level security;
-alter table pagos enable row level security;
-alter table fiados enable row level security;
-alter table usuarios_admin enable row level security;
-```
-
-Las políticas específicas deben definirse según autenticación final.
+- los inserts de `clientes` se hacen desde servidor
+- el cliente no toca estados de pedido ni pago
+- si Supabase Advisor sigue mostrando politicas antiguas, volver a correr `supabase/schema.sql`

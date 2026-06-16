@@ -1,187 +1,126 @@
-# 13 - Roadmap de implementación
+# 13 - Roadmap de implementacion
 
 ## Regla principal
 
-No construir todo de una vez.
+No cerrar todo de una vez. Cada fase debe quedar funcional, probada y desplegable.
 
-Implementar por fases y probar antes de avanzar.
+## Estado resumido por fases
 
-## Fase 1 - Base del proyecto
+### Fase 1 - Base del proyecto
 
-Objetivo:
+Estado: completada
 
-```text
-Crear estructura inicial con Next.js, TypeScript y Tailwind.
-```
+- estructura Next.js
+- layout base
+- docs iniciales
+- estilos globales
 
-Entregables:
+### Fase 2 - Dominio y reglas
 
-```text
-Estructura de carpetas
-Layout base
-README
-Carpeta docs
-Estilos globales
-```
+Estado: completada
 
-No implementar lógica compleja.
+- entidades base
+- estados oficiales
+- validadores y servicios
 
-## Fase 2 - Dominio POO
+### Fase 3 - Flujo cliente
 
-Objetivo:
+Estado: avanzada
 
-```text
-Crear clases domain y constantes de estados.
-```
+- home cliente publica
+- carrito rapido
+- formulario simplificado
+- validacion de celular chileno
+- clientes frecuentes guardados localmente
 
-Entregables:
+Pendiente:
 
-```text
-Cliente.ts
-Producto.ts
-Pedido.ts
-DetallePedido.ts
-Venta.ts
-CuentaFiado.ts
-constants.ts
-validators.ts
-```
+- microcopia final
+- ultimo pulido visual fino
 
-## Fase 3 - Formulario cliente con datos mock
+### Fase 4 - Supabase y modelo de datos
 
-Objetivo:
+Estado: avanzada
 
-```text
-Crear formulario visual y cálculo de total sin Supabase todavía.
-```
+- tablas principales
+- RLS habilitado
+- SQL base documentado
+- productos, pedidos, pagos, fiados, admins
 
-Entregables:
+Pendiente:
 
-```text
-PedidoForm
-ProductoCard
-TotalPedido
-Validaciones visuales
-Diseño responsive
-```
+- seguir alineando base productiva con el esquema versionado
 
-## Fase 4 - Supabase y modelo de datos
+### Fase 5 - Registro real de pedidos
 
-Objetivo:
+Estado: completada en MVP
 
-```text
-Crear conexión a base de datos y repositories.
-```
+- cliente crea pedido real
+- total se recalcula en backend
+- no se expone logica sensible al navegador
 
-Entregables:
+### Fase 6 - Panel admin
 
-```text
-supabaseClient.ts
-repositories
-.env.example
-scripts SQL opcionales
-```
+Estado: funcional, no final
 
-## Fase 5 - Registro real de pedidos
+- login admin con Supabase Auth
+- validacion de admin activo
+- pendientes, agendados e historial
+- gestion basica de productos y pedidos
 
-Objetivo:
+Pendiente:
 
-```text
-Guardar pedidos reales en Supabase.
-```
+- UX mobile-first final
+- dashboards mas visuales
+- separacion fuerte entre stock, cobros y reportes
 
-Entregables:
+### Fase 7 - Pagados y fiados
 
-```text
-crearPedido()
-insertarCliente()
-insertarPedido()
-insertarPedidoItem()
-```
+Estado: parcial
 
-## Fase 6 - Panel admin básico
+- estructura de datos lista
+- acciones basicas disponibles
 
-Objetivo:
+Pendiente:
 
-```text
-Ver pedidos pendientes y agendados.
-```
+- vista dedicada de cobros
+- mejor flujo para marcar y revisar deudas
 
-Entregables:
+### Fase 8 - Reportes
 
-```text
-Login admin
-Dashboard básico
-Tabla/card de pedidos
-Agendar
-Cancelar
-```
+Estado: inicial
 
-## Fase 7 - Pagados y fiados
+Pendiente:
 
-Objetivo:
+- reportes por rango de fechas
+- resumen de ventas y fiados
+- ranking de productos
 
-```text
-Cerrar pedidos como pagados o fiados.
-```
+### Fase 9 - Seguridad y QA
 
-Entregables:
+Estado: en curso
 
-```text
-marcarPedidoPagado()
-marcarPedidoFiado()
-registrarFiado()
-registrarPago()
-```
+Ya cubierto:
 
-## Fase 8 - Reportes básicos
+- headers base
+- RLS principal
+- `security.txt`
+- correcciones de auditoria
 
-Objetivo:
+Pendiente:
 
-```text
-Mostrar ventas, fiados y producción sugerida.
-```
+- CSP con nonce
+- regresion QA final movil y escritorio
 
-Entregables:
+### Fase 10 - Deploy MVP
 
-```text
-Resumen dashboard
-Ventas del día
-Total fiado
-Producción sugerida
-```
+Estado: publicado
 
-## Fase 9 - Seguridad y QA
+- app en Vercel
+- Supabase conectado
+- flujo cliente y admin operativos
 
-Objetivo:
+Pendiente:
 
-```text
-Revisar seguridad, permisos y pruebas.
-```
-
-Entregables:
-
-```text
-RLS
-Headers
-QA checklist
-Plan de pruebas
-Correcciones
-```
-
-## Fase 10 - Deploy MVP
-
-Objetivo:
-
-```text
-Publicar versión inicial.
-```
-
-Entregables:
-
-```text
-Deploy en Vercel
-Variables configuradas
-Prueba desde celular
-Prueba desde PC
-```
+- revisar dominio final definitivo
+- checklist final de salida

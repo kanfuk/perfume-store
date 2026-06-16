@@ -66,7 +66,7 @@ class SupabaseProductRepository implements ProductRepository {
     const { data, error } = await supabase
       .from("productos")
       .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
       )
       .eq("activo", true)
       .order("nombre", { ascending: true });
@@ -87,7 +87,7 @@ class SupabaseProductRepository implements ProductRepository {
     const { data, error } = await supabase
       .from("productos")
       .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
       )
       .order("nombre", { ascending: true });
 
@@ -103,7 +103,7 @@ class SupabaseProductRepository implements ProductRepository {
     const { data, error } = await supabase
       .from("productos")
       .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
       )
       .eq("id", id)
       .maybeSingle();
@@ -128,6 +128,7 @@ class SupabaseProductRepository implements ProductRepository {
       precio_venta: producto.precioVenta,
       costo_unitario: producto.costoUnitario ?? 0,
       stock_actual: producto.stockActual ?? 0,
+      stock_agenda: producto.stockAgenda ?? producto.stockActual ?? 0,
       activo: producto.activo ?? true,
       tipo_producto: producto.tipoProducto ?? "simple"
     };
@@ -135,7 +136,7 @@ class SupabaseProductRepository implements ProductRepository {
       .from("productos")
       .insert(payload)
       .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
       )
       .single();
 
@@ -159,6 +160,7 @@ class SupabaseProductRepository implements ProductRepository {
     if (cambios.costoUnitario !== undefined)
       payload.costo_unitario = cambios.costoUnitario;
     if (cambios.stockActual !== undefined) payload.stock_actual = cambios.stockActual;
+    if (cambios.stockAgenda !== undefined) payload.stock_agenda = cambios.stockAgenda;
     if (cambios.activo !== undefined) payload.activo = cambios.activo;
     if (cambios.tipoProducto !== undefined)
       payload.tipo_producto = cambios.tipoProducto;
@@ -168,7 +170,7 @@ class SupabaseProductRepository implements ProductRepository {
       .update(payload)
       .eq("id", id)
       .select(
-        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, activo, tipo_producto"
+        "id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_agenda, activo, tipo_producto"
       )
       .single();
 
@@ -189,6 +191,7 @@ function mapSupabaseProduct(data: {
   precio_venta: number;
   costo_unitario: number | null;
   stock_actual: number | null;
+  stock_agenda: number | null;
   activo: boolean | null;
   tipo_producto: string | null;
 }): ProductoProps {
@@ -199,6 +202,7 @@ function mapSupabaseProduct(data: {
     precioVenta: data.precio_venta,
     costoUnitario: data.costo_unitario ?? 0,
     stockActual: data.stock_actual ?? 0,
+    stockAgenda: data.stock_agenda ?? data.stock_actual ?? 0,
     activo: data.activo ?? true,
     tipoProducto: data.tipo_producto ?? "simple"
   };

@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       precioVenta: number;
       costoUnitario?: number;
       stockActual?: number;
+      stockAgenda?: number;
       activo?: boolean;
       tipoProducto?: string;
     };

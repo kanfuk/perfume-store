@@ -13,6 +13,7 @@ export async function PATCH(
   try {
     const body = (await request.json()) as {
       action?: "agendar" | "cancelar" | "pagado" | "fiado" | "abonar";
+      fechaEntrega?: string;
       motivoCancelacion?: string;
       monto?: number;
       metodoPago?: string;
@@ -22,7 +23,7 @@ export async function PATCH(
 
     switch (body.action) {
       case "agendar":
-        await pedidoService.agendarPedido(pedidoId);
+        await pedidoService.agendarPedido(pedidoId, body.fechaEntrega ?? "");
         break;
       case "cancelar":
         await pedidoService.cancelarPedido(

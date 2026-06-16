@@ -14,6 +14,7 @@ export type ProductoProps = {
   precioVenta: number;
   costoUnitario?: number;
   stockActual?: number;
+  stockAgenda?: number;
   activo?: boolean;
   tipoProducto?: string;
 };
@@ -26,6 +27,7 @@ export class Producto {
   private _precioVenta: number;
   private _costoUnitario: number;
   private _stockActual: number;
+  private _stockAgenda: number;
   private _activo: boolean;
 
   constructor(props: ProductoProps) {
@@ -36,6 +38,7 @@ export class Producto {
     this._precioVenta = props.precioVenta;
     this._costoUnitario = props.costoUnitario ?? 0;
     this._stockActual = props.stockActual ?? 0;
+    this._stockAgenda = props.stockAgenda ?? props.stockActual ?? 0;
     this._activo = props.activo ?? true;
     this.validarProducto();
   }
@@ -50,6 +53,10 @@ export class Producto {
 
   get stockActual() {
     return this._stockActual;
+  }
+
+  get stockAgenda() {
+    return this._stockAgenda;
   }
 
   get activo() {
@@ -67,6 +74,16 @@ export class Producto {
 
   actualizarCosto(costoUnitario: number) {
     this._costoUnitario = costoUnitario;
+    this.validarProducto();
+  }
+
+  actualizarStockActual(stockActual: number) {
+    this._stockActual = stockActual;
+    this.validarProducto();
+  }
+
+  actualizarStockAgenda(stockAgenda: number) {
+    this._stockAgenda = stockAgenda;
     this.validarProducto();
   }
 
@@ -89,6 +106,10 @@ export class Producto {
 
     if (this._costoUnitario < 0) {
       throw new Error("El costo unitario no puede ser negativo.");
+    }
+
+    if (this._stockActual < 0 || this._stockAgenda < 0) {
+      throw new Error("El stock no puede ser negativo.");
     }
   }
 

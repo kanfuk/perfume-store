@@ -1,18 +1,31 @@
 # Pauli Store
 
-Aplicacion web responsive para gestionar pedidos, ventas, costos y fiados de una minipyme casera.
+Aplicacion web responsive para una tienda casera, con flujo publico de pedidos y panel admin conectado a Supabase.
 
 ## Estado actual
 
-Primera iteracion implementada:
+Hoy el proyecto ya incluye:
 
-- Base con Next.js, TypeScript y Tailwind CSS.
-- Arquitectura inicial `app`, `components`, `domain`, `services`, `repositories` y `lib`.
-- Formulario cliente funcional conectado a `services` y `API routes`.
-- Clases de dominio para cliente, producto, pedido, detalle, venta y fiado.
-- Repositories con fallback local y preparacion para Supabase.
-- Validaciones iniciales y recalculo de total en backend.
-- Pruebas automatizadas con Vitest.
+- Next.js + TypeScript + Tailwind CSS
+- flujo cliente publico para registrar pedidos
+- carrito simple e interfaz mobile-first
+- validacion de celular chileno
+- guardado local de clientes frecuentes en el dispositivo
+- modal de confirmacion al agendar pedido
+- panel admin con login real usando Supabase Auth
+- control adicional contra tabla `usuarios_admin`
+- repositorios y servicios con reglas de negocio
+- seguridad base en headers, RLS y validaciones servidor
+- pruebas automatizadas con Vitest
+
+## Stack
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Supabase
+- Vitest
 
 ## Scripts
 
@@ -34,18 +47,49 @@ npm run test:run
 
 Revisar `.env.example`.
 
-Si `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` no estan configuradas, la app usa repositorios locales para seguir operando en desarrollo.
+Variables principales:
 
-Para escritura privilegiada en servidor con Supabase, usar:
-
-```bash
+```text
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SECRET_KEY=
+HORAS_EXPIRACION_PEDIDO=72
 ```
 
-Segun la documentacion oficial de Supabase, la secret key debe usarse solo en servidor y nunca exponerse al navegador.
+Notas:
+
+- `SUPABASE_SECRET_KEY` es solo servidor.
+- si faltan variables publicas, la app puede caer en modo local segun repositorio usado
+- despues de cambiar variables en Vercel hay que redeployar
+
+## Seguridad actual
+
+Implementado:
+
+- headers HTTP defensivos
+- `security.txt`
+- RLS habilitado en tablas principales
+- insercion publica restringida a lo minimo necesario
+- formulario admin declarado como `POST`
+- recalculo de totales en backend
+- cliente sin permisos para cambiar estados de negocio
+
+Pendiente para una fase posterior:
+
+- CSP con nonce por request
+- automatizacion WhatsApp
+- pulido final del panel admin para uso diario desde celular
+
+## Documentacion clave
+
+- [docs/06_PANEL_ADMINISTRADOR.md](docs/06_PANEL_ADMINISTRADOR.md)
+- [docs/10_SEGURIDAD_HEADERS_RLS.md](docs/10_SEGURIDAD_HEADERS_RLS.md)
+- [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
+- [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
 
 ## Siguiente fase recomendada
 
-1. Crear usuario admin en Supabase Auth y registrarlo en `usuarios_admin`.
-2. Registrar pagos, fiados y dashboard con resumen real.
-3. Gestionar productos desde admin.
+1. cerrar UX del panel admin
+2. separar mejor stock, cobros y reportes
+3. preparar confirmacion automatica por WhatsApp
+4. validar flujo completo desde celular con Pauli

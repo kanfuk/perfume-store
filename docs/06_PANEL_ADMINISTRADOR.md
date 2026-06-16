@@ -2,152 +2,103 @@
 
 ## Objetivo
 
-Permitir que Pauli y el administrador gestionen pedidos, productos, ventas y fiados desde celular o computador.
+Permitir que Pauli administre la tienda desde celular o PC sin enredarse con datos tecnicos.
 
-## Reglas generales
+La idea del panel no es mostrar "todo". La idea es mostrar lo necesario para decidir rapido:
 
-- El panel requiere login.
-- Solo usuarios admin pueden entrar.
-- Las acciones deben ser rápidas.
-- El panel debe funcionar bien desde celular.
+- que hay que preparar hoy
+- que pedidos hay que confirmar
+- que cobros siguen pendientes
+- que productos estan activos o sin stock
 
-## Secciones principales
+## Estado actual
 
-```text
-Dashboard
-Pedidos pendientes
-Pedidos agendados
-Fiados
-Productos
-Ventas
-Reportes
-Configuración
-```
+Hoy el panel ya permite:
 
-## Dashboard
+- login real con Supabase Auth
+- filtro principal entre pendientes, agendados e historial
+- cambio de estado de pedidos
+- gestion basica de productos
+- resumen superior con totales utiles
 
-Tarjetas sugeridas:
+Todavia falta una pasada final mas fuerte de UX para dejarlo listo como herramienta diaria de Pauli.
 
-```text
-Pedidos pendientes
-Pedidos agendados
-Ventas pagadas del día
-Total fiado
-Productos activos
-Producción sugerida
-```
+## Estructura objetivo del panel
 
-## Pedidos pendientes
+El panel debe girar alrededor de 5 vistas simples.
 
-Mostrar:
+### 1. Inicio
 
-```text
-Cliente
-Teléfono
-Lugar de trabajo
-Producto
-Cantidad
-Total
-Fecha
-Acciones
-```
+Debe mostrar solo indicadores cortos:
 
-Acciones:
+- pedidos pendientes
+- pedidos agendados para hoy
+- total pagado del dia
+- total fiado pendiente
+- productos sin stock o desactivados
 
-```text
-Agendar
-Cancelar
-```
+### 2. Pedidos
 
-## Pedidos agendados
+Debe concentrar:
 
-Mostrar:
+- pendientes
+- agendados
+- historial
 
-```text
-Cliente
-Producto
-Cantidad
-Total
-Fecha agendada
-Acciones
-```
+Cada tarjeta de pedido debe dejar muy claro:
 
-Acciones:
+- cliente
+- telefono
+- lugar
+- fecha entrega
+- hora o fecha de registro
+- total
+- estado pedido
+- estado pago
 
-```text
-Marcar pagado
-Marcar fiado
-Cancelar
-```
+### 3. Productos y stock
 
-## Fiados
+Debe permitir desde celular:
 
-Mostrar:
+- crear producto
+- editar nombre, descripcion y precio
+- activar o desactivar producto
+- ajustar stock actual
+- ajustar stock disponible para agenda
 
-```text
-Cliente
-Teléfono
-Lugar de trabajo
-Producto
-Monto adeudado
-Fecha
-Acción: Marcar como pagado
-```
+### 4. Cobros
 
-## Productos
+Vista separada para:
 
-Acciones:
+- pagados
+- fiados
+- saldo pendiente
+- cambio rapido de estado
 
-```text
-Crear producto
-Editar producto
-Activar producto
-Desactivar producto
-Definir precio de venta
-Definir costo unitario
-Definir stock referencial
-```
+### 5. Reportes
 
-## Ventas
+Vista simple y util:
 
-Mostrar:
+- ventas por rango de fechas
+- pedidos finalizados
+- monto pagado
+- monto fiado
+- productos mas vendidos
 
-```text
-Ventas pagadas del día
-Ventas pagadas de la semana
-Ventas pagadas del mes
-Costo estimado
-Utilidad estimada
-```
+## Regla UX para admin
 
-## Producción sugerida
+- una accion importante por boton
+- texto corto
+- nada de bloques enormes con datos secundarios
+- tarjetas tactiles grandes
+- filtros visibles
+- jerarquia visual clara
+- home rapido para volver siempre
 
-Basarse principalmente en pedidos `AGENDADOS`.
+## Prioridades pendientes del panel admin
 
-Ejemplo:
-
-```text
-Pan amasado: 20 unidades
-Queque: 8 unidades
-Pack especial: 5 unidades
-```
-
-## Botones importantes
-
-Para pedido pendiente:
-
-```text
-[Agendar] [Cancelar]
-```
-
-Para pedido agendado:
-
-```text
-[Marcar pagado] [Marcar fiado] [Cancelar]
-```
-
-Para fiado:
-
-```text
-[Marcar como pagado]
-```
+1. Reordenar dashboard para que sea mas operativo y menos textual
+2. Separar mejor stock, cobros y reportes
+3. Mejorar uso desde celular en tablas y tarjetas
+4. Hacer mas evidente la fecha de entrega y agrupacion por cliente/dia
+5. Afinar acciones de pagos y fiados en una vista dedicada

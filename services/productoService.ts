@@ -8,6 +8,7 @@
  */
 
 import { Producto } from "@/domain/Producto";
+import { getProductVisualMeta } from "@/lib/product-catalog";
 import type { AdminProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
@@ -21,13 +22,19 @@ export class ProductoService {
     return products
       .map((product) => new Producto(product))
       .filter((product) => product.activo)
-      .map((product) => ({
-        id: product.id,
-        nombre: product.nombre,
-        descripcion: product.descripcion,
-        precioVenta: product.precioVenta,
-        tipoProducto: product.tipoProducto
-      }));
+      .map((product) => {
+        const visual = getProductVisualMeta(product);
+
+        return {
+          id: product.id,
+          nombre: product.nombre,
+          descripcion: product.descripcion,
+          precioVenta: product.precioVenta,
+          imageUrl: visual.imageUrl,
+          stockActual: product.stockActual,
+          tipoProducto: product.tipoProducto
+        };
+      });
   }
 
   async obtenerCatalogoAdmin(): Promise<AdminProductRecord[]> {
@@ -35,14 +42,17 @@ export class ProductoService {
 
     return products.map((product) => {
       const domainProduct = new Producto(product);
+      const visual = getProductVisualMeta(domainProduct);
 
       return {
         id: domainProduct.id,
         nombre: domainProduct.nombre,
         descripcion: domainProduct.descripcion,
         precioVenta: domainProduct.precioVenta,
+        imageUrl: visual.imageUrl,
         costoUnitario: domainProduct.costoUnitario,
         stockActual: domainProduct.stockActual,
+        stockAgenda: domainProduct.stockAgenda,
         activo: domainProduct.activo,
         tipoProducto: domainProduct.tipoProducto,
         utilidadUnitaria: domainProduct.calcularUtilidadUnitaria()
@@ -56,6 +66,7 @@ export class ProductoService {
     precioVenta: number;
     costoUnitario?: number;
     stockActual?: number;
+    stockAgenda?: number;
     activo?: boolean;
     tipoProducto?: string;
   }) {
@@ -66,6 +77,7 @@ export class ProductoService {
       precioVenta: input.precioVenta,
       costoUnitario: input.costoUnitario ?? 0,
       stockActual: input.stockActual ?? 0,
+      stockAgenda: input.stockAgenda ?? input.stockActual ?? 0,
       activo: input.activo ?? true,
       tipoProducto: input.tipoProducto ?? "simple"
     });
@@ -77,6 +89,7 @@ export class ProductoService {
       precioVenta: product.precioVenta,
       costoUnitario: product.costoUnitario,
       stockActual: product.stockActual,
+      stockAgenda: product.stockAgenda,
       activo: product.activo,
       tipoProducto: product.tipoProducto
     });
@@ -90,6 +103,7 @@ export class ProductoService {
       precioVenta: number;
       costoUnitario?: number;
       stockActual?: number;
+      stockAgenda?: number;
       activo?: boolean;
       tipoProducto?: string;
     }
@@ -107,6 +121,7 @@ export class ProductoService {
       precioVenta: input.precioVenta,
       costoUnitario: input.costoUnitario ?? 0,
       stockActual: input.stockActual ?? 0,
+      stockAgenda: input.stockAgenda ?? input.stockActual ?? 0,
       activo: input.activo ?? true,
       tipoProducto: input.tipoProducto ?? "simple"
     });
@@ -117,6 +132,7 @@ export class ProductoService {
       precioVenta: domainProduct.precioVenta,
       costoUnitario: domainProduct.costoUnitario,
       stockActual: domainProduct.stockActual,
+      stockAgenda: domainProduct.stockAgenda,
       activo: domainProduct.activo,
       tipoProducto: domainProduct.tipoProducto
     });

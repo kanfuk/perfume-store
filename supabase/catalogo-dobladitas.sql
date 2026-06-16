@@ -1,5 +1,3 @@
--- Datos iniciales opcionales para desarrollo en Supabase
-
 update productos
 set activo = false
 where nombre in ('Pan amasado', 'Queque de naranja', 'Pack de once');

@@ -2,33 +2,36 @@ import type { ProductoProps } from "@/domain/Producto";
 
 export const mockProducts: ProductoProps[] = [
   {
-    id: "pan-amasado",
-    nombre: "Pan amasado",
-    descripcion: "Recien horneado, ideal para compartir.",
-    precioVenta: 500,
-    costoUnitario: 260,
-    stockActual: 24,
+    id: "dobladita-solo-queso",
+    nombre: "Dobladita solo queso",
+    descripcion: "Dobladita casera recien horneada, rellena solo con queso.",
+    precioVenta: 1000,
+    costoUnitario: 580,
+    stockActual: 18,
+    stockAgenda: 18,
     activo: true,
-    tipoProducto: "pan"
+    tipoProducto: "dobladita"
   },
   {
-    id: "queque-naranja",
-    nombre: "Queque de naranja",
-    descripcion: "Suave, casero y con glaseado liviano.",
-    precioVenta: 4500,
-    costoUnitario: 2400,
-    stockActual: 8,
+    id: "dobladita-jamon-pavo-queso",
+    nombre: "Dobladita jamon de pavo acaramelado/queso",
+    descripcion: "Dobladita casera con jamon de pavo acaramelado y queso.",
+    precioVenta: 1300,
+    costoUnitario: 760,
+    stockActual: 14,
+    stockAgenda: 14,
     activo: true,
-    tipoProducto: "queque"
+    tipoProducto: "dobladita premium"
   },
   {
-    id: "pack-once",
-    nombre: "Pack de once",
-    descripcion: "Seleccion de dulces y panes para reuniones pequenas.",
-    precioVenta: 12000,
-    costoUnitario: 7000,
-    stockActual: 4,
+    id: "dobladita-huevo",
+    nombre: "Dobladita huevo",
+    descripcion: "Dobladita casera rellena con huevo, ideal para desayuno.",
+    precioVenta: 1500,
+    costoUnitario: 840,
+    stockActual: 10,
+    stockAgenda: 10,
     activo: true,
-    tipoProducto: "pack"
+    tipoProducto: "desayuno"
   }
 ];

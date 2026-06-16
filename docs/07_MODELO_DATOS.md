@@ -20,6 +20,7 @@ descripcion TEXT
 precio_venta INTEGER NOT NULL
 costo_unitario INTEGER NOT NULL DEFAULT 0
 stock_actual INTEGER DEFAULT 0
+stock_agenda INTEGER DEFAULT 0
 activo BOOLEAN DEFAULT true
 tipo_producto TEXT
 created_at TIMESTAMP
@@ -37,6 +38,7 @@ total INTEGER NOT NULL
 observacion TEXT
 motivo_cancelacion TEXT
 fecha_pedido TIMESTAMP
+fecha_entrega DATE
 fecha_agendado TIMESTAMP
 fecha_cierre TIMESTAMP
 fecha_cancelacion TIMESTAMP
@@ -86,7 +88,7 @@ updated_at TIMESTAMP
 
 ```text
 id UUID PK
-email TEXT NOT NULL
+email TEXT NOT NULL UNIQUE
 nombre TEXT
 rol TEXT NOT NULL
 activo BOOLEAN DEFAULT true
@@ -113,16 +115,16 @@ ESTADO_PAGO_FIADO = "FIADO"
 clientes 1 - N pedidos
 pedidos 1 - N pedido_items
 productos 1 - N pedido_items
-pedidos 1 - 0..1 pagos
-pedidos 1 - 0..1 fiados
+pedidos 1 - N pagos
+pedidos 1 - N fiados
 clientes 1 - N fiados
 ```
 
 ## Reglas de integridad
 
-- No permitir pedido sin cliente.
-- No permitir item sin producto.
-- No permitir cantidad menor a 1.
-- No permitir total negativo.
-- No permitir estado fuera de constantes.
-- No borrar productos con pedidos asociados; usar `activo = false`.
+- no permitir pedido sin cliente
+- no permitir item sin producto
+- no permitir cantidad menor a 1
+- no permitir total negativo
+- no permitir estados fuera de constantes
+- no borrar productos con pedidos asociados; usar `activo = false`

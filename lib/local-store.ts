@@ -15,6 +15,7 @@ export type LocalOrderRecord = {
   estadoPago: string;
   total: number;
   fechaPedido: string;
+  fechaEntrega?: string;
   fechaAgendado?: string;
   fechaCierre?: string;
   fechaCancelacion?: string;

@@ -2,39 +2,36 @@
 
 ## Objetivo
 
-Aplicar revisión QA por módulo para evitar fallos de lógica, estados inválidos, errores visuales y problemas de seguridad.
+Evitar fallos de logica, estados invalidos, errores visuales y problemas de seguridad antes del cierre del MVP.
 
-## Checklist QA general
+## Estado de verificacion actual
 
 | Criterio | Estado | Evidencia |
 |---|---|---|
-| Compila sin errores | Pendiente | Ejecutar build |
-| TypeScript sin errores | Pendiente | Revisar consola |
-| Cumple requerimiento | Pendiente | Comparar con docs |
-| Valida campos obligatorios | Pendiente | Prueba manual |
-| Maneja casos borde | Pendiente | Cantidad 0, campos vacíos |
-| Respeta estados oficiales | Pendiente | Probar transiciones |
-| No duplica lógica | Pendiente | Revisar services |
-| No mezcla UI con negocio | Pendiente | Revisar componentes |
-| Es responsive | Pendiente | Probar móvil |
-| Seguridad básica aplicada | Pendiente | Revisar admin/RLS/env |
+| Compila sin errores | OK | `npm run build` |
+| TypeScript sin errores | OK | `npm run typecheck` |
+| Lint base | OK | `npm run lint` |
+| Pruebas automatizadas | OK | `npm run test:run` |
+| Flujo cliente operativo | OK | pedido registrado en Supabase |
+| Login admin operativo | OK | acceso con Supabase Auth |
+| Seguridad base aplicada | Parcial | headers, RLS, env, security.txt |
+| UX admin final | Pendiente | falta cierre fino mobile-first |
 
 ## QA formulario cliente
 
 Probar:
 
 ```text
-Nombre vacío
-Teléfono vacío
-Lugar vacío
+Nombre vacio
+Telefono vacio
+Telefono invalido para Chile
+Lugar vacio
 Producto no seleccionado
 Cantidad 0
 Cantidad negativa
-Cantidad alta
-Producto inactivo
 Pedido correcto
-Total correcto
-Vista móvil
+Autorrelleno de cliente frecuente
+Vista movil
 Vista escritorio
 ```
 
@@ -43,44 +40,47 @@ Vista escritorio
 Probar:
 
 ```text
+Login correcto
+Usuario fuera de usuarios_admin no entra
 Ver pedidos pendientes
 Agendar pedido
 Cancelar pedido
 Marcar pagado
 Marcar fiado
-Marcar fiado como pagado
-Intentar pagar pedido cancelado
-Intentar fiar pedido pendiente
-Revisar ventas del día
-Revisar total fiado
+Revisar historial
+Editar producto
+Activar y desactivar producto
 ```
 
-## QA de estados
+## QA de seguridad
 
-| Caso | Resultado esperado |
-|---|---|
-| PENDIENTE -> AGENDADO | Válido |
-| PENDIENTE -> CANCELADO | Válido |
-| AGENDADO -> FINALIZADO/PAGADO | Válido |
-| AGENDADO -> FINALIZADO/FIADO | Válido |
-| CANCELADO -> PAGADO | Inválido |
-| FINALIZADO -> PENDIENTE | Inválido |
-| PENDIENTE -> PAGADO | Inválido |
+Validar:
 
-## Prueba 1 - Pedido básico
+```text
+No exponer secret key en cliente
+Headers presentes en respuesta HTTP
+security.txt accesible
+Cliente no cambia estados ni pagos
+Admin usa sesion real
+RLS activo en tablas principales
+```
+
+## Casos clave de negocio
+
+### Pedido basico
 
 Entrada:
 
 ```text
 Nombre: Rodrigo
-Teléfono: 999999999
+Telefono: +56 9 9999 9999
 Lugar: Finanzas
 Producto: Pan amasado
 Cantidad: 2
 Precio: 500
 ```
 
-Resultado esperado:
+Esperado:
 
 ```text
 Total: 1000
@@ -88,7 +88,7 @@ estado_pedido: PENDIENTE
 estado_pago: SIN_PAGO
 ```
 
-## Prueba 2 - Agendar pedido
+### Agendar pedido
 
 Inicial:
 
@@ -96,7 +96,7 @@ Inicial:
 PENDIENTE / SIN_PAGO
 ```
 
-Acción:
+Accion:
 
 ```text
 Agendar
@@ -109,7 +109,7 @@ AGENDADO / SIN_PAGO
 fecha_agendado registrada
 ```
 
-## Prueba 3 - Marcar pagado
+### Marcar pagado
 
 Inicial:
 
@@ -117,7 +117,7 @@ Inicial:
 AGENDADO / SIN_PAGO
 ```
 
-Acción:
+Accion:
 
 ```text
 Marcar pagado
@@ -130,7 +130,7 @@ FINALIZADO / PAGADO
 fecha_cierre registrada
 ```
 
-## Prueba 4 - Marcar fiado
+### Marcar fiado
 
 Inicial:
 
@@ -138,7 +138,7 @@ Inicial:
 AGENDADO / SIN_PAGO
 ```
 
-Acción:
+Accion:
 
 ```text
 Marcar fiado
@@ -149,26 +149,4 @@ Esperado:
 ```text
 FINALIZADO / FIADO
 registro en fiados
-```
-
-## Prueba 5 - Cancelación automática
-
-Inicial:
-
-```text
-PENDIENTE
-created_at hace más de 72 horas
-```
-
-Acción:
-
-```text
-cancelarPedidosPendientesExpirados()
-```
-
-Esperado:
-
-```text
-CANCELADO
-motivo_cancelacion = Cancelado automáticamente por falta de confirmación
 ```

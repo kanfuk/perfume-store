@@ -18,6 +18,7 @@ export async function PATCH(
       precioVenta?: number;
       costoUnitario?: number;
       stockActual?: number;
+      stockAgenda?: number;
       activo?: boolean;
       tipoProducto?: string;
     };
@@ -33,6 +34,7 @@ export async function PATCH(
         precioVenta: body.precioVenta ?? 0,
         costoUnitario: body.costoUnitario ?? 0,
         stockActual: body.stockActual ?? 0,
+        stockAgenda: body.stockAgenda ?? body.stockActual ?? 0,
         activo: body.activo ?? true,
         tipoProducto: body.tipoProducto ?? "simple"
       });

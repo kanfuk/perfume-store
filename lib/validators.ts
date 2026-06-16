@@ -61,6 +61,15 @@ export function validateCustomerOrderForm(
         errors.items = "Cada item debe tener cantidad minima de 1.";
         break;
       }
+
+      if (
+        typeof producto.stockActual === "number" &&
+        producto.stockActual >= 0 &&
+        item.cantidad > producto.stockActual
+      ) {
+        errors.items = `El producto ${producto.nombre} solo tiene ${producto.stockActual} disponible(s).`;
+        break;
+      }
     }
   }
 

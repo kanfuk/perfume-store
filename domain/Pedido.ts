@@ -26,6 +26,7 @@ export type PedidoProps = {
   estadoPedido?: string;
   estadoPago?: string;
   fechaPedido?: Date;
+  fechaEntrega?: Date;
   fechaAgendado?: Date;
   fechaCierre?: Date;
   fechaCancelacion?: Date;
@@ -40,6 +41,7 @@ export class Pedido {
   total: number;
   estadoPedido: string;
   estadoPago: string;
+  fechaEntrega?: Date;
   fechaAgendado?: Date;
   fechaCierre?: Date;
   fechaCancelacion?: Date;
@@ -54,6 +56,7 @@ export class Pedido {
     this.cliente = props.cliente;
     this.items = props.items;
     this.fechaPedido = props.fechaPedido ?? new Date();
+    this.fechaEntrega = props.fechaEntrega;
     this.estadoPedido = props.estadoPedido ?? ESTADO_PEDIDO_PENDIENTE;
     this.estadoPago = props.estadoPago ?? ESTADO_PAGO_SIN_PAGO;
     this.fechaAgendado = props.fechaAgendado;
@@ -68,10 +71,11 @@ export class Pedido {
     return this.items.reduce((sum, item) => sum + item.subtotal, 0);
   }
 
-  agendar(fecha = new Date()) {
+  agendar(fechaEntrega: Date, fechaAgendado = new Date()) {
     this.validarTransicionEstado(ESTADO_PEDIDO_AGENDADO);
     this.estadoPedido = ESTADO_PEDIDO_AGENDADO;
-    this.fechaAgendado = fecha;
+    this.fechaEntrega = fechaEntrega;
+    this.fechaAgendado = fechaAgendado;
   }
 
   cancelar(motivo: string, fecha = new Date()) {

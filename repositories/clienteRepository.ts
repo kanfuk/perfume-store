@@ -16,10 +16,41 @@ export interface ClienteRepository {
   upsertCliente(cliente: Cliente): Promise<{ id: string }>;
 }
 
+function normalizeIdentityText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function matchesCustomerIdentity(
+  current: { telefono: string; nombre: string; lugarTrabajo: string },
+  cliente: Cliente
+) {
+  if (current.telefono && current.telefono === cliente.telefono) {
+    return true;
+  }
+
+  return (
+    normalizeIdentityText(current.nombre) === normalizeIdentityText(cliente.nombre) &&
+    normalizeIdentityText(current.lugarTrabajo) ===
+      normalizeIdentityText(cliente.lugarTrabajo)
+  );
+}
+
 class MemoryClienteRepository implements ClienteRepository {
   async upsertCliente(cliente: Cliente) {
     const existing = localStore.customers.find(
-      (item) => item.telefono === cliente.telefono
+      (item) =>
+        matchesCustomerIdentity(
+          {
+            telefono: item.telefono,
+            nombre: item.nombre,
+            lugarTrabajo: item.lugarTrabajo
+          },
+          cliente
+        )
     );
 
     if (existing) {
@@ -45,9 +76,9 @@ class MemoryClienteRepository implements ClienteRepository {
 class SupabaseClienteRepository implements ClienteRepository {
   async upsertCliente(cliente: Cliente) {
     const supabase = createSupabaseServerClient();
-    const { data: existing, error: existingError } = await supabase
+    const { data: existingByPhone, error: existingError } = await supabase
       .from("clientes")
-      .select("id")
+      .select("id, nombre, lugar_trabajo, telefono")
       .eq("telefono", cliente.telefono)
       .limit(1);
 
@@ -55,7 +86,31 @@ class SupabaseClienteRepository implements ClienteRepository {
       throw new Error("No fue posible consultar el cliente.");
     }
 
-    const existingId = existing?.[0]?.id;
+    let existingId = existingByPhone?.[0]?.id;
+
+    if (!existingId) {
+      const { data: fallbackMatches, error: fallbackError } = await supabase
+        .from("clientes")
+        .select("id, nombre, lugar_trabajo, telefono")
+        .limit(20);
+
+      if (fallbackError) {
+        throw new Error("No fue posible consultar el cliente.");
+      }
+
+      const fallbackMatch = fallbackMatches?.find((item) =>
+        matchesCustomerIdentity(
+          {
+            telefono: item.telefono ?? "",
+            nombre: item.nombre,
+            lugarTrabajo: item.lugar_trabajo ?? ""
+          },
+          cliente
+        )
+      );
+
+      existingId = fallbackMatch?.id;
+    }
 
     if (existingId) {
       const { error } = await supabase

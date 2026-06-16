@@ -30,6 +30,7 @@ export type PedidoListItemRecord = {
   estadoPago: string;
   total: number;
   fechaPedido: string;
+  fechaEntrega?: string;
   fechaAgendado?: string;
   fechaCierre?: string;
   fechaCancelacion?: string;
@@ -69,6 +70,7 @@ export interface PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
+    fechaEntrega?: string;
     fechaAgendado?: string;
     fechaCierre?: string;
     fechaCancelacion?: string;
@@ -102,7 +104,8 @@ class MemoryPedidoRepository implements PedidoRepository {
       estadoPedido: pedido.estadoPedido,
       estadoPago: pedido.estadoPago,
       total: pedido.total,
-      fechaPedido: pedido.fechaPedido.toISOString()
+      fechaPedido: pedido.fechaPedido.toISOString(),
+      fechaEntrega: pedido.fechaEntrega?.toISOString().slice(0, 10)
     });
 
     return { id };
@@ -172,6 +175,7 @@ class MemoryPedidoRepository implements PedidoRepository {
           estadoPago: order.estadoPago,
           total: order.total,
           fechaPedido: order.fechaPedido,
+          fechaEntrega: order.fechaEntrega,
           fechaAgendado: order.fechaAgendado,
           fechaCierre: order.fechaCierre,
           fechaCancelacion: order.fechaCancelacion,
@@ -185,6 +189,7 @@ class MemoryPedidoRepository implements PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
+    fechaEntrega?: string;
     fechaAgendado?: string;
     fechaCierre?: string;
     fechaCancelacion?: string;
@@ -200,6 +205,7 @@ class MemoryPedidoRepository implements PedidoRepository {
     if (args.estadoPago) {
       order.estadoPago = args.estadoPago;
     }
+    order.fechaEntrega = args.fechaEntrega;
     order.fechaAgendado = args.fechaAgendado;
     order.fechaCierre = args.fechaCierre;
     order.fechaCancelacion = args.fechaCancelacion;
@@ -346,6 +352,7 @@ class SupabasePedidoRepository implements PedidoRepository {
         estado_pago,
         total,
         fecha_pedido,
+        fecha_entrega,
         fecha_agendado,
         fecha_cierre,
         fecha_cancelacion,
@@ -407,6 +414,7 @@ class SupabasePedidoRepository implements PedidoRepository {
         estadoPago: order.estado_pago,
         total: order.total,
         fechaPedido: order.fecha_pedido,
+        fechaEntrega: order.fecha_entrega ?? undefined,
         fechaAgendado: order.fecha_agendado ?? undefined,
         fechaCierre: order.fecha_cierre ?? undefined,
         fechaCancelacion: order.fecha_cancelacion ?? undefined,
@@ -419,6 +427,7 @@ class SupabasePedidoRepository implements PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
+    fechaEntrega?: string;
     fechaAgendado?: string;
     fechaCierre?: string;
     fechaCancelacion?: string;
@@ -430,6 +439,7 @@ class SupabasePedidoRepository implements PedidoRepository {
       .update({
         estado_pedido: args.estadoPedido,
         estado_pago: args.estadoPago,
+        fecha_entrega: args.fechaEntrega ?? null,
         fecha_agendado: args.fechaAgendado ?? null,
         fecha_cierre: args.fechaCierre ?? null,
         fecha_cancelacion: args.fechaCancelacion ?? null,

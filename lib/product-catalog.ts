@@ -1,0 +1,56 @@
+type ProductVisualMeta = {
+  imageUrl: string;
+  eyebrow: string;
+};
+
+const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {
+  "dobladita-solo-queso": {
+    imageUrl: "/images/products/dobladita-solo-queso.jpeg",
+    eyebrow: "Clasica del dia"
+  },
+  "dobladita-jamon-pavo-queso": {
+    imageUrl: "/images/products/dobladita-jamon-pavo-queso.jpeg",
+    eyebrow: "Favorita de oficina"
+  },
+  "dobladita-jamon-de-pavo-acaramelado-queso": {
+    imageUrl: "/images/products/dobladita-jamon-pavo-queso.jpeg",
+    eyebrow: "Favorita de oficina"
+  },
+  "dobladita-huevo": {
+    imageUrl: "/images/products/dobladita-huevo.jpeg",
+    eyebrow: "Mas contundente"
+  },
+  "dobladita-reserva-ave-pimenton": {
+    imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
+    eyebrow: "Reserva"
+  }
+};
+
+function normalizeProductKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function getProductVisualMeta(product: { id?: string; nombre?: string }) {
+  const keys = [product.id, product.nombre]
+    .filter((value): value is string => Boolean(value))
+    .map(normalizeProductKey);
+
+  for (const key of keys) {
+    const meta = PRODUCT_VISUALS[key];
+
+    if (meta) {
+      return meta;
+    }
+  }
+
+  return {
+    imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
+    eyebrow: "Hecho en casa"
+  };
+}

@@ -54,9 +54,13 @@ describe("Pedido", () => {
   it("permite agendar un pedido pendiente", () => {
     const pedido = createPedidoBase();
 
-    pedido.agendar(new Date("2026-06-12T10:00:00.000Z"));
+    pedido.agendar(
+      new Date("2026-06-13T00:00:00.000Z"),
+      new Date("2026-06-12T10:00:00.000Z")
+    );
 
     expect(pedido.estadoPedido).toBe(ESTADO_PEDIDO_AGENDADO);
+    expect(pedido.fechaEntrega?.toISOString()).toBe("2026-06-13T00:00:00.000Z");
     expect(pedido.fechaAgendado?.toISOString()).toBe(
       "2026-06-12T10:00:00.000Z"
     );
@@ -77,7 +81,7 @@ describe("Pedido", () => {
 
   it("marca fiado un pedido agendado y crea una cuenta pendiente", () => {
     const pedido = createPedidoBase();
-    pedido.agendar();
+    pedido.agendar(new Date("2026-06-13T00:00:00.000Z"));
     pedido.marcarFiado();
 
     const cuentaFiado = new CuentaFiado({
@@ -122,7 +126,7 @@ describe("Pedido", () => {
 
   it("calcula utilidad de venta", () => {
     const pedido = createPedidoBase();
-    pedido.agendar();
+    pedido.agendar(new Date("2026-06-13T00:00:00.000Z"));
     pedido.marcarPagado();
 
     const venta = new Venta({ pedido });
