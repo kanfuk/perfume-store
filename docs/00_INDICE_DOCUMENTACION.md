@@ -25,6 +25,7 @@ Guiar el desarrollo de **Pauli Store** con documentación clara, separada por te
 | `13_ROADMAP_IMPLEMENTACION.md` | Orden de construcción por fases. |
 | `14_PROMPTS_CODEX.md` | Prompts listos para pegar en Codex. |
 | `15_CRITERIOS_ACEPTACION.md` | Condiciones para considerar terminado el MVP. |
+| `26_ESTADO_FINAL_UX_RESPONSIVE_AVANCES.md` | Resume el estado final del pulido UX responsive en cliente y admin. |
 
 ## Instrucción general para Codex
 

@@ -36,7 +36,7 @@ Estado: avanzada
 Pendiente:
 
 - microcopia final
-- ultimo pulido visual fino
+- ultimo pulido visual fino menor
 
 ### Fase 4 - Supabase y modelo de datos
 
@@ -61,7 +61,7 @@ Estado: completada en MVP
 
 ### Fase 6 - Panel admin
 
-Estado: funcional, no final
+Estado: funcional con pulido responsive fuerte
 
 - login admin con Supabase Auth
 - validacion de admin activo
@@ -111,6 +111,10 @@ Pendiente:
 
 - CSP con nonce
 - regresion QA final movil y escritorio
+
+Actualizacion:
+
+- typecheck, lint y build estables despues del pulido responsive final
 
 ### Fase 10 - Deploy MVP
 

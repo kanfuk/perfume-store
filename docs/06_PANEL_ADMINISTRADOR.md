@@ -23,6 +23,15 @@ Hoy el panel ya permite:
 
 Todavia falta una pasada final mas fuerte de UX para dejarlo listo como herramienta diaria de Pauli.
 
+## Ajustes responsive ya implementados
+
+- rutas reales por modulo
+- navbar movil inferior
+- filtros y tarjetas con mejor control de ancho
+- selector de fechas de reportes corregido para movil
+- botones y badges mas consistentes
+- control de overflow horizontal en vistas principales
+
 ## Estructura objetivo del panel
 
 El panel debe girar alrededor de 5 vistas simples.

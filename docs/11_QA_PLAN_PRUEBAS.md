@@ -15,7 +15,10 @@ Evitar fallos de logica, estados invalidos, errores visuales y problemas de segu
 | Flujo cliente operativo | OK | pedido registrado en Supabase |
 | Login admin operativo | OK | acceso con Supabase Auth |
 | Seguridad base aplicada | Parcial | headers, RLS, env, security.txt |
-| UX admin final | Pendiente | falta cierre fino mobile-first |
+| UX admin final | OK | pulido responsive final aplicado |
+| Selector fechas movil | OK | filtros reportes apilan correctamente |
+| Scroll horizontal cliente | OK | overflow-x controlado |
+| Scroll horizontal admin | OK | wrappers y min-w-0 aplicados |
 
 ## QA formulario cliente
 
@@ -50,6 +53,8 @@ Marcar fiado
 Revisar historial
 Editar producto
 Activar y desactivar producto
+Revisar filtros de fecha en 360px, 390px y 430px
+Revisar navbar movil admin
 ```
 
 ## QA de seguridad

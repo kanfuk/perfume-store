@@ -654,10 +654,10 @@ export function AdminDashboard({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-5 pb-28 sm:px-6">
-      <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-28 sm:px-6">
+      <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-800">
               <Store className="h-4 w-4" />
               Panel admin
@@ -676,7 +676,7 @@ export function AdminDashboard({
               <button
                 type="button"
                 onClick={() => navigateToView("home")}
-                className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-900"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Inicio
@@ -685,7 +685,7 @@ export function AdminDashboard({
             <button
               type="button"
               onClick={() => void refreshAll()}
-              className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-900"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900"
             >
               <RefreshCcw className="h-4 w-4" />
               Actualizar
@@ -693,7 +693,7 @@ export function AdminDashboard({
             <button
               type="button"
               onClick={logout}
-              className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-900"
+              className="min-h-11 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900"
             >
               Cerrar sesion
             </button>
@@ -701,8 +701,8 @@ export function AdminDashboard({
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 rounded-lg border border-rose-200 bg-white/95 p-3 shadow-soft backdrop-blur">
-        <div className="flex gap-2 overflow-x-auto">
+      <section className="sticky top-0 z-20 max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/95 p-3 shadow-soft backdrop-blur">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           <AdminSectionTab
             label="Inicio"
             icon={Home}
@@ -1433,24 +1433,24 @@ export function AdminDashboard({
             helper="Ideal para mirar cómo cerró la semana y que producto conviene reponer."
           />
 
-          <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2">
+          <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="min-w-0 space-y-2">
                 <span className="text-sm font-semibold text-rose-900">Desde</span>
                 <input
                   type="date"
                   value={reportFrom}
                   onChange={(event) => setReportFrom(event.target.value)}
-                  className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="min-h-11 w-full min-w-0 max-w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
                 />
               </label>
-              <label className="space-y-2">
+              <label className="min-w-0 space-y-2">
                 <span className="text-sm font-semibold text-rose-900">Hasta</span>
                 <input
                   type="date"
                   value={reportTo}
                   onChange={(event) => setReportTo(event.target.value)}
-                  className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="min-h-11 w-full min-w-0 max-w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
                 />
               </label>
             </div>
@@ -1707,15 +1707,15 @@ function QuickTaskRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-4 text-left transition hover:border-rose-300"
+      className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-4 text-left transition hover:border-rose-300 sm:flex-nowrap"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <span className="rounded-2xl bg-white p-3 text-rose-700 shadow-sm">
           <Icon className="h-5 w-5" />
         </span>
-        <div>
+        <div className="min-w-0">
           <div className="text-sm font-semibold text-rose-950">{title}</div>
-          <div className="mt-1 text-xs text-rose-900/65">{detail}</div>
+          <div className="mt-1 break-words text-xs text-rose-900/65">{detail}</div>
         </div>
       </div>
       <ArrowRight className="h-4 w-4 shrink-0 text-rose-500" />
@@ -1740,7 +1740,7 @@ function AdminSectionTab({
     <button
       type="button"
       onClick={onClick}
-      className={`min-w-[146px] rounded-2xl border px-4 py-3 text-left transition ${
+      className={`min-w-[132px] rounded-2xl border px-4 py-3 text-left transition sm:min-w-[146px] ${
         active
           ? "border-rose-300 bg-rose-600 text-white"
           : "border-rose-200 bg-rose-50 text-rose-900"
@@ -1778,7 +1778,7 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
+      className={`min-h-11 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
         active ? "bg-rose-600 text-white" : "bg-rose-50 text-rose-800"
       }`}
     >
@@ -1805,9 +1805,9 @@ function StockProductCard({
   onSave: () => void;
 }) {
   return (
-    <article className="rounded-[24px] border border-rose-200 bg-white/90 p-4 shadow-soft">
+    <article className="max-w-full overflow-x-hidden rounded-[24px] border border-rose-200 bg-white/90 p-4 shadow-soft">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-4">
+        <div className="flex min-w-0 gap-4">
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50">
             <ProductImage
               src={product.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
@@ -1816,9 +1816,9 @@ function StockProductCard({
               className="object-cover"
             />
           </div>
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold text-rose-950">{product.nombre}</h3>
+              <h3 className="break-words text-lg font-semibold text-rose-950">{product.nombre}</h3>
               <StatusBadge
                 tone={product.activo ? "pedido" : "neutral"}
                 label={product.activo ? "ACTIVO" : "PAUSADO"}
@@ -1833,7 +1833,7 @@ function StockProductCard({
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-900"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-semibold text-rose-900"
         >
           <PencilLine className="h-4 w-4" />
           Editar
@@ -1906,14 +1906,14 @@ function StockProductCard({
       </details>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <div className="text-sm text-rose-900/60">
+        <div className="min-w-0 break-words text-sm text-rose-900/60">
           Ajusta aqui lo rapido. Editar abre el detalle completo.
         </div>
         <button
           type="button"
           disabled={busy}
           onClick={onSave}
-          className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white"
         >
           <Archive className="h-4 w-4" />
           {busy ? "Guardando..." : "Guardar"}
@@ -2825,7 +2825,9 @@ function StatusBadge({
         : "bg-violet-100 text-violet-800";
 
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${classes}`}>
+    <span
+      className={`inline-flex max-w-full items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold leading-4 ${classes}`}
+    >
       {label}
     </span>
   );
@@ -2870,14 +2872,14 @@ function todayDateValue() {
 
 function buttonToneClass(tone: "primary" | "warning" | "muted") {
   if (tone === "primary") {
-    return "inline-flex items-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm";
+    return "inline-flex min-h-11 items-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm";
   }
 
   if (tone === "warning") {
-    return "inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800";
+    return "inline-flex min-h-11 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800";
   }
 
-  return "inline-flex items-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900";
+  return "inline-flex min-h-11 items-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900";
 }
 
 function MobileAdminNav({
@@ -2901,8 +2903,8 @@ function MobileAdminNav({
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 pb-3 pt-2 shadow-[0_-10px_30px_rgba(95,48,65,0.08)] backdrop-blur md:hidden">
-      <div className="mx-auto grid max-w-3xl grid-cols-6 gap-2">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(95,48,65,0.08)] backdrop-blur md:hidden">
+      <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2">
         {items.map((item) => {
           const Icon = item.icon;
           const active = currentView === item.value;

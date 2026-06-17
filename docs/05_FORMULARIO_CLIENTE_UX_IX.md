@@ -108,6 +108,9 @@ Registrar mi pedido
 - Productos mostrados como tarjetas.
 - Cantidad con botones `+` y `-`.
 - Evitar saturar al cliente.
+- Sin scroll horizontal en movil.
+- Carrito inferior con safe-area y padding suficiente.
+- No usar efectos que cambien el tamano real de la tarjeta al tocarla.
 
 ## Validaciones visuales
 
