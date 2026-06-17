@@ -57,3 +57,27 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ productId: string }> }
+) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  try {
+    const { productId } = await context.params;
+    const productoService = createProductoService();
+    await productoService.eliminarProductoAdmin(productId);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No fue posible eliminar el producto.";
+
+    return NextResponse.json(
+      { error: message },
+      { status: message.includes("pedidos asociados") ? 409 : 400 }
+    );
+  }
+}

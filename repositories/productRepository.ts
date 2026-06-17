@@ -17,6 +17,7 @@ export interface ProductRepository {
   buscarTodosProductos(): Promise<ProductoProps[]>;
   buscarProductoPorId(id: string): Promise<ProductoProps | null>;
   crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }): Promise<ProductoProps>;
+  eliminarProducto(id: string): Promise<void>;
   actualizarProducto(
     id: string,
     cambios: Partial<Omit<ProductoProps, "id">>
@@ -43,6 +44,16 @@ class MockProductRepository implements ProductRepository {
     };
     localStore.products.push(record);
     return record;
+  }
+
+  async eliminarProducto(id: string) {
+    const index = localStore.products.findIndex((product) => product.id === id);
+
+    if (index === -1) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    localStore.products.splice(index, 1);
   }
 
   async actualizarProducto(
@@ -142,6 +153,23 @@ class SupabaseProductRepository implements ProductRepository {
     }
 
     return mapSupabaseProduct(response.data);
+  }
+
+  async eliminarProducto(id: string) {
+    const supabase = createSupabaseServerClient();
+    const response = await supabase.from("productos").delete().eq("id", id);
+
+    if (response.error) {
+      if (response.error.code === "23503") {
+        throw new Error(
+          "Este producto ya tiene pedidos asociados. Para conservar historial, dejalo pausado en vez de eliminarlo."
+        );
+      }
+
+      throw new Error(
+        `No fue posible eliminar el producto. ${response.error.message}`.trim()
+      );
+    }
   }
 
   async actualizarProducto(

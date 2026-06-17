@@ -176,6 +176,16 @@ export class ProductoService {
 
     await this.productRepository.actualizarProducto(id, { activo: domainProduct.activo });
   }
+
+  async eliminarProductoAdmin(id: string) {
+    const current = await this.productRepository.buscarProductoPorId(id);
+
+    if (!current) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    await this.productRepository.eliminarProducto(id);
+  }
 }
 
 export function createProductoService() {

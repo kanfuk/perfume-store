@@ -29,6 +29,7 @@ import {
   Search,
   Sparkles,
   Store,
+  Trash2,
   UserRound,
   WalletCards
 } from "lucide-react";
@@ -623,6 +624,42 @@ export function AdminDashboard({
       tipoProducto: product.tipoProducto,
       activo: product.activo
     });
+  }
+
+  async function deleteProduct(product: AdminProductRecord) {
+    const confirmed = window.confirm(
+      `Eliminar "${product.nombre}" del catalogo? Si ya tiene pedidos asociados, el sistema no lo dejara borrar y tendras que dejarlo pausado.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setBusyProductId(product.id);
+      setError("");
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: "DELETE"
+      });
+      const currentData = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(currentData.error ?? "No fue posible eliminar el producto.");
+      }
+
+      setProductModalState((current) =>
+        current?.mode === "edit" && current.product.id === product.id ? null : current
+      );
+      await loadProducts();
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible eliminar el producto."
+      );
+    } finally {
+      setBusyProductId("");
+    }
   }
 
   function updateStockDraft(
@@ -1229,6 +1266,7 @@ export function AdminDashboard({
                   busy={busyProductId === product.id}
                   onToggle={() => void toggleProduct(product)}
                   onEdit={() => setProductModalState({ mode: "edit", product })}
+                  onDelete={() => void deleteProduct(product)}
                   onChange={(key, value) => updateStockDraft(product.id, key, value, product)}
                   onSave={() => void saveStock(product)}
                 />
@@ -1799,6 +1837,7 @@ function StockProductCard({
   busy,
   onToggle,
   onEdit,
+  onDelete,
   onChange,
   onSave
 }: {
@@ -1807,6 +1846,7 @@ function StockProductCard({
   busy: boolean;
   onToggle: () => void;
   onEdit: () => void;
+  onDelete: () => void;
   onChange: (key: keyof StockDraft, value: string) => void;
   onSave: () => void;
 }) {
@@ -1911,19 +1951,30 @@ function StockProductCard({
         </div>
       </details>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 break-words text-sm text-rose-900/60">
           Ajusta aqui lo rapido. Editar abre el detalle completo.
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onSave}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white"
-        >
-          <Archive className="h-4 w-4" />
-          {busy ? "Guardando..." : "Guardar"}
-        </button>
+        <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onDelete}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700"
+          >
+            <Trash2 className="h-4 w-4" />
+            {busy ? "Procesando..." : "Eliminar"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onSave}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            <Archive className="h-4 w-4" />
+            {busy ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -2248,7 +2299,7 @@ function AdminActionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/35 px-4">
-      <div className="w-full max-w-md rounded-[20px] border border-rose-200 bg-white p-5 shadow-soft">
+      <div className="w-full max-w-md overflow-hidden rounded-[20px] border border-rose-200 bg-white p-5 shadow-soft">
         <div className="space-y-1">
           <div className="inline-flex rounded-2xl bg-rose-100 p-3 text-rose-700">
             {state.type === "agendar" ? (
@@ -2271,13 +2322,13 @@ function AdminActionModal({
 
         <div className="mt-4 space-y-4">
           {state.type === "agendar" ? (
-            <label className="space-y-2">
+            <label className="block min-w-0 max-w-full space-y-2 overflow-hidden">
               <span className="text-sm font-semibold text-rose-900">Fecha de entrega</span>
               <input
                 type="date"
                 value={deliveryDate}
                 onChange={(event) => setDeliveryDate(event.target.value)}
-                className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-[16px] text-rose-950"
               />
             </label>
           ) : null}

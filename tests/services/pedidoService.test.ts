@@ -58,6 +58,10 @@ class ProductRepositoryStub implements ProductRepository {
     return this.buscarProductosActivos();
   }
 
+  async eliminarProducto() {
+    return;
+  }
+
   async crearProducto(producto: {
     id?: string;
     nombre: string;
