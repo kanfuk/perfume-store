@@ -1604,9 +1604,11 @@ function SectionIntro({
           </span>
           <div className="min-w-0 space-y-1">
             <h2 className="break-words text-2xl font-bold text-rose-950">{title}</h2>
-            <p className="break-words text-sm text-rose-900/70">{subtitle}</p>
+            <p className="copy-justified break-words text-sm text-rose-900/70">
+              {subtitle}
+            </p>
             {helper ? (
-              <p className="break-words rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              <p className="copy-justified break-words rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-800">
                 {helper}
               </p>
             ) : null}
@@ -1682,7 +1684,9 @@ function HomeActionCard({
       </div>
       <div className="mt-4 min-w-0 space-y-2">
         <div className="break-words text-lg font-semibold text-rose-950">{title}</div>
-        <p className="break-words text-sm leading-6 text-rose-900/70">{subtitle}</p>
+        <p className="copy-justified break-words text-sm leading-6 text-rose-900/70">
+          {subtitle}
+        </p>
         <div className="inline-flex items-center gap-2 text-sm font-semibold text-rose-800">
           Abrir
           <ArrowRight className="h-4 w-4" />
@@ -1715,7 +1719,9 @@ function QuickTaskRow({
         </span>
         <div className="min-w-0">
           <div className="text-sm font-semibold text-rose-950">{title}</div>
-          <div className="mt-1 break-words text-xs text-rose-900/65">{detail}</div>
+          <div className="copy-justified mt-1 break-words text-xs text-rose-900/65">
+            {detail}
+          </div>
         </div>
       </div>
       <ArrowRight className="h-4 w-4 shrink-0 text-rose-500" />

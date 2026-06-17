@@ -70,3 +70,8 @@ input[type="date"] {
 ::selection {
   background: rgba(214, 123, 148, 0.2);
 }
+
+.copy-justified {
+  text-align: justify;
+  text-justify: inter-word;
+}

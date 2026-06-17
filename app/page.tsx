@@ -13,7 +13,7 @@ export default function HomePage() {
               <h1 className="text-4xl font-bold tracking-normal text-[#6f3146] sm:text-5xl">
                 Pauli Store
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-[#7e4a5c] sm:text-lg">
+              <p className="copy-justified max-w-2xl text-base leading-7 text-[#7e4a5c] sm:text-lg">
                 Volvieron las cositas ricas hechas en casa. Desayunos, quequitos
                 y preparaciones caseras recien hechas para acompanar tu dia con
                 mas carino.

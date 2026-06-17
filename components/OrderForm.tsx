@@ -436,7 +436,7 @@ export function OrderForm() {
                 <h3 className="text-lg font-semibold text-[#5f3041]">
                   Clientes frecuentes
                 </h3>
-                <p className="text-sm text-[#7f5b67]">
+                <p className="copy-justified text-sm text-[#7f5b67]">
                   Si ya pediste desde este equipo, toca tu nombre y seguimos.
                 </p>
               </div>
@@ -469,7 +469,7 @@ export function OrderForm() {
                 <h3 className="text-lg font-semibold text-[#5f3041]">
                   Catalogo del dia
                 </h3>
-                <p className="text-sm text-[#7f5b67]">
+                <p className="copy-justified text-sm text-[#7f5b67]">
                   Elige tu dobladita favorita y suma las que necesites.
                 </p>
               </div>
@@ -512,7 +512,7 @@ export function OrderForm() {
                       <h4 className="text-lg font-semibold text-[#5f3041]">
                         {product.nombre}
                       </h4>
-                      <p className="text-sm leading-6 text-[#7f5b67]">
+                      <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
                         {product.descripcion}
                       </p>
                     </div>
@@ -564,7 +564,7 @@ export function OrderForm() {
               <h3 className="text-lg font-semibold text-[#5f3041]">
                 Tus datos
               </h3>
-              <p className="text-sm text-[#7f5b67]">
+              <p className="copy-justified text-sm text-[#7f5b67]">
                 Completa esto y Pauli te confirma disponibilidad por WhatsApp.
               </p>
             </div>
@@ -640,7 +640,7 @@ export function OrderForm() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-[#5f3041]">Tu pedido</h3>
-                  <p className="mt-1 text-sm text-[#7f5b67]">
+                  <p className="copy-justified mt-1 text-sm text-[#7f5b67]">
                     Revisa cantidad, valor unitario y total antes de enviarlo.
                   </p>
                 </div>
@@ -731,7 +731,7 @@ export function OrderForm() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-[#5f3041]">Pedido simple</h3>
-                <p className="text-sm text-[#7f5b67]">
+                <p className="copy-justified text-sm text-[#7f5b67]">
                   Tu pedido queda pendiente de confirmacion. Pauli revisa stock y luego te escribe.
                 </p>
               </div>
@@ -775,7 +775,7 @@ export function OrderForm() {
                 <h3 className="text-xl font-semibold text-[#5f3041]">
                   Pedido registrado correctamente
                 </h3>
-                <p className="text-sm leading-6 text-[#7f5b67]">
+                <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
                   Tu pedido quedo pendiente de confirmacion. Pauli revisara disponibilidad y te avisara por WhatsApp.
                 </p>
               </div>
@@ -816,7 +816,7 @@ export function OrderForm() {
                 <h3 className="text-lg font-semibold text-[#5f3041]">
                   Stock disponible
                 </h3>
-                <p className="text-sm leading-6 text-[#7f5b67]">
+                <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
                   {stockLimitState.productName} solo cuenta con{" "}
                   {stockLimitState.available} disponible(s). Si quieres, dejamos esa
                   cantidad en tu pedido.
