@@ -28,6 +28,7 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 | `26_ESTADO_FINAL_UX_RESPONSIVE_AVANCES.md` | Estado del pulido UX responsive en cliente y admin. |
 | `27_PULIDO_FINAL_RENDER_SCROLL_ICONO.md` | Diagnostico final y correcciones de favicon, scroll movil y fechas admin. |
 | `28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md` | Flujo de cierre mensual, archivado operativo y limpieza de datos de prueba. |
+| `PROMPT_CODEX_INTEGRAR_ICONOS.md` | Prompt operativo para reinstalar o revisar el pack de iconos de Pauli Store. |
 
 ## Instruccion general para Codex
 

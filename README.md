@@ -17,6 +17,7 @@ Hoy el proyecto ya incluye:
 - repositorios y servicios con reglas de negocio
 - seguridad base en headers, RLS y validaciones servidor
 - pruebas automatizadas con Vitest
+- favicon pack completo para navegador, iOS y Android
 
 ## Stack
 
@@ -80,16 +81,40 @@ Pendiente para una fase posterior:
 - automatizacion WhatsApp
 - pulido final del panel admin para uso diario desde celular
 
+## Iconografia y manifest
+
+La app ya integra:
+
+- `app/favicon.ico`
+- `app/icon.png`
+- `app/apple-icon.png`
+- `public/favicon.ico`
+- `public/apple-touch-icon.png`
+- `public/android-chrome-192x192.png`
+- `public/android-chrome-512x512.png`
+- `public/site.webmanifest`
+- `public/icons/*`
+
+Verificacion recomendada despues del deploy:
+
+```text
+/favicon.ico?v=99
+/apple-touch-icon.png?v=99
+/android-chrome-192x192.png?v=99
+/site.webmanifest?v=99
+```
+
 ## Documentacion clave
 
 - [docs/06_PANEL_ADMINISTRADOR.md](docs/06_PANEL_ADMINISTRADOR.md)
 - [docs/10_SEGURIDAD_HEADERS_RLS.md](docs/10_SEGURIDAD_HEADERS_RLS.md)
 - [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
+- [docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md](docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md)
 
 ## Siguiente fase recomendada
 
-1. cerrar UX del panel admin
-2. separar mejor stock, cobros y reportes
+1. validar cierre mensual en Supabase real
+2. ejecutar limpieza final de datos de prueba antes del lanzamiento
 3. preparar confirmacion automatica por WhatsApp
 4. validar flujo completo desde celular con Pauli

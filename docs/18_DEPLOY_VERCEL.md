@@ -13,6 +13,7 @@ Hoy el deploy ya contempla:
 - Supabase conectado en produccion
 - variables de entorno cargadas en Vercel
 - dominio limpio para clientes usando subdominio `vercel.app`
+- favicon, apple icon y manifest integrados
 
 ## Variables de entorno requeridas
 
@@ -112,6 +113,10 @@ Seguridad:
 - `/.well-known/security.txt` responde
 - no hay claves privadas en navegador
 - headers de seguridad presentes
+- `/favicon.ico?v=99` responde
+- `/apple-touch-icon.png?v=99` responde
+- `/android-chrome-192x192.png?v=99` responde
+- `/site.webmanifest?v=99` responde
 
 ## Incidentes comunes
 

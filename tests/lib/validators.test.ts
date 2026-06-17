@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mockProducts } from "@/lib/mocks/products";
 import { validateCustomerOrderForm } from "@/lib/validators";
 
+const activeProductId = mockProducts[0]?.id ?? "dobladita-solo-queso";
+
 describe("validateCustomerOrderForm", () => {
   it("valida un formulario correcto", () => {
     const result = validateCustomerOrderForm(
@@ -9,7 +11,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
-        items: [{ productoId: "pan-amasado", cantidad: 2 }]
+        items: [{ productoId: activeProductId, cantidad: 2 }]
       },
       mockProducts
     );
@@ -65,7 +67,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "1234",
         lugarTrabajo: "Finanzas",
-        items: [{ productoId: "pan-amasado", cantidad: 1 }]
+        items: [{ productoId: activeProductId, cantidad: 1 }]
       },
       mockProducts
     );
@@ -82,7 +84,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "+56 9 1234 5678",
         lugarTrabajo: "Finanzas",
-        items: [{ productoId: "pan-amasado", cantidad: 1 }]
+        items: [{ productoId: activeProductId, cantidad: 1 }]
       },
       mockProducts
     );
@@ -96,7 +98,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "+56 2 2345 6789",
         lugarTrabajo: "Finanzas",
-        items: [{ productoId: "pan-amasado", cantidad: 1 }]
+        items: [{ productoId: activeProductId, cantidad: 1 }]
       },
       mockProducts
     );
