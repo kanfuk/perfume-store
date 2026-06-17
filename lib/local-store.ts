@@ -13,7 +13,9 @@ export type LocalOrderRecord = {
   clienteId: string;
   estadoPedido: string;
   estadoPago: string;
+  origenPedido?: string;
   total: number;
+  observacion?: string;
   fechaPedido: string;
   fechaEntrega?: string;
   fechaAgendado?: string;
@@ -25,7 +27,11 @@ export type LocalOrderRecord = {
 export type LocalOrderItemRecord = {
   id: string;
   pedidoId: string;
-  productoId: string;
+  productoId?: string;
+  productoNombre?: string;
+  productoDescripcion?: string;
+  productoImageUrl?: string;
+  productoTipo?: string;
   cantidad: number;
   precioUnitario: number;
   subtotal: number;

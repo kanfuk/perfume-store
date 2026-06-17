@@ -39,5 +39,71 @@ export const mockProducts: ProductoProps[] = [
     stockAgenda: 10,
     activo: true,
     tipoProducto: "desayuno"
+  },
+  {
+    id: "dobladita-ave-mayo",
+    nombre: "Dobladita ave mayo",
+    descripcion: "Dobladita casera con ave mayo cremosa, perfecta para media manana.",
+    precioVenta: 1500,
+    imageUrl: "/images/products/dobladita-reserva-ave-mayo.png",
+    badgeLabel: "AVE MAYO",
+    costoUnitario: 880,
+    stockActual: 12,
+    stockAgenda: 12,
+    activo: true,
+    tipoProducto: "dobladita"
+  },
+  {
+    id: "queque-casero-marmoleado",
+    nombre: "Quequito marmoleado",
+    descripcion: "Suave bizcocho humedo y esponjoso con sabor vainilla y chocolate.",
+    precioVenta: 1000,
+    imageUrl: "/images/products/queque-casero-marmoleado.png",
+    badgeLabel: "QUEQUITO CASERO",
+    costoUnitario: 450,
+    stockActual: 8,
+    stockAgenda: 8,
+    activo: true,
+    tipoProducto: "quequito"
+  },
+  {
+    id: "queque-casero-banana",
+    nombre: "Quequito banana bread",
+    descripcion: "Rico bizcocho esponjoso, humedo, con platano y nueces.",
+    precioVenta: 1000,
+    imageUrl: "/images/products/queque-casero-banana.png",
+    badgeLabel: "QUEQUITO CASERO",
+    costoUnitario: 470,
+    stockActual: 8,
+    stockAgenda: 8,
+    activo: true,
+    tipoProducto: "quequito"
+  },
+  {
+    id: "queque-casero-chocochips-sf",
+    nombre: "Quequito choco chip sugar free",
+    descripcion:
+      "Bizcocho de vainilla endulzado con alulosa, con chips de chocolate semi amargo.",
+    precioVenta: 1000,
+    imageUrl: "/images/products/queque-casero-chocochips-sf.png",
+    badgeLabel: "SUGAR FREE",
+    costoUnitario: 520,
+    stockActual: 8,
+    stockAgenda: 8,
+    activo: true,
+    tipoProducto: "quequito"
+  },
+  {
+    id: "carrot-cake-nueces",
+    nombre: "Quequito carrot cake nueces",
+    descripcion: "Bizcocho casero de zanahoria con nueces, suave y especiado.",
+    precioVenta: 1000,
+    imageUrl: "/images/products/carrot-cake-nueces.png",
+    badgeLabel: "QUEQUITO CASERO",
+    costoUnitario: 490,
+    stockActual: 8,
+    stockAgenda: 8,
+    activo: true,
+    tipoProducto: "quequito"
   }
 ];

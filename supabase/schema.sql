@@ -33,6 +33,7 @@ create table if not exists pedidos (
   cliente_id uuid not null references clientes(id),
   estado_pedido text not null default 'PENDIENTE',
   estado_pago text not null default 'SIN_PAGO',
+  origen_pedido text default 'PUBLICO',
   total integer not null,
   observacion text,
   motivo_cancelacion text,
@@ -48,7 +49,11 @@ create table if not exists pedidos (
 create table if not exists pedido_items (
   id uuid primary key default gen_random_uuid(),
   pedido_id uuid not null references pedidos(id),
-  producto_id uuid not null references productos(id),
+  producto_id uuid references productos(id),
+  producto_nombre text,
+  producto_descripcion text,
+  producto_image_url text,
+  producto_tipo text,
   cantidad integer not null,
   precio_unitario integer not null,
   subtotal integer not null,
@@ -86,6 +91,17 @@ create table if not exists usuarios_admin (
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedidos' and column_name = 'origen_pedido'
+  ) then
+    alter table pedidos add column origen_pedido text default 'PUBLICO';
+  end if;
+end $$;
 
 do $$
 begin
@@ -135,6 +151,50 @@ do $$
 begin
   if not exists (
     select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_nombre'
+  ) then
+    alter table pedido_items add column producto_nombre text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_descripcion'
+  ) then
+    alter table pedido_items add column producto_descripcion text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_image_url'
+  ) then
+    alter table pedido_items add column producto_image_url text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_tipo'
+  ) then
+    alter table pedido_items add column producto_tipo text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
     from pg_constraint
     where conname = 'pedidos_estado_pedido_check'
   ) then
@@ -154,6 +214,19 @@ begin
     alter table pedidos
     add constraint pedidos_estado_pago_check
     check (estado_pago in ('SIN_PAGO', 'PAGADO', 'FIADO'));
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'pedidos_origen_pedido_check'
+  ) then
+    alter table pedidos
+    add constraint pedidos_origen_pedido_check
+    check (origen_pedido in ('PUBLICO', 'ADMIN_DIRECTO', 'PERSONALIZADO'));
   end if;
 end $$;
 

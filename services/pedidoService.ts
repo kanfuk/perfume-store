@@ -14,19 +14,29 @@ import { Producto } from "@/domain/Producto";
 import {
   ESTADO_PAGO_FIADO,
   ESTADO_PAGO_PAGADO,
+  ESTADO_PAGO_SIN_PAGO,
   ESTADO_PEDIDO_AGENDADO,
   ESTADO_PEDIDO_CANCELADO,
   ESTADO_PEDIDO_FINALIZADO,
-  ESTADO_PEDIDO_PENDIENTE
+  ESTADO_PEDIDO_PENDIENTE,
+  ORIGEN_PEDIDO_ADMIN_DIRECTO,
+  ORIGEN_PEDIDO_PERSONALIZADO,
+  ORIGEN_PEDIDO_PUBLICO
 } from "@/lib/constants";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import type {
+  AdminDirectSaleRequest,
   AdminDashboardData,
   AdminOrderSummary,
+  CustomOrderRequest,
   CustomerOrderRequest,
   CustomerOrderResponse
 } from "@/lib/types";
-import { validateCustomerOrderForm } from "@/lib/validators";
+import {
+  validateAdminDirectSaleForm,
+  validateCustomOrderForm,
+  validateCustomerOrderForm
+} from "@/lib/validators";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
 import type { PedidoRepository } from "@/repositories/pedidoRepository";
@@ -93,14 +103,20 @@ export class PedidoService {
     const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
     const { id: pedidoId } = await this.pedidoRepository.insertarPedido({
       pedido,
-      clienteId
+      clienteId,
+      origenPedido: ORIGEN_PEDIDO_PUBLICO
     });
 
     await Promise.all(
       items.map((item) =>
         this.pedidoRepository.insertarPedidoItem({
           pedidoId,
-          item
+          item,
+          productoId: item.producto.id,
+          productoNombre: item.producto.nombre,
+          productoDescripcion: item.producto.descripcion,
+          productoImageUrl: item.producto.imageUrl,
+          productoTipo: item.producto.tipoProducto
         })
       )
     );
@@ -111,6 +127,7 @@ export class PedidoService {
       total: pedido.total,
       estadoPedido: pedido.estadoPedido,
       estadoPago: pedido.estadoPago,
+      origenPedido: ORIGEN_PEDIDO_PUBLICO,
       items: items.map((item) => ({
         productoId: item.producto.id,
         nombre: item.producto.nombre,
@@ -118,6 +135,230 @@ export class PedidoService {
         precioUnitario: item.precioUnitario,
         subtotal: item.subtotal
       }))
+    };
+  }
+
+  async crearVentaDirecta(input: AdminDirectSaleRequest): Promise<CustomerOrderResponse> {
+    const products = await this.productRepository.buscarProductosActivos();
+    const validation = validateAdminDirectSaleForm(input, products);
+
+    if (!validation.isValid) {
+      throw new Error(Object.values(validation.errors)[0] ?? "Formulario invalido.");
+    }
+
+    const telefono = input.telefono?.trim()
+      ? parseChileanMobilePhone(input.telefono)?.e164 ?? ""
+      : "";
+    const cliente = new Cliente({
+      nombre: input.nombre?.trim() || "Cliente ocasional",
+      telefono,
+      lugarTrabajo: input.lugarTrabajo?.trim() || "Venta directa"
+    });
+
+    const productMap = new Map(products.map((product) => [product.id, product]));
+    const items = input.items.map((line) => {
+      const productData = productMap.get(line.productoId);
+
+      if (!productData || productData.activo === false) {
+        throw new Error("El producto seleccionado no esta disponible.");
+      }
+
+      const producto = new Producto(productData);
+
+      return new DetallePedido({
+        producto,
+        cantidad: line.cantidad,
+        precioUnitario: producto.precioVenta
+      });
+    });
+
+    const pedido = new Pedido({
+      cliente,
+      items,
+      estadoPedido: ESTADO_PEDIDO_FINALIZADO,
+      estadoPago: input.estadoPago,
+      fechaCierre: new Date()
+    });
+
+    const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
+    const { id: pedidoId } = await this.pedidoRepository.insertarPedido({
+      pedido,
+      clienteId,
+      origenPedido: ORIGEN_PEDIDO_ADMIN_DIRECTO,
+      observacion: input.observacion?.trim() || undefined
+    });
+
+    await Promise.all(
+      items.map((item) =>
+        this.pedidoRepository.insertarPedidoItem({
+          pedidoId,
+          item,
+          productoId: item.producto.id,
+          productoNombre: item.producto.nombre,
+          productoDescripcion: item.producto.descripcion,
+          productoImageUrl: item.producto.imageUrl,
+          productoTipo: item.producto.tipoProducto
+        })
+      )
+    );
+
+    if (input.estadoPago === ESTADO_PAGO_PAGADO) {
+      await this.pedidoRepository.insertarPago({
+        pedidoId,
+        monto: pedido.total,
+        metodoPago: "EFECTIVO",
+        estadoPago: ESTADO_PAGO_PAGADO,
+        fechaPago: pedido.fechaCierre?.toISOString()
+      });
+    }
+
+    if (input.estadoPago === ESTADO_PAGO_FIADO) {
+      await this.pedidoRepository.upsertFiado({
+        pedidoId,
+        clienteId,
+        montoPendiente: pedido.total,
+        estado: "PENDIENTE",
+        fechaFiado: pedido.fechaCierre?.toISOString()
+      });
+    }
+
+    return {
+      pedidoId,
+      clienteId,
+      total: pedido.total,
+      estadoPedido: pedido.estadoPedido,
+      estadoPago: pedido.estadoPago,
+      origenPedido: ORIGEN_PEDIDO_ADMIN_DIRECTO,
+      items: items.map((item) => ({
+        productoId: item.producto.id,
+        nombre: item.producto.nombre,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        subtotal: item.subtotal
+      }))
+    };
+  }
+
+  async crearPedidoPersonalizado(input: CustomOrderRequest): Promise<CustomerOrderResponse> {
+    const validation = validateCustomOrderForm(input);
+
+    if (!validation.isValid) {
+      throw new Error(Object.values(validation.errors)[0] ?? "Formulario invalido.");
+    }
+
+    const telefono = input.telefono?.trim()
+      ? parseChileanMobilePhone(input.telefono)?.e164 ?? ""
+      : "";
+    const cliente = new Cliente({
+      nombre: input.nombre.trim(),
+      telefono,
+      lugarTrabajo: input.lugarTrabajo?.trim() || "Pedido personalizado"
+    });
+    const producto = new Producto({
+      id: "pedido-personalizado",
+      nombre: input.nombreProducto.trim(),
+      descripcion: input.descripcion?.trim() || "",
+      precioVenta: input.precioAcordado,
+      imageUrl: "/images/products/pedido-personalizado.png",
+      badgeLabel: "PEDIDO PERSONALIZADO",
+      costoUnitario:
+        input.costoEstimadoTotal && input.cantidad > 0
+          ? Math.round(input.costoEstimadoTotal / input.cantidad)
+          : 0,
+      activo: true,
+      tipoProducto: "personalizado"
+    });
+    const item = new DetallePedido({
+      producto,
+      cantidad: input.cantidad,
+      precioUnitario: input.precioAcordado
+    });
+
+    const estadoPedido =
+      input.estadoInicial === ESTADO_PEDIDO_AGENDADO
+        ? ESTADO_PEDIDO_AGENDADO
+        : ESTADO_PEDIDO_FINALIZADO;
+    const estadoPago =
+      input.estadoInicial === ESTADO_PEDIDO_AGENDADO
+        ? ESTADO_PAGO_SIN_PAGO
+        : input.estadoInicial === ESTADO_PAGO_PAGADO
+          ? ESTADO_PAGO_PAGADO
+          : ESTADO_PAGO_FIADO;
+    const fechaEntrega =
+      input.fechaEntrega && /^\d{4}-\d{2}-\d{2}$/.test(input.fechaEntrega)
+        ? new Date(`${input.fechaEntrega}T00:00:00`)
+        : undefined;
+    const fechaCierre = estadoPedido === ESTADO_PEDIDO_FINALIZADO ? new Date() : undefined;
+    const fechaAgendado = estadoPedido === ESTADO_PEDIDO_AGENDADO ? new Date() : undefined;
+
+    const pedido = new Pedido({
+      cliente,
+      items: [item],
+      estadoPedido,
+      estadoPago,
+      fechaEntrega,
+      fechaAgendado,
+      fechaCierre,
+      motivoCancelacion: undefined
+    });
+
+    const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
+    const observationParts = [input.descripcion?.trim(), input.costoEstimadoTotal !== undefined
+      ? `Costo estimado total: ${input.costoEstimadoTotal}`
+      : undefined].filter(Boolean);
+    const { id: pedidoId } = await this.pedidoRepository.insertarPedido({
+      pedido,
+      clienteId,
+      origenPedido: ORIGEN_PEDIDO_PERSONALIZADO,
+      observacion: observationParts.join(" | ") || undefined
+    });
+
+    await this.pedidoRepository.insertarPedidoItem({
+      pedidoId,
+      item,
+      productoId: undefined,
+      productoNombre: producto.nombre,
+      productoDescripcion: producto.descripcion,
+      productoImageUrl: producto.imageUrl,
+      productoTipo: producto.tipoProducto
+    });
+
+    if (estadoPago === ESTADO_PAGO_PAGADO) {
+      await this.pedidoRepository.insertarPago({
+        pedidoId,
+        monto: pedido.total,
+        metodoPago: "EFECTIVO",
+        estadoPago: ESTADO_PAGO_PAGADO,
+        fechaPago: fechaCierre?.toISOString()
+      });
+    }
+
+    if (estadoPago === ESTADO_PAGO_FIADO) {
+      await this.pedidoRepository.upsertFiado({
+        pedidoId,
+        clienteId,
+        montoPendiente: pedido.total,
+        estado: "PENDIENTE",
+        fechaFiado: fechaCierre?.toISOString()
+      });
+    }
+
+    return {
+      pedidoId,
+      clienteId,
+      total: pedido.total,
+      estadoPedido: pedido.estadoPedido,
+      estadoPago: pedido.estadoPago,
+      origenPedido: ORIGEN_PEDIDO_PERSONALIZADO,
+      items: [
+        {
+          productoId: producto.id,
+          nombre: producto.nombre,
+          cantidad: item.cantidad,
+          precioUnitario: item.precioUnitario,
+          subtotal: item.subtotal
+        }
+      ]
     };
   }
 
@@ -430,7 +671,9 @@ export class PedidoService {
         fechaUltimoPago,
         fiadoEstado: currentFiado?.estado,
         fechaFiado: currentFiado?.fechaFiado,
-        fechaPagoFiado: currentFiado?.fechaPagoFiado
+        fechaPagoFiado: currentFiado?.fechaPagoFiado,
+        origenPedido: order.origenPedido as CustomerOrderResponse["origenPedido"],
+        observacion: order.observacion
       };
     });
   }

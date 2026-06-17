@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -27,6 +28,7 @@ import {
   ReceiptText,
   RefreshCcw,
   Search,
+  ShoppingBag,
   Sparkles,
   Store,
   Trash2,
@@ -779,6 +781,13 @@ export function AdminDashboard({
               <RefreshCcw className="h-4 w-4" />
               Actualizar
             </button>
+            <Link
+              href="/admin/venta-directa"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              Venta directa
+            </Link>
             <button
               type="button"
               onClick={logout}
@@ -834,6 +843,16 @@ export function AdminDashboard({
             badge={formatCurrency(reportSummary.totalVentas)}
             onClick={() => navigateToView("reportes")}
           />
+          <Link
+            href="/admin/venta-directa"
+            className="inline-flex min-w-[160px] items-center gap-3 rounded-2xl border border-rose-200 bg-amber-50 px-4 py-3 text-left shadow-soft transition hover:border-amber-300"
+          >
+            <ShoppingBag className="h-4 w-4 text-amber-700" />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-rose-950">Venta directa</div>
+              <div className="text-xs text-rose-900/70">In situ y personalizado</div>
+            </div>
+          </Link>
         </div>
       </section>
 
@@ -3094,6 +3113,13 @@ function MobileAdminNav({
           );
         })}
       </div>
+      <Link
+        href="/admin/venta-directa"
+        className="mx-auto mt-2 flex max-w-3xl items-center justify-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800"
+      >
+        <ShoppingBag className="h-4 w-4" />
+        Venta directa
+      </Link>
     </nav>
   );
 }

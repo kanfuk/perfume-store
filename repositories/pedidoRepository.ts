@@ -28,7 +28,9 @@ export type PedidoListItemRecord = {
   items: AdminOrderItemSummary[];
   estadoPedido: string;
   estadoPago: string;
+  origenPedido?: string;
   total: number;
+  observacion?: string;
   fechaPedido: string;
   fechaEntrega?: string;
   fechaAgendado?: string;
@@ -60,10 +62,17 @@ export interface PedidoRepository {
   insertarPedido(args: {
     pedido: Pedido;
     clienteId: string;
+    origenPedido?: string;
+    observacion?: string;
   }): Promise<{ id: string }>;
   insertarPedidoItem(args: {
     pedidoId: string;
     item: DetallePedido;
+    productoId?: string;
+    productoNombre?: string;
+    productoDescripcion?: string;
+    productoImageUrl?: string;
+    productoTipo?: string;
   }): Promise<{ id: string }>;
   buscarPedidosPorEstado(estadoPedido: string): Promise<PedidoListItemRecord[]>;
   actualizarEstadoPedido(args: {
@@ -96,14 +105,26 @@ export interface PedidoRepository {
 }
 
 class MemoryPedidoRepository implements PedidoRepository {
-  async insertarPedido({ pedido, clienteId }: { pedido: Pedido; clienteId: string }) {
+  async insertarPedido({
+    pedido,
+    clienteId,
+    origenPedido,
+    observacion
+  }: {
+    pedido: Pedido;
+    clienteId: string;
+    origenPedido?: string;
+    observacion?: string;
+  }) {
     const id = crypto.randomUUID();
     localStore.orders.push({
       id,
       clienteId,
       estadoPedido: pedido.estadoPedido,
       estadoPago: pedido.estadoPago,
+      origenPedido,
       total: pedido.total,
+      observacion,
       fechaPedido: pedido.fechaPedido.toISOString(),
       fechaEntrega: pedido.fechaEntrega?.toISOString().slice(0, 10)
     });
@@ -111,12 +132,24 @@ class MemoryPedidoRepository implements PedidoRepository {
     return { id };
   }
 
-  async insertarPedidoItem(args: { pedidoId: string; item: DetallePedido }) {
+  async insertarPedidoItem(args: {
+    pedidoId: string;
+    item: DetallePedido;
+    productoId?: string;
+    productoNombre?: string;
+    productoDescripcion?: string;
+    productoImageUrl?: string;
+    productoTipo?: string;
+  }) {
     const id = crypto.randomUUID();
     localStore.orderItems.push({
       id,
       pedidoId: args.pedidoId,
-      productoId: args.item.producto.id,
+      productoId: args.productoId,
+      productoNombre: args.productoNombre,
+      productoDescripcion: args.productoDescripcion,
+      productoImageUrl: args.productoImageUrl,
+      productoTipo: args.productoTipo,
       cantidad: args.item.cantidad,
       precioUnitario: args.item.precioUnitario,
       subtotal: args.item.subtotal
@@ -134,17 +167,13 @@ class MemoryPedidoRepository implements PedidoRepository {
         );
         const orderItems = localStore.orderItems.filter((item) => item.pedidoId === order.id);
         const normalizedItems = orderItems.map((orderItem) => {
-          const product = localStore.products.find(
-            (item) => item.id === orderItem.productoId
-          );
-
-          if (!product) {
-            throw new Error("El pedido local esta inconsistente.");
-          }
+          const product = orderItem.productoId
+            ? localStore.products.find((item) => item.id === orderItem.productoId)
+            : null;
 
           return {
-            productoId: product.id,
-            productoNombre: product.nombre,
+            productoId: orderItem.productoId ?? `custom-${orderItem.id}`,
+            productoNombre: orderItem.productoNombre ?? product?.nombre ?? "Producto",
             cantidad: orderItem.cantidad,
             precioUnitario: orderItem.precioUnitario,
             subtotal: orderItem.subtotal
@@ -173,7 +202,9 @@ class MemoryPedidoRepository implements PedidoRepository {
           items: normalizedItems,
           estadoPedido: order.estadoPedido,
           estadoPago: order.estadoPago,
+          origenPedido: order.origenPedido,
           total: order.total,
+          observacion: order.observacion,
           fechaPedido: order.fechaPedido,
           fechaEntrega: order.fechaEntrega,
           fechaAgendado: order.fechaAgendado,
@@ -298,34 +329,79 @@ class MemoryPedidoRepository implements PedidoRepository {
 }
 
 class SupabasePedidoRepository implements PedidoRepository {
-  async insertarPedido({ pedido, clienteId }: { pedido: Pedido; clienteId: string }) {
+  async insertarPedido({
+    pedido,
+    clienteId,
+    origenPedido,
+    observacion
+  }: {
+    pedido: Pedido;
+    clienteId: string;
+    origenPedido?: string;
+    observacion?: string;
+  }) {
     const supabase = createSupabaseServerClient();
-    const { data, error } = await supabase
+    let response = await supabase
       .from("pedidos")
       .insert({
         cliente_id: clienteId,
         estado_pedido: pedido.estadoPedido,
         estado_pago: pedido.estadoPago,
         total: pedido.total,
-        fecha_pedido: pedido.fechaPedido.toISOString()
+        observacion: observacion ?? null,
+        origen_pedido: origenPedido ?? null,
+        fecha_pedido: pedido.fechaPedido.toISOString(),
+        fecha_entrega: pedido.fechaEntrega?.toISOString().slice(0, 10) ?? null,
+        fecha_agendado: pedido.fechaAgendado?.toISOString() ?? null,
+        fecha_cierre: pedido.fechaCierre?.toISOString() ?? null
       })
       .select("id")
       .single();
 
-    if (error || !data) {
+    if (hasMissingOrdersColumnError(response.error)) {
+      response = await supabase
+        .from("pedidos")
+        .insert({
+          cliente_id: clienteId,
+          estado_pedido: pedido.estadoPedido,
+          estado_pago: pedido.estadoPago,
+          total: pedido.total,
+          observacion: observacion ?? null,
+          fecha_pedido: pedido.fechaPedido.toISOString(),
+          fecha_entrega: pedido.fechaEntrega?.toISOString().slice(0, 10) ?? null,
+          fecha_agendado: pedido.fechaAgendado?.toISOString() ?? null,
+          fecha_cierre: pedido.fechaCierre?.toISOString() ?? null
+        })
+        .select("id")
+        .single();
+    }
+
+    if (response.error || !response.data) {
       throw new Error("No fue posible registrar el pedido.");
     }
 
-    return { id: data.id };
+    return { id: response.data.id };
   }
 
-  async insertarPedidoItem(args: { pedidoId: string; item: DetallePedido }) {
+  async insertarPedidoItem(args: {
+    pedidoId: string;
+    item: DetallePedido;
+    productoId?: string;
+    productoNombre?: string;
+    productoDescripcion?: string;
+    productoImageUrl?: string;
+    productoTipo?: string;
+  }) {
     const supabase = createSupabaseServerClient();
-    const { data, error } = await supabase
+    let response = await supabase
       .from("pedido_items")
       .insert({
         pedido_id: args.pedidoId,
-        producto_id: args.item.producto.id,
+        producto_id: args.productoId ?? null,
+        producto_nombre: args.productoNombre ?? args.item.producto.nombre,
+        producto_descripcion: args.productoDescripcion ?? args.item.producto.descripcion,
+        producto_image_url: args.productoImageUrl ?? args.item.producto.imageUrl,
+        producto_tipo: args.productoTipo ?? args.item.producto.tipoProducto,
         cantidad: args.item.cantidad,
         precio_unitario: args.item.precioUnitario,
         subtotal: args.item.subtotal
@@ -333,16 +409,30 @@ class SupabasePedidoRepository implements PedidoRepository {
       .select("id")
       .single();
 
-    if (error || !data) {
+    if (hasMissingOrderItemsColumnError(response.error)) {
+      response = await supabase
+        .from("pedido_items")
+        .insert({
+          pedido_id: args.pedidoId,
+          producto_id: args.productoId ?? args.item.producto.id,
+          cantidad: args.item.cantidad,
+          precio_unitario: args.item.precioUnitario,
+          subtotal: args.item.subtotal
+        })
+        .select("id")
+        .single();
+    }
+
+    if (response.error || !response.data) {
       throw new Error("No fue posible registrar el item del pedido.");
     }
 
-    return { id: data.id };
+    return { id: response.data.id };
   }
 
   async buscarPedidosPorEstado(estadoPedido: string) {
     const supabase = createSupabaseServerClient();
-    const { data, error } = await supabase
+    const extendedResponse = await supabase
       .from("pedidos")
       .select(
         `
@@ -352,23 +442,59 @@ class SupabasePedidoRepository implements PedidoRepository {
         estado_pago,
         total,
         fecha_pedido,
+        origen_pedido,
+        observacion,
         fecha_entrega,
         fecha_agendado,
         fecha_cierre,
         fecha_cancelacion,
         motivo_cancelacion,
         clientes:cliente_id (nombre, telefono, lugar_trabajo),
-        pedido_items (cantidad, precio_unitario, subtotal, producto_id, productos:producto_id (nombre))
+        pedido_items (
+          cantidad,
+          precio_unitario,
+          subtotal,
+          producto_id,
+          producto_nombre,
+          productos:producto_id (nombre)
+        )
       `
       )
       .eq("estado_pedido", estadoPedido)
       .order("fecha_pedido", { ascending: true });
 
-    if (error) {
+    const response =
+      hasMissingOrdersColumnError(extendedResponse.error) ||
+      hasMissingOrderItemsColumnError(extendedResponse.error)
+        ? await supabase
+        .from("pedidos")
+        .select(
+          `
+          id,
+          cliente_id,
+          estado_pedido,
+          estado_pago,
+          total,
+          observacion,
+          fecha_pedido,
+          fecha_entrega,
+          fecha_agendado,
+          fecha_cierre,
+          fecha_cancelacion,
+          motivo_cancelacion,
+          clientes:cliente_id (nombre, telefono, lugar_trabajo),
+          pedido_items (cantidad, precio_unitario, subtotal, producto_id, productos:producto_id (nombre))
+        `
+        )
+        .eq("estado_pedido", estadoPedido)
+        .order("fecha_pedido", { ascending: true })
+        : extendedResponse;
+
+    if (response.error) {
       throw new Error("No fue posible obtener los pedidos.");
     }
 
-    return data.map((order) => {
+    return response.data.map((order) => {
       const customer = Array.isArray(order.clientes) ? order.clientes[0] : order.clientes;
       const items = Array.isArray(order.pedido_items)
         ? order.pedido_items
@@ -379,10 +505,14 @@ class SupabasePedidoRepository implements PedidoRepository {
         const product = Array.isArray(currentItem?.productos)
           ? currentItem.productos[0]
           : currentItem?.productos;
+        const currentItemWithOverrides = currentItem as {
+          producto_nombre?: string | null;
+        };
 
         return {
           productoId: currentItem?.producto_id ?? "",
-          productoNombre: product?.nombre ?? "Producto",
+          productoNombre:
+            currentItemWithOverrides.producto_nombre ?? product?.nombre ?? "Producto",
           cantidad: currentItem?.cantidad ?? 0,
           precioUnitario: currentItem?.precio_unitario ?? 0,
           subtotal: currentItem?.subtotal ?? 0
@@ -412,7 +542,9 @@ class SupabasePedidoRepository implements PedidoRepository {
         items: normalizedItems,
         estadoPedido: order.estado_pedido,
         estadoPago: order.estado_pago,
+        origenPedido: (order as { origen_pedido?: string | null }).origen_pedido ?? undefined,
         total: order.total,
+        observacion: order.observacion ?? undefined,
         fechaPedido: order.fecha_pedido,
         fechaEntrega: order.fecha_entrega ?? undefined,
         fechaAgendado: order.fecha_agendado ?? undefined,
@@ -572,6 +704,21 @@ class SupabasePedidoRepository implements PedidoRepository {
       throw new Error("No fue posible actualizar el fiado.");
     }
   }
+}
+
+function hasMissingOrdersColumnError(error: { message?: string; code?: string } | null) {
+  return (
+    error?.code === "PGRST204" ||
+    error?.message?.includes("origen_pedido") === true
+  );
+}
+
+function hasMissingOrderItemsColumnError(error: { message?: string; code?: string } | null) {
+  return (
+    error?.code === "PGRST204" ||
+    error?.message?.includes("producto_nombre") === true ||
+    error?.message?.includes("producto_id") === true
+  );
 }
 
 export function getPedidoRepository(): PedidoRepository {

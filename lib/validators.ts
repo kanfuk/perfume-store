@@ -9,7 +9,11 @@
 
 import type { ProductoProps } from "@/domain/Producto";
 import { isValidChileanMobilePhone } from "@/lib/chile-phone";
-import type { CustomerOrderLineInput } from "@/lib/types";
+import type {
+  AdminDirectSaleRequest,
+  CustomOrderRequest,
+  CustomerOrderLineInput
+} from "@/lib/types";
 
 export type CustomerFormData = {
   nombre: string;
@@ -71,6 +75,92 @@ export function validateCustomerOrderForm(
         break;
       }
     }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+}
+
+export function validateAdminDirectSaleForm(
+  data: AdminDirectSaleRequest,
+  products: ProductoProps[]
+) {
+  const errors: Record<string, string> = {};
+
+  if (!Array.isArray(data.items) || data.items.length === 0) {
+    errors.items = "Agrega al menos un producto para registrar la venta.";
+  } else {
+    for (const item of data.items) {
+      const producto = products.find((product) => product.id === item.productoId);
+
+      if (!producto || producto.activo === false) {
+        errors.items = "Todos los items deben usar productos activos.";
+        break;
+      }
+
+      if (!Number.isInteger(item.cantidad) || item.cantidad < 1) {
+        errors.items = "Cada item debe tener cantidad minima de 1.";
+        break;
+      }
+
+      if (
+        typeof producto.stockActual === "number" &&
+        item.cantidad > producto.stockActual
+      ) {
+        errors.items = `El producto ${producto.nombre} solo tiene ${producto.stockActual} disponible(s).`;
+        break;
+      }
+    }
+  }
+
+  if (data.estadoPago !== "PAGADO" && data.estadoPago !== "FIADO") {
+    errors.estadoPago = "Selecciona si la venta quedo pagada o fiada.";
+  }
+
+  if (data.estadoPago === "FIADO" && !data.nombre?.trim()) {
+    errors.nombre = "Para dejar fiado, registra al menos el nombre del cliente.";
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+}
+
+export function validateCustomOrderForm(data: CustomOrderRequest) {
+  const errors: Record<string, string> = {};
+
+  if (!data.nombre.trim()) {
+    errors.nombre = "Ingresa el nombre del cliente.";
+  }
+
+  if (!data.nombreProducto.trim()) {
+    errors.nombreProducto = "El nombre del producto personalizado es obligatorio.";
+  }
+
+  if (!Number.isInteger(data.cantidad) || data.cantidad < 1) {
+    errors.cantidad = "La cantidad debe ser al menos 1.";
+  }
+
+  if (!Number.isFinite(data.precioAcordado) || data.precioAcordado <= 0) {
+    errors.precioAcordado = "Ingresa un precio acordado mayor a 0.";
+  }
+
+  if (
+    data.costoEstimadoTotal !== undefined &&
+    (!Number.isFinite(data.costoEstimadoTotal) || data.costoEstimadoTotal < 0)
+  ) {
+    errors.costoEstimadoTotal = "El costo estimado no puede ser negativo.";
+  }
+
+  if (!["AGENDADO", "PAGADO", "FIADO"].includes(data.estadoInicial)) {
+    errors.estadoInicial = "Selecciona el estado inicial del pedido.";
+  }
+
+  if (data.estadoInicial === "FIADO" && !data.nombre.trim()) {
+    errors.nombre = "Para registrar fiado, indica al menos el nombre del cliente.";
   }
 
   return {

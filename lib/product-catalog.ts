@@ -20,6 +20,38 @@ const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {
     imageUrl: "/images/products/dobladita-huevo.jpeg",
     badgeLabel: "DOBLADITA HUEVO"
   },
+  "dobladita-ave-mayo": {
+    imageUrl: "/images/products/dobladita-reserva-ave-mayo.png",
+    badgeLabel: "AVE MAYO"
+  },
+  "queque-casero-marmoleado": {
+    imageUrl: "/images/products/queque-casero-marmoleado.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "quequito-marmoleado": {
+    imageUrl: "/images/products/queque-casero-marmoleado.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "queque-casero-banana": {
+    imageUrl: "/images/products/queque-casero-banana.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "quequito-banana-bread": {
+    imageUrl: "/images/products/queque-casero-banana.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "queque-casero-chocochips-sf": {
+    imageUrl: "/images/products/queque-casero-chocochips-sf.png",
+    badgeLabel: "SUGAR FREE"
+  },
+  "quequito-choco-chip-sugar-free": {
+    imageUrl: "/images/products/queque-casero-chocochips-sf.png",
+    badgeLabel: "SUGAR FREE"
+  },
+  "carrot-cake-nueces": {
+    imageUrl: "/images/products/carrot-cake-nueces.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
   "dobladita-reserva-ave-pimenton": {
     imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
     badgeLabel: "PRODUCTO CASERO"
@@ -50,7 +82,7 @@ export function getProductVisualMeta(product: { id?: string; nombre?: string }) 
   }
 
   return {
-    imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
+    imageUrl: "/images/products/pedido-personalizado.png",
     badgeLabel: "PRODUCTO CASERO"
   };
 }

@@ -2,109 +2,66 @@
 
 ## RF-01 - Registro de pedido cliente
 
-El sistema debe permitir que un cliente registre un pedido desde un formulario público.
+El sistema permite registrar pedidos desde el formulario publico.
 
-### Campos
+Reglas:
 
-```text
-nombre_cliente
-telefono_cliente
-lugar_trabajo
-producto
-cantidad
-precio_unitario
-total
-```
-
-### Reglas
-
-- Nombre obligatorio.
-- Teléfono obligatorio recomendado.
-- Lugar de trabajo obligatorio.
-- Producto obligatorio.
-- Cantidad mínima: 1.
-- Precio unitario obtenido desde producto activo.
-- Total calculado automáticamente.
-- Pedido nuevo nace como `PENDIENTE`.
-- Pago nuevo nace como `SIN_PAGO`.
-
----
+- nombre obligatorio
+- telefono obligatorio en flujo publico
+- lugar de trabajo obligatorio
+- al menos un producto
+- cantidad minima 1
+- precio tomado desde producto activo
+- total calculado automaticamente
+- pedido nuevo nace `PENDIENTE`
+- pago nuevo nace `SIN_PAGO`
 
 ## RF-02 - Visualizar productos activos
 
-El formulario debe mostrar solo productos activos.
+El cliente solo ve productos activos con:
 
-Cada producto debe mostrar:
+- nombre
+- descripcion
+- precio
+- imagen
+- badge
+- stock visible
 
-```text
-nombre
-descripcion
-precio_venta
-imagen_opcional
-```
-
----
-
-## RF-03 - Cálculo automático del total
-
-El sistema debe calcular:
+## RF-03 - Calculo automatico del total
 
 ```text
-total = precio_unitario * cantidad
+total = sum(precio_unitario * cantidad)
 ```
 
-El total debe mostrarse antes de enviar el pedido.
+## RF-04 - Confirmacion de pedido cliente
 
----
-
-## RF-04 - Confirmación de pedido registrado
-
-Después de enviar el formulario, mostrar:
-
-```text
-Pedido registrado correctamente.
-Tu pedido quedó pendiente de confirmación.
-Pauli revisará disponibilidad y, si corresponde, lo dejará agendado.
-```
-
----
+Despues de enviar el formulario, el sistema muestra confirmacion y codigo interno.
 
 ## RF-05 - Panel administrador
 
-El administrador debe poder:
+El admin puede:
 
-- Ver pedidos pendientes.
-- Ver pedidos agendados.
-- Agendar pedidos.
-- Cancelar pedidos.
-- Marcar pedidos como pagados.
-- Marcar pedidos como fiados.
-- Ver pedidos finalizados.
-- Ver pedidos cancelados.
-- Ver fiados pendientes.
-- Marcar fiado como pagado.
-- Ver resumen de ventas.
-- Gestionar productos.
+- ver pedidos pendientes
+- ver pedidos agendados
+- ver ventas finalizadas
+- ver fiados pendientes
+- gestionar productos
+- revisar clientes
+- revisar reportes
 
----
+## RF-06 - Gestion de productos
 
-## RF-06 - Gestión de productos
+El admin puede:
 
-El administrador debe poder:
+- crear producto
+- editar producto
+- activar o desactivar producto
+- definir precio
+- definir costo
+- ajustar stock actual
+- ajustar stock agenda
 
-- Crear producto.
-- Editar producto.
-- Activar producto.
-- Desactivar producto.
-- Definir precio de venta.
-- Definir costo unitario.
-- Definir stock referencial.
-
----
-
-## RF-07 - Gestión de estados de pedido
-
-Estados oficiales:
+## RF-07 - Estados oficiales de pedido
 
 ```text
 PENDIENTE
@@ -113,13 +70,7 @@ FINALIZADO
 CANCELADO
 ```
 
-El sistema no debe crear otros estados sin autorización.
-
----
-
-## RF-08 - Gestión de estados de pago
-
-Estados oficiales:
+## RF-08 - Estados oficiales de pago
 
 ```text
 SIN_PAGO
@@ -127,30 +78,58 @@ PAGADO
 FIADO
 ```
 
-El sistema no debe crear otros estados sin autorización.
+## RF-09 - Cancelacion automatica de pendientes
 
----
+Los pedidos pendientes mayores a 72 horas pueden cancelarse automaticamente.
 
-## RF-09 - Cancelación automática de pendientes
+## RF-10 - Reportes basicos
 
-El sistema debe cancelar pedidos pendientes con más de 72 horas sin agendar.
+El panel muestra:
 
-Nombre sugerido de función:
+- ventas pagadas
+- total fiado pendiente
+- pedidos pendientes
+- pedidos agendados
+- productos mas vendidos
 
-```text
-cancelarPedidosPendientesExpirados()
-```
+## RF-11 - Venta directa desde admin
 
----
+La ruta `/admin/venta-directa` debe permitir ventas in situ con UX similar al cliente.
 
-## RF-10 - Reportes básicos
+Debe incluir:
 
-El panel debe mostrar:
+- catalogo activo con fotos, badges y precio
+- carrito con cantidades
+- total automatico
+- cliente ocasional, existente o nuevo
+- cierre como `FINALIZADO / PAGADO`
+- cierre como `FINALIZADO / FIADO`
 
-- Ventas pagadas del día.
-- Ventas pagadas de la semana.
-- Total fiado pendiente.
-- Pedidos pendientes.
-- Pedidos agendados.
-- Productos más vendidos.
-- Producción sugerida basada en pedidos agendados.
+## RF-12 - Pedido personalizado desde admin
+
+Dentro de `/admin/venta-directa` debe existir un modo de pedido personalizado.
+
+Debe permitir:
+
+- cliente
+- telefono opcional
+- lugar de trabajo opcional
+- nombre del producto personalizado
+- descripcion
+- cantidad
+- precio acordado
+- costo estimado total opcional
+- fecha de entrega opcional
+- estado inicial `AGENDADO`, `PAGADO` o `FIADO`
+
+## RF-13 - Catalogo ampliado
+
+El catalogo operativo contempla:
+
+- Dobladita ave mayo
+- Quequito marmoleado
+- Quequito banana bread
+- Quequito choco chip sugar free
+- Quequito carrot cake nueces
+
+Todos los quequitos activos tienen precio base `1000 CLP`.

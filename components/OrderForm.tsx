@@ -1,22 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  BadgeCheck,
-  Building2,
-  Clock3,
-  Minus,
-  Phone,
-  Plus,
-  ShieldCheck,
-  ShoppingBag,
-  Trash2,
-  UserRound
-} from "lucide-react";
+import { BadgeCheck, Building2, Clock3, Phone, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
 import { AppFooter } from "@/components/AppFooter";
-import { ProductImage } from "@/components/ProductImage";
+import { CartSummary } from "@/components/shared/CartSummary";
+import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
+import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
 import type { CustomerOrderResponse, ProductRecord } from "@/lib/types";
 import {
   type CustomerFormData,
@@ -174,19 +165,16 @@ export function OrderForm() {
   const validation = validateCustomerOrderForm(form, products);
 
   const cartLines = useMemo(
-    () =>
-      form.items.map((item) => {
-        const product = products.find((current) => current.id === item.productoId);
-        return {
-          ...item,
-          product,
-          subtotal: product ? product.precioVenta * item.cantidad : 0
-        };
-      }),
+    () => normalizarProductoParaCarrito(form.items, products),
     [form.items, products]
   );
 
-  const total = cartLines.reduce((sum, item) => sum + item.subtotal, 0);
+  const total = calcularTotalPedido(cartLines);
+  const quantitiesByProduct = useMemo(
+    () =>
+      Object.fromEntries(form.items.map((item) => [item.productoId, item.cantidad])),
+    [form.items]
+  );
 
   function requestStockAdjustment(
     product: ProductRecord,
@@ -478,78 +466,11 @@ export function OrderForm() {
               <span className="text-sm text-[#8f6070]">Cargando...</span>
             ) : null}
           </div>
-          <div className="grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
-            {products.map((product) => {
-              const currentItem = form.items.find(
-                (item) => item.productoId === product.id
-              );
-
-              return (
-                <article
-                  key={product.id}
-                  className="max-w-full overflow-hidden rounded-[28px] border border-[#eedcc3] bg-white shadow-sm transition-[border-color,box-shadow,background-color] duration-200 touch-manipulation hover:shadow-soft"
-                >
-                  <div className="relative aspect-[4/3] min-w-0 bg-[#fff5e8]">
-                    <ProductImage
-                      src={product.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
-                      alt={product.nombre}
-                      sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
-                      <span className="rounded-full bg-white/88 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#8f5728] shadow-sm">
-                        {product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
-                      </span>
-                      {currentItem ? (
-                        <span className="rounded-full bg-[#fff2d8] px-3 py-1 text-xs font-semibold text-[#8f5728] shadow-sm">
-                          En carrito x{currentItem.cantidad}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="space-y-4 p-4">
-                    <div className="space-y-2">
-                      <h4 className="text-lg font-semibold text-[#5f3041]">
-                        {product.nombre}
-                      </h4>
-                      <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
-                        {product.descripcion}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-[#a86b32]">
-                          Valor unitario
-                        </div>
-                        <div className="mt-1 text-2xl font-bold text-[#5f3041]">
-                          {formatCurrency(product.precioVenta)}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => addProduct(product.id)}
-                        disabled={(product.stockActual ?? 0) <= 0}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
-                      >
-                        <Plus className="h-4 w-4" />
-                        {(product.stockActual ?? 0) <= 0
-                          ? "Sin stock"
-                          : currentItem
-                            ? "Agregar otra"
-                            : "Elegir"}
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between rounded-[18px] bg-[#fff6e7] px-4 py-3 text-sm">
-                      <span className="font-medium text-[#7f5b67]">Disponibles hoy</span>
-                      <span className="font-semibold text-[#8f5728]">
-                        {Math.max(product.stockActual ?? 0, 0)}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          <ProductCatalog
+            products={products}
+            quantities={quantitiesByProduct}
+            onAdd={addProduct}
+          />
           {validation.errors.items ? (
             <p className="text-sm text-danger">{validation.errors.items}</p>
           ) : null}
@@ -635,94 +556,14 @@ export function OrderForm() {
         </form>
 
         <aside className="max-w-full space-y-4 xl:sticky xl:top-6 xl:h-fit">
-          <div className="overflow-hidden rounded-[30px] border border-[#ecd7b3] bg-white/95 shadow-soft">
-            <div className="bg-[linear-gradient(180deg,#fff3df_0%,#fffaf2_100%)] p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#5f3041]">Tu pedido</h3>
-                  <p className="copy-justified mt-1 text-sm text-[#7f5b67]">
-                    Revisa cantidad, valor unitario y total antes de enviarlo.
-                  </p>
-                </div>
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#a86b32]">
-                  {cartLines.length} producto{cartLines.length === 1 ? "" : "s"}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-3 p-5">
-              <div className="mt-4 space-y-3">
-                {cartLines.length === 0 ? (
-                  <div className="rounded-[22px] border border-dashed border-[#ecd7b3] bg-[#fff9ef] px-4 py-5 text-sm text-[#7f5b67]">
-                    Tu resumen aparecera apenas elijas una dobladita.
-                  </div>
-                ) : (
-                  cartLines.map((item) => (
-                    <div
-                      key={item.productoId}
-                      className="flex items-start justify-between gap-4 rounded-[22px] border border-[#eedcc3] bg-[#fff9ef] px-4 py-3"
-                    >
-                      <div className="flex min-w-0 gap-3">
-                        <div className="relative hidden h-16 w-16 shrink-0 overflow-hidden rounded-[16px] border border-[#ecd7b3] bg-white sm:block">
-                          <ProductImage
-                            src={item.product?.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
-                            alt={item.product?.nombre ?? "Producto"}
-                            sizes="64px"
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                        <div className="break-words font-medium text-[#5f3041]">
-                          {item.product?.nombre}
-                        </div>
-                        <div className="mt-1 text-sm text-[#7f5b67]">
-                          Valor unitario: {formatCurrency(item.product?.precioVenta ?? 0)}
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <QuantityButton
-                            label="Reducir cantidad"
-                            onClick={() =>
-                              updateQuantity(item.productoId, item.cantidad - 1)
-                            }
-                          >
-                            <Minus className="h-4 w-4" />
-                          </QuantityButton>
-                          <div className="min-w-10 text-center text-sm font-semibold text-[#5f3041]">
-                            {item.cantidad}
-                          </div>
-                          <QuantityButton
-                            label="Aumentar cantidad"
-                            onClick={() =>
-                              updateQuantity(item.productoId, item.cantidad + 1)
-                            }
-                          >
-                            <Plus className="h-4 w-4" />
-                          </QuantityButton>
-                        </div>
-                      </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-3">
-                        <div className="text-sm font-semibold text-[#a86b32]">
-                          {formatCurrency(item.subtotal)}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.productoId)}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-danger"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Quitar
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            <div className="mt-4 flex items-center justify-between border-t border-[#ecd7b3] pt-4 text-base">
-              <span className="font-semibold text-[#5f3041]">Total</span>
-              <span className="font-semibold text-[#a86b32]">{formatCurrency(total)}</span>
-            </div>
-          </div>
-        </div>
+          <CartSummary
+            lines={cartLines}
+            total={total}
+            onDecrease={updateQuantity}
+            onIncrease={updateQuantity}
+            onRemove={removeItem}
+            emptyText="Tu resumen aparecera apenas elijas una dobladita."
+          />
 
           <div className="rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft">
             <div className="flex items-center gap-3">
@@ -913,24 +754,5 @@ function PhoneField({ label, value, error, onChange }: PhoneFieldProps) {
       </div>
       {error ? <span className="text-sm text-danger">{error}</span> : null}
     </label>
-  );
-}
-
-type QuantityButtonProps = {
-  children: React.ReactNode;
-  label: string;
-  onClick: () => void;
-};
-
-function QuantityButton({ children, label, onClick }: QuantityButtonProps) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-2xl border border-[#f0d6da] bg-white text-[#5f3041] transition-colors hover:border-[#d37b94] hover:text-[#b85f79]"
-      onClick={onClick}
-    >
-      {children}
-    </button>
   );
 }

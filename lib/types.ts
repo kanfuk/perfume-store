@@ -1,3 +1,5 @@
+export type OrderOrigin = "PUBLICO" | "ADMIN_DIRECTO" | "PERSONALIZADO";
+
 export type ProductRecord = {
   id: string;
   nombre: string;
@@ -7,6 +9,7 @@ export type ProductRecord = {
   badgeLabel?: string;
   costoUnitario?: number;
   stockActual?: number;
+  stockAgenda?: number;
   activo?: boolean;
   tipoProducto?: string;
 };
@@ -39,12 +42,36 @@ export type CustomerOrderRequest = {
   contactoOculto?: string;
 };
 
+export type AdminDirectSaleRequest = {
+  nombre?: string;
+  telefono?: string;
+  lugarTrabajo?: string;
+  items: CustomerOrderLineInput[];
+  estadoPago: "PAGADO" | "FIADO";
+  clienteModo: "ocasional" | "existente" | "nuevo";
+  observacion?: string;
+};
+
+export type CustomOrderRequest = {
+  nombre: string;
+  telefono?: string;
+  lugarTrabajo?: string;
+  nombreProducto: string;
+  descripcion?: string;
+  cantidad: number;
+  precioAcordado: number;
+  costoEstimadoTotal?: number;
+  fechaEntrega?: string;
+  estadoInicial: "AGENDADO" | "PAGADO" | "FIADO";
+};
+
 export type CustomerOrderResponse = {
   pedidoId: string;
   clienteId: string;
   total: number;
   estadoPedido: string;
   estadoPago: string;
+  origenPedido?: OrderOrigin;
   items: Array<{
     productoId: string;
     nombre: string;
@@ -90,6 +117,8 @@ export type AdminOrderSummary = {
   fiadoEstado?: string;
   fechaFiado?: string;
   fechaPagoFiado?: string;
+  origenPedido?: OrderOrigin;
+  observacion?: string;
 };
 
 export type AdminDashboardData = {
