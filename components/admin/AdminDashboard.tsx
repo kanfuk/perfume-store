@@ -1433,24 +1433,24 @@ export function AdminDashboard({
             helper="Ideal para mirar cómo cerró la semana y que producto conviene reponer."
           />
 
-          <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="min-w-0 space-y-2">
+          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-rose-200 bg-white/90 p-4 shadow-soft sm:p-5">
+            <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
                 <span className="text-sm font-semibold text-rose-900">Desde</span>
                 <input
                   type="date"
                   value={reportFrom}
                   onChange={(event) => setReportFrom(event.target.value)}
-                  className="min-h-11 w-full min-w-0 max-w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
                 />
               </label>
-              <label className="min-w-0 space-y-2">
+              <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
                 <span className="text-sm font-semibold text-rose-900">Hasta</span>
                 <input
                   type="date"
                   value={reportTo}
                   onChange={(event) => setReportTo(event.target.value)}
-                  className="min-h-11 w-full min-w-0 max-w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
                 />
               </label>
             </div>

@@ -20,7 +20,7 @@ Evitar fallos de logica, estados invalidos, errores visuales, scrolles inesperad
 | Scroll horizontal cliente | OK | overflow-x controlado |
 | Scroll horizontal admin | OK | wrappers y `min-w-0` aplicados |
 | Riesgo de hidratacion por fecha | OK | fecha dinamica diferida al cliente en modal admin |
-| Iconografia final | OK | favicon SVG y `app/icon.svg` alineados |
+| Iconografia final | OK | `app/favicon.ico`, `app/icon.png` y `app/apple-icon.png` activos |
 
 ## QA formulario cliente
 
@@ -76,6 +76,7 @@ Entrar al admin y revisar /admin/pedidos, /admin/stock, /admin/ventas, /admin/re
 Probar filtros de fecha en admin/reportes
 Confirmar que navbar inferior admin no tapa botones ni tablas
 Revisar favicon actualizado al abrir la app en el navegador movil
+Probar `/favicon.ico?v=99` para descartar cache
 Probar en ancho aproximado 360px, 390px y 430px
 ```
 

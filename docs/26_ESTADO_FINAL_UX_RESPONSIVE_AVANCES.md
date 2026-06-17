@@ -13,6 +13,7 @@ El trabajo acumulado dejo cliente y admin mas estables para uso real desde celul
 - badges visibles en cliente
 - footer compartido en cliente y admin
 - iconografia lista para produccion
+- favicon migrado a archivos nativos de App Router
 - panel admin separado por rutas reales
 - scroll movil cliente estabilizado
 - selector de fechas admin corregido para movil
@@ -27,6 +28,7 @@ El trabajo acumulado dejo cliente y admin mas estables para uso real desde celul
 - sin scroll horizontal general
 - footer visible sin quedar tapado
 - fallback visual si falta una imagen o falla su carga
+- wrappers mas firmes contra overflow en movil
 
 ## Mejoras UX admin
 
@@ -37,6 +39,7 @@ El trabajo acumulado dejo cliente y admin mas estables para uso real desde celul
 - botones y badges unificados
 - cards con mejor manejo de textos largos
 - fecha inicial del modal ajustada sin depender del SSR
+- bloque de fechas de reportes endurecido para 360px
 
 ## Correcciones responsive
 
@@ -44,6 +47,7 @@ El trabajo acumulado dejo cliente y admin mas estables para uso real desde celul
 - contenedores principales con `max-width: 100%`
 - `min-w-0` aplicado en zonas criticas del admin
 - filtros de fecha con `w-full`, `max-width: 100%` y alto tactil
+- filtros de fecha con `grid-cols-1` en movil y `overflow-hidden`
 - wrappers y grids ajustados para no romper ancho en movil
 
 ## Correccion selector de fechas movil
@@ -115,6 +119,7 @@ Cliente y admin ya se perciben como parte de una misma app.
 - filtros de fecha usables en movil
 - botones con alto tactil consistente
 - icono nuevo cargando desde metadata
+- prueba recomendada con `/favicon.ico?v=99`
 - build, lint y typecheck pasando
 
 ## Pendientes futuros

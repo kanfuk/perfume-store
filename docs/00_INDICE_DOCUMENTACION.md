@@ -26,7 +26,7 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 | `14_PROMPTS_CODEX.md` | Prompts listos para usar en Codex. |
 | `15_CRITERIOS_ACEPTACION.md` | Condiciones para considerar terminado el MVP. |
 | `26_ESTADO_FINAL_UX_RESPONSIVE_AVANCES.md` | Estado del pulido UX responsive en cliente y admin. |
-| `27_PULIDO_FINAL_RENDER_SCROLL_ICONO.md` | Diagnostico final y ajustes de render, scroll e iconografia. |
+| `27_PULIDO_FINAL_RENDER_SCROLL_ICONO.md` | Diagnostico final y correcciones de favicon, scroll movil y fechas admin. |
 
 ## Instruccion general para Codex
 

@@ -16,11 +16,13 @@ html {
   overflow-x: hidden;
   max-width: 100%;
   overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
+  width: 100%;
   max-width: 100%;
   overflow-x: hidden;
   background:
@@ -32,6 +34,7 @@ body {
 }
 
 main {
+  width: 100%;
   max-width: 100%;
   overflow-x: hidden;
 }
@@ -53,8 +56,15 @@ button {
 }
 
 img {
+  display: block;
   max-width: 100%;
   height: auto;
+}
+
+input[type="date"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 ::selection {

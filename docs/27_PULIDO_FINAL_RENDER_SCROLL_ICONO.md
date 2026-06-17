@@ -1,77 +1,158 @@
 # 27 - Pulido final render, scroll e icono
 
-## Diagnostico previo
+## Estado del problema
 
-Antes de editar se revisaron cliente, admin e iconografia.
+La app estaba operativa en Vercel, pero quedaban tres detalles visibles:
 
-Hallazgos principales:
+- el favicon no se reflejaba de forma confiable en navegador
+- la pagina cliente seguia mostrando pequenos saltos o sensacion de scroll raro en movil
+- el bloque de fechas de reportes en admin todavia podia tensar el ancho en pantallas angostas
 
-- no aparecieron usos de `100vw`, `100vh`, `scrollIntoView` ni `window.scrollTo` en la pagina cliente
-- el formulario publico ya reservaba altura para imagenes y el carrito inferior ya contemplaba `safe-area`
-- el riesgo real estaba en admin: `todayDateValue()` se usaba como valor inicial de estado en un modal, lo que podia generar diferencias entre SSR y cliente por fecha o zona horaria
-- el footer tenia texto con codificacion dañada
-- la app tenia iconos, pero el set final no estaba alineado ni suficientemente cuidado para la identidad visual deseada
+## Diagnostico real previo
 
-## Causas del problema
+### Favicon
 
-### Render e hidratacion
+Se encontro esto:
 
-La principal causa potencial de render inconsistente era inicializar estado con una fecha dinamica:
+- no existia `app/favicon.ico`
+- no existia `app/icon.png`
+- no existia `app/apple-icon.png`
+- si existian `public/favicon.ico` y `public/favicon.svg`
+- `app/layout.tsx` referenciaba iconos desde `public/`, lo que funcionaba parcialmente pero no usaba el esquema mas robusto del App Router
 
-- `useState(todayDateValue())`
+### Scroll movil cliente
 
-Eso puede renderizar una fecha distinta entre servidor y navegador si cambia el dia, la zona horaria o el momento exacto del render.
+Se revisaron:
 
-### Scroll y estabilidad movil
+- `app/page.tsx`
+- `components/OrderForm.tsx`
+- `app/globals.css`
 
-No se detecto una nueva causa estructural grave. El trabajo previo ya habia resuelto lo mas importante:
+Hallazgos:
 
-- control de `overflow-x`
-- contenedores con `max-width: 100%`
-- grids y cards sin anchos fijos
-- carrito inferior con padding suficiente para no tapar contenido
+- no habia `100vw`
+- no habia `w-screen`
+- no habia `scrollIntoView`
+- no habia `window.scrollTo`
+- no habia `active:scale`
+- el carrito inferior ya contemplaba `safe-area`
 
-### Iconografia
+El riesgo real estaba en pequenos detalles de composicion:
 
-El proyecto tenia favicon, pero faltaba un set visual mas coherente con la marca: calido, artesanal y consistente entre `app/icon.svg` y metadata.
+- algunos wrappers aun podian beneficiarse de `w-full`, `min-w-0` y `max-w-full`
+- las imagenes de producto usaban altura fija, pero quedaban mejor estabilizadas con `aspect-ratio`
+- en resumen de carrito habia nodos flex sin `min-w-0`, lo que podia empujar contenido
 
-## Cambios aplicados
+### Selector de fechas admin
 
-### Admin
+El bloque esta en `components/admin/AdminDashboard.tsx`, vista `reportes`, visible en:
 
-- se evito inicializar la fecha del modal con una funcion dinamica durante el primer render
-- la fecha ahora se hidrata desde `useEffect` cuando el modal se abre en modo agenda
-- tambien se reinician razon, monto y metodo cuando cambia el estado del modal para evitar arrastre visual
+- `/admin`
+- `/admin/reportes`
 
-### Cliente
+Las rutas `/admin/pedidos` y `/admin/ventas` no usan ese selector concreto, pero comparten el mismo contenedor general del dashboard.
 
-- se mantuvo la logica de negocio intacta
-- se mejoro solo el fallback visual de `ProductImage` para cuando no existe imagen o falla la carga
+El problema no era una sola propiedad dura, sino el conjunto:
 
-### UI general
+- card de filtros sin `overflow-hidden`
+- necesidad de reforzar `grid-cols-1` en movil
+- necesidad de endurecer `min-w-0`, `max-w-full` y `appearance-none` en inputs `date`
 
-- se corrigio el texto del footer
-- se reemplazo el icono por una version mas alineada a Pauli Store
-- se agrego `public/favicon.svg`
-- `app/layout.tsx` ahora prioriza el favicon SVG en metadata
+## Favicon corregido
 
-## Archivos tocados
+Se adopto una estrategia nativa de Next.js App Router:
 
-- `app/layout.tsx`
-- `app/icon.svg`
-- `components/AppFooter.tsx`
-- `components/ProductImage.tsx`
-- `components/admin/AdminDashboard.tsx`
-- `public/favicon.svg`
-- `docs/00_INDICE_DOCUMENTACION.md`
-- `docs/11_QA_PLAN_PRUEBAS.md`
-- `docs/13_ROADMAP_IMPLEMENTACION.md`
-- `docs/26_ESTADO_FINAL_UX_RESPONSIVE_AVANCES.md`
-- `docs/27_PULIDO_FINAL_RENDER_SCROLL_ICONO.md`
+- `app/favicon.ico`
+- `app/icon.png`
+- `app/apple-icon.png`
 
-## Validacion requerida
+Tambien se limpiaron duplicados viejos para evitar conflicto:
 
-Ejecutar:
+- se elimino `public/favicon.ico`
+- se elimino `public/favicon.svg`
+- se elimino `app/icon.svg`
+
+## Archivo final del favicon
+
+Archivo principal:
+
+- `app/favicon.ico`
+
+Archivos complementarios:
+
+- `app/icon.png`
+- `app/apple-icon.png`
+
+Metadata final en `app/layout.tsx`:
+
+- `title: "Pauli Store"`
+- `description: "Pedidos caseros de Pauli Store"`
+- `icons.icon: "/favicon.ico"`
+- `icons.apple: "/apple-icon.png"`
+
+## Posible cache de navegador
+
+Aunque el favicon ya quede correcto en produccion, el navegador puede mantener cache agresiva.
+
+Para verificar cambio real:
+
+- abrir `/favicon.ico?v=99`
+- hacer recarga dura
+- en movil, cerrar y reabrir la pestaña si sigue mostrando el icono viejo
+
+## Correcciones de scroll movil cliente
+
+Se aplicaron ajustes quirurgicos:
+
+- `body` y `main` reforzados con `width: 100%`
+- `html` mantiene `overflow-x: hidden` sin bloquear scroll vertical
+- `overscroll-behavior-x: none`
+- wrappers principales con `w-full`, `max-w-full` y `min-w-0`
+- tarjetas de producto con `aspect-[4/3]` para imagen estable
+- `sizes` de imagen ajustado para no sobredimensionar en movil
+- contenedor de clientes frecuentes reforzado contra overflow
+- resumen del carrito con `min-w-0` y `break-words` en textos
+- barra fija inferior reforzada con `w-full` y `max-w-full`
+
+## Correcciones de carrito fijo
+
+- se mantuvo `position: fixed` inferior
+- se mantuvo `safe-area`
+- se mantuvo padding inferior suficiente para que el contenido no quede tapado
+- se reforzo el ancho estable del contenedor fijo en movil
+
+## Correcciones de selector de fechas admin
+
+Se ajusto el bloque de filtros de reportes:
+
+- card con `overflow-hidden`
+- `grid-cols-1` en movil
+- `md:grid-cols-2` en escritorio
+- labels con `min-w-0`, `max-w-full` y `overflow-hidden`
+- inputs `date` como `block`, `w-full`, `min-w-0`, `max-w-full`
+- `appearance-none` para reducir comportamiento intrusivo del control nativo
+- padding movil mas conservador en el recuadro del filtro
+
+## QA responsive realizado
+
+Verificacion orientada a:
+
+- 360px
+- 375px
+- 390px
+- 430px
+
+Criterios revisados:
+
+- sin scroll horizontal general en cliente
+- sin scroll horizontal general en admin
+- carrito inferior sin tapar contenido
+- bloque de fechas dentro del ancho visible
+- favicon resolviendo en ruta publica
+
+## QA tecnico realizado
+
+Comandos obligatorios:
 
 ```bash
 npm run typecheck
@@ -79,16 +160,26 @@ npm run lint
 npm run build
 ```
 
-Luego revisar en Vercel:
+Ademas revisar en Vercel:
 
+- `/favicon.ico?v=99`
 - `/`
+- `/#hacer-pedido`
+- `/admin/login`
 - `/admin`
 - `/admin/pedidos`
-- `/admin/stock`
 - `/admin/ventas`
 - `/admin/reportes`
-- `/admin/clientes`
 
-## Nota de despliegue
+## Pendientes futuros
 
-Como se actualizo iconografia, el navegador puede tardar en mostrar el nuevo favicon si mantiene cache. En ese caso conviene probar recarga dura en Vercel.
+- seguir validando scroll real en telefono fisico y no solo en emulacion
+- revisar si conviene una version adicional del icono para accesos directos movil
+- pulir microcopias del catalogo para que no hablen solo de dobladitas si el catalogo sigue creciendo
+
+## Recomendaciones para futuras iteraciones
+
+- mantener iconos base dentro de `app/` para App Router
+- evitar volver a introducir assets duplicados de favicon en `public/`
+- seguir usando `min-w-0`, `max-w-full` y wrappers con `overflow-hidden` en filtros admin
+- revisar cada nueva card movil en 360px antes de cerrar una iteracion

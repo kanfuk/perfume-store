@@ -418,7 +418,7 @@ export function OrderForm() {
     <>
       <section
         id="hacer-pedido"
-        className="grid max-w-full gap-6 scroll-mt-6 overflow-x-hidden pb-[calc(140px+env(safe-area-inset-bottom))] xl:grid-cols-[1.2fr_0.8fr] xl:pb-6"
+        className="grid w-full max-w-full min-w-0 gap-6 scroll-mt-6 overflow-x-hidden pb-[calc(140px+env(safe-area-inset-bottom))] xl:grid-cols-[1.2fr_0.8fr] xl:pb-6"
       >
         <form
           id="customer-order-form"
@@ -441,13 +441,13 @@ export function OrderForm() {
                 </p>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 flex max-w-full flex-wrap gap-3 overflow-x-hidden">
               {recentCustomers.map((customer) => (
                 <button
                   key={customer.telefono}
                   type="button"
                   onClick={() => applyRecentCustomer(customer)}
-                  className="rounded-full border border-[#eedcc3] bg-white px-4 py-3 text-left transition hover:border-[#d8a55d] hover:shadow-sm"
+                  className="max-w-full rounded-full border border-[#eedcc3] bg-white px-4 py-3 text-left transition hover:border-[#d8a55d] hover:shadow-sm"
                 >
                   <div className="text-sm font-semibold text-[#5f3041]">
                     {customer.nombre}
@@ -478,7 +478,7 @@ export function OrderForm() {
               <span className="text-sm text-[#8f6070]">Cargando...</span>
             ) : null}
           </div>
-          <div className="grid max-w-full gap-4 md:grid-cols-2">
+          <div className="grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
             {products.map((product) => {
               const currentItem = form.items.find(
                 (item) => item.productoId === product.id
@@ -489,11 +489,11 @@ export function OrderForm() {
                   key={product.id}
                   className="max-w-full overflow-hidden rounded-[28px] border border-[#eedcc3] bg-white shadow-sm transition-[border-color,box-shadow,background-color] duration-200 touch-manipulation hover:shadow-soft"
                 >
-                  <div className="relative h-52 bg-[#fff5e8]">
+                  <div className="relative aspect-[4/3] min-w-0 bg-[#fff5e8]">
                     <ProductImage
                       src={product.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
                       alt={product.nombre}
-                      sizes="(max-width: 768px) 100vw, 50vw"
+                      sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
                       className="object-cover"
                     />
                     <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
@@ -517,7 +517,7 @@ export function OrderForm() {
                       </p>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <div>
+                      <div className="min-w-0">
                         <div className="text-xs font-semibold uppercase tracking-wide text-[#a86b32]">
                           Valor unitario
                         </div>
@@ -661,7 +661,7 @@ export function OrderForm() {
                       key={item.productoId}
                       className="flex items-start justify-between gap-4 rounded-[22px] border border-[#eedcc3] bg-[#fff9ef] px-4 py-3"
                     >
-                      <div className="flex gap-3">
+                      <div className="flex min-w-0 gap-3">
                         <div className="relative hidden h-16 w-16 shrink-0 overflow-hidden rounded-[16px] border border-[#ecd7b3] bg-white sm:block">
                           <ProductImage
                             src={item.product?.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
@@ -670,8 +670,8 @@ export function OrderForm() {
                             className="object-cover"
                           />
                         </div>
-                        <div>
-                        <div className="font-medium text-[#5f3041]">
+                        <div className="min-w-0">
+                        <div className="break-words font-medium text-[#5f3041]">
                           {item.product?.nombre}
                         </div>
                         <div className="mt-1 text-sm text-[#7f5b67]">
@@ -740,7 +740,7 @@ export function OrderForm() {
         </aside>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 max-w-full overflow-x-hidden border-t border-[#ecd7b3] bg-white/94 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(91,49,65,0.08)] backdrop-blur xl:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 w-full max-w-full overflow-x-hidden border-t border-[#ecd7b3] bg-white/94 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(91,49,65,0.08)] backdrop-blur xl:hidden">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-[#8b6a74]">

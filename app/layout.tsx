@@ -3,17 +3,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Pauli Store",
-  description: "Pedidos caseros hechos con dedicacion para compartir, regalar o disfrutar en casa.",
+  description: "Pedidos caseros de Pauli Store",
   icons: {
-    icon: [
-      {
-        url: "/favicon.svg",
-        type: "image/svg+xml"
-      },
-      {
-        url: "/favicon.ico"
-      }
-    ]
+    icon: "/favicon.ico",
+    apple: "/apple-icon.png"
   }
 };
 

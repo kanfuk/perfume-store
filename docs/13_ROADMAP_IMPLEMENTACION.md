@@ -34,6 +34,7 @@ Estado: completada para MVP
 - clientes frecuentes guardados localmente
 - fallback visual de imagen
 - scroll movil estable
+- wrappers reforzados para evitar micro-overflow en movil
 
 Pendiente:
 
@@ -71,6 +72,7 @@ Estado: funcional con pulido responsive final
 - gestion basica de productos y pedidos
 - rutas separadas para pedidos, stock, ventas, clientes y reportes
 - ajuste para evitar desajuste de fecha entre servidor y cliente
+- filtros de reportes reforzados para 360px
 
 Pendiente:
 
@@ -126,7 +128,7 @@ Estado: publicado
 - app en Vercel
 - Supabase conectado
 - flujo cliente y admin operativos
-- icono final listo para cache nuevo
+- iconos nativos en `app/` listos para cache nuevo
 
 Pendiente:
 
