@@ -5,7 +5,15 @@ export const metadata: Metadata = {
   title: "Pauli Store",
   description: "Pedidos caseros hechos con dedicacion para compartir, regalar o disfrutar en casa.",
   icons: {
-    icon: "/favicon.ico"
+    icon: [
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml"
+      },
+      {
+        url: "/favicon.ico"
+      }
+    ]
   }
 };
 

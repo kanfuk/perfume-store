@@ -4,7 +4,7 @@
 
 Pauli Store ya funciona con pagina cliente, panel admin por modulos, catalogo real, badges visuales y flujo conectado a Supabase.
 
-El trabajo actual se enfoco en dejar cliente y admin mas estables para uso real desde celular y escritorio.
+El trabajo acumulado dejo cliente y admin mas estables para uso real desde celular y escritorio.
 
 ## Mejoras implementadas hasta ahora
 
@@ -12,7 +12,7 @@ El trabajo actual se enfoco en dejar cliente y admin mas estables para uso real 
 - imagenes publicas operativas
 - badges visibles en cliente
 - footer compartido en cliente y admin
-- favicon agregado
+- iconografia lista para produccion
 - panel admin separado por rutas reales
 - scroll movil cliente estabilizado
 - selector de fechas admin corregido para movil
@@ -26,6 +26,7 @@ El trabajo actual se enfoco en dejar cliente y admin mas estables para uso real 
 - carrito inferior con safe-area y padding suficiente
 - sin scroll horizontal general
 - footer visible sin quedar tapado
+- fallback visual si falta una imagen o falla su carga
 
 ## Mejoras UX admin
 
@@ -35,10 +36,11 @@ El trabajo actual se enfoco en dejar cliente y admin mas estables para uso real 
 - navegacion movil inferior mas usable
 - botones y badges unificados
 - cards con mejor manejo de textos largos
+- fecha inicial del modal ajustada sin depender del SSR
 
 ## Correcciones responsive
 
-- `html` y `body` con control de overflow-x
+- `html` y `body` con control de `overflow-x`
 - contenedores principales con `max-width: 100%`
 - `min-w-0` aplicado en zonas criticas del admin
 - filtros de fecha con `w-full`, `max-width: 100%` y alto tactil
@@ -112,6 +114,7 @@ Cliente y admin ya se perciben como parte de una misma app.
 - footer visible en cliente y admin
 - filtros de fecha usables en movil
 - botones con alto tactil consistente
+- icono nuevo cargando desde metadata
 - build, lint y typecheck pasando
 
 ## Pendientes futuros

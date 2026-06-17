@@ -25,18 +25,20 @@ Estado: completada
 
 ### Fase 3 - Flujo cliente
 
-Estado: avanzada
+Estado: completada para MVP
 
 - home cliente publica
 - carrito rapido
 - formulario simplificado
 - validacion de celular chileno
 - clientes frecuentes guardados localmente
+- fallback visual de imagen
+- scroll movil estable
 
 Pendiente:
 
 - microcopia final
-- ultimo pulido visual fino menor
+- QA visual en mas dispositivos reales
 
 ### Fase 4 - Supabase y modelo de datos
 
@@ -61,40 +63,43 @@ Estado: completada en MVP
 
 ### Fase 6 - Panel admin
 
-Estado: funcional con pulido responsive fuerte
+Estado: funcional con pulido responsive final
 
 - login admin con Supabase Auth
 - validacion de admin activo
 - pendientes, agendados e historial
 - gestion basica de productos y pedidos
+- rutas separadas para pedidos, stock, ventas, clientes y reportes
+- ajuste para evitar desajuste de fecha entre servidor y cliente
 
 Pendiente:
 
-- UX mobile-first final
 - dashboards mas visuales
-- separacion fuerte entre stock, cobros y reportes
+- separacion mas fuerte entre stock, cobros y reportes
 
 ### Fase 7 - Pagados y fiados
 
-Estado: parcial
+Estado: parcial funcional
 
 - estructura de datos lista
 - acciones basicas disponibles
+- vistas dedicadas ya separadas
 
 Pendiente:
 
-- vista dedicada de cobros
-- mejor flujo para marcar y revisar deudas
+- mejor flujo para revisar deuda historica
 
 ### Fase 8 - Reportes
 
-Estado: inicial
+Estado: funcional base
+
+- reportes por rango de fechas
+- resumen general
 
 Pendiente:
 
-- reportes por rango de fechas
-- resumen de ventas y fiados
 - ranking de productos
+- visualizaciones livianas si aportan claridad
 
 ### Fase 9 - Seguridad y QA
 
@@ -106,15 +111,13 @@ Ya cubierto:
 - RLS principal
 - `security.txt`
 - correcciones de auditoria
+- typecheck, lint y build estables
+- revision final de scroll, render e iconografia
 
 Pendiente:
 
 - CSP con nonce
-- regresion QA final movil y escritorio
-
-Actualizacion:
-
-- typecheck, lint y build estables despues del pulido responsive final
+- regresion QA final movil y escritorio en produccion
 
 ### Fase 10 - Deploy MVP
 
@@ -123,6 +126,7 @@ Estado: publicado
 - app en Vercel
 - Supabase conectado
 - flujo cliente y admin operativos
+- icono final listo para cache nuevo
 
 Pendiente:
 

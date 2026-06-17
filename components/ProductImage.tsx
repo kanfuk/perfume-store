@@ -23,9 +23,14 @@ export function ProductImage({
   if (!src || hasError) {
     return (
       <div
-        className={`flex h-full w-full items-center justify-center bg-[#fff6e7] text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#a86b32] ${fallbackClassName}`}
+        className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,#fff7eb_0%,#ffe8d9_58%,#f7d9cf_100%)] px-6 text-center ${fallbackClassName}`}
       >
-        Pauli Store
+        <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a86b32] shadow-sm">
+          Pauli Store
+        </span>
+        <span className="max-w-[14rem] text-sm font-semibold text-[#7f5b67]">
+          {alt}
+        </span>
       </div>
     );
   }

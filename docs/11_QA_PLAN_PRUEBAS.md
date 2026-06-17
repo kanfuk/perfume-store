@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Evitar fallos de logica, estados invalidos, errores visuales y problemas de seguridad antes del cierre del MVP.
+Evitar fallos de logica, estados invalidos, errores visuales, scrolles inesperados y problemas de seguridad antes del cierre del MVP.
 
 ## Estado de verificacion actual
 
@@ -15,10 +15,12 @@ Evitar fallos de logica, estados invalidos, errores visuales y problemas de segu
 | Flujo cliente operativo | OK | pedido registrado en Supabase |
 | Login admin operativo | OK | acceso con Supabase Auth |
 | Seguridad base aplicada | Parcial | headers, RLS, env, security.txt |
-| UX admin final | OK | pulido responsive final aplicado |
-| Selector fechas movil | OK | filtros reportes apilan correctamente |
+| UX admin final | OK | rutas y modulos responsive activos |
+| Selector fechas movil | OK | filtros apilados correctamente |
 | Scroll horizontal cliente | OK | overflow-x controlado |
-| Scroll horizontal admin | OK | wrappers y min-w-0 aplicados |
+| Scroll horizontal admin | OK | wrappers y `min-w-0` aplicados |
+| Riesgo de hidratacion por fecha | OK | fecha dinamica diferida al cliente en modal admin |
+| Iconografia final | OK | favicon SVG y `app/icon.svg` alineados |
 
 ## QA formulario cliente
 
@@ -36,6 +38,7 @@ Pedido correcto
 Autorrelleno de cliente frecuente
 Vista movil
 Vista escritorio
+Fallback visual de producto si una imagen falla
 ```
 
 ## QA panel admin
@@ -55,6 +58,7 @@ Editar producto
 Activar y desactivar producto
 Revisar filtros de fecha en 360px, 390px y 430px
 Revisar navbar movil admin
+Abrir modal de agenda y confirmar fecha por defecto estable
 ```
 
 ## QA de seguridad

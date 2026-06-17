@@ -2236,7 +2236,9 @@ function AdminActionModal({
     state.type === "abonar" ? String(state.order.saldoPendiente) : ""
   );
   const [method, setMethod] = useState("EFECTIVO");
-  const [deliveryDate, setDeliveryDate] = useState(todayDateValue());
+  const [deliveryDate, setDeliveryDate] = useState(
+    state.type === "agendar" ? todayDateValue() : ""
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/35 px-4">

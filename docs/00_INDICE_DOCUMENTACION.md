@@ -1,32 +1,33 @@
-# 00 - Índice de documentación Pauli Store
+# 00 - Indice de documentacion Pauli Store
 
-Este índice ordena los documentos para que Codex no se pierda con una lógica demasiado amplia.
+Este indice ordena los documentos del proyecto para mantener implementacion, QA y despliegue alineados.
 
 ## Objetivo del set documental
 
-Guiar el desarrollo de **Pauli Store** con documentación clara, separada por temas y pensada para construir el código por fases.
+Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por temas y pensada para construir y pulir el sistema por fases.
 
 ## Archivos incluidos
 
-| Archivo | Propósito |
+| Archivo | Proposito |
 |---|---|
-| `01_VISION_GENERAL.md` | Explica el objetivo, alcance, usuarios y stack. |
-| `02_REQUERIMIENTOS_FUNCIONALES.md` | Define qué debe hacer el sistema. |
+| `01_VISION_GENERAL.md` | Explica objetivo, alcance, usuarios y stack. |
+| `02_REQUERIMIENTOS_FUNCIONALES.md` | Define que debe hacer el sistema. |
 | `03_REQUERIMIENTOS_NO_FUNCIONALES.md` | Define calidad, rendimiento, usabilidad y mantenibilidad. |
-| `04_FLUJO_NEGOCIO_ESTADOS.md` | Define estados de pedido, pago y reglas de transición. |
-| `05_FORMULARIO_CLIENTE_UX_IX.md` | Define el formulario público, diseño y experiencia del cliente. |
+| `04_FLUJO_NEGOCIO_ESTADOS.md` | Define estados de pedido, pago y reglas de transicion. |
+| `05_FORMULARIO_CLIENTE_UX_IX.md` | Define el formulario publico, diseno y experiencia del cliente. |
 | `06_PANEL_ADMINISTRADOR.md` | Define las pantallas del panel privado. |
 | `07_MODELO_DATOS.md` | Define tablas, campos y relaciones. |
 | `08_DISENO_POO.md` | Define clases, herencia, polimorfismo y responsabilidades. |
-| `09_SERVICIOS_REPOSITORIOS.md` | Define separación entre lógica de negocio y acceso a datos. |
+| `09_SERVICIOS_REPOSITORIOS.md` | Define separacion entre logica de negocio y acceso a datos. |
 | `10_SEGURIDAD_HEADERS_RLS.md` | Define seguridad, headers, variables de entorno y RLS. |
-| `11_QA_PLAN_PRUEBAS.md` | Define checklist QA y casos de prueba. |
-| `12_ISO_BUENAS_PRACTICAS.md` | Adapta buenas prácticas inspiradas en ISO al proyecto. |
-| `13_ROADMAP_IMPLEMENTACION.md` | Orden de construcción por fases. |
-| `14_PROMPTS_CODEX.md` | Prompts listos para pegar en Codex. |
+| `11_QA_PLAN_PRUEBAS.md` | Checklist QA y casos de prueba. |
+| `12_ISO_BUENAS_PRACTICAS.md` | Buenas practicas adaptadas al proyecto. |
+| `13_ROADMAP_IMPLEMENTACION.md` | Orden de construccion por fases. |
+| `14_PROMPTS_CODEX.md` | Prompts listos para usar en Codex. |
 | `15_CRITERIOS_ACEPTACION.md` | Condiciones para considerar terminado el MVP. |
-| `26_ESTADO_FINAL_UX_RESPONSIVE_AVANCES.md` | Resume el estado final del pulido UX responsive en cliente y admin. |
+| `26_ESTADO_FINAL_UX_RESPONSIVE_AVANCES.md` | Estado del pulido UX responsive en cliente y admin. |
+| `27_PULIDO_FINAL_RENDER_SCROLL_ICONO.md` | Diagnostico final y ajustes de render, scroll e iconografia. |
 
-## Instrucción general para Codex
+## Instruccion general para Codex
 
-Leer primero este índice y luego implementar fase por fase. No inventar estados, módulos ni reglas que no estén documentadas.
+Leer primero este indice y luego ejecutar fase por fase. No inventar estados, modulos ni reglas que no esten documentadas.
