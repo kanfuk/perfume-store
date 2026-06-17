@@ -418,12 +418,12 @@ export function OrderForm() {
     <>
       <section
         id="hacer-pedido"
-        className="grid gap-6 scroll-mt-6 pb-24 xl:grid-cols-[1.2fr_0.8fr] xl:pb-0"
+        className="grid max-w-full gap-6 scroll-mt-6 overflow-x-hidden pb-[calc(140px+env(safe-area-inset-bottom))] xl:grid-cols-[1.2fr_0.8fr] xl:pb-6"
       >
         <form
           id="customer-order-form"
           method="post"
-          className="space-y-6 rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
+          className="max-w-full space-y-6 overflow-x-hidden rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
           onSubmit={handleSubmit}
         >
         {recentCustomers.length > 0 ? (
@@ -478,7 +478,7 @@ export function OrderForm() {
               <span className="text-sm text-[#8f6070]">Cargando...</span>
             ) : null}
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid max-w-full gap-4 md:grid-cols-2">
             {products.map((product) => {
               const currentItem = form.items.find(
                 (item) => item.productoId === product.id
@@ -487,7 +487,7 @@ export function OrderForm() {
               return (
                 <article
                   key={product.id}
-                  className="overflow-hidden rounded-[28px] border border-[#eedcc3] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft"
+                  className="max-w-full overflow-hidden rounded-[28px] border border-[#eedcc3] bg-white shadow-sm transition-[border-color,box-shadow,background-color] duration-200 touch-manipulation hover:shadow-soft"
                 >
                   <div className="relative h-52 bg-[#fff5e8]">
                     <ProductImage
@@ -529,7 +529,7 @@ export function OrderForm() {
                         type="button"
                         onClick={() => addProduct(product.id)}
                         disabled={(product.stockActual ?? 0) <= 0}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
                       >
                         <Plus className="h-4 w-4" />
                         {(product.stockActual ?? 0) <= 0
@@ -634,7 +634,7 @@ export function OrderForm() {
         {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
         </form>
 
-        <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
+        <aside className="max-w-full space-y-4 xl:sticky xl:top-6 xl:h-fit">
           <div className="overflow-hidden rounded-[30px] border border-[#ecd7b3] bg-white/95 shadow-soft">
             <div className="bg-[linear-gradient(180deg,#fff3df_0%,#fffaf2_100%)] p-5">
               <div className="flex items-center justify-between gap-3">
@@ -740,7 +740,7 @@ export function OrderForm() {
         </aside>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#ecd7b3] bg-white/94 px-4 py-3 shadow-[0_-12px_30px_rgba(91,49,65,0.08)] backdrop-blur xl:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 max-w-full overflow-x-hidden border-t border-[#ecd7b3] bg-white/94 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(91,49,65,0.08)] backdrop-blur xl:hidden">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-[#8b6a74]">
@@ -754,7 +754,7 @@ export function OrderForm() {
             type="submit"
             form="customer-order-form"
             disabled={submitting || loadingProducts || products.length === 0}
-            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
           >
             <ShoppingBag className="h-4 w-4" />
             {submitting ? "Registrando..." : "Registrar pedido"}
@@ -762,7 +762,7 @@ export function OrderForm() {
         </div>
       </div>
 
-      <AppFooter className="pb-24 xl:pb-6" />
+      <AppFooter className="pb-[calc(140px+env(safe-area-inset-bottom))] xl:pb-6" />
 
       {submitted ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#5f3041]/30 px-4 backdrop-blur-sm">
@@ -927,7 +927,7 @@ function QuantityButton({ children, label, onClick }: QuantityButtonProps) {
     <button
       type="button"
       aria-label={label}
-      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#f0d6da] bg-white text-[#5f3041] transition hover:border-[#d37b94] hover:text-[#b85f79]"
+      className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-2xl border border-[#f0d6da] bg-white text-[#5f3041] transition-colors hover:border-[#d37b94] hover:text-[#b85f79]"
       onClick={onClick}
     >
       {children}
