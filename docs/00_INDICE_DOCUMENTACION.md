@@ -27,6 +27,7 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 | `15_CRITERIOS_ACEPTACION.md` | Condiciones para considerar terminado el MVP. |
 | `26_ESTADO_FINAL_UX_RESPONSIVE_AVANCES.md` | Estado del pulido UX responsive en cliente y admin. |
 | `27_PULIDO_FINAL_RENDER_SCROLL_ICONO.md` | Diagnostico final y correcciones de favicon, scroll movil y fechas admin. |
+| `28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md` | Flujo de cierre mensual, archivado operativo y limpieza de datos de prueba. |
 
 ## Instruccion general para Codex
 

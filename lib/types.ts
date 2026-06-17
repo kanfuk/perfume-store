@@ -106,3 +106,22 @@ export type AdminPageData = {
   dashboard: AdminDashboardData;
   productos: AdminProductRecord[];
 };
+
+export type AdminMaintenanceAction = "close-month" | "clear-test-data";
+
+export type AdminMaintenanceSummary = {
+  pedidos: number;
+  clientes: number;
+  items: number;
+  pagos: number;
+  fiados: number;
+  totalVentas: number;
+};
+
+export type AdminMaintenanceResult = {
+  operationId: string;
+  tipo: "CIERRE_MENSUAL" | "LIMPIEZA_PRELANZAMIENTO";
+  periodo: string;
+  resumen: AdminMaintenanceSummary;
+  message: string;
+};

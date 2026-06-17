@@ -386,3 +386,339 @@ on usuarios_admin
 for select
 to authenticated
 using (email = auth.email() and activo = true);
+
+create table if not exists operaciones_admin_log (
+  id uuid primary key default gen_random_uuid(),
+  tipo text not null,
+  periodo text not null,
+  ejecutado_por_email text not null,
+  ejecutado_por_nombre text,
+  resumen jsonb not null default '{}'::jsonb,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists archivo_clientes (
+  id uuid primary key default gen_random_uuid(),
+  operacion_id uuid not null references operaciones_admin_log(id),
+  original_cliente_id uuid,
+  payload jsonb not null,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists archivo_pedidos (
+  id uuid primary key default gen_random_uuid(),
+  operacion_id uuid not null references operaciones_admin_log(id),
+  original_pedido_id uuid,
+  payload jsonb not null,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists archivo_pedido_items (
+  id uuid primary key default gen_random_uuid(),
+  operacion_id uuid not null references operaciones_admin_log(id),
+  original_pedido_item_id uuid,
+  payload jsonb not null,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists archivo_pagos (
+  id uuid primary key default gen_random_uuid(),
+  operacion_id uuid not null references operaciones_admin_log(id),
+  original_pago_id uuid,
+  payload jsonb not null,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists archivo_fiados (
+  id uuid primary key default gen_random_uuid(),
+  operacion_id uuid not null references operaciones_admin_log(id),
+  original_fiado_id uuid,
+  payload jsonb not null,
+  created_at timestamp with time zone default now()
+);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'operaciones_admin_log_tipo_check'
+  ) then
+    alter table operaciones_admin_log
+    add constraint operaciones_admin_log_tipo_check
+    check (tipo in ('CIERRE_MENSUAL', 'LIMPIEZA_PRELANZAMIENTO'));
+  end if;
+end $$;
+
+create or replace function admin_cerrar_mes_operativo(
+  p_admin_email text,
+  p_admin_nombre text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_operacion_id uuid := gen_random_uuid();
+  v_periodo text := to_char(timezone('America/Santiago', now()), 'YYYY-MM');
+  v_pedidos integer := 0;
+  v_clientes integer := 0;
+  v_items integer := 0;
+  v_pagos integer := 0;
+  v_fiados integer := 0;
+  v_total_ventas integer := 0;
+  v_pendientes integer := 0;
+  v_agendados integer := 0;
+  v_resumen jsonb;
+begin
+  select count(*) into v_pendientes
+  from pedidos
+  where estado_pedido = 'PENDIENTE';
+
+  select count(*) into v_agendados
+  from pedidos
+  where estado_pedido = 'AGENDADO';
+
+  if v_pendientes > 0 or v_agendados > 0 then
+    raise exception 'No se puede cerrar el mes mientras existan pedidos pendientes o agendados.';
+  end if;
+
+  select count(*), coalesce(sum(total), 0)
+  into v_pedidos, v_total_ventas
+  from pedidos;
+
+  select count(*) into v_clientes from clientes;
+  select count(*) into v_items from pedido_items;
+  select count(*) into v_pagos from pagos;
+  select count(*) into v_fiados from fiados;
+
+  if v_pedidos = 0 and v_clientes = 0 and v_items = 0 and v_pagos = 0 and v_fiados = 0 then
+    raise exception 'No hay data operativa para cerrar.';
+  end if;
+
+  v_resumen := jsonb_build_object(
+    'pedidos', v_pedidos,
+    'clientes', v_clientes,
+    'items', v_items,
+    'pagos', v_pagos,
+    'fiados', v_fiados,
+    'totalVentas', v_total_ventas
+  );
+
+  insert into operaciones_admin_log (
+    id,
+    tipo,
+    periodo,
+    ejecutado_por_email,
+    ejecutado_por_nombre,
+    resumen
+  ) values (
+    v_operacion_id,
+    'CIERRE_MENSUAL',
+    v_periodo,
+    p_admin_email,
+    p_admin_nombre,
+    v_resumen
+  );
+
+  insert into archivo_clientes (operacion_id, original_cliente_id, payload)
+  select v_operacion_id, c.id, to_jsonb(c)
+  from clientes c;
+
+  insert into archivo_pedidos (operacion_id, original_pedido_id, payload)
+  select v_operacion_id, p.id, to_jsonb(p)
+  from pedidos p;
+
+  insert into archivo_pedido_items (operacion_id, original_pedido_item_id, payload)
+  select v_operacion_id, pi.id, to_jsonb(pi)
+  from pedido_items pi;
+
+  insert into archivo_pagos (operacion_id, original_pago_id, payload)
+  select v_operacion_id, pa.id, to_jsonb(pa)
+  from pagos pa;
+
+  insert into archivo_fiados (operacion_id, original_fiado_id, payload)
+  select v_operacion_id, f.id, to_jsonb(f)
+  from fiados f;
+
+  delete from fiados;
+  delete from pagos;
+  delete from pedido_items;
+  delete from pedidos;
+  delete from clientes;
+
+  return jsonb_build_object(
+    'operationId', v_operacion_id,
+    'tipo', 'CIERRE_MENSUAL',
+    'periodo', v_periodo,
+    'resumen', v_resumen,
+    'message', 'Cierre mensual completado. La operacion quedo archivada y el panel operativo quedo limpio.'
+  );
+end;
+$$;
+
+create or replace function admin_limpiar_datos_prueba(
+  p_admin_email text,
+  p_admin_nombre text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_operacion_id uuid := gen_random_uuid();
+  v_periodo text := to_char(timezone('America/Santiago', now()), 'YYYY-MM');
+  v_pedidos integer := 0;
+  v_clientes integer := 0;
+  v_items integer := 0;
+  v_pagos integer := 0;
+  v_fiados integer := 0;
+  v_total_ventas integer := 0;
+  v_resumen jsonb;
+begin
+  select count(*), coalesce(sum(total), 0)
+  into v_pedidos, v_total_ventas
+  from pedidos;
+
+  select count(*) into v_clientes from clientes;
+  select count(*) into v_items from pedido_items;
+  select count(*) into v_pagos from pagos;
+  select count(*) into v_fiados from fiados;
+
+  if v_pedidos = 0 and v_clientes = 0 and v_items = 0 and v_pagos = 0 and v_fiados = 0 then
+    raise exception 'No hay data operativa para limpiar.';
+  end if;
+
+  v_resumen := jsonb_build_object(
+    'pedidos', v_pedidos,
+    'clientes', v_clientes,
+    'items', v_items,
+    'pagos', v_pagos,
+    'fiados', v_fiados,
+    'totalVentas', v_total_ventas
+  );
+
+  insert into operaciones_admin_log (
+    id,
+    tipo,
+    periodo,
+    ejecutado_por_email,
+    ejecutado_por_nombre,
+    resumen
+  ) values (
+    v_operacion_id,
+    'LIMPIEZA_PRELANZAMIENTO',
+    v_periodo,
+    p_admin_email,
+    p_admin_nombre,
+    v_resumen
+  );
+
+  delete from fiados;
+  delete from pagos;
+  delete from pedido_items;
+  delete from pedidos;
+  delete from clientes;
+
+  return jsonb_build_object(
+    'operationId', v_operacion_id,
+    'tipo', 'LIMPIEZA_PRELANZAMIENTO',
+    'periodo', v_periodo,
+    'resumen', v_resumen,
+    'message', 'Limpieza de datos de prueba completada. Productos y stock se conservaron.'
+  );
+end;
+$$;
+
+alter table operaciones_admin_log enable row level security;
+alter table archivo_clientes enable row level security;
+alter table archivo_pedidos enable row level security;
+alter table archivo_pedido_items enable row level security;
+alter table archivo_pagos enable row level security;
+alter table archivo_fiados enable row level security;
+
+drop policy if exists "admin_can_read_operaciones_admin_log" on operaciones_admin_log;
+create policy "admin_can_read_operaciones_admin_log"
+on operaciones_admin_log
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_read_archivo_clientes" on archivo_clientes;
+create policy "admin_can_read_archivo_clientes"
+on archivo_clientes
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_read_archivo_pedidos" on archivo_pedidos;
+create policy "admin_can_read_archivo_pedidos"
+on archivo_pedidos
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_read_archivo_pedido_items" on archivo_pedido_items;
+create policy "admin_can_read_archivo_pedido_items"
+on archivo_pedido_items
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_read_archivo_pagos" on archivo_pagos;
+create policy "admin_can_read_archivo_pagos"
+on archivo_pagos
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_read_archivo_fiados" on archivo_fiados;
+create policy "admin_can_read_archivo_fiados"
+on archivo_fiados
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);

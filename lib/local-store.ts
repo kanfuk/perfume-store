@@ -50,11 +50,42 @@ export type LocalFiadoRecord = {
   fechaPagoFiado?: string;
 };
 
+export type LocalAdminOperationLog = {
+  id: string;
+  tipo: "CIERRE_MENSUAL" | "LIMPIEZA_PRELANZAMIENTO";
+  periodo: string;
+  ejecutadoPorEmail: string;
+  ejecutadoPorNombre?: string | null;
+  resumen: {
+    pedidos: number;
+    clientes: number;
+    items: number;
+    pagos: number;
+    fiados: number;
+    totalVentas: number;
+  };
+  createdAt: string;
+};
+
+export type LocalArchivedRecord<T> = {
+  id: string;
+  operacionId: string;
+  originalId: string;
+  payload: T;
+  createdAt: string;
+};
+
 export const localStore = {
   customers: [] as LocalCustomerRecord[],
   orders: [] as LocalOrderRecord[],
   orderItems: [] as LocalOrderItemRecord[],
   payments: [] as LocalPaymentRecord[],
   fiados: [] as LocalFiadoRecord[],
-  products: [...mockProducts]
+  products: [...mockProducts],
+  adminOperationLogs: [] as LocalAdminOperationLog[],
+  archivedCustomers: [] as LocalArchivedRecord<LocalCustomerRecord>[],
+  archivedOrders: [] as LocalArchivedRecord<LocalOrderRecord>[],
+  archivedOrderItems: [] as LocalArchivedRecord<LocalOrderItemRecord>[],
+  archivedPayments: [] as LocalArchivedRecord<LocalPaymentRecord>[],
+  archivedFiados: [] as LocalArchivedRecord<LocalFiadoRecord>[]
 };

@@ -21,6 +21,7 @@ Evitar fallos de logica, estados invalidos, errores visuales, scrolles inesperad
 | Scroll horizontal admin | OK | wrappers y `min-w-0` aplicados |
 | Riesgo de hidratacion por fecha | OK | fecha dinamica diferida al cliente en modal admin |
 | Iconografia final | OK | `app/favicon.ico`, `app/icon.png` y `app/apple-icon.png` activos |
+| Mantenimiento admin | OK | cierre mensual y limpieza pre-lanzamiento implementados |
 
 ## QA formulario cliente
 
@@ -59,6 +60,9 @@ Activar y desactivar producto
 Revisar filtros de fecha en 360px, 390px y 430px
 Revisar navbar movil admin
 Abrir modal de agenda y confirmar fecha por defecto estable
+Probar boton de eliminar producto sin romper historial
+Probar cierre mensual con y sin pedidos pendientes
+Probar limpieza de datos de prueba conservando productos y stock
 ```
 
 ## Pruebas desde celular

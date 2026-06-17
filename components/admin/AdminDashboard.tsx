@@ -43,6 +43,7 @@ import {
   getChileTodayInputValue
 } from "@/lib/date";
 import type {
+  AdminMaintenanceAction,
   AdminDashboardData,
   AdminOrderSummary,
   AdminOrdersAction,
@@ -108,8 +109,10 @@ export function AdminDashboard({
   const [loading, setLoading] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [busyOrderId, setBusyOrderId] = useState("");
   const [busyProductId, setBusyProductId] = useState("");
+  const [busyMaintenanceAction, setBusyMaintenanceAction] = useState("");
   const [search, setSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pendientes");
@@ -484,6 +487,55 @@ export function AdminDashboard({
     await Promise.all([loadOrders(), loadProducts()]);
   }
 
+  async function runMaintenanceAction(action: AdminMaintenanceAction) {
+    const confirmed = window.confirm(
+      action === "close-month"
+        ? "Esto archivara toda la operacion actual y dejara pedidos, pagos, fiados y clientes en blanco. Productos y stock se conservan. Continúo?"
+        : "Esto borrara la data operativa de prueba para el lanzamiento. Productos y stock se conservan. Continúo?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setBusyMaintenanceAction(action);
+      setError("");
+      setSuccessMessage("");
+
+      const response = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ action })
+      });
+      const currentData = (await response.json()) as { error?: string; message?: string };
+
+      if (!response.ok) {
+        throw new Error(currentData.error ?? "No fue posible ejecutar la operacion.");
+      }
+
+      setSelectedOrderId("");
+      setOrderModalState(null);
+      setSuccessMessage(
+        currentData.message ??
+          (action === "close-month"
+            ? "Cierre mensual completado."
+            : "Limpieza de datos de prueba completada.")
+      );
+      await refreshAll();
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible ejecutar la operacion."
+      );
+    } finally {
+      setBusyMaintenanceAction("");
+    }
+  }
+
   async function runAction(
     pedidoId: string,
     action: AdminOrdersAction,
@@ -788,6 +840,12 @@ export function AdminDashboard({
       {error ? (
         <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
+        </div>
+      ) : null}
+
+      {successMessage ? (
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {successMessage}
         </div>
       ) : null}
 
@@ -1390,6 +1448,59 @@ export function AdminDashboard({
               </div>
             </section>
           </div>
+
+          <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+            <div className="flex items-center gap-2 text-rose-950">
+              <Archive className="h-5 w-5" />
+              <h3 className="text-lg font-bold">Cierre y limpieza</h3>
+            </div>
+            <p className="copy-justified mt-3 text-sm leading-6 text-rose-900/70">
+              Usa cierre de mes cuando ya no queden pedidos pendientes ni agendados y
+              quieras archivar la operacion completa del periodo. Usa limpieza de prueba
+              antes del lanzamiento publico para borrar solo la data simulada operativa.
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <article className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4">
+                <h4 className="text-base font-semibold text-rose-950">Cierre de mes</h4>
+                <p className="copy-justified mt-2 text-sm leading-6 text-rose-900/70">
+                  Archiva pedidos, items, pagos, fiados y clientes en un log historico y
+                  deja limpio el panel operativo. Conserva productos y stock.
+                </p>
+                <button
+                  type="button"
+                  disabled={busyMaintenanceAction !== ""}
+                  onClick={() => void runMaintenanceAction("close-month")}
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
+                >
+                  <Archive className="h-4 w-4" />
+                  {busyMaintenanceAction === "close-month"
+                    ? "Cerrando..."
+                    : "Cerrar mes"}
+                </button>
+              </article>
+
+              <article className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+                <h4 className="text-base font-semibold text-amber-900">
+                  Limpiar datos de prueba
+                </h4>
+                <p className="copy-justified mt-2 text-sm leading-6 text-amber-900/80">
+                  Borra la operacion simulada del panel antes del lanzamiento publico.
+                  No toca productos, precios ni stock actual.
+                </p>
+                <button
+                  type="button"
+                  disabled={busyMaintenanceAction !== ""}
+                  onClick={() => void runMaintenanceAction("clear-test-data")}
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {busyMaintenanceAction === "clear-test-data"
+                    ? "Limpiando..."
+                    : "Limpiar prueba"}
+                </button>
+              </article>
+            </div>
+          </section>
         </section>
       ) : null}
 

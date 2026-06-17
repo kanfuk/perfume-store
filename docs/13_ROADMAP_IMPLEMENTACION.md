@@ -97,6 +97,8 @@ Estado: funcional base
 
 - reportes por rango de fechas
 - resumen general
+- cierre mensual operativo
+- limpieza pre-lanzamiento de data simulada
 
 Pendiente:
 
@@ -115,6 +117,7 @@ Ya cubierto:
 - correcciones de auditoria
 - typecheck, lint y build estables
 - revision final de scroll, render e iconografia
+- herramientas de mantenimiento operativo en admin
 
 Pendiente:
 

@@ -96,6 +96,38 @@ created_at TIMESTAMP
 updated_at TIMESTAMP
 ```
 
+## Tabla operaciones_admin_log
+
+```text
+id UUID PK
+tipo TEXT NOT NULL
+periodo TEXT NOT NULL
+ejecutado_por_email TEXT NOT NULL
+ejecutado_por_nombre TEXT
+resumen JSONB NOT NULL
+created_at TIMESTAMP
+```
+
+## Tablas de archivo operativo
+
+```text
+archivo_clientes
+archivo_pedidos
+archivo_pedido_items
+archivo_pagos
+archivo_fiados
+```
+
+Cada una guarda:
+
+```text
+id UUID PK
+operacion_id UUID FK -> operaciones_admin_log.id
+original_* UUID
+payload JSONB NOT NULL
+created_at TIMESTAMP
+```
+
 ## Constantes de estado
 
 ```text
@@ -128,3 +160,4 @@ clientes 1 - N fiados
 - no permitir total negativo
 - no permitir estados fuera de constantes
 - no borrar productos con pedidos asociados; usar `activo = false`
+- el cierre mensual archiva operacion y luego limpia tablas operativas

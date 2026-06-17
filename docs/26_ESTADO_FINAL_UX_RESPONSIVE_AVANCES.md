@@ -18,6 +18,7 @@ El trabajo acumulado dejo cliente y admin mas estables para uso real desde celul
 - scroll movil cliente estabilizado
 - selector de fechas admin corregido para movil
 - botones y badges mas coherentes en admin
+- bloque de mantenimiento operativo agregado en reportes
 
 ## Mejoras UX cliente
 
@@ -39,6 +40,7 @@ El trabajo acumulado dejo cliente y admin mas estables para uso real desde celul
 - botones y badges unificados
 - cards con mejor manejo de textos largos
 - fecha inicial del modal ajustada sin depender del SSR
+- mantenimiento con cierre de mes y limpieza de prueba desde admin
 - bloque de fechas de reportes endurecido para 360px
 
 ## Correcciones responsive
