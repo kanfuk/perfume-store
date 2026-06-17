@@ -7,29 +7,30 @@ export default function HomePage() {
         <div className="bg-[linear-gradient(140deg,#fff4da_0%,#f8d8cb_48%,#fdecef_100%)] p-6 sm:p-8">
           <div className="space-y-6">
             <span className="inline-flex w-fit rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-[#8f5728]">
-              Desayunos caseros del dia
+              Cositas ricas hechas en casa
             </span>
             <div className="space-y-3">
               <h1 className="text-4xl font-bold tracking-normal text-[#6f3146] sm:text-5xl">
                 Pauli Store
               </h1>
               <p className="max-w-2xl text-base leading-7 text-[#7e4a5c] sm:text-lg">
-                Volvieron sus desayunos favoritos. Dobladitas caseras recien
-                horneadas para comenzar bien el dia.
+                Volvieron las cositas ricas hechas en casa. Desayunos, quequitos
+                y preparaciones caseras recien hechas para acompanar tu dia con
+                mas carino.
               </p>
             </div>
 
             <div className="grid gap-3 text-sm sm:grid-cols-2">
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#7a4256] backdrop-blur">
-                Horneado hoy
+                Preparado hoy
                 <div className="mt-1 text-xl font-semibold text-[#6f3146]">
-                  Fresquito
+                  Recien hecho
                 </div>
               </div>
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#7a4256] backdrop-blur">
-                Entrega
+                Pedido
                 <div className="mt-1 text-xl font-semibold text-[#6f3146]">
-                  Coordinada
+                  Con entrega coordinada
                 </div>
               </div>
             </div>

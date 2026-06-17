@@ -61,6 +61,36 @@ Revisar navbar movil admin
 Abrir modal de agenda y confirmar fecha por defecto estable
 ```
 
+## Pruebas desde celular
+
+Usar preferentemente un telefono real sobre la URL de produccion en Vercel.
+
+Checklist sugerido:
+
+```text
+Abrir la home y confirmar que el hero carga completo sin scroll horizontal
+Verificar que el carrito inferior no tape el contenido final
+Abrir varias tarjetas de producto y confirmar que las imagenes o su fallback se ven bien
+Registrar un pedido completo desde celular
+Entrar al admin y revisar /admin/pedidos, /admin/stock, /admin/ventas, /admin/reportes y /admin/clientes
+Probar filtros de fecha en admin/reportes
+Confirmar que navbar inferior admin no tapa botones ni tablas
+Revisar favicon actualizado al abrir la app en el navegador movil
+Probar en ancho aproximado 360px, 390px y 430px
+```
+
+Rutas recomendadas para probar en produccion:
+
+```text
+/
+/admin
+/admin/pedidos
+/admin/stock
+/admin/ventas
+/admin/reportes
+/admin/clientes
+```
+
 ## QA de seguridad
 
 Validar:
