@@ -1596,23 +1596,23 @@ function SectionIntro({
   helper?: string;
 }) {
   return (
-    <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+    <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-3">
+        <div className="flex min-w-0 items-start gap-3">
           <span className="rounded-2xl bg-rose-100 p-3 text-rose-700">
             <Icon className="h-5 w-5" />
           </span>
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-rose-950">{title}</h2>
-            <p className="text-sm text-rose-900/70">{subtitle}</p>
+          <div className="min-w-0 space-y-1">
+            <h2 className="break-words text-2xl font-bold text-rose-950">{title}</h2>
+            <p className="break-words text-sm text-rose-900/70">{subtitle}</p>
             {helper ? (
-              <p className="rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              <p className="break-words rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-800">
                 {helper}
               </p>
             ) : null}
           </div>
         </div>
-        {action}
+        {action ? <div className="w-full lg:w-auto">{action}</div> : null}
       </div>
     </section>
   );
@@ -1668,7 +1668,7 @@ function HomeActionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-rose-300`}
+      className={`max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-rose-300`}
     >
       <div className="flex items-start justify-between gap-3">
         <span
@@ -1680,9 +1680,9 @@ function HomeActionCard({
           {badge}
         </span>
       </div>
-      <div className="mt-4 space-y-2">
-        <div className="text-lg font-semibold text-rose-950">{title}</div>
-        <p className="text-sm leading-6 text-rose-900/70">{subtitle}</p>
+      <div className="mt-4 min-w-0 space-y-2">
+        <div className="break-words text-lg font-semibold text-rose-950">{title}</div>
+        <p className="break-words text-sm leading-6 text-rose-900/70">{subtitle}</p>
         <div className="inline-flex items-center gap-2 text-sm font-semibold text-rose-800">
           Abrir
           <ArrowRight className="h-4 w-4" />
@@ -2616,12 +2616,12 @@ function HeroMetric({
             };
   return (
     <article
-      className={`rounded-lg border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-5 shadow-soft`}
+      className={`max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-5 shadow-soft`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-sm text-rose-900/65">{label}</div>
-          <div className="mt-2 text-3xl font-bold text-rose-950">{value}</div>
+          <div className="mt-2 break-words text-3xl font-bold text-rose-950">{value}</div>
         </div>
         <span
           className={`rounded-2xl p-3 shadow-sm ${palette.iconBgClass} ${palette.iconTextClass}`}
@@ -2629,7 +2629,7 @@ function HeroMetric({
           <Icon className="h-5 w-5" />
         </span>
       </div>
-      <p className="mt-3 text-sm text-rose-900/65">{detail}</p>
+      <p className="mt-3 break-words text-sm text-rose-900/65">{detail}</p>
     </article>
   );
 }
@@ -2653,14 +2653,14 @@ function FocusCard({
         : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
-    <article className={`rounded-lg border p-4 shadow-soft ${className}`}>
+    <article className={`max-w-full overflow-x-hidden rounded-lg border p-4 shadow-soft ${className}`}>
       <div className="flex items-start gap-3">
         <span className="rounded-2xl bg-white/80 p-3">
           <Icon className="h-5 w-5" />
         </span>
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <h3 className="font-semibold">{title}</h3>
-          <p className="text-sm leading-6 opacity-90">{text}</p>
+          <p className="break-words text-sm leading-6 opacity-90">{text}</p>
         </div>
       </div>
     </article>
@@ -2697,10 +2697,10 @@ function MiniHomeTab({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg px-4 py-4 text-left shadow-soft transition ${palette}`}
+      className={`min-w-0 rounded-lg px-4 py-4 text-left shadow-soft transition ${palette}`}
     >
-      <div className="text-sm font-medium opacity-90">{title}</div>
-      <div className="mt-2 text-2xl font-bold">{value}</div>
+      <div className="break-words text-sm font-medium opacity-90">{title}</div>
+      <div className="mt-2 break-words text-2xl font-bold">{value}</div>
     </button>
   );
 }
@@ -2717,11 +2717,11 @@ function CompactHistorySection({
   emptyText: string;
 }) {
   return (
-    <details className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+    <details className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <h2 className="text-xl font-bold text-rose-950">{title}</h2>
-          <p className="text-sm text-rose-900/70">{subtitle}</p>
+          <p className="break-words text-sm text-rose-900/70">{subtitle}</p>
         </div>
         <StatusBadge tone="neutral" label={`${orders.length} registro(s)`} />
       </summary>
