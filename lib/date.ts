@@ -1,20 +1,53 @@
 const CHILE_TIME_ZONE = "America/Santiago";
+const SPANISH_SHORT_MONTHS = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic"
+] as const;
 
 export function formatChileDateTime(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: CHILE_TIME_ZONE,
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).formatToParts(new Date(value));
+
+  const year = getPart(parts, "year");
+  const month = Number(getPart(parts, "month"));
+  const day = getPart(parts, "day");
+  const hour = getPart(parts, "hour");
+  const minute = getPart(parts, "minute");
+
+  return `${day} ${SPANISH_SHORT_MONTHS[month - 1]} ${year}, ${hour}:${minute}`;
 }
 
 export function formatChileDateOnly(value: string) {
   const stableDate = parseDateOnlyForChile(value);
-
-  return new Intl.DateTimeFormat("es-CL", {
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: CHILE_TIME_ZONE,
-    dateStyle: "medium"
-  }).format(stableDate);
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(stableDate);
+
+  const year = getPart(parts, "year");
+  const month = Number(getPart(parts, "month"));
+  const day = getPart(parts, "day");
+
+  return `${day} ${SPANISH_SHORT_MONTHS[month - 1]} ${year}`;
 }
 
 export function getChileTodayInputValue(reference = new Date()) {
@@ -41,4 +74,11 @@ function parseDateOnlyForChile(value: string) {
 
   // Midday UTC avoids day shifting between SSR and browser local parsing.
   return new Date(Date.UTC(year, month, day, 12, 0, 0));
+}
+
+function getPart(
+  parts: Intl.DateTimeFormatPart[],
+  type: Intl.DateTimeFormatPartTypes
+) {
+  return parts.find((part) => part.type === type)?.value ?? "";
 }
