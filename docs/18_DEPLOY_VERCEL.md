@@ -117,6 +117,14 @@ Seguridad:
 - `/apple-touch-icon.png?v=99` responde
 - `/android-chrome-192x192.png?v=99` responde
 - `/site.webmanifest?v=99` responde
+- `/admin.webmanifest?v=99` responde
+
+Acceso directo admin en iPhone:
+
+- abrir el panel desde `/admin` o `/admin/login`
+- agregar a pantalla de inicio desde esa misma ruta
+- si el icono admin abre cliente, borrar el acceso directo anterior y crearlo de nuevo
+- la ruta admin usa `start_url: /admin` mediante `public/admin.webmanifest`
 
 ## Incidentes comunes
 

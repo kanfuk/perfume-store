@@ -93,6 +93,7 @@ La app ya integra:
 - `public/android-chrome-192x192.png`
 - `public/android-chrome-512x512.png`
 - `public/site.webmanifest`
+- `public/admin.webmanifest`
 - `public/icons/*`
 
 Verificacion recomendada despues del deploy:
@@ -102,7 +103,14 @@ Verificacion recomendada despues del deploy:
 /apple-touch-icon.png?v=99
 /android-chrome-192x192.png?v=99
 /site.webmanifest?v=99
+/admin.webmanifest?v=99
 ```
+
+Acceso directo admin en iPhone:
+
+- abrir `https://tu-dominio/admin` o `https://tu-dominio/admin/login`
+- usar `Compartir -> Agregar a pantalla de inicio`
+- si ya existia un acceso directo viejo, eliminarlo y crearlo de nuevo para que tome `start_url: /admin`
 
 ## Documentacion clave
 
