@@ -15,7 +15,7 @@ export function ProductCatalog({
   onAdd
 }: ProductCatalogProps) {
   return (
-    <div className="grid w-full max-w-full min-w-0 gap-4 md:grid-cols-2">
+    <div className="grid w-full max-w-full min-w-0 gap-4 md:auto-rows-fr md:grid-cols-2">
       {products.map((product) => (
         <ProductCard
           key={product.id}

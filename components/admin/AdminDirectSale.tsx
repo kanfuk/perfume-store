@@ -293,7 +293,7 @@ export function AdminDirectSale({
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admin"
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[#ecd7b3] bg-white/80 px-4 py-3 text-sm font-semibold text-[#7e4a5c]"
+                className="inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] border border-[#ecd7b3] bg-white/80 px-4 py-3 text-center text-sm font-semibold text-[#7e4a5c] sm:min-w-[146px]"
               >
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Inicio</span>
@@ -301,13 +301,13 @@ export function AdminDirectSale({
               <ModeButton
                 active={mode === "catalogo"}
                 icon={<ShoppingBag className="h-4 w-4" />}
-                label="Venta de catalogo"
+                label="Catalogo"
                 onClick={() => setMode("catalogo")}
               />
               <ModeButton
                 active={mode === "personalizado"}
                 icon={<Sparkles className="h-4 w-4" />}
-                label="Pedido personalizado"
+                label="Personalizada"
                 onClick={() => setMode("personalizado")}
               />
             </div>
@@ -346,7 +346,7 @@ export function AdminDirectSale({
               title="Datos del cliente"
               subtitle="Puedes dejarlo ocasional, buscar un cliente existente o registrar uno nuevo."
             >
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
                 <ChoiceButton
                   active={customerMode === "ocasional"}
                   title="Cliente ocasional"
@@ -410,7 +410,7 @@ export function AdminDirectSale({
                 icon={<Building2 className="h-4 w-4" />}
               />
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-2">
                 <ChoiceButton
                   active={paymentState === "PAGADO"}
                   title="Pagado"
@@ -578,7 +578,7 @@ export function AdminDirectSale({
 
               <div className="space-y-3">
                 <div className="text-sm font-medium text-[#5f3041]">Estado inicial del pedido</div>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
                   <ChoiceButton
                     active={customForm.estadoInicial === "AGENDADO"}
                     title="Agendado"
@@ -714,7 +714,7 @@ function ModeButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+      className={`inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] px-4 py-3 text-center text-sm font-semibold transition sm:min-w-[146px] ${
         active
           ? "bg-[#a86b32] text-white"
           : "border border-[#ecd7b3] bg-white/80 text-[#7e4a5c]"
@@ -741,7 +741,7 @@ function ChoiceButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[22px] border px-4 py-4 text-left transition ${
+      className={`flex h-full flex-col justify-between rounded-[22px] border px-4 py-4 text-left transition ${
         active
           ? "border-[#a86b32] bg-[#fff6e7] shadow-soft"
           : "border-[#eedcc3] bg-white"

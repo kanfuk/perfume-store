@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -832,7 +832,7 @@ export function AdminDashboard({
       </section>
 
       <section className="sticky top-0 z-20 max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/95 p-3 shadow-soft backdrop-blur">
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
           <AdminSectionTab
             label="Inicio"
             icon={Home}
@@ -877,15 +877,15 @@ export function AdminDashboard({
           />
           <Link
             href="/admin/venta-directa"
-            className="inline-flex min-h-[76px] min-w-[160px] items-center gap-3 rounded-[20px] border border-rose-200 bg-amber-50 px-4 py-3 text-left shadow-soft transition hover:border-amber-300"
+            className="inline-flex min-h-[88px] min-w-[132px] items-center gap-3 rounded-[20px] border border-rose-200 bg-amber-50 px-4 py-3 text-left shadow-soft transition hover:border-amber-300 sm:min-w-[146px]"
           >
             <ShoppingBag className="h-4 w-4 text-amber-700" />
             <div className="min-w-0">
               <div className="text-sm font-semibold text-rose-950">Venta directa</div>
-              <div className="text-xs text-rose-900/70">In situ y personalizado</div>
+              <div className="text-xs text-rose-900/70">Personalizada</div>
             </div>
           </Link>
-        </div>
+        </StableHorizontalRail>
       </section>
 
       {error ? (
@@ -1309,7 +1309,7 @@ export function AdminDashboard({
 
               <div className="space-y-2">
                 <span className="text-sm font-semibold text-rose-900">Filtro rapido</span>
-                <div className="flex gap-2 overflow-x-auto">
+                <StableHorizontalRail className="flex gap-2 overflow-x-auto">
                   <FilterChip
                     label="Activos"
                     active={stockFilter === "activos"}
@@ -1330,7 +1330,7 @@ export function AdminDashboard({
                     active={stockFilter === "todos"}
                     onClick={() => setStockFilter("todos")}
                   />
-                </div>
+                </StableHorizontalRail>
               </div>
             </div>
           </section>
@@ -3152,5 +3152,40 @@ function MobileAdminNav({
         Venta directa
       </Link>
     </nav>
+  );
+}
+
+function StableHorizontalRail({
+  className,
+  children
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollLeftRef = useRef(0);
+
+  useEffect(() => {
+    const rail = railRef.current;
+
+    if (!rail) {
+      return;
+    }
+
+    if (Math.abs(rail.scrollLeft - lastScrollLeftRef.current) > 1) {
+      rail.scrollLeft = lastScrollLeftRef.current;
+    }
+  });
+
+  return (
+    <div
+      ref={railRef}
+      onScroll={(event) => {
+        lastScrollLeftRef.current = event.currentTarget.scrollLeft;
+      }}
+      className={className}
+    >
+      {children}
+    </div>
   );
 }
