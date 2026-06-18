@@ -1,8 +1,17 @@
 -- Datos iniciales opcionales para desarrollo en Supabase
 
-update productos
-set activo = false
-where nombre in ('Pan amasado', 'Queque de naranja', 'Pack de once');
+delete from productos
+where nombre in (
+  'Dobladita sola',
+  'Pack de once',
+  'Pan amasado',
+  'Queque de naranja',
+  'Queque vainilla',
+  'Quequito banana bread',
+  'Quequito carrot cake nueces',
+  'Quequito choco chip sugar free',
+  'Quequito marmoleado'
+);
 
 update productos
 set

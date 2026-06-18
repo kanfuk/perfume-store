@@ -1,3 +1,101 @@
+-- Pauli Store
+-- Migracion idempotente para alinear venta directa, pedido personalizado
+-- y catalogo oficial vigente.
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedidos' and column_name = 'origen_pedido'
+  ) then
+    alter table pedidos add column origen_pedido text default 'PUBLICO';
+  end if;
+end $$;
+
+update pedidos
+set origen_pedido = 'PUBLICO'
+where origen_pedido is null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_nombre'
+  ) then
+    alter table pedido_items add column producto_nombre text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_descripcion'
+  ) then
+    alter table pedido_items add column producto_descripcion text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_image_url'
+  ) then
+    alter table pedido_items add column producto_image_url text;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items' and column_name = 'producto_tipo'
+  ) then
+    alter table pedido_items add column producto_tipo text;
+  end if;
+end $$;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'pedido_items'
+      and column_name = 'producto_id'
+      and is_nullable = 'NO'
+  ) then
+    alter table pedido_items alter column producto_id drop not null;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'pedidos_origen_pedido_check'
+  ) then
+    alter table pedidos
+    add constraint pedidos_origen_pedido_check
+    check (origen_pedido in ('PUBLICO', 'ADMIN_DIRECTO', 'PERSONALIZADO'));
+  end if;
+end $$;
+
+update pedido_items pi
+set
+  producto_nombre = coalesce(pi.producto_nombre, p.nombre),
+  producto_descripcion = coalesce(pi.producto_descripcion, p.descripcion),
+  producto_image_url = coalesce(pi.producto_image_url, p.image_url),
+  producto_tipo = coalesce(pi.producto_tipo, p.tipo_producto)
+from productos p
+where pi.producto_id = p.id;
+
 delete from productos
 where nombre in (
   'Dobladita sola',
@@ -5,10 +103,10 @@ where nombre in (
   'Pan amasado',
   'Queque de naranja',
   'Queque vainilla',
+  'Quequito marmoleado',
   'Quequito banana bread',
-  'Quequito carrot cake nueces',
   'Quequito choco chip sugar free',
-  'Quequito marmoleado'
+  'Quequito carrot cake nueces'
 );
 
 update productos

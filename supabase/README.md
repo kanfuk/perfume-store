@@ -30,3 +30,17 @@ La clave recomendada hoy por Supabase para servidor es la `secret key`. La `serv
 1. Crear un usuario en `Authentication -> Users` con email y password.
 2. Ejecutar `supabase/admin-setup.sql` ajustando el email al mismo usuario.
 3. Ese email debe existir en `usuarios_admin` y estar `activo = true`.
+
+## 5. Trabajo desde terminal
+
+El proyecto ya puede trabajar con CLI usando `npx supabase`.
+
+Scripts utiles desde `package.json`:
+
+- `npm run supabase:login`
+- `npm run supabase:link`
+- `npm run supabase:push -- --linked`
+- `npm run supabase:pull`
+- `npm run supabase:status`
+
+Para cambios nuevos de base, preferir migraciones en `supabase/migrations/`.
