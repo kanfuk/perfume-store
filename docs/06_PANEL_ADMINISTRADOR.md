@@ -32,3 +32,12 @@ La nueva vista `/admin/venta-directa` incorpora:
 - filtros simples
 - texto corto
 - acceso rapido a acciones importantes
+
+## Ajustes finales aplicados
+
+- botonera superior simplificada
+- `Venta directa` ya no queda duplicada arriba
+- vistas internas con encabezado propio
+- boton minimal de regreso a Inicio en mobile para vistas internas
+- `Limpiar datos de prueba` se retiro de la interfaz de Ventas
+- `Cierre de mes` se mantiene disponible

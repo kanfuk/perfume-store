@@ -50,6 +50,14 @@ Origen:
 ## 5. Productos agregados
 
 - Dobladita ave mayo
+- Dobladita ave pimenton
+- Quequito marmoleado
+- Quequito banana bread
+- Quequito choco chip sugar free
+- Carrot cake con nueces
+- Queque de platano
+- Queque marmoleado
+- Pedido personalizado
 
 ## 6. Productos desactivados
 
@@ -57,7 +65,14 @@ No se eliminaron productos historicos desde codigo.
 
 ## 7. Fotos agregadas
 
-- `public/images/products/dobladita-reserva-ave-mayo.png`
+- `public/images/products/dobladita-ave-mayo.png`
+- `public/images/products/dobladita-ave-pimenton.jpeg`
+- `public/images/products/quequito-marmoleado.png`
+- `public/images/products/quequito-banana-bread.png`
+- `public/images/products/quequito-choco-chip-sugar-free.png`
+- `public/images/products/carrot-cake-nueces.png`
+- `public/images/products/queque-platano.png`
+- `public/images/products/queque-marmoleado.png`
 - `public/images/products/pedido-personalizado.png`
 
 ## 8. Cambios de base de datos si aplica

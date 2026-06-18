@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  ArrowLeft,
   Archive,
   ArrowRight,
   BarChart3,
@@ -98,6 +97,45 @@ const ADMIN_VIEW_ROUTES: Record<AdminView, string> = {
   cobros: "/admin/ventas",
   clientes: "/admin/clientes",
   reportes: "/admin/reportes"
+};
+
+const ADMIN_VIEW_META: Record<
+  AdminView,
+  {
+    title: string;
+    description: string;
+  }
+> = {
+  home: {
+    title: "Centro de control",
+    description:
+      "Resumen rapido y accesos claros para revisar pedidos, stock, ventas y clientes sin perderte."
+  },
+  agenda: {
+    title: "Pedidos",
+    description:
+      "Revisa pendientes, agenda entregas y vuelve al inicio cuando termines."
+  },
+  stock: {
+    title: "Stock",
+    description:
+      "Ajusta catalogo, stock, precios e imagenes desde una vista propia y ordenada."
+  },
+  cobros: {
+    title: "Ventas",
+    description:
+      "Cierra pedidos, revisa fiados y deja solo las acciones relevantes del flujo real."
+  },
+  clientes: {
+    title: "Clientes",
+    description:
+      "Consulta historial reciente y vuelve al panel principal con gesto del navegador o Inicio."
+  },
+  reportes: {
+    title: "Reportes",
+    description:
+      "Mira solo los numeros importantes desde una vista independiente y clara."
+  }
 };
 
 export function AdminDashboard({
@@ -744,6 +782,8 @@ export function AdminDashboard({
     router.push(ADMIN_VIEW_ROUTES[nextView]);
   }
 
+  const currentViewMeta = ADMIN_VIEW_META[view];
+
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-28 sm:px-6">
       <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
@@ -754,44 +794,36 @@ export function AdminDashboard({
               Panel admin
             </span>
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-rose-950">Centro de control</h1>
+              <h1 className="text-3xl font-bold text-rose-950">{currentViewMeta.title}</h1>
               <p className="max-w-3xl text-sm leading-6 text-rose-900/70">
-                Todo lo importante de Pauli Store en pocas acciones: revisar pedidos,
-                abrir stock, cobrar y cerrar el dia sin perderte.
+                {currentViewMeta.description}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
             {view !== "home" ? (
               <button
                 type="button"
                 onClick={() => navigateToView("home")}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900"
+                className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-rose-200 bg-white px-3 py-2.5 text-sm font-semibold text-rose-900 sm:px-4"
               >
-                <ArrowLeft className="h-4 w-4" />
-                Inicio
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Inicio</span>
               </button>
             ) : null}
             <button
               type="button"
               onClick={() => void refreshAll()}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900"
+              className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900"
             >
               <RefreshCcw className="h-4 w-4" />
               Actualizar
             </button>
-            <Link
-              href="/admin/venta-directa"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <ShoppingBag className="h-4 w-4" />
-              Venta directa
-            </Link>
             <button
               type="button"
               onClick={logout}
-              className="min-h-11 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900"
+              className="min-h-11 rounded-[18px] border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900"
             >
               Cerrar sesion
             </button>
@@ -845,7 +877,7 @@ export function AdminDashboard({
           />
           <Link
             href="/admin/venta-directa"
-            className="inline-flex min-w-[160px] items-center gap-3 rounded-2xl border border-rose-200 bg-amber-50 px-4 py-3 text-left shadow-soft transition hover:border-amber-300"
+            className="inline-flex min-h-[76px] min-w-[160px] items-center gap-3 rounded-[20px] border border-rose-200 bg-amber-50 px-4 py-3 text-left shadow-soft transition hover:border-amber-300"
           >
             <ShoppingBag className="h-4 w-4 text-amber-700" />
             <div className="min-w-0">
@@ -1468,18 +1500,18 @@ export function AdminDashboard({
             </section>
           </div>
 
-          <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+          <section className="rounded-[24px] border border-rose-200 bg-white/90 p-5 shadow-soft">
             <div className="flex items-center gap-2 text-rose-950">
               <Archive className="h-5 w-5" />
-              <h3 className="text-lg font-bold">Cierre y limpieza</h3>
+              <h3 className="text-lg font-bold">Cierre de mes</h3>
             </div>
             <p className="copy-justified mt-3 text-sm leading-6 text-rose-900/70">
               Usa cierre de mes cuando ya no queden pedidos pendientes ni agendados y
-              quieras archivar la operacion completa del periodo. Usa limpieza de prueba
-              antes del lanzamiento publico para borrar solo la data simulada operativa.
+              quieras archivar la operacion completa del periodo. Esta vista ya no expone
+              herramientas de prueba para mantener el flujo mas limpio y profesional.
             </p>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <article className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4">
+            <div className="mt-4">
+              <article className="rounded-[20px] border border-rose-200 bg-rose-50/70 p-4">
                 <h4 className="text-base font-semibold text-rose-950">Cierre de mes</h4>
                 <p className="copy-justified mt-2 text-sm leading-6 text-rose-900/70">
                   Archiva pedidos, items, pagos, fiados y clientes en un log historico y
@@ -1489,33 +1521,12 @@ export function AdminDashboard({
                   type="button"
                   disabled={busyMaintenanceAction !== ""}
                   onClick={() => void runMaintenanceAction("close-month")}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
                 >
                   <Archive className="h-4 w-4" />
                   {busyMaintenanceAction === "close-month"
                     ? "Cerrando..."
                     : "Cerrar mes"}
-                </button>
-              </article>
-
-              <article className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-                <h4 className="text-base font-semibold text-amber-900">
-                  Limpiar datos de prueba
-                </h4>
-                <p className="copy-justified mt-2 text-sm leading-6 text-amber-900/80">
-                  Borra la operacion simulada del panel antes del lanzamiento publico.
-                  No toca productos, precios ni stock actual.
-                </p>
-                <button
-                  type="button"
-                  disabled={busyMaintenanceAction !== ""}
-                  onClick={() => void runMaintenanceAction("clear-test-data")}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {busyMaintenanceAction === "clear-test-data"
-                    ? "Limpiando..."
-                    : "Limpiar prueba"}
                 </button>
               </article>
             </div>
@@ -1745,6 +1756,7 @@ export function AdminDashboard({
       ) : null}
 
       <AppFooter className="pb-24 md:pb-8" />
+      {view !== "home" ? <MobileQuickHomeButton href="/admin" label="Inicio" /> : null}
       <MobileAdminNav currentView={view} onChange={navigateToView} />
     </main>
   );
@@ -1764,10 +1776,10 @@ function SectionIntro({
   helper?: string;
 }) {
   return (
-    <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+    <section className="max-w-full overflow-x-hidden rounded-[24px] border border-rose-200 bg-white/90 p-5 shadow-soft">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="rounded-2xl bg-rose-100 p-3 text-rose-700">
+          <span className="rounded-[18px] bg-rose-100 p-3 text-rose-700">
             <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0 space-y-1">
@@ -1776,7 +1788,7 @@ function SectionIntro({
               {subtitle}
             </p>
             {helper ? (
-              <p className="copy-justified break-words rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              <p className="copy-justified break-words rounded-[18px] bg-rose-50 px-3 py-2 text-sm text-rose-800">
                 {helper}
               </p>
             ) : null}
@@ -1838,7 +1850,7 @@ function HomeActionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-rose-300`}
+      className={`max-w-full overflow-x-hidden rounded-[20px] border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-rose-300`}
     >
       <div className="flex items-start justify-between gap-3">
         <span
@@ -1846,7 +1858,7 @@ function HomeActionCard({
         >
           <Icon className="h-5 w-5" />
         </span>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-800">
+        <span className="inline-flex min-h-8 items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-800">
           {badge}
         </span>
       </div>
@@ -1914,7 +1926,7 @@ function AdminSectionTab({
     <button
       type="button"
       onClick={onClick}
-      className={`min-w-[132px] rounded-2xl border px-4 py-3 text-left transition sm:min-w-[146px] ${
+      className={`min-h-[88px] min-w-[132px] rounded-[20px] border px-4 py-3 text-left transition sm:min-w-[146px] ${
         active
           ? "border-rose-300 bg-rose-600 text-white"
           : "border-rose-200 bg-rose-50 text-rose-900"
@@ -1922,7 +1934,7 @@ function AdminSectionTab({
     >
       <div className="flex items-start justify-between gap-3">
         <span
-          className={`rounded-2xl p-2 ${
+          className={`rounded-[16px] p-2 ${
             active ? "bg-white/20 text-white" : "bg-white text-rose-700"
           }`}
         >
@@ -1952,7 +1964,7 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
+      className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
         active ? "bg-rose-600 text-white" : "bg-rose-50 text-rose-800"
       }`}
     >
@@ -1986,7 +1998,7 @@ function StockProductCard({
         <div className="flex min-w-0 gap-4">
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50">
             <ProductImage
-              src={product.imageUrl ?? "/images/products/dobladita-reserva-ave-pimenton.jpeg"}
+              src={product.imageUrl ?? "/images/products/dobladita-ave-pimenton.jpeg"}
               alt={product.nombre}
               sizes="96px"
               className="object-cover"
@@ -2805,7 +2817,7 @@ function HeroMetric({
             };
   return (
     <article
-      className={`max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-5 shadow-soft`}
+      className={`max-w-full overflow-x-hidden rounded-[22px] border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-5 shadow-soft`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -2842,7 +2854,7 @@ function FocusCard({
         : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
-    <article className={`max-w-full overflow-x-hidden rounded-lg border p-4 shadow-soft ${className}`}>
+    <article className={`max-w-full overflow-x-hidden rounded-[22px] border p-4 shadow-soft ${className}`}>
       <div className="flex items-start gap-3">
         <span className="rounded-2xl bg-white/80 p-3">
           <Icon className="h-5 w-5" />
@@ -2886,7 +2898,7 @@ function MiniHomeTab({
     <button
       type="button"
       onClick={onClick}
-      className={`min-w-0 rounded-lg px-4 py-4 text-left shadow-soft transition ${palette}`}
+      className={`min-h-[88px] min-w-0 rounded-[20px] px-4 py-4 text-left shadow-soft transition ${palette}`}
     >
       <div className="break-words text-sm font-medium opacity-90">{title}</div>
       <div className="mt-2 break-words text-2xl font-bold">{value}</div>
@@ -2984,7 +2996,7 @@ function InlineField({
 
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-rose-200 bg-white px-3 py-2">
+    <div className="flex min-h-[72px] flex-col justify-center rounded-[18px] border border-rose-200 bg-white px-3 py-3">
       <div className="text-[11px] uppercase tracking-wide text-rose-700/70">{label}</div>
       <div className="mt-1 text-sm font-semibold text-rose-950">{value}</div>
     </div>
@@ -3015,10 +3027,29 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex max-w-full items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold leading-4 ${classes}`}
+      className={`inline-flex min-h-8 max-w-full items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold leading-4 ${classes}`}
     >
       {label}
     </span>
+  );
+}
+
+function MobileQuickHomeButton({
+  href,
+  label
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white/95 text-rose-900 shadow-soft backdrop-blur md:hidden"
+      aria-label={label}
+      title={label}
+    >
+      <Home className="h-4 w-4" />
+    </Link>
   );
 }
 

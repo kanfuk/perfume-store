@@ -25,6 +25,7 @@ npm run build
 ## Cliente
 
 - ver catalogo
+- confirmar fotos de todos los productos activos
 - agregar producto
 - cambiar cantidad
 - registrar pedido
@@ -35,6 +36,8 @@ npm run build
 
 - login
 - navegar modulos
+- volver a Inicio desde vistas internas
+- validar boton minimal de Inicio en mobile
 - revisar filtros y cards en 360px, 375px, 390px y 430px
 
 ## Venta directa
@@ -44,6 +47,7 @@ npm run build
 - validar `FINALIZADO / PAGADO`
 - validar `FINALIZADO / FIADO`
 - validar aparicion en ventas y reportes
+- confirmar mismas fotos que cliente
 
 ## Pedido personalizado
 

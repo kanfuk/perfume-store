@@ -24,6 +24,8 @@ Completada:
 - reportes
 - venta directa
 - pedido personalizado
+- navegacion por vistas con encabezados propios
+- botonera superior simplificada
 
 ### Fase datos
 
@@ -35,6 +37,5 @@ Avanzada:
 
 ### Pendientes
 
-- aplicar SQL nuevo en base productiva
 - QA manual final en telefono real
 - definir politica futura de descuento automatico de stock en ventas cerradas

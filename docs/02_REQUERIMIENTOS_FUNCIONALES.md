@@ -127,3 +127,11 @@ Debe permitir:
 El catalogo operativo contempla:
 
 - Dobladita ave mayo
+- Dobladita ave pimenton
+- Quequito marmoleado
+- Quequito banana bread
+- Quequito choco chip sugar free
+- Carrot cake con nueces
+- Queque de platano
+- Queque marmoleado
+- Pedido personalizado

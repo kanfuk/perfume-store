@@ -5,12 +5,14 @@ import {
   BadgeCheck,
   Building2,
   CalendarClock,
+  Home,
   NotebookPen,
   Phone,
   ShoppingBag,
   Sparkles,
   UserRound
 } from "lucide-react";
+import Link from "next/link";
 import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { formatChileanMobileInput } from "@/lib/chile-phone";
@@ -289,6 +291,13 @@ export function AdminDirectSale({
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
+              <Link
+                href="/admin"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[#ecd7b3] bg-white/80 px-4 py-3 text-sm font-semibold text-[#7e4a5c]"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Inicio</span>
+              </Link>
               <ModeButton
                 active={mode === "catalogo"}
                 icon={<ShoppingBag className="h-4 w-4" />}
@@ -651,6 +660,14 @@ export function AdminDirectSale({
           </aside>
         </section>
       )}
+
+      <Link
+        href="/admin"
+        className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#ecd7b3] bg-white/95 text-[#7e4a5c] shadow-soft backdrop-blur md:hidden"
+        aria-label="Inicio admin"
+      >
+        <Home className="h-4 w-4" />
+      </Link>
     </main>
   );
 }

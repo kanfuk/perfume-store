@@ -26,7 +26,7 @@ export function ProductCard({
     <article className="max-w-full overflow-hidden rounded-[28px] border border-[#eedcc3] bg-white shadow-sm transition-[border-color,box-shadow,background-color] duration-200 touch-manipulation hover:shadow-soft">
       <div className="relative aspect-[4/3] min-w-0 bg-[#fff5e8]">
         <ProductImage
-          src={product.imageUrl ?? "/images/products/dobladita-reserva-ave-mayo.png"}
+          src={product.imageUrl ?? "/images/products/dobladita-ave-mayo.png"}
           alt={product.nombre}
           sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
           className="object-cover"

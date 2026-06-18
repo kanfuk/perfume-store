@@ -21,8 +21,40 @@ const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {
     badgeLabel: "DOBLADITA HUEVO"
   },
   "dobladita-ave-mayo": {
-    imageUrl: "/images/products/dobladita-reserva-ave-mayo.png",
+    imageUrl: "/images/products/dobladita-ave-mayo.png",
     badgeLabel: "AVE MAYO"
+  },
+  "dobladita-ave-pimenton": {
+    imageUrl: "/images/products/dobladita-ave-pimenton.jpeg",
+    badgeLabel: "PRECIO PENDIENTE"
+  },
+  "quequito-marmoleado": {
+    imageUrl: "/images/products/quequito-marmoleado.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "quequito-banana-bread": {
+    imageUrl: "/images/products/quequito-banana-bread.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "quequito-choco-chip-sugar-free": {
+    imageUrl: "/images/products/quequito-choco-chip-sugar-free.png",
+    badgeLabel: "SUGAR FREE"
+  },
+  "carrot-cake-nueces": {
+    imageUrl: "/images/products/carrot-cake-nueces.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "queque-platano": {
+    imageUrl: "/images/products/queque-platano.png",
+    badgeLabel: "PRECIO PENDIENTE"
+  },
+  "queque-marmoleado": {
+    imageUrl: "/images/products/queque-marmoleado.png",
+    badgeLabel: "PRECIO PENDIENTE"
+  },
+  "pedido-personalizado": {
+    imageUrl: "/images/products/pedido-personalizado.png",
+    badgeLabel: "A PEDIDO"
   },
   "dobladita-reserva-ave-pimenton": {
     imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
