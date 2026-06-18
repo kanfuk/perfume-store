@@ -127,9 +127,3 @@ Debe permitir:
 El catalogo operativo contempla:
 
 - Dobladita ave mayo
-- Quequito marmoleado
-- Quequito banana bread
-- Quequito choco chip sugar free
-- Quequito carrot cake nueces
-
-Todos los quequitos activos tienen precio base `1000 CLP`.

@@ -64,54 +64,6 @@ from (
       12,
       true,
       'dobladita'
-    ),
-    (
-      'Quequito marmoleado',
-      'Suave bizcocho humedo y esponjoso con sabor vainilla y chocolate.',
-      1000,
-      '/images/products/queque-casero-marmoleado.png',
-      'QUEQUITO CASERO',
-      450,
-      8,
-      8,
-      true,
-      'quequito'
-    ),
-    (
-      'Quequito banana bread',
-      'Rico bizcocho esponjoso, humedo, con platano y nueces.',
-      1000,
-      '/images/products/queque-casero-banana.png',
-      'QUEQUITO CASERO',
-      470,
-      8,
-      8,
-      true,
-      'quequito'
-    ),
-    (
-      'Quequito choco chip sugar free',
-      'Bizcocho de vainilla endulzado con alulosa, con chips de chocolate semi amargo.',
-      1000,
-      '/images/products/queque-casero-chocochips-sf.png',
-      'SUGAR FREE',
-      520,
-      8,
-      8,
-      true,
-      'quequito'
-    ),
-    (
-      'Quequito carrot cake nueces',
-      'Bizcocho casero de zanahoria con nueces, suave y especiado.',
-      1000,
-      '/images/products/carrot-cake-nueces.png',
-      'QUEQUITO CASERO',
-      490,
-      8,
-      8,
-      true,
-      'quequito'
     )
 ) as seed (
   nombre,
@@ -199,54 +151,6 @@ from (
       12,
       true,
       'dobladita'
-    ),
-    (
-      'Quequito marmoleado',
-      'Suave bizcocho humedo y esponjoso con sabor vainilla y chocolate.',
-      1000,
-      '/images/products/queque-casero-marmoleado.png',
-      'QUEQUITO CASERO',
-      450,
-      8,
-      8,
-      true,
-      'quequito'
-    ),
-    (
-      'Quequito banana bread',
-      'Rico bizcocho esponjoso, humedo, con platano y nueces.',
-      1000,
-      '/images/products/queque-casero-banana.png',
-      'QUEQUITO CASERO',
-      470,
-      8,
-      8,
-      true,
-      'quequito'
-    ),
-    (
-      'Quequito choco chip sugar free',
-      'Bizcocho de vainilla endulzado con alulosa, con chips de chocolate semi amargo.',
-      1000,
-      '/images/products/queque-casero-chocochips-sf.png',
-      'SUGAR FREE',
-      520,
-      8,
-      8,
-      true,
-      'quequito'
-    ),
-    (
-      'Quequito carrot cake nueces',
-      'Bizcocho casero de zanahoria con nueces, suave y especiado.',
-      1000,
-      '/images/products/carrot-cake-nueces.png',
-      'QUEQUITO CASERO',
-      490,
-      8,
-      8,
-      true,
-      'quequito'
     )
 ) as seed (
   nombre,

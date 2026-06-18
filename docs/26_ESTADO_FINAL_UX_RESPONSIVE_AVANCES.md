@@ -17,10 +17,6 @@ Cliente y admin ya comparten una linea visual mas consistente y la nueva venta d
 - Dobladita jamon de pavo acaramelado/queso
 - Dobladita huevo
 - Dobladita ave mayo
-- Quequito marmoleado
-- Quequito banana bread
-- Quequito choco chip sugar free
-- Quequito carrot cake nueces
 
 ## Responsive
 
