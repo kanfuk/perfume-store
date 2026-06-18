@@ -786,7 +786,7 @@ export function AdminDashboard({
   const currentViewMeta = ADMIN_VIEW_META[view];
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-[calc(140px+env(safe-area-inset-bottom))] sm:px-6">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
       <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
@@ -1761,9 +1761,15 @@ export function AdminDashboard({
       ) : null}
 
       <AppFooter className="pb-24 md:pb-8" />
-      <WhatsAppFloatingButton hidden={Boolean(productModalState || orderModalState)} />
+      <WhatsAppFloatingButton
+        hidden={Boolean(productModalState || orderModalState)}
+        bottomOffsetClassName={
+          view === "home"
+            ? "bottom-[calc(24px+env(safe-area-inset-bottom))]"
+            : "bottom-[calc(88px+env(safe-area-inset-bottom))]"
+        }
+      />
       {view !== "home" ? <MobileQuickHomeButton href="/admin" label="Inicio" /> : null}
-      <MobileAdminNav currentView={view} onChange={navigateToView} />
     </main>
   );
 }
@@ -3054,7 +3060,7 @@ function MobileQuickHomeButton({
   return (
     <Link
       href={href}
-      className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white/95 text-rose-900 shadow-soft backdrop-blur md:hidden"
+      className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white/95 text-rose-900 shadow-soft backdrop-blur md:hidden"
       aria-label={label}
       title={label}
     >
@@ -3110,59 +3116,6 @@ function buttonToneClass(tone: "primary" | "warning" | "muted") {
   }
 
   return "inline-flex min-h-11 items-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900";
-}
-
-function MobileAdminNav({
-  currentView,
-  onChange
-}: {
-  currentView: AdminView;
-  onChange: (view: AdminView) => void;
-}) {
-  const items: Array<{
-    value: AdminView;
-    label: string;
-    icon: typeof LayoutGrid;
-  }> = [
-    { value: "home", label: "Inicio", icon: Home },
-    { value: "agenda", label: "Pedidos", icon: ClipboardList },
-    { value: "stock", label: "Stock", icon: Boxes },
-    { value: "cobros", label: "Ventas", icon: WalletCards },
-    { value: "clientes", label: "Clientes", icon: UserRound },
-    { value: "reportes", label: "Reportes", icon: BarChart3 }
-  ];
-
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-rose-200 bg-white/95 px-3 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(95,48,65,0.08)] backdrop-blur md:hidden">
-      <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = currentView === item.value;
-
-          return (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => onChange(item.value)}
-              className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${
-                active ? "bg-rose-100 text-rose-800" : "text-rose-500"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
-      <Link
-        href="/admin/venta-directa"
-        className="mx-auto mt-2 flex max-w-3xl items-center justify-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800"
-      >
-        <ShoppingBag className="h-4 w-4" />
-        Venta directa
-      </Link>
-    </nav>
-  );
 }
 
 function StableHorizontalRail({

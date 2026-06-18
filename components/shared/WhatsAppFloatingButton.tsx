@@ -15,7 +15,7 @@ const FALLBACK_MESSAGE = [
 
 export function WhatsAppFloatingButton({
   hidden = false,
-  bottomOffsetClassName = "bottom-[calc(144px+env(safe-area-inset-bottom))]"
+  bottomOffsetClassName = "bottom-[calc(24px+env(safe-area-inset-bottom))]"
 }: WhatsAppFloatingButtonProps) {
   if (hidden) {
     return null;

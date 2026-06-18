@@ -36,6 +36,7 @@ npm run build
 
 - login
 - navegar modulos
+- confirmar que ya no aparece navbar inferior admin
 - volver a Inicio desde vistas internas
 - validar boton minimal de Inicio en mobile
 - validar boton flotante de WhatsApp y apertura del mensaje
@@ -48,6 +49,7 @@ npm run build
 - bajar hasta `Guardar producto`
 - validar que footer y safe-area no tapen botones
 - abrir acciones de pedido y confirmar que el modal no se corta
+- confirmar que no queda espacio blanco enorme al final del admin
 
 ## Venta directa
 

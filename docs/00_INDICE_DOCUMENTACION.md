@@ -31,6 +31,7 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 | `28_VENTA_DIRECTA_PEDIDO_PERSONALIZADO_PRODUCTOS_LIMPIEZA.md` | Venta directa, pedido personalizado, catalogo ampliado y cierre tecnico. |
 | `29_AJUSTES_FINALES_ADMIN_PRODUCTOS_QA.md` | Ajustes finales de navegacion admin, catalogo, fotos y QA final. |
 | `30_SCROLL_INTERNO_WHATSAPP_FLOATING_QA.md` | Diagnostico y correcciones del scroll interno admin mas boton flotante de WhatsApp. |
+| `31_ELIMINA_NAVBAR_INFERIOR_ADMIN_UX_FINAL.md` | Retiro de la navbar inferior admin y ajustes finales de espaciado mobile. |
 | `PROMPT_CODEX_INTEGRAR_ICONOS.md` | Prompt operativo para reinstalar o revisar el pack de iconos de Pauli Store. |
 
 ## Instruccion general para Codex

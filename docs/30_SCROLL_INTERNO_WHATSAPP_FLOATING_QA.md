@@ -75,3 +75,4 @@ https://pauli-store-clientes.vercel.app/
 - validar en telefono real con teclado abierto
 - si existe link fijo de grupo, moverlo a `NEXT_PUBLIC_WHATSAPP_GROUP_URL`
 - si se quiere texto editable, moverlo a `NEXT_PUBLIC_WHATSAPP_SHARE_URL`
+- navbar inferior admin eliminada posteriormente para evitar contenido tapado

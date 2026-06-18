@@ -39,6 +39,7 @@ La nueva vista `/admin/venta-directa` incorpora:
 - `Venta directa` ya no queda duplicada arriba
 - vistas internas con encabezado propio
 - boton minimal de regreso a Inicio en mobile para vistas internas
+- navbar inferior mobile eliminada del admin
 - `Limpiar datos de prueba` se retiro de la interfaz de Ventas
 - `Cierre de mes` se mantiene disponible
 - modal de productos con scroll interno corregido en `/admin/stock`
