@@ -877,12 +877,16 @@ export function AdminDashboard({
           />
           <Link
             href="/admin/venta-directa"
-            className="inline-flex min-h-[88px] min-w-[132px] items-center gap-3 rounded-[20px] border border-rose-200 bg-amber-50 px-4 py-3 text-left shadow-soft transition hover:border-amber-300 sm:min-w-[146px]"
+            className="min-h-[88px] min-w-[132px] rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-left text-rose-900 transition hover:border-rose-300 sm:min-w-[146px]"
           >
-            <ShoppingBag className="h-4 w-4 text-amber-700" />
-            <div className="min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <span className="rounded-[16px] bg-white p-2 text-rose-700">
+                <ShoppingBag className="h-4 w-4" />
+              </span>
+            </div>
+            <div className="mt-3 min-w-0">
               <div className="text-sm font-semibold text-rose-950">Venta directa</div>
-              <div className="text-xs text-rose-900/70">Personalizada</div>
+              <div className="mt-1 text-xs text-rose-700/80">Personalizada</div>
             </div>
           </Link>
         </StableHorizontalRail>
