@@ -38,7 +38,16 @@ npm run build
 - navegar modulos
 - volver a Inicio desde vistas internas
 - validar boton minimal de Inicio en mobile
+- validar boton flotante de WhatsApp y apertura del mensaje
 - revisar filtros y cards en 360px, 375px, 390px y 430px
+
+## Scroll interno admin
+
+- abrir `/admin/stock`
+- crear y editar producto
+- bajar hasta `Guardar producto`
+- validar que footer y safe-area no tapen botones
+- abrir acciones de pedido y confirmar que el modal no se corta
 
 ## Venta directa
 
@@ -55,3 +64,4 @@ npm run build
 - registrar `FINALIZADO / PAGADO`
 - registrar `FINALIZADO / FIADO`
 - validar aparicion en pedidos, ventas, fiados y reportes
+- confirmar que se llega al final del formulario en mobile

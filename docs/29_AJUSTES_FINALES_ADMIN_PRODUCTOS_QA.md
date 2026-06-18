@@ -106,6 +106,9 @@ Pauli Store queda con cliente publico, admin modular, venta directa, pedido pers
 - botonera superior sin overflow horizontal
 - chips y cards revisados para 360px, 375px, 390px y 430px
 - boton minimal de Inicio en mobile para vistas internas
+- modal de producto con scroll funcional hasta el final
+- espacio inferior extra para navbar y safe-area
+- boton flotante de WhatsApp visible en admin y oculto al abrir modales
 
 ## 16. QA funcional local
 

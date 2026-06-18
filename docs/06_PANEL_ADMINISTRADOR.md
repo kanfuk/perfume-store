@@ -41,3 +41,5 @@ La nueva vista `/admin/venta-directa` incorpora:
 - boton minimal de regreso a Inicio en mobile para vistas internas
 - `Limpiar datos de prueba` se retiro de la interfaz de Ventas
 - `Cierre de mes` se mantiene disponible
+- modal de productos con scroll interno corregido en `/admin/stock`
+- boton flotante de WhatsApp visible en admin para compartir el link de pedidos

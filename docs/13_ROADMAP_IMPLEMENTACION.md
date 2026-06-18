@@ -39,3 +39,9 @@ Avanzada:
 
 - QA manual final en telefono real
 - definir politica futura de descuento automatico de stock en ventas cerradas
+
+## Ultimos cierres aplicados
+
+- scroll interno de modal de productos corregido
+- altura y safe-area afinadas en admin y venta directa
+- boton flotante de WhatsApp agregado para compartir el link publico

@@ -1,0 +1,40 @@
+"use client";
+
+import { MessageCircle } from "lucide-react";
+
+type WhatsAppFloatingButtonProps = {
+  hidden?: boolean;
+  bottomOffsetClassName?: string;
+};
+
+const FALLBACK_MESSAGE = [
+  "Hola! Ya esta disponible el link para registrar pedidos en Pauli Store.",
+  "Ingresa aqui:",
+  "https://pauli-store-clientes.vercel.app/"
+].join("\n");
+
+export function WhatsAppFloatingButton({
+  hidden = false,
+  bottomOffsetClassName = "bottom-[calc(144px+env(safe-area-inset-bottom))]"
+}: WhatsAppFloatingButtonProps) {
+  if (hidden) {
+    return null;
+  }
+
+  const groupUrl = process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL?.trim();
+  const shareMessage = process.env.NEXT_PUBLIC_WHATSAPP_SHARE_URL?.trim() || FALLBACK_MESSAGE;
+  const href = groupUrl || `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label="Compartir link de pedidos por WhatsApp"
+      title="Compartir link de pedidos"
+      className={`fixed right-4 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#bfe4ca] bg-[#ecfff1] text-[#177245] shadow-[0_12px_28px_rgba(23,114,69,0.16)] transition hover:bg-[#dff9e7] ${bottomOffsetClassName}`}
+    >
+      <MessageCircle className="h-5 w-5" />
+    </a>
+  );
+}

@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { AppFooter } from "@/components/AppFooter";
 import { ProductImage } from "@/components/ProductImage";
+import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { formatCurrency } from "@/lib/format";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
@@ -785,7 +786,7 @@ export function AdminDashboard({
   const currentViewMeta = ADMIN_VIEW_META[view];
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-28 sm:px-6">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-[calc(140px+env(safe-area-inset-bottom))] sm:px-6">
       <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
@@ -1760,6 +1761,7 @@ export function AdminDashboard({
       ) : null}
 
       <AppFooter className="pb-24 md:pb-8" />
+      <WhatsAppFloatingButton hidden={Boolean(productModalState || orderModalState)} />
       {view !== "home" ? <MobileQuickHomeButton href="/admin" label="Inicio" /> : null}
       <MobileAdminNav currentView={view} onChange={navigateToView} />
     </main>
@@ -2444,8 +2446,8 @@ function AdminActionModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-rose-950/35 px-4">
-      <div className="w-full max-w-md overflow-hidden rounded-[20px] border border-rose-200 bg-white p-5 shadow-soft">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-rose-950/35 px-4 py-4">
+      <div className="mx-auto max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto rounded-[20px] border border-rose-200 bg-white p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-soft">
         <div className="space-y-1">
           <div className="inline-flex rounded-2xl bg-rose-100 p-3 text-rose-700">
             {state.type === "agendar" ? (
@@ -2594,10 +2596,10 @@ function ProductModal({
   const [activo, setActivo] = useState(current?.activo ?? true);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-rose-950/35 px-3 py-4 sm:px-4">
-      <div className="mx-auto flex min-h-full w-full max-w-2xl items-center justify-center">
-        <div className="w-full max-h-[92vh] overflow-y-auto rounded-[24px] border border-rose-200 bg-white shadow-soft">
-          <div className="sticky top-0 z-10 border-b border-rose-100 bg-white/95 px-5 py-4 backdrop-blur">
+    <div className="fixed inset-0 z-50 bg-rose-950/35 px-3 py-3 sm:px-4 sm:py-5">
+      <div className="mx-auto flex h-full w-full max-w-2xl items-center justify-center">
+        <div className="flex max-h-[calc(100dvh-24px)] min-h-0 w-full flex-col overflow-hidden rounded-[24px] border border-rose-200 bg-white shadow-soft sm:max-h-[calc(100dvh-40px)]">
+          <div className="shrink-0 border-b border-rose-100 bg-white/95 px-5 py-4 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="inline-flex rounded-2xl bg-rose-100 p-3 text-rose-700">
@@ -2622,7 +2624,8 @@ function ProductModal({
             </div>
           </div>
 
-          <div className="space-y-5 px-5 py-5">
+          <div className="min-h-0 overflow-y-auto px-5 py-5 pb-[calc(128px+env(safe-area-inset-bottom))]">
+            <div className="space-y-5">
             <section className="grid gap-3 sm:grid-cols-3">
               <MiniMetric
                 label="Catalogo"
@@ -2743,13 +2746,15 @@ function ProductModal({
             />
           </label>
             </div>
+            </div>
           </div>
 
-          <div className="sticky bottom-0 flex justify-end gap-2 border-t border-rose-100 bg-white/95 px-5 py-4 backdrop-blur">
+          <div className="shrink-0 border-t border-rose-100 bg-white/95 px-5 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] backdrop-blur">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-900"
+              className="min-h-11 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-900"
             >
               Cerrar
             </button>
@@ -2771,10 +2776,11 @@ function ProductModal({
                   activo
                 })
               }
-              className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+              className="min-h-11 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
             >
               {busy ? "Guardando..." : "Guardar producto"}
             </button>
+            </div>
           </div>
         </div>
       </div>
