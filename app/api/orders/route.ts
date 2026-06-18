@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
-          error: "Se alcanzo el limite temporal de intentos. Intenta de nuevo en unos minutos."
+          error: "Se alcanzó el límite temporal de intentos. Intenta de nuevo en unos minutos."
         },
         {
           status: 429,
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              "Ya recibimos varios intentos para este numero. Espera unos minutos antes de reenviar."
+              "Ya recibimos varios intentos para este número. Espera unos minutos antes de reenviar."
           },
           {
             status: 429,

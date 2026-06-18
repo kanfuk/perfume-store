@@ -455,7 +455,7 @@ export function OrderForm() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-[#5f3041]">
-                  Catalogo del dia
+                  Catálogo del día
                 </h3>
                 <p className="copy-justified text-sm text-[#7f5b67]">
                   Elige tu dobladita favorita y suma las que necesites.
@@ -562,7 +562,7 @@ export function OrderForm() {
             onDecrease={updateQuantity}
             onIncrease={updateQuantity}
             onRemove={removeItem}
-            emptyText="Tu resumen aparecera apenas elijas una dobladita."
+            emptyText="Tu resumen aparecerá apenas elijas una dobladita."
           />
 
           <div className="rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft">
@@ -573,7 +573,7 @@ export function OrderForm() {
               <div>
                 <h3 className="text-lg font-semibold text-[#5f3041]">Pedido simple</h3>
                 <p className="copy-justified text-sm text-[#7f5b67]">
-                  Tu pedido queda pendiente de confirmacion. Pauli revisa stock y luego te escribe.
+                  Tu pedido queda pendiente de confirmación. Pauli revisa stock y luego te escribe.
                 </p>
               </div>
             </div>
@@ -617,14 +617,14 @@ export function OrderForm() {
                   Pedido registrado correctamente
                 </h3>
                 <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
-                  Tu pedido quedo pendiente de confirmacion. Pauli revisara disponibilidad y te avisara por WhatsApp.
+                  Tu pedido quedó pendiente de confirmación. Pauli revisará disponibilidad y te avisará por WhatsApp.
                 </p>
               </div>
             </div>
 
             <div className="mt-5 rounded-[22px] border border-[#f2d9df] bg-[#fff8fa] p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#8b6a74]">Codigo</span>
+                <span className="text-[#8b6a74]">Código</span>
                 <span className="font-medium text-[#5f3041]">{submitted.pedidoId}</span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
@@ -671,7 +671,7 @@ export function OrderForm() {
                 onClick={() => setStockLimitState(null)}
                 className="rounded-2xl border border-[#f0d6da] bg-white px-4 py-3 text-sm font-semibold text-[#5f3041]"
               >
-                Mantener como esta
+                Mantener como está
               </button>
               <button
                 type="button"

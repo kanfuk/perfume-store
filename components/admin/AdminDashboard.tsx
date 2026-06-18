@@ -110,7 +110,7 @@ const ADMIN_VIEW_META: Record<
   home: {
     title: "Centro de control",
     description:
-      "Resumen rapido y accesos claros para revisar pedidos, stock, ventas y clientes sin perderte."
+      "Resumen rápido y accesos claros para revisar pedidos, stock, ventas y clientes sin perderte."
   },
   agenda: {
     title: "Pedidos",
@@ -120,12 +120,12 @@ const ADMIN_VIEW_META: Record<
   stock: {
     title: "Stock",
     description:
-      "Ajusta catalogo, stock, precios e imagenes desde una vista propia y ordenada."
+      "Ajusta catálogo, stock, precios e imágenes desde una vista propia y ordenada."
   },
   cobros: {
     title: "Ventas",
     description:
-      "Cierra pedidos, revisa fiados y deja solo las acciones relevantes del flujo real."
+      "Cierra pedidos, revisa fiados y deja sólo las acciones relevantes del flujo real."
   },
   clientes: {
     title: "Clientes",
@@ -135,7 +135,7 @@ const ADMIN_VIEW_META: Record<
   reportes: {
     title: "Reportes",
     description:
-      "Mira solo los numeros importantes desde una vista independiente y clara."
+      "Mira sólo los números importantes desde una vista independiente y clara."
   }
 };
 
@@ -531,7 +531,7 @@ export function AdminDashboard({
   async function runMaintenanceAction(action: AdminMaintenanceAction) {
     const confirmed = window.confirm(
       action === "close-month"
-        ? "Esto archivara toda la operacion actual y dejara pedidos, pagos, fiados y clientes en blanco. Productos y stock se conservan. Continúo?"
+        ? "Esto archivará toda la operación actual y dejará pedidos, pagos, fiados y clientes en blanco. Productos y stock se conservan. ¿Continúo?"
         : "Esto borrara la data operativa de prueba para el lanzamiento. Productos y stock se conservan. Continúo?"
     );
 
@@ -721,7 +721,7 @@ export function AdminDashboard({
 
   async function deleteProduct(product: AdminProductRecord) {
     const confirmed = window.confirm(
-      `Eliminar "${product.nombre}" del catalogo? Si ya tiene pedidos asociados, el sistema no lo dejara borrar y tendras que dejarlo pausado.`
+      `¿Eliminar "${product.nombre}" del catálogo? Si ya tiene pedidos asociados, el sistema no lo dejará borrar y tendrás que dejarlo pausado.`
     );
 
     if (!confirmed) {
@@ -826,7 +826,7 @@ export function AdminDashboard({
               onClick={logout}
               className="min-h-11 rounded-[18px] border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900"
             >
-              Cerrar sesion
+              Cerrar sesión
             </button>
           </div>
         </div>
@@ -986,9 +986,9 @@ export function AdminDashboard({
                   <BarChart3 className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="text-xl font-bold text-rose-950">Cierre rapido</h2>
+                  <h2 className="text-xl font-bold text-rose-950">Cierre rápido</h2>
                   <p className="text-sm text-rose-900/65">
-                    Numeros puntuales del negocio.
+                    Números puntuales del negocio.
                   </p>
                 </div>
               </div>
@@ -1029,14 +1029,14 @@ export function AdminDashboard({
             <div className="space-y-1">
               <h2 className="text-2xl font-bold text-rose-950">Atajos principales</h2>
               <p className="text-sm text-rose-900/70">
-                Entra directo a lo que mas usa Pauli en el dia a dia.
+                Entra directo a lo que más usa Pauli en el día a día.
               </p>
             </div>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <HomeActionCard
                 title="Agenda"
-                subtitle="Revisar pendientes, agendar fechas y ver pedidos del dia."
+                subtitle="Revisar pendientes, agendar fechas y ver pedidos del día."
                 badge={`${data.pendientes.length} por revisar`}
                 icon={ClipboardList}
                 tone="rose"
@@ -1044,7 +1044,7 @@ export function AdminDashboard({
               />
               <HomeActionCard
                 title="Stock"
-                subtitle="Crear productos, abrir o pausar catalogo y ajustar cupos."
+                subtitle="Crear productos, abrir o pausar catálogo y ajustar cupos."
                 badge={`${homeSummary.productosActivos} activos`}
                 icon={Boxes}
                 tone="violet"
@@ -1052,7 +1052,7 @@ export function AdminDashboard({
               />
               <HomeActionCard
                 title="Ventas"
-                subtitle="Marcar pagado, dejar fiado y registrar abonos facilmente."
+                subtitle="Marcar pagado, dejar fiado y registrar abonos fácilmente."
                 badge={`${data.fiadosPendientes.length} fiados`}
                 icon={WalletCards}
                 tone="amber"
@@ -1060,7 +1060,7 @@ export function AdminDashboard({
               />
               <HomeActionCard
                 title="Clientes"
-                subtitle="Ver quienes compran seguido y sus fechas mas recientes."
+                subtitle="Ver quiénes compran seguido y sus fechas más recientes."
                 badge={`${customerCards.length} registros`}
                 icon={UserRound}
                 tone="emerald"
@@ -1069,7 +1069,7 @@ export function AdminDashboard({
               <HomeActionCard
                 title="Reportes"
                 subtitle="Ventas por rango de fechas, top productos y top clientes."
-                badge="Resumen rapido"
+                badge="Resumen rápido"
                 icon={CalendarRange}
                 tone="slate"
                 onClick={() => navigateToView("reportes")}
@@ -1084,7 +1084,7 @@ export function AdminDashboard({
                 <h3 className="text-lg font-bold">Agenda agrupada</h3>
               </div>
               <p className="mt-1 text-sm text-rose-900/70">
-                Si una misma persona pidio varias veces para el mismo dia, aqui aparece todo junto.
+                Si una misma persona pidió varias veces para el mismo día, aquí aparece todo junto.
               </p>
 
               <div className="mt-4 space-y-3">
@@ -1151,7 +1151,7 @@ export function AdminDashboard({
             title="Agenda de pedidos"
             subtitle="Confirma pedidos, asigna fecha y revisa cada cliente sin perderte."
             icon={ClipboardList}
-            helper="Paso 1: entra aqui varias veces al dia. Lo pendiente arriba, el detalle al costado."
+            helper="Paso 1: entra aquí varias veces al día. Lo pendiente arriba, el detalle al costado."
           />
 
           <div className="grid gap-4 rounded-lg border border-rose-200 bg-white/90 p-4 shadow-soft lg:grid-cols-[minmax(0,1fr)_220px]">
@@ -1163,7 +1163,7 @@ export function AdminDashboard({
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cliente, telefono, producto o fecha"
+                placeholder="Cliente, teléfono, producto o fecha"
                 className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950 outline-none placeholder:text-rose-400"
               />
             </label>
@@ -1307,13 +1307,13 @@ export function AdminDashboard({
                 <input
                   value={productSearch}
                   onChange={(event) => setProductSearch(event.target.value)}
-                  placeholder="Nombre, descripcion o tipo"
+                  placeholder="Nombre, descripción o tipo"
                   className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950 outline-none placeholder:text-rose-400"
                 />
               </label>
 
               <div className="space-y-2">
-                <span className="text-sm font-semibold text-rose-900">Filtro rapido</span>
+                <span className="text-sm font-semibold text-rose-900">Filtro rápido</span>
                 <StableHorizontalRail className="flex gap-2 overflow-x-auto">
                   <FilterChip
                     label="Activos"
@@ -1342,7 +1342,7 @@ export function AdminDashboard({
 
           <div className="grid gap-4 md:grid-cols-3">
             <HeroMetric
-              label="Catalogo activo"
+              label="Catálogo activo"
               value={String(products.filter((product) => product.activo).length)}
               detail="Productos visibles para clientes"
               icon={CheckCircle2}
@@ -1351,7 +1351,7 @@ export function AdminDashboard({
             <HeroMetric
               label="Pausados"
               value={String(products.filter((product) => !product.activo).length)}
-              detail="Productos fuera del catalogo"
+              detail="Productos fuera del catálogo"
               icon={Package2}
               tone="violet"
             />
@@ -1365,7 +1365,7 @@ export function AdminDashboard({
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            {catalogLoading ? <EmptyState text="Cargando catalogo..." /> : null}
+            {catalogLoading ? <EmptyState text="Cargando catálogo..." /> : null}
             {!catalogLoading && filteredProducts.length === 0 ? (
               <EmptyState text="No hay productos para esta busqueda." />
             ) : null}
@@ -1394,7 +1394,7 @@ export function AdminDashboard({
         <section className="space-y-5">
           <SectionIntro
             title="Ventas y pagos"
-            subtitle="Desde aqui se ve clarito que pedidos cobrar, cuales dejar fiados y donde registrar abonos."
+            subtitle="Desde aquí se ve clarito qué pedidos cobrar, cuáles dejar fiados y dónde registrar abonos."
             icon={WalletCards}
             helper="Paso 3: al entregar, marca pagado o fiado. Si te pagan después, registra el abono aqui."
           />
@@ -1430,7 +1430,7 @@ export function AdminDashboard({
               <div className="space-y-1">
                 <h2 className="text-xl font-bold text-rose-950">Cerrar pedidos agendados</h2>
                 <p className="text-sm text-rose-900/70">
-                  Marca rapido como pagado o fiado.
+                  Marca rápido como pagado o fiado.
                 </p>
               </div>
 
@@ -1481,7 +1481,7 @@ export function AdminDashboard({
                       <div className="grid gap-2 sm:grid-cols-2">
                         <MiniMetric label="Pedido" value={order.productoNombre} />
                         <MiniMetric
-                          label="Ultimo pago"
+                          label="Último pago"
                           value={
                             order.fechaUltimoPago
                               ? formatShortDateTime(order.fechaUltimoPago)
@@ -1512,14 +1512,14 @@ export function AdminDashboard({
             </div>
             <p className="copy-justified mt-3 text-sm leading-6 text-rose-900/70">
               Usa cierre de mes cuando ya no queden pedidos pendientes ni agendados y
-              quieras archivar la operacion completa del periodo. Esta vista ya no expone
-              herramientas de prueba para mantener el flujo mas limpio y profesional.
+              quieras archivar la operación completa del periodo. Esta vista ya no expone
+              herramientas de prueba para mantener el flujo más limpio y profesional.
             </p>
             <div className="mt-4">
               <article className="rounded-[20px] border border-rose-200 bg-rose-50/70 p-4">
                 <h4 className="text-base font-semibold text-rose-950">Cierre de mes</h4>
                 <p className="copy-justified mt-2 text-sm leading-6 text-rose-900/70">
-                  Archiva pedidos, items, pagos, fiados y clientes en un log historico y
+                  Archiva pedidos, items, pagos, fiados y clientes en un log histórico y
                   deja limpio el panel operativo. Conserva productos y stock.
                 </p>
                 <button
@@ -1545,7 +1545,7 @@ export function AdminDashboard({
             title="Clientes"
             subtitle="Una vista simple para reconocer quienes compran seguido y cuando vuelven a pedir."
             icon={UserRound}
-            helper="Sirve para ubicar rapido a cada cliente antes de confirmar o cobrar."
+            helper="Sirve para ubicar rápido a cada cliente antes de confirmar o cobrar."
           />
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1568,7 +1568,7 @@ export function AdminDashboard({
 
                   <div className="flex items-center gap-2 text-sm text-rose-900/70">
                     <Phone className="h-4 w-4" />
-                    {customer.telefono || "Sin telefono"}
+                    {customer.telefono || "Sin teléfono"}
                   </div>
 
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -1577,7 +1577,7 @@ export function AdminDashboard({
                       value={formatCurrency(customer.pendiente)}
                     />
                     <MiniMetric
-                      label="Ultimo movimiento"
+                      label="Último movimiento"
                       value={formatShortDateTime(customer.ultimoMovimiento)}
                     />
                   </div>
@@ -1612,7 +1612,7 @@ export function AdminDashboard({
         <section className="space-y-5">
           <SectionIntro
             title="Reportes"
-            subtitle="Solo los numeros importantes: ventas, ticket promedio y lo que mejor se vende."
+            subtitle="Sólo los números importantes: ventas, ticket promedio y lo que mejor se vende."
             icon={CalendarRange}
             helper="Ideal para mirar cómo cerró la semana y que producto conviene reponer."
           />
@@ -2025,7 +2025,7 @@ function StockProductCard({
               />
             </div>
             <p className="text-sm leading-6 text-rose-900/70">
-              {product.descripcion || "Sin descripcion."}
+              {product.descripcion || "Sin descripción."}
             </p>
           </div>
         </div>
@@ -2056,7 +2056,7 @@ function StockProductCard({
               product.activo ? "bg-emerald-500" : "bg-slate-500"
             }`}
           />
-          {busy ? "Guardando..." : product.activo ? "Catalogo activo" : "Pausado"}
+          {busy ? "Guardando..." : product.activo ? "Catálogo activo" : "Pausado"}
         </button>
         <StatusBadge
           tone="neutral"
@@ -2107,7 +2107,7 @@ function StockProductCard({
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 break-words text-sm text-rose-900/60">
-          Ajusta aqui lo rapido. Editar abre el detalle completo.
+          Ajusta aquí lo rápido. Editar abre el detalle completo.
         </div>
         <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
           <button
@@ -2198,7 +2198,7 @@ function OrderSection({
                   </div>
                   <div className="flex items-center gap-2 text-sm text-rose-900/65">
                     <Phone className="h-4 w-4" />
-                    {order.clienteTelefono || "Sin telefono"}
+                    {order.clienteTelefono || "Sin teléfono"}
                   </div>
                   <div className="text-sm text-rose-900/65">
                     {order.items.length > 1
@@ -2616,7 +2616,7 @@ function ProductModal({
                     {state.mode === "create" ? "Nuevo producto" : "Editar producto"}
                   </h3>
                   <p className="text-sm text-rose-900/70">
-                    Ajusta catalogo, stock y precio sin perderte en el celular.
+                    Ajusta catálogo, stock y precio sin perderte en el celular.
                   </p>
                 </div>
               </div>
@@ -2634,7 +2634,7 @@ function ProductModal({
             <div className="space-y-5">
             <section className="grid gap-3 sm:grid-cols-3">
               <MiniMetric
-                label="Catalogo"
+                label="Catálogo"
                 value={activo ? "Activo" : "Pausado"}
               />
               <MiniMetric label="Stock hoy" value={stockActual} />
@@ -2648,7 +2648,7 @@ function ProductModal({
               <div>
                 <div className="font-semibold text-rose-950">Disponible para clientes</div>
                 <div className="mt-1 text-xs text-rose-900/65">
-                  Apagalo cuando no quieras vender este producto.
+                  Apágalo cuando no quieras vender este producto.
                 </div>
               </div>
               <button
@@ -2677,7 +2677,7 @@ function ProductModal({
             />
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-rose-900">Descripcion corta</span>
+            <span className="text-sm font-semibold text-rose-900">Descripción corta</span>
             <textarea
               value={descripcion}
               onChange={(event) => setDescripcion(event.target.value)}
@@ -2695,7 +2695,7 @@ function ProductModal({
             />
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-rose-900">Ruta publica de imagen</span>
+            <span className="text-sm font-semibold text-rose-900">Ruta pública de imagen</span>
             <input
               value={imageUrl}
               onChange={(event) => setImageUrl(event.target.value)}

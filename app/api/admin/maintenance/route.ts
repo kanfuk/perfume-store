@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     };
 
     if (body.action !== "close-month" && body.action !== "clear-test-data") {
-      return NextResponse.json({ error: "Accion invalida." }, { status: 400 });
+      return NextResponse.json({ error: "Acción inválida." }, { status: 400 });
     }
 
     const service = createAdminMaintenanceService();
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "No fue posible ejecutar la operacion."
+            : "No fue posible ejecutar la operación."
       },
       { status: 400 }
     );

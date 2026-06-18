@@ -4,7 +4,7 @@ export const mockProducts: ProductoProps[] = [
   {
     id: "dobladita-solo-queso",
     nombre: "Dobladita solo queso",
-    descripcion: "Dobladita casera recien horneada, rellena solo con queso.",
+    descripcion: "Dobladita casera recién horneada, rellena solo con queso.",
     precioVenta: 1000,
     imageUrl: "/images/products/dobladita-solo-queso.jpeg",
     badgeLabel: "DOBLADITA QUESO",
@@ -16,8 +16,8 @@ export const mockProducts: ProductoProps[] = [
   },
   {
     id: "dobladita-jamon-pavo-queso",
-    nombre: "Dobladita jamon de pavo acaramelado/queso",
-    descripcion: "Dobladita casera con jamon de pavo acaramelado y queso.",
+    nombre: "Dobladita jamón de pavo acaramelado/queso",
+    descripcion: "Dobladita casera con jamón de pavo acaramelado y queso.",
     precioVenta: 1300,
     imageUrl: "/images/products/dobladita-jamon-pavo-queso.jpeg",
     badgeLabel: "JAMON PAVO / QUESO",
@@ -43,7 +43,7 @@ export const mockProducts: ProductoProps[] = [
   {
     id: "dobladita-ave-mayo",
     nombre: "Dobladita ave mayo",
-    descripcion: "Dobladita casera con ave mayo cremosa, perfecta para media manana.",
+    descripcion: "Dobladita casera con ave mayo cremosa, perfecta para media mañana.",
     precioVenta: 1500,
     imageUrl: "/images/products/dobladita-ave-mayo.png",
     badgeLabel: "AVE MAYO",
@@ -55,8 +55,8 @@ export const mockProducts: ProductoProps[] = [
   },
   {
     id: "dobladita-ave-pimenton",
-    nombre: "Dobladita ave pimenton",
-    descripcion: "Dobladita casera rellena con ave y pimenton. Precio pendiente de confirmacion.",
+    nombre: "Dobladita ave pimentón",
+    descripcion: "Dobladita casera rellena con ave y pimentón. Precio pendiente de confirmación.",
     precioVenta: 0,
     imageUrl: "/images/products/dobladita-ave-pimenton.jpeg",
     badgeLabel: "PRECIO PENDIENTE",
@@ -69,7 +69,7 @@ export const mockProducts: ProductoProps[] = [
   {
     id: "quequito-marmoleado",
     nombre: "Quequito marmoleado",
-    descripcion: "Suave bizcocho humedo y esponjoso con sabor vainilla y chocolate.",
+    descripcion: "Suave bizcocho húmedo y esponjoso con sabor a vainilla y chocolate.",
     precioVenta: 1000,
     imageUrl: "/images/products/quequito-marmoleado.png",
     badgeLabel: "QUEQUITO CASERO",
@@ -82,7 +82,7 @@ export const mockProducts: ProductoProps[] = [
   {
     id: "quequito-banana-bread",
     nombre: "Quequito banana bread",
-    descripcion: "Rico bizcocho esponjoso, humedo, con platano y nueces.",
+    descripcion: "Rico bizcocho esponjoso, húmedo, con plátano y nueces.",
     precioVenta: 1000,
     imageUrl: "/images/products/quequito-banana-bread.png",
     badgeLabel: "QUEQUITO CASERO",
@@ -96,7 +96,7 @@ export const mockProducts: ProductoProps[] = [
     id: "quequito-choco-chip-sugar-free",
     nombre: "Quequito choco chip sugar free",
     descripcion:
-      "Bizcocho de vainilla endulzado con alulosa, con chips de chocolate semi amargo.",
+      "Bizcocho de vainilla endulzado con alulosa, con chips de chocolate semiamargo.",
     precioVenta: 1000,
     imageUrl: "/images/products/quequito-choco-chip-sugar-free.png",
     badgeLabel: "SUGAR FREE",
@@ -109,7 +109,7 @@ export const mockProducts: ProductoProps[] = [
   {
     id: "carrot-cake-nueces",
     nombre: "Carrot cake con nueces",
-    descripcion: "Porcion casera de carrot cake con nueces.",
+    descripcion: "Porción casera de carrot cake con nueces.",
     precioVenta: 1000,
     imageUrl: "/images/products/carrot-cake-nueces.png",
     badgeLabel: "QUEQUITO CASERO",
@@ -121,8 +121,8 @@ export const mockProducts: ProductoProps[] = [
   },
   {
     id: "queque-platano",
-    nombre: "Queque de platano",
-    descripcion: "Queque entero de platano. Precio pendiente de confirmacion.",
+    nombre: "Queque de plátano",
+    descripcion: "Queque entero de plátano. Precio pendiente de confirmación.",
     precioVenta: 0,
     imageUrl: "/images/products/queque-platano.png",
     badgeLabel: "PRECIO PENDIENTE",
@@ -135,7 +135,7 @@ export const mockProducts: ProductoProps[] = [
   {
     id: "queque-marmoleado",
     nombre: "Queque marmoleado",
-    descripcion: "Queque entero marmoleado. Precio pendiente de confirmacion.",
+    descripcion: "Queque entero marmoleado. Precio pendiente de confirmación.",
     precioVenta: 0,
     imageUrl: "/images/products/queque-marmoleado.png",
     badgeLabel: "PRECIO PENDIENTE",

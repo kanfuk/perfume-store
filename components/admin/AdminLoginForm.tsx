@@ -41,7 +41,7 @@ export function AdminLoginForm({
       setError(
         currentError instanceof Error
           ? currentError.message
-          : "No fue posible iniciar sesion."
+          : "No fue posible iniciar sesión."
       );
     } finally {
       setSubmitting(false);
@@ -62,7 +62,7 @@ export function AdminLoginForm({
           Ingreso administrador
         </h1>
         <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
-          Bienvenida, Pauli. Logea para administrar tu tiendita con todo en orden.
+          Bienvenida, Pauli. Inicia sesión para administrar tu tiendita con todo en orden.
         </p>
       </div>
 

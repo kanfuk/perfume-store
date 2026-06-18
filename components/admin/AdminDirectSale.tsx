@@ -214,7 +214,7 @@ export function AdminDirectSale({
       setCustomerPlace("");
       setPaymentState("PAGADO");
       setSuccessMessage(
-        `Venta directa registrada correctamente. Codigo interno: ${data.pedidoId ?? "OK"}.`
+        `Venta directa registrada correctamente. Código interno: ${data.pedidoId ?? "OK"}.`
       );
     } catch (error) {
       setServerError(
@@ -259,7 +259,7 @@ export function AdminDirectSale({
 
       setCustomForm(initialCustomForm);
       setSuccessMessage(
-        `Pedido personalizado registrado correctamente. Codigo interno: ${data.pedidoId ?? "OK"}.`
+        `Pedido personalizado registrado correctamente. Código interno: ${data.pedidoId ?? "OK"}.`
       );
     } catch (error) {
       setServerError(
@@ -287,7 +287,7 @@ export function AdminDirectSale({
                   Venta directa
                 </h1>
                 <p className="max-w-3xl text-sm leading-6 text-[#7e4a5c] sm:text-base">
-                  Registra ventas realizadas en el momento sin usar el formulario publico.
+                  Registra ventas realizadas en el momento sin usar el formulario público.
                 </p>
               </div>
             </div>
@@ -302,7 +302,7 @@ export function AdminDirectSale({
               <ModeButton
                 active={mode === "catalogo"}
                 icon={<ShoppingBag className="h-4 w-4" />}
-                label="Catalogo"
+                label="Catálogo"
                 onClick={() => setMode("catalogo")}
               />
               <ModeButton
@@ -332,8 +332,8 @@ export function AdminDirectSale({
           <div className="space-y-6">
             <CardSection
               icon={<ShoppingBag className="h-5 w-5" />}
-              title="Catalogo activo"
-              subtitle="Usa las mismas tarjetas del cliente para vender rapido desde el celular."
+              title="Catálogo activo"
+              subtitle="Usa las mismas tarjetas del cliente para vender rápido desde el celular."
             >
               <ProductCatalog
                 products={products}
@@ -351,7 +351,7 @@ export function AdminDirectSale({
                 <ChoiceButton
                   active={customerMode === "ocasional"}
                   title="Cliente ocasional"
-                  text="Venta rapida sin completar todo."
+                  text="Venta rápida sin completar todo."
                   onClick={() => setCustomerMode("ocasional")}
                 />
                 <ChoiceButton
@@ -446,7 +446,7 @@ export function AdminDirectSale({
               onDecrease={updateQuantity}
               onIncrease={updateQuantity}
               onRemove={(productId) => updateQuantity(productId, 0)}
-              emptyText="El resumen aparecera apenas elijas productos del catalogo."
+              emptyText="El resumen aparecerá apenas elijas productos del catálogo."
               title="Resumen de venta"
               subtitle="Mismo calculo del cliente, pero listo para cerrar al instante."
             />
@@ -541,7 +541,7 @@ export function AdminDirectSale({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#5f3041]">Descripcion / observacion</span>
+                <span className="text-sm font-medium text-[#5f3041]">Descripción / observación</span>
                 <textarea
                   value={customForm.descripcion}
                   onChange={(event) =>

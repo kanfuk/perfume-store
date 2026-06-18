@@ -17,7 +17,7 @@ export async function GET() {
         error:
           error instanceof Error
             ? error.message
-            : "No fue posible cargar el catalogo."
+            : "No fue posible cargar el catálogo."
       },
       { status: 500 }
     );

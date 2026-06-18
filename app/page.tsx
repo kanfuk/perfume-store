@@ -15,8 +15,8 @@ export default function HomePage() {
               </h1>
               <p className="copy-justified max-w-2xl text-base leading-7 text-[#7e4a5c] sm:text-lg">
                 Volvieron las cositas ricas hechas en casa. Desayunos, quequitos
-                y preparaciones caseras recien hechas para acompanar tu dia con
-                mas carino.
+                y preparaciones caseras recién hechas para acompañar tu día con
+                más cariño.
               </p>
             </div>
 
@@ -24,7 +24,7 @@ export default function HomePage() {
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#7a4256] backdrop-blur">
                 Preparado hoy
                 <div className="mt-1 text-xl font-semibold text-[#6f3146]">
-                  Recien hecho
+                  Recién hecho
                 </div>
               </div>
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#7a4256] backdrop-blur">

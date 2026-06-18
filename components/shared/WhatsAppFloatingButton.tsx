@@ -8,8 +8,8 @@ type WhatsAppFloatingButtonProps = {
 };
 
 const FALLBACK_MESSAGE = [
-  "Hola! Ya esta disponible el link para registrar pedidos en Pauli Store.",
-  "Ingresa aqui:",
+  "¡Hola! Ya está disponible el link para registrar pedidos en Pauli Store.",
+  "Ingresa aquí:",
   "https://pauli-store-clientes.vercel.app/"
 ].join("\n");
 

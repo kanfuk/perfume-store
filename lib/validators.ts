@@ -1,9 +1,9 @@
 /**
  * Proyecto: Pauli Store
- * Modulo: Validadores
- * Descripcion: Validaciones de formulario y reglas basicas compartidas del negocio.
+ * Módulo: Validadores
+ * Descripción: Validaciones de formulario y reglas básicas compartidas del negocio.
  * Autor: Equipo Pauli Store
- * Buenas practicas: Codigo modular, validado y orientado a mantenibilidad.
+ * Buenas prácticas: Código modular, validado y orientado a mantenibilidad.
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
  */
 
@@ -36,9 +36,9 @@ export function validateCustomerOrderForm(
   }
 
   if (!data.telefono.trim()) {
-    errors.telefono = "Ingresa tu numero de telefono.";
+    errors.telefono = "Ingresa tu número de teléfono.";
   } else if (!isValidChileanMobilePhone(data.telefono)) {
-    errors.telefono = "Ingresa un celular chileno valido. Ejemplo: +56 9 1234 5678.";
+    errors.telefono = "Ingresa un celular chileno válido. Ejemplo: +56 9 1234 5678.";
   }
 
   if (!data.lugarTrabajo.trim()) {
@@ -62,7 +62,7 @@ export function validateCustomerOrderForm(
       }
 
       if (!Number.isInteger(item.cantidad) || item.cantidad < 1) {
-        errors.items = "Cada item debe tener cantidad minima de 1.";
+        errors.items = "Cada item debe tener cantidad mínima de 1.";
         break;
       }
 
@@ -101,7 +101,7 @@ export function validateAdminDirectSaleForm(
       }
 
       if (!Number.isInteger(item.cantidad) || item.cantidad < 1) {
-        errors.items = "Cada item debe tener cantidad minima de 1.";
+        errors.items = "Cada item debe tener cantidad mínima de 1.";
         break;
       }
 
@@ -116,7 +116,7 @@ export function validateAdminDirectSaleForm(
   }
 
   if (data.estadoPago !== "PAGADO" && data.estadoPago !== "FIADO") {
-    errors.estadoPago = "Selecciona si la venta quedo pagada o fiada.";
+    errors.estadoPago = "Selecciona si la venta quedó pagada o fiada.";
   }
 
   if (data.estadoPago === "FIADO" && !data.nombre?.trim()) {
