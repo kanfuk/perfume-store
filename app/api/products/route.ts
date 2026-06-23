@@ -6,7 +6,13 @@ export async function GET() {
     const productoService = createProductoService();
     const products = await productoService.obtenerProductosActivos();
 
-    return NextResponse.json({ products });
+    return NextResponse.json({ products }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error("GET /api/products failed", error);
 

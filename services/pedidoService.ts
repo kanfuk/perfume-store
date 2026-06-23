@@ -123,9 +123,18 @@ export class PedidoService {
 
     // Deducir stock de agenda por cada item
     await Promise.all(
-      items.map((item) =>
-        this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad)
-      )
+      items.map((item) => {
+        console.log(`[Stock] Deduciendo ${item.cantidad} de ${item.producto.nombre} (ID: ${item.producto.id})`);
+        return this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad)
+          .then(result => {
+            console.log(`[Stock] Stock actualizado a: ${result.stockAgenda}`);
+            return result;
+          })
+          .catch(err => {
+            console.error(`[Stock] Error al deducir: ${err.message}`);
+            throw err;
+          });
+      })
     );
 
     return {

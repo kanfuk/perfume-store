@@ -10,7 +10,13 @@ export async function GET() {
   try {
     const productoService = createProductoService();
     const products = await productoService.obtenerCatalogoAdmin();
-    return NextResponse.json({ products });
+    return NextResponse.json({ products }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       {

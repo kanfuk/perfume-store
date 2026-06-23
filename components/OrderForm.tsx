@@ -127,7 +127,12 @@ export function OrderForm() {
     async function loadProducts() {
       try {
         setLoadingProducts(true);
-        const response = await fetch("/api/products");
+        const response = await fetch("/api/products", {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
         const data = (await response.json()) as {
           products?: ProductRecord[];
           error?: string;
@@ -138,6 +143,12 @@ export function OrderForm() {
         }
 
         if (!cancelled) {
+          console.log("Productos cargados con stockAgenda:", data.products?.map(p => ({
+            id: p.id,
+            nombre: p.nombre,
+            stockActual: p.stockActual,
+            stockAgenda: p.stockAgenda
+          })));
           setProducts(data.products ?? []);
         }
       } catch (error) {
