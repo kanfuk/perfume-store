@@ -28,6 +28,19 @@ export const mockProducts: ProductoProps[] = [
     tipoProducto: "dobladita premium"
   },
   {
+    id: "dobladita-napolitana",
+    nombre: "Dobladita Napolitana",
+    descripcion: "Queso, tomate en láminas y orégano",
+    precioVenta: 1400,
+    imageUrl: "/images/dobladita-napolitana.png",
+    badgeLabel: "Napolitana",
+    costoUnitario: 0,
+    stockActual: 0,
+    stockAgenda: 0,
+    activo: true,
+    tipoProducto: "dobladita"
+  },
+  {
     id: "dobladita-huevo",
     nombre: "Dobladita huevo",
     descripcion: "Dobladita casera rellena con huevo, ideal para desayuno.",

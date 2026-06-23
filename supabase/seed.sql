@@ -47,6 +47,18 @@ from (
       'dobladita premium'
     ),
     (
+      'Dobladita Napolitana',
+      'Queso, tomate en láminas y orégano',
+      1400,
+      '/images/dobladita-napolitana.png',
+      'Napolitana',
+      0,
+      0,
+      0,
+      true,
+      'dobladita'
+    ),
+    (
       'Dobladita huevo',
       'Dobladita casera rellena con huevo, ideal para desayuno.',
       1500,
@@ -228,6 +240,18 @@ from (
       14,
       true,
       'dobladita premium'
+    ),
+    (
+      'Dobladita Napolitana',
+      'Queso, tomate en láminas y orégano',
+      1400,
+      '/images/dobladita-napolitana.png',
+      'Napolitana',
+      0,
+      0,
+      0,
+      true,
+      'dobladita'
     ),
     (
       'Dobladita huevo',

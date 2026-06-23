@@ -65,6 +65,7 @@ type StatusFilter =
   | "agendados"
   | "historial";
 type StockFilter = "todos" | "activos" | "sin-stock" | "pausados";
+type CustomerFilter = "todos" | "con-pedidos" | "con-fiado" | "recientes";
 type OrderModalState =
   | { type: "agendar"; order: AdminOrderSummary }
   | { type: "cancelar"; order: AdminOrderSummary }
@@ -78,6 +79,20 @@ type StockDraft = {
   stockActual: string;
   stockAgenda: string;
   precioVenta: string;
+};
+type CustomerCardData = {
+  clienteId: string;
+  nombre: string;
+  telefono: string;
+  lugarTrabajo: string;
+  pedidos: number;
+  pendiente: number;
+  totalComprado: number;
+  ultimoMovimiento: string;
+  proximasFechas: string[];
+  pedidosActivos: number;
+  pedidosFinalizados: number;
+  isRecent: boolean;
 };
 
 const statusOptions: Array<{ value: StatusFilter; label: string }> = [
@@ -158,6 +173,7 @@ export function AdminDashboard({
   const [productSearch, setProductSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pendientes");
   const [stockFilter, setStockFilter] = useState<StockFilter>("activos");
+  const [customerFilter, setCustomerFilter] = useState<CustomerFilter>("todos");
   const [selectedOrderId, setSelectedOrderId] = useState("");
   const [orderModalState, setOrderModalState] = useState<OrderModalState>(null);
   const [productModalState, setProductModalState] = useState<ProductModalState>(null);
@@ -323,19 +339,7 @@ export function AdminDashboard({
   }, [data, products, todayDate]);
 
   const customerCards = useMemo(() => {
-    const grouped = new Map<
-      string,
-      {
-        clienteId: string;
-        nombre: string;
-        telefono: string;
-        lugarTrabajo: string;
-        pedidos: number;
-        pendiente: number;
-        ultimoMovimiento: string;
-        proximasFechas: string[];
-      }
-    >();
+    const grouped = new Map<string, CustomerCardData>();
 
     allOrders.forEach((order) => {
       const customerKey = buildCustomerIdentityKey(order);
@@ -346,12 +350,20 @@ export function AdminDashboard({
         lugarTrabajo: order.clienteLugarTrabajo,
         pedidos: 0,
         pendiente: 0,
+        totalComprado: 0,
         ultimoMovimiento: order.fechaPedido,
-        proximasFechas: []
+        proximasFechas: [],
+        pedidosActivos: 0,
+        pedidosFinalizados: 0,
+        isRecent: false
       };
 
       current.pedidos += 1;
       current.pendiente += order.saldoPendiente;
+      current.totalComprado += order.total;
+      current.pedidosActivos +=
+        order.estadoPedido === "PENDIENTE" || order.estadoPedido === "AGENDADO" ? 1 : 0;
+      current.pedidosFinalizados += order.estadoPedido === "FINALIZADO" ? 1 : 0;
       current.ultimoMovimiento =
         current.ultimoMovimiento > order.fechaPedido
           ? current.ultimoMovimiento
@@ -364,10 +376,53 @@ export function AdminDashboard({
       grouped.set(customerKey, current);
     });
 
-    return Array.from(grouped.values()).sort((a, b) =>
-      b.ultimoMovimiento.localeCompare(a.ultimoMovimiento)
-    );
+    return Array.from(grouped.values())
+      .map((customer) => ({
+        ...customer,
+        proximasFechas: [...customer.proximasFechas].sort((a, b) => a.localeCompare(b)),
+        isRecent: isRecentCustomerMovement(customer.ultimoMovimiento)
+      }))
+      .sort((a, b) => b.ultimoMovimiento.localeCompare(a.ultimoMovimiento));
   }, [allOrders]);
+
+  const filteredCustomerCards = useMemo(() => {
+    return customerCards.filter((customer) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        [customer.nombre, customer.telefono, customer.lugarTrabajo]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch);
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (customerFilter === "con-pedidos") {
+        return customer.pedidosActivos > 0 || customer.pedidosFinalizados > 0;
+      }
+
+      if (customerFilter === "con-fiado") {
+        return customer.pendiente > 0;
+      }
+
+      if (customerFilter === "recientes") {
+        return customer.isRecent;
+      }
+
+      return true;
+    });
+  }, [customerCards, customerFilter, normalizedSearch]);
+
+  const customerSummary = useMemo(
+    () => ({
+      total: customerCards.length,
+      conPedidos: customerCards.filter((customer) => customer.pedidos > 0).length,
+      conFiado: customerCards.filter((customer) => customer.pendiente > 0).length,
+      recientes: customerCards.filter((customer) => customer.isRecent).length
+    }),
+    [customerCards]
+  );
 
   const reportOrders = useMemo(() => {
     return data.finalizados.filter((order) => {
@@ -781,6 +836,17 @@ export function AdminDashboard({
   function navigateToView(nextView: AdminView) {
     setView(nextView);
     router.push(ADMIN_VIEW_ROUTES[nextView]);
+  }
+
+  function openCustomerOrders(customer: CustomerCardData) {
+    setSearch(customer.nombre);
+    setStatusFilter("historial");
+    navigateToView("agenda");
+  }
+
+  function openCustomerPayments(customer: CustomerCardData) {
+    setSearch(customer.nombre);
+    navigateToView("cobros");
   }
 
   const currentViewMeta = ADMIN_VIEW_META[view];
@@ -1548,7 +1614,52 @@ export function AdminDashboard({
             helper="Sirve para ubicar rápido a cada cliente antes de confirmar o cobrar."
           />
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <section className="rounded-[30px] border border-[#E8D3B0] bg-[#FFF7E8] p-4 shadow-soft sm:p-5">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="min-w-0 space-y-3">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#A86B32]">
+                    Clientes
+                  </span>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-[#3A2A1A] sm:text-3xl">
+                      Agenda visual de clientes
+                    </h2>
+                    <p className="max-w-2xl text-sm leading-6 text-[#6E5337]">
+                      Busca rÃ¡pido, revisa fiados y ubica a cada cliente desde una vista
+                      cÃ³moda para celular.
+                    </p>
+                  </div>
+                </div>
+                <ClientSearchBar value={search} onChange={setSearch} />
+              </div>
+
+              <ClientStatsCards summary={customerSummary} />
+
+              <ClientFilterChips
+                activeFilter={customerFilter}
+                onChange={setCustomerFilter}
+                counts={customerSummary}
+              />
+            </div>
+          </section>
+
+          {filteredCustomerCards.length === 0 ? (
+            <ClientEmptyState hasSearch={Boolean(normalizedSearch)} />
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {filteredCustomerCards.map((customer) => (
+                <ClientCard
+                  key={customer.clienteId}
+                  customer={customer}
+                  onOpenOrders={() => openCustomerOrders(customer)}
+                  onOpenPayments={() => openCustomerPayments(customer)}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="hidden grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {customerCards.length === 0 ? (
               <EmptyState text="Todavia no hay clientes registrados." />
             ) : null}
@@ -2987,6 +3098,303 @@ function SimpleFact({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ClientStatsCards({
+  summary
+}: {
+  summary: {
+    total: number;
+    conPedidos: number;
+    conFiado: number;
+    recientes: number;
+  };
+}) {
+  const items = [
+    {
+      label: "Total clientes",
+      value: String(summary.total),
+      detail: "Contactos visibles en el panel",
+      accent: "bg-[#A86B32]"
+    },
+    {
+      label: "Con pedidos",
+      value: String(summary.conPedidos),
+      detail: "Ya tienen historial de compra",
+      accent: "bg-[#D99A3D]"
+    },
+    {
+      label: "Con fiado",
+      value: String(summary.conFiado),
+      detail: "Requieren seguimiento de cobro",
+      accent: "bg-[#B85C5C]"
+    },
+    {
+      label: "Recientes",
+      value: String(summary.recientes),
+      detail: "Movimiento dentro de 14 dÃ­as",
+      accent: "bg-[#4F8A5B]"
+    }
+  ];
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {items.map((item) => (
+        <article
+          key={item.label}
+          className="rounded-[24px] border border-[#E8D3B0] bg-white p-4 shadow-[0_12px_32px_rgba(168,107,50,0.08)]"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#6E5337]">{item.label}</p>
+              <p className="mt-2 text-3xl font-bold text-[#3A2A1A]">{item.value}</p>
+            </div>
+            <span className={`mt-1 h-3 w-3 rounded-full ${item.accent}`} />
+          </div>
+          <p className="mt-3 text-sm leading-5 text-[#7A6248]">{item.detail}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ClientSearchBar({
+  value,
+  onChange
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="flex w-full max-w-xl items-center gap-3 rounded-[22px] border border-[#E8D3B0] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(168,107,50,0.08)]">
+      <Search className="h-5 w-5 text-[#A86B32]" />
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Buscar por nombre, telÃ©fono o lugar de trabajo"
+        className="w-full border-0 bg-transparent p-0 text-[15px] text-[#3A2A1A] outline-none placeholder:text-[#9B7F61]"
+      />
+    </label>
+  );
+}
+
+function ClientFilterChips({
+  activeFilter,
+  onChange,
+  counts
+}: {
+  activeFilter: CustomerFilter;
+  onChange: (value: CustomerFilter) => void;
+  counts: {
+    total: number;
+    conPedidos: number;
+    conFiado: number;
+    recientes: number;
+  };
+}) {
+  const filters: Array<{ value: CustomerFilter; label: string; count: number }> = [
+    { value: "todos", label: "Todos", count: counts.total },
+    { value: "con-pedidos", label: "Con pedidos", count: counts.conPedidos },
+    { value: "con-fiado", label: "Con fiado", count: counts.conFiado },
+    { value: "recientes", label: "Recientes", count: counts.recientes }
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {filters.map((filter) => {
+        const active = activeFilter === filter.value;
+
+        return (
+          <button
+            key={filter.value}
+            type="button"
+            onClick={() => onChange(filter.value)}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              active
+                ? "border-[#A86B32] bg-[#A86B32] text-white"
+                : "border-[#E8D3B0] bg-white text-[#6E5337]"
+            }`}
+          >
+            <span>{filter.label}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${
+                active ? "bg-white/20 text-white" : "bg-[#FFF7E8] text-[#A86B32]"
+              }`}
+            >
+              {filter.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ClientCard({
+  customer,
+  onOpenOrders,
+  onOpenPayments
+}: {
+  customer: CustomerCardData;
+  onOpenOrders: () => void;
+  onOpenPayments: () => void;
+}) {
+  return (
+    <article className="overflow-hidden rounded-[28px] border border-[#E8D3B0] bg-white shadow-[0_18px_40px_rgba(168,107,50,0.12)]">
+      <div className="border-b border-[#F2E2C2] bg-[linear-gradient(135deg,rgba(242,200,121,0.2),rgba(255,247,232,0.9))] p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <h3 className="text-xl font-bold text-[#3A2A1A]">{customer.nombre}</h3>
+            <div className="flex flex-wrap gap-2">
+              <ClientPill label={`${customer.pedidos} pedido(s)`} tone="neutral" />
+              <ClientPill
+                label={customer.pendiente > 0 ? "Fiado pendiente" : "Sin deuda"}
+                tone={customer.pendiente > 0 ? "danger" : "success"}
+              />
+              {customer.isRecent ? <ClientPill label="Reciente" tone="accent" /> : null}
+            </div>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#A86B32]">
+            {formatDateOnly(customer.ultimoMovimiento.slice(0, 10))}
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ClientFact
+            icon={Phone}
+            label="TelÃ©fono"
+            value={customer.telefono || "Sin telÃ©fono"}
+          />
+          <ClientFact
+            icon={Store}
+            label="Lugar de trabajo"
+            value={customer.lugarTrabajo || "Sin lugar de trabajo"}
+          />
+          <ClientFact
+            icon={ReceiptText}
+            label="Total comprado"
+            value={formatCurrency(customer.totalComprado)}
+          />
+          <ClientFact
+            icon={HandCoins}
+            label="Deuda pendiente"
+            value={customer.pendiente > 0 ? formatCurrency(customer.pendiente) : "Sin deuda"}
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MiniMetric label="Pedidos activos" value={String(customer.pedidosActivos)} />
+          <MiniMetric label="Pedidos cerrados" value={String(customer.pedidosFinalizados)} />
+          <MiniMetric
+            label="Ãšltimo pedido"
+            value={formatShortDateTime(customer.ultimoMovimiento)}
+          />
+        </div>
+
+        <div className="rounded-[22px] border border-[#E8D3B0] bg-[#FFFAF2] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A86B32]">
+            Fechas agendadas
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {customer.proximasFechas.length === 0 ? (
+              <span className="text-sm text-[#8B6F52]">Sin pedidos agendados por ahora</span>
+            ) : (
+              customer.proximasFechas.slice(0, 4).map((fecha) => (
+                <span
+                  key={`${customer.clienteId}-${fecha}`}
+                  className="rounded-full border border-[#E8D3B0] bg-white px-3 py-1 text-xs font-semibold text-[#6E5337]"
+                >
+                  {formatDateOnly(fecha)}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onOpenOrders}
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-[#A86B32] px-4 py-3 text-sm font-semibold text-white"
+          >
+            Ver pedidos
+          </button>
+          <button
+            type="button"
+            onClick={onOpenPayments}
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#E8D3B0] bg-[#FFF7E8] px-4 py-3 text-sm font-semibold text-[#6E5337]"
+          >
+            Revisar cobros
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ClientFact({
+  icon: Icon,
+  label,
+  value
+}: {
+  icon: typeof Phone;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[20px] border border-[#E8D3B0] bg-[#FFFDF8] p-4">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#A86B32]">
+        <Icon className="h-4 w-4" />
+        {label}
+      </div>
+      <div className="mt-3 text-sm font-semibold leading-6 text-[#3A2A1A]">{value}</div>
+    </div>
+  );
+}
+
+function ClientPill({
+  label,
+  tone
+}: {
+  label: string;
+  tone: "neutral" | "success" | "danger" | "accent";
+}) {
+  const className =
+    tone === "success"
+      ? "border-[#CDE1D1] bg-[#EEF7F0] text-[#4F8A5B]"
+      : tone === "danger"
+        ? "border-[#E5C4C4] bg-[#FBEDED] text-[#B85C5C]"
+        : tone === "accent"
+          ? "border-[#F0D48D] bg-[#FFF2CF] text-[#A86B32]"
+          : "border-[#E8D3B0] bg-white text-[#6E5337]";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${className}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function ClientEmptyState({ hasSearch }: { hasSearch: boolean }) {
+  return (
+    <div className="rounded-[28px] border border-dashed border-[#E8D3B0] bg-[#FFF7E8] p-8 text-center shadow-soft">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#A86B32]">
+        <UserRound className="h-6 w-6" />
+      </div>
+      <h3 className="mt-4 text-xl font-bold text-[#3A2A1A]">
+        {hasSearch ? "No encontramos coincidencias." : "AÃºn no hay clientes registrados."}
+      </h3>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6E5337]">
+        {hasSearch
+          ? "Prueba con otro nombre, telÃ©fono o lugar de trabajo para seguir buscando."
+          : "Cuando ingresen pedidos, aparecerÃ¡n aquÃ­ automÃ¡ticamente."}
+      </p>
+    </div>
+  );
+}
+
 function InlineField({
   label,
   value,
@@ -3100,6 +3508,17 @@ function buildCustomerIdentityKey(order: {
     normalizeIdentityValue(order.clienteNombre),
     normalizeIdentityValue(order.clienteLugarTrabajo)
   ].join("__");
+}
+
+function isRecentCustomerMovement(value: string) {
+  const movementDate = new Date(value);
+
+  if (Number.isNaN(movementDate.getTime())) {
+    return false;
+  }
+
+  const diffInDays = (Date.now() - movementDate.getTime()) / (1000 * 60 * 60 * 24);
+  return diffInDays <= 14;
 }
 
 function todayDateValue() {
