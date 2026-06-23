@@ -66,12 +66,12 @@ export function validateCustomerOrderForm(
         break;
       }
 
-      if (
-        typeof producto.stockActual === "number" &&
-        producto.stockActual >= 0 &&
-        item.cantidad > producto.stockActual
-      ) {
-        errors.items = `El producto ${producto.nombre} solo tiene ${producto.stockActual} disponible(s).`;
+      const stockActual = producto.stockActual ?? 0;
+      const stockAgenda = producto.stockAgenda ?? 0;
+      const stockDisponible = Math.max(0, stockActual - stockAgenda);
+
+      if (item.cantidad > stockDisponible) {
+        errors.items = `El producto ${producto.nombre} solo tiene ${stockDisponible} disponible(s).`;
         break;
       }
     }

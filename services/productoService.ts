@@ -37,6 +37,7 @@ export class ProductoService {
             product.tipoProducto ||
             "PRODUCTO CASERO",
           stockActual: product.stockActual,
+          stockAgenda: product.stockAgenda,
           tipoProducto: product.tipoProducto
         };
       });

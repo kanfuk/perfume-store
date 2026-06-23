@@ -22,6 +22,7 @@ export interface ProductRepository {
     id: string,
     cambios: Partial<Omit<ProductoProps, "id">>
   ): Promise<ProductoProps>;
+  ajustarStockAgenda(id: string, cantidad: number): Promise<ProductoProps>;
 }
 
 class MockProductRepository implements ProductRepository {
@@ -67,6 +68,23 @@ class MockProductRepository implements ProductRepository {
     }
 
     Object.assign(current, cambios);
+    return current;
+  }
+
+  async ajustarStockAgenda(id: string, cantidad: number) {
+    const current = localStore.products.find((product) => product.id === id);
+
+    if (!current) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    const nuevoStock = (current.stockAgenda ?? 0) + cantidad;
+    
+    if (nuevoStock < 0) {
+      throw new Error("Stock insuficiente para esta operación.");
+    }
+
+    current.stockAgenda = nuevoStock;
     return current;
   }
 }
@@ -215,6 +233,22 @@ class SupabaseProductRepository implements ProductRepository {
     }
 
     return mapSupabaseProduct(response.data);
+  }
+
+  async ajustarStockAgenda(id: string, cantidad: number) {
+    const product = await this.buscarProductoPorId(id);
+
+    if (!product) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    const nuevoStock = (product.stockAgenda ?? 0) + cantidad;
+    
+    if (nuevoStock < 0) {
+      throw new Error("Stock insuficiente para esta operación.");
+    }
+
+    return this.actualizarProducto(id, { stockAgenda: nuevoStock });
   }
 }
 

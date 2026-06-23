@@ -121,6 +121,13 @@ export class PedidoService {
       )
     );
 
+    // Deducir stock de agenda por cada item
+    await Promise.all(
+      items.map((item) =>
+        this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad)
+      )
+    );
+
     return {
       pedidoId,
       clienteId,
@@ -444,6 +451,9 @@ export class PedidoService {
     const domainPedido = this.mapListItemToPedido(pedido);
     domainPedido.cancelar(motivoCancelacion);
 
+    // Obtener items del pedido para restaurar stock
+    const items = pedido.items || [];
+
     await this.pedidoRepository.actualizarEstadoPedido({
       pedidoId,
       estadoPedido: ESTADO_PEDIDO_CANCELADO,
@@ -452,6 +462,13 @@ export class PedidoService {
       fechaCancelacion: domainPedido.fechaCancelacion?.toISOString(),
       motivoCancelacion: domainPedido.motivoCancelacion
     });
+
+    // Restaurar stock de agenda por cada item
+    await Promise.all(
+      items.map((item) =>
+        this.productRepository.ajustarStockAgenda(item.producto_id, item.cantidad)
+      )
+    );
   }
 
   async marcarPedidoPagado(pedidoId: string) {
