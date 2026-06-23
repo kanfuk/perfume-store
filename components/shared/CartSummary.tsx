@@ -23,7 +23,7 @@ export function CartSummary({
   onDecrease,
   onIncrease,
   onRemove,
-  emptyText = "Tu resumen aparecera apenas elijas un producto.",
+  emptyText = "Tu resumen aparecerá apenas elijas un producto.",
   title = "Tu pedido",
   subtitle = "Revisa cantidad, valor unitario y total antes de enviarlo."
 }: CartSummaryProps) {

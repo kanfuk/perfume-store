@@ -6,7 +6,7 @@
 
 UPDATE productos
 SET
-  descripcion = 'Queso, tomate en láminas y orégano',
+  descripcion = 'Queso, tomate en láminas y orégano.',
   precio_venta = 1400,
   image_url = '/images/dobladita-napolitana.png',
   badge_label = 'Napolitana',
@@ -29,7 +29,7 @@ INSERT INTO productos (
 )
 SELECT
   'Dobladita Napolitana',
-  'Queso, tomate en láminas y orégano',
+  'Queso, tomate en láminas y orégano.',
   1400,
   '/images/dobladita-napolitana.png',
   'Napolitana',

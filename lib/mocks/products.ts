@@ -30,7 +30,7 @@ export const mockProducts: ProductoProps[] = [
   {
     id: "dobladita-napolitana",
     nombre: "Dobladita Napolitana",
-    descripcion: "Queso, tomate en láminas y orégano",
+    descripcion: "Queso, tomate en láminas y orégano.",
     precioVenta: 1400,
     imageUrl: "/images/dobladita-napolitana.png",
     badgeLabel: "Napolitana",

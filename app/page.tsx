@@ -14,9 +14,9 @@ export default function HomePage() {
                 Pauli Store
               </h1>
               <p className="copy-justified max-w-2xl text-base leading-7 text-[#6b7c70] sm:text-lg">
-                Comienza tu dia con algo rico. Disfruta de nuestras ricas
-                dobladitas recien horneadas, sabrosos quequitos y otras
-                preparaciones caseras, ideales para acompanar tu desayuno o
+                Comienza tu día con algo rico. Disfruta de nuestras ricas
+                dobladitas recién horneadas, sabrosos quequitos y otras
+                preparaciones caseras, ideales para acompañar tu desayuno o
                 darte un gustito.
               </p>
             </div>
@@ -25,7 +25,7 @@ export default function HomePage() {
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#6b7c70] backdrop-blur">
                 Preparado hoy
                 <div className="mt-1 text-xl font-semibold text-[#1f3328]">
-                  Recien hecho
+                  Recién hecho
                 </div>
               </div>
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#6b7c70] backdrop-blur">
