@@ -20,6 +20,7 @@ import {
   HandCoins,
   Home,
   LayoutGrid,
+  MessageCircle,
   Package2,
   PencilLine,
   Phone,
@@ -38,6 +39,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { formatCurrency } from "@/lib/format";
+import { createNotificationService } from "@/services/NotificationService";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   formatChileDateOnly,
@@ -114,6 +116,8 @@ const ADMIN_VIEW_ROUTES: Record<AdminView, string> = {
   clientes: "/admin/clientes",
   reportes: "/admin/reportes"
 };
+
+const notificationService = createNotificationService();
 
 const ADMIN_VIEW_META: Record<
   AdminView,
@@ -2370,7 +2374,7 @@ function OrderSection({
               ) : null}
             </button>
 
-            {actions.length > 0 ? (
+            {actions.length > 0 || shouldShowOrderWhatsAppAction(order) ? (
               <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
                 {actions.map((action) => (
                   <button
@@ -2383,6 +2387,7 @@ function OrderSection({
                     {busyOrderId === order.id ? "Procesando..." : action.label}
                   </button>
                 ))}
+                <OrderWhatsAppButton order={order} />
               </div>
             ) : null}
           </article>
@@ -2453,6 +2458,22 @@ function OrderDetailPanel({
         <MiniMetric label="Saldo" value={formatCurrency(order.saldoPendiente)} />
       </div>
 
+      {shouldShowOrderWhatsAppAction(order) ? (
+        <section className="rounded-lg border border-emerald-100 bg-white p-4 shadow-soft">
+          <div className="space-y-1">
+            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
+              Confirmacion al cliente
+            </div>
+            <p className="text-sm text-emerald-900/70">
+              Abre WhatsApp con el mensaje listo para confirmar el pedido manualmente.
+            </p>
+          </div>
+          <div className="mt-3">
+            <OrderWhatsAppButton order={order} fullWidth />
+          </div>
+        </section>
+      ) : null}
+
       <section className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
           Productos
@@ -2479,6 +2500,50 @@ function OrderDetailPanel({
         </div>
       </section>
     </div>
+  );
+}
+
+function OrderWhatsAppButton({
+  order,
+  fullWidth = false
+}: {
+  order: AdminOrderSummary;
+  fullWidth?: boolean;
+}) {
+  const notification = getOrderWhatsAppNotification(order);
+  const sharedClassName =
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold";
+
+  if (notification.status === "ready" && notification.url) {
+    return (
+      <a
+        href={notification.url}
+        target="_blank"
+        rel="noreferrer"
+        className={`${sharedClassName} ${
+          fullWidth ? "w-full" : "w-full sm:w-auto"
+        } bg-[#25D366] text-white shadow-sm`}
+      >
+        <MessageCircle className="h-4 w-4" />
+        Enviar WhatsApp
+      </a>
+    );
+  }
+
+  const label = notification.error === "Sin telefono" ? "Sin telefono" : "Telefono invalido";
+
+  return (
+    <button
+      type="button"
+      disabled
+      className={`${sharedClassName} ${
+        fullWidth ? "w-full" : "w-full sm:w-auto"
+      } border border-emerald-100 bg-emerald-50 text-emerald-900/55`}
+      title={label}
+    >
+      <MessageCircle className="h-4 w-4" />
+      {label}
+    </button>
   );
 }
 
@@ -3479,6 +3544,23 @@ function MobileQuickHomeButton({
 
 function formatShortDateTime(value: string) {
   return formatChileDateTime(value);
+}
+
+function shouldShowOrderWhatsAppAction(order: AdminOrderSummary) {
+  return order.estadoPedido === "AGENDADO" || order.estadoPedido === "FINALIZADO";
+}
+
+function getOrderWhatsAppNotification(order: AdminOrderSummary) {
+  return notificationService.prepareOrderConfirmationNotification({
+    customerName: order.clienteNombre,
+    customerPhone: order.clienteTelefono,
+    items: order.items.map((item) => ({
+      name: item.productoNombre,
+      quantity: item.cantidad
+    })),
+    total: order.total,
+    deliveryDateLabel: order.fechaEntrega ? formatDateOnly(order.fechaEntrega) : "Por coordinar"
+  });
 }
 
 function formatDateOnly(value: string) {

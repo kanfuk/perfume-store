@@ -1,3 +1,5 @@
+import { normalizeChilePhone } from "@/lib/phone/normalizeChilePhone";
+
 export type ChileanMobilePhone = {
   national: string;
   e164: string;
@@ -9,23 +11,13 @@ function extractDigits(value: string) {
 }
 
 export function parseChileanMobilePhone(value: string): ChileanMobilePhone | null {
-  const digits = extractDigits(value);
+  const normalizedPhone = normalizeChilePhone(value);
 
-  if (!digits) {
+  if (!normalizedPhone) {
     return null;
   }
 
-  let national = digits;
-
-  if (digits.startsWith("56") && digits.length === 11) {
-    national = digits.slice(2);
-  } else if (digits.startsWith("0") && digits.length === 10) {
-    national = digits.slice(1);
-  }
-
-  if (!/^9\d{8}$/.test(national)) {
-    return null;
-  }
+  const national = normalizedPhone.slice(2);
 
   return {
     national,

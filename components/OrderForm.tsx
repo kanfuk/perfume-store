@@ -466,7 +466,7 @@ export function OrderForm() {
                     Catálogo del día
                   </h3>
                   <p className="copy-justified text-sm text-[#6b7c70]">
-                    Elige tu dobladita favorita y suma las que necesites.
+                    Elige tus favoritos del catálogo y suma lo que necesites.
                   </p>
                 </div>
               </div>
@@ -568,7 +568,7 @@ export function OrderForm() {
             onDecrease={updateQuantity}
             onIncrease={updateQuantity}
             onRemove={removeItem}
-            emptyText="Tu resumen aparecerá apenas elijas una dobladita."
+            emptyText="Tu resumen aparecerá apenas elijas algo del catálogo."
           />
 
           <div className="rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft">
