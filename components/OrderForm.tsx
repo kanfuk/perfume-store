@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Building2, Clock3, Phone, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
+import {
+  BadgeCheck,
+  Building2,
+  Clock3,
+  Phone,
+  ShieldCheck,
+  ShoppingBag,
+  UserRound
+} from "lucide-react";
 import { AppFooter } from "@/components/AppFooter";
 import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
@@ -389,7 +397,7 @@ export function OrderForm() {
       setRecentCustomers(nextCustomers);
       persistRecentCustomers(nextCustomers);
       setSubmitted(data);
-      setAutoFillMessage("Guardamos tus datos en este dispositivo para tu proximo pedido.");
+      setAutoFillMessage("Guardamos tus datos en este dispositivo para tu próximo pedido.");
       setLastAutoFilledPhone("");
       setForm(initialForm);
     } catch (error) {
@@ -414,145 +422,143 @@ export function OrderForm() {
           className="max-w-full space-y-6 overflow-x-hidden rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
           onSubmit={handleSubmit}
         >
-        {recentCustomers.length > 0 ? (
-          <div className="rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
-                <Clock3 className="h-5 w-5" />
+          {recentCustomers.length > 0 ? (
+            <div className="rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
+                  <Clock3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-[#1f3328]">
+                    Clientes frecuentes
+                  </h3>
+                  <p className="copy-justified text-sm text-[#6b7c70]">
+                    Si ya pediste desde este equipo, toca tu nombre y seguimos.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-[#1f3328]">
-                  Clientes frecuentes
-                </h3>
-                <p className="copy-justified text-sm text-[#6b7c70]">
-                  Si ya pediste desde este equipo, toca tu nombre y seguimos.
-                </p>
+              <div className="mt-4 flex max-w-full flex-wrap gap-3 overflow-x-hidden">
+                {recentCustomers.map((customer) => (
+                  <button
+                    key={customer.telefono}
+                    type="button"
+                    onClick={() => applyRecentCustomer(customer)}
+                    className="max-w-full rounded-full border border-[#d8ebdd] bg-white px-4 py-3 text-left transition hover:border-[#3fa66b] hover:shadow-sm"
+                  >
+                    <div className="text-sm font-semibold text-[#1f3328]">
+                      {customer.nombre}
+                    </div>
+                    <div className="text-xs text-[#6b7c70]">{customer.lugarTrabajo}</div>
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="mt-4 flex max-w-full flex-wrap gap-3 overflow-x-hidden">
-              {recentCustomers.map((customer) => (
-                <button
-                  key={customer.telefono}
-                  type="button"
-                  onClick={() => applyRecentCustomer(customer)}
-                  className="max-w-full rounded-full border border-[#d8ebdd] bg-white px-4 py-3 text-left transition hover:border-[#3fa66b] hover:shadow-sm"
-                >
-                  <div className="text-sm font-semibold text-[#1f3328]">
-                    {customer.nombre}
-                  </div>
-                  <div className="text-xs text-[#6b7c70]">{customer.lugarTrabajo}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <div className="space-y-4 rounded-[26px] border border-[#d8ebdd] bg-[linear-gradient(180deg,#eef8f0_0%,#f8fcf8_100%)] p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
-                <ShoppingBag className="h-5 w-5" />
+          <div className="space-y-4 rounded-[26px] border border-[#d8ebdd] bg-[linear-gradient(180deg,#eef8f0_0%,#f8fcf8_100%)] p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
+                  <ShoppingBag className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-[#1f3328]">
+                    Catálogo del día
+                  </h3>
+                  <p className="copy-justified text-sm text-[#6b7c70]">
+                    Elige tu dobladita favorita y suma las que necesites.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-[#1f3328]">
-                  Catálogo del día
-                </h3>
-                <p className="copy-justified text-sm text-[#6b7c70]">
-                  Elige tu dobladita favorita y suma las que necesites.
-                </p>
-              </div>
+              {loadingProducts ? (
+                <span className="text-sm text-[#6b7c70]">Cargando...</span>
+              ) : null}
             </div>
-            {loadingProducts ? (
-              <span className="text-sm text-[#6b7c70]">Cargando...</span>
+            <ProductCatalog
+              products={products}
+              quantities={quantitiesByProduct}
+              onAdd={addProduct}
+            />
+            {validation.errors.items ? (
+              <p className="text-sm text-danger">{validation.errors.items}</p>
             ) : null}
           </div>
-          <ProductCatalog
-            products={products}
-            quantities={quantitiesByProduct}
-            onAdd={addProduct}
-          />
-          {validation.errors.items ? (
-            <p className="text-sm text-danger">{validation.errors.items}</p>
-          ) : null}
-        </div>
 
-        <div className="space-y-4 rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
-              <UserRound className="h-5 w-5" />
+          <div className="space-y-4 rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
+                <UserRound className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[#1f3328]">Tus datos</h3>
+                <p className="copy-justified text-sm text-[#6b7c70]">
+                  Completa esto y Pauli te confirma disponibilidad por WhatsApp.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-[#1f3328]">
-                Tus datos
-              </h3>
-              <p className="copy-justified text-sm text-[#6b7c70]">
-                Completa esto y Pauli te confirma disponibilidad por WhatsApp.
-              </p>
-            </div>
-          </div>
 
-          {autoFillMessage ? (
-            <div
-              aria-live="polite"
-              className="flex items-start gap-2 rounded-2xl border border-[#d8ebdd] bg-white px-4 py-3 text-sm text-[#6b7c70]"
-            >
-              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#3fa66b]" />
-              <span>{autoFillMessage}</span>
-            </div>
-          ) : null}
+            {autoFillMessage ? (
+              <div
+                aria-live="polite"
+                className="flex items-start gap-2 rounded-2xl border border-[#d8ebdd] bg-white px-4 py-3 text-sm text-[#6b7c70]"
+              >
+                <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#3fa66b]" />
+                <span>{autoFillMessage}</span>
+              </div>
+            ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                label="Nombre del cliente"
+                value={form.nombre}
+                onChange={(value) => setForm((current) => ({ ...current, nombre: value }))}
+                error={validation.errors.nombre}
+                placeholder="Ejemplo: Rodrigo Riedmann"
+                autoComplete="name"
+                icon={<UserRound className="h-4 w-4" />}
+              />
+              <PhoneField
+                label="Celular de contacto"
+                value={form.telefono}
+                onChange={handlePhoneChange}
+                error={validation.errors.telefono}
+              />
+            </div>
             <TextField
-              label="Nombre del cliente"
-              value={form.nombre}
-              onChange={(value) => setForm((current) => ({ ...current, nombre: value }))}
-              error={validation.errors.nombre}
-              placeholder="Ejemplo: Rodrigo Riedmann"
-              autoComplete="name"
-              icon={<UserRound className="h-4 w-4" />}
+              label="Lugar de trabajo"
+              value={form.lugarTrabajo}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, lugarTrabajo: value }))
+              }
+              error={validation.errors.lugarTrabajo}
+              placeholder="Ejemplo: Finanzas, recepción o piso 3"
+              autoComplete="organization"
+              icon={<Building2 className="h-4 w-4" />}
             />
-            <PhoneField
-              label="Celular de contacto"
-              value={form.telefono}
-              onChange={handlePhoneChange}
-              error={validation.errors.telefono}
+            <input
+              tabIndex={-1}
+              autoComplete="off"
+              value={form.contactoOculto ?? ""}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  contactoOculto: event.target.value
+                }))
+              }
+              className="hidden"
+              aria-hidden="true"
             />
           </div>
-          <TextField
-            label="Lugar de trabajo"
-            value={form.lugarTrabajo}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, lugarTrabajo: value }))
-            }
-            error={validation.errors.lugarTrabajo}
-            placeholder="Ejemplo: Finanzas, recepcion o piso 3"
-            autoComplete="organization"
-            icon={<Building2 className="h-4 w-4" />}
-          />
-          <input
-            tabIndex={-1}
-            autoComplete="off"
-            value={form.contactoOculto ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                contactoOculto: event.target.value
-              }))
-            }
-            className="hidden"
-            aria-hidden="true"
-          />
-        </div>
 
-        <button
-          type="submit"
-          disabled={submitting || loadingProducts || products.length === 0}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
-        >
-          <ShoppingBag className="h-5 w-5" />
-          {submitting ? "Registrando pedido..." : "Registrar mi pedido"}
-        </button>
-        {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
+          <button
+            type="submit"
+            disabled={submitting || loadingProducts || products.length === 0}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            {submitting ? "Registrando pedido..." : "Registrar mi pedido"}
+          </button>
+          {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
         </form>
 
         <aside className="max-w-full space-y-4 xl:sticky xl:top-6 xl:h-fit">
@@ -583,25 +589,25 @@ export function OrderForm() {
 
       {cartLines.length > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-30 w-full max-w-full overflow-x-hidden border-t border-[#d8ebdd] bg-white/94 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(31,51,40,0.08)] backdrop-blur xl:hidden">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#6b7c70]">
-              Total del carrito
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#6b7c70]">
+                Total del carrito
+              </div>
+              <div className="truncate text-lg font-semibold text-[#1f3328]">
+                {formatCurrency(total)}
+              </div>
             </div>
-            <div className="truncate text-lg font-semibold text-[#1f3328]">
-              {formatCurrency(total)}
-            </div>
+            <button
+              type="submit"
+              form="customer-order-form"
+              disabled={submitting || loadingProducts || products.length === 0}
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              {submitting ? "Registrando..." : "Registrar pedido"}
+            </button>
           </div>
-          <button
-            type="submit"
-            form="customer-order-form"
-            disabled={submitting || loadingProducts || products.length === 0}
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            {submitting ? "Registrando..." : "Registrar pedido"}
-          </button>
-        </div>
         </div>
       ) : null}
 
