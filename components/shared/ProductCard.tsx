@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { formatCurrency } from "@/lib/format";
 import type { ProductRecord } from "@/lib/types";
@@ -9,6 +9,8 @@ type ProductCardProps = {
   product: ProductRecord;
   quantity?: number;
   onAdd: () => void;
+  onDecrease?: () => void;
+  onRemove?: () => void;
   actionLabel?: string;
   footerLabel?: string;
   showStockCount?: boolean;
@@ -18,6 +20,8 @@ export function ProductCard({
   product,
   quantity = 0,
   onAdd,
+  onDecrease,
+  onRemove,
   actionLabel,
   footerLabel = "Disponibilidad",
   showStockCount = false
@@ -53,6 +57,7 @@ export function ProductCard({
             {product.descripcion}
           </p>
         </div>
+
         <div className="mt-auto flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-[#247a4d]">
@@ -62,16 +67,47 @@ export function ProductCard({
               {formatCurrency(product.precioVenta)}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onAdd}
-            disabled={isOutOfStock}
-            className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
-          >
-            <Plus className="h-4 w-4" />
-            {isOutOfStock ? "Sin stock" : actionLabel ?? (quantity > 0 ? "Agregar otra" : "Elegir")}
-          </button>
+
+          {quantity > 0 && onDecrease && onRemove ? (
+            <div className="flex items-center gap-2 rounded-[22px] border border-[#d8ebdd] bg-[#f6fcf7] px-2 py-2 shadow-sm">
+              <ProductActionButton
+                label={`Quitar una unidad de ${product.nombre}`}
+                onClick={onDecrease}
+              >
+                <Minus className="h-4 w-4" />
+              </ProductActionButton>
+              <div className="min-w-8 text-center text-sm font-semibold text-[#1f3328]">
+                {quantity}
+              </div>
+              <ProductActionButton
+                label={`Agregar una unidad de ${product.nombre}`}
+                onClick={onAdd}
+                disabled={isOutOfStock || quantity >= availableStock}
+              >
+                <Plus className="h-4 w-4" />
+              </ProductActionButton>
+              <button
+                type="button"
+                onClick={onRemove}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[#6b7c70] transition-colors hover:bg-white hover:text-[#b44b43]"
+                aria-label={`Quitar ${product.nombre} del pedido`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onAdd}
+              disabled={isOutOfStock}
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+            >
+              <Plus className="h-4 w-4" />
+              {isOutOfStock ? "Sin stock" : actionLabel ?? "Elegir"}
+            </button>
+          )}
         </div>
+
         <div className="flex items-center justify-between rounded-[18px] bg-[#f6fcf7] px-4 py-3 text-sm">
           <span className="font-medium text-[#6b7c70]">{footerLabel}</span>
           <span className="font-semibold text-[#247a4d]">
@@ -80,5 +116,29 @@ export function ProductCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function ProductActionButton({
+  children,
+  label,
+  onClick,
+  disabled = false
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#d8ebdd] bg-white text-[#1f3328] transition-colors hover:border-[#3fa66b] hover:text-[#247a4d] disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      {children}
+    </button>
   );
 }

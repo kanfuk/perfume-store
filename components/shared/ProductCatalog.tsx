@@ -7,6 +7,8 @@ type ProductCatalogProps = {
   products: ProductRecord[];
   quantities: Record<string, number>;
   onAdd: (productId: string) => void;
+  onDecrease?: (productId: string) => void;
+  onRemove?: (productId: string) => void;
   showStockCount?: boolean;
   footerLabel?: string;
 };
@@ -15,6 +17,8 @@ export function ProductCatalog({
   products,
   quantities,
   onAdd,
+  onDecrease,
+  onRemove,
   showStockCount = false,
   footerLabel
 }: ProductCatalogProps) {
@@ -26,6 +30,8 @@ export function ProductCatalog({
           product={product}
           quantity={quantities[product.id] ?? 0}
           onAdd={() => onAdd(product.id)}
+          onDecrease={onDecrease ? () => onDecrease(product.id) : undefined}
+          onRemove={onRemove ? () => onRemove(product.id) : undefined}
           showStockCount={showStockCount}
           footerLabel={footerLabel}
         />

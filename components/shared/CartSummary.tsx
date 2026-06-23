@@ -9,23 +9,27 @@ import type { CartLine } from "@/lib/order-helpers";
 type CartSummaryProps = {
   lines: CartLine[];
   total: number;
+  totalItems?: number;
   onDecrease: (productId: string, nextQuantity: number) => void;
   onIncrease: (productId: string, nextQuantity: number) => void;
   onRemove: (productId: string) => void;
   emptyText?: string;
   title?: string;
   subtitle?: string;
+  footer?: React.ReactNode;
 };
 
 export function CartSummary({
   lines,
   total,
+  totalItems,
   onDecrease,
   onIncrease,
   onRemove,
-  emptyText = "Tu resumen aparecerá apenas elijas un producto.",
+  emptyText = "Tu resumen aparecera apenas elijas un producto.",
   title = "Tu pedido",
-  subtitle = "Revisa cantidad, valor unitario y total antes de enviarlo."
+  subtitle = "Revisa cantidad, valor unitario y total antes de enviarlo.",
+  footer
 }: CartSummaryProps) {
   return (
     <div className="overflow-hidden rounded-[30px] border border-[#d8ebdd] bg-white/95 shadow-soft">
@@ -36,7 +40,7 @@ export function CartSummary({
             <p className="copy-justified mt-1 text-sm text-[#6b7c70]">{subtitle}</p>
           </div>
           <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#247a4d]">
-            {lines.length} producto{lines.length === 1 ? "" : "s"}
+            {(totalItems ?? lines.length)} unidad{(totalItems ?? lines.length) === 1 ? "" : "es"}
           </span>
         </div>
       </div>
@@ -96,6 +100,7 @@ export function CartSummary({
           <span className="font-semibold text-[#1f3328]">Total</span>
           <span className="font-semibold text-[#247a4d]">{formatCurrency(total)}</span>
         </div>
+        {footer ? <div className="pt-2">{footer}</div> : null}
       </div>
     </div>
   );
