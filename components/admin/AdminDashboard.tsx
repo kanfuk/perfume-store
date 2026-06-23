@@ -38,7 +38,10 @@ import {
 import { AppFooter } from "@/components/AppFooter";
 import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
+import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
+import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
+import { buildWhatsAppManualUrl } from "@/lib/whatsapp/buildWhatsAppManualUrl";
 import { createNotificationService } from "@/services/NotificationService";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
@@ -273,6 +276,7 @@ export function AdminDashboard({
         totalPedidos: number;
         totalItems: number;
         totalMonto: number;
+        itemLines: Array<{ name: string; quantity: number }>;
         orders: AdminOrderSummary[];
       }
     >();
@@ -291,12 +295,20 @@ export function AdminDashboard({
         totalPedidos: 0,
         totalItems: 0,
         totalMonto: 0,
+        itemLines: [],
         orders: []
       };
 
       current.totalPedidos += 1;
       current.totalItems += order.cantidad;
       current.totalMonto += order.total;
+      current.itemLines = mergeOrderItems(
+        current.itemLines ?? [],
+        order.items.map((item) => ({
+          name: item.productoNombre,
+          quantity: item.cantidad
+        }))
+      );
       current.orders.push(order);
       groups.set(key, current);
     });
@@ -1215,6 +1227,16 @@ export function AdminDashboard({
                       <MiniMetric label="Monto" value={formatCurrency(group.totalMonto)} />
                       <MiniMetric label="Telefono" value={group.clienteTelefono || "-"} />
                     </div>
+                    <div className="mt-3 space-y-2 rounded-2xl border border-emerald-100 bg-white/90 p-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
+                        Pedido
+                      </div>
+                      {renderGroupedItemLines(group.itemLines, 4).map((line) => (
+                        <div key={`${group.key}-${line}`} className="text-sm text-emerald-900/80">
+                          {line}
+                        </div>
+                      ))}
+                    </div>
                   </article>
                 ))}
               </div>
@@ -1373,7 +1395,15 @@ export function AdminDashboard({
             </div>
 
             {statusFilter !== "historial" ? (
-              <aside className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
+              <aside className="rounded-lg border border-emerald-200 bg-[linear-gradient(180deg,#f7fcf8_0%,#ffffff_100%)] p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
+                <div className="mb-4 rounded-2xl border border-emerald-100 bg-white px-4 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700/70">
+                    Resumen del pedido seleccionado
+                  </div>
+                  <p className="mt-1 text-sm text-emerald-900/65">
+                    Aqui se ve el detalle completo del pedido activo sin confundirse con la lista.
+                  </p>
+                </div>
                 <OrderDetailPanel order={selectedOrder} agendaGroups={agendaGroups} />
               </aside>
             ) : null}
@@ -1601,6 +1631,7 @@ export function AdminDashboard({
                       >
                         {busyOrderId === order.id ? "Procesando..." : "Registrar abono"}
                       </button>
+                      <DebtCollectionButton order={order} />
                     </div>
                   </article>
                 ))}
@@ -2353,10 +2384,16 @@ function OrderSection({
                     <Phone className="h-4 w-4" />
                     {order.clienteTelefono || "Sin teléfono"}
                   </div>
-                  <div className="text-sm text-emerald-900/65">
-                    {order.items.length > 1
-                      ? `${order.items.length} productos en el pedido`
-                      : order.productoNombre}
+                  <div className="space-y-1 text-sm text-emerald-900/65">
+                    {renderGroupedItemLines(
+                      order.items.map((item) => ({
+                        name: item.productoNombre,
+                        quantity: item.cantidad
+                      })),
+                      4
+                    ).map((line) => (
+                      <div key={`${order.id}-${line}`}>{line}</div>
+                    ))}
                   </div>
                 </div>
 
@@ -2373,6 +2410,12 @@ function OrderSection({
                 <MiniMetric label="Total" value={formatCurrency(order.total)} />
                 <MiniMetric label="Saldo" value={formatCurrency(order.saldoPendiente)} />
                 <MiniMetric label="Ingreso" value={formatShortDateTime(order.fechaPedido)} />
+              </div>
+
+              <div className="mt-3 xl:hidden">
+                <span className="inline-flex min-h-10 items-center rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm font-semibold text-emerald-900">
+                  Ver detalle abajo
+                </span>
               </div>
 
               {selectedOrderId === order.id ? (
@@ -2512,6 +2555,8 @@ function OrderDetailPanel({
         </section>
       ) : null}
 
+      <DebtCollectionButton order={order} fullWidth />
+
       <section className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
           Productos
@@ -2585,6 +2630,36 @@ function OrderWhatsAppButton({
   );
 }
 
+function DebtCollectionButton({
+  order,
+  fullWidth = false
+}: {
+  order: AdminOrderSummary;
+  fullWidth?: boolean;
+}) {
+  const href = getDebtCollectionAction(order);
+  const className =
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold";
+
+  if (!href) {
+    return null;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={`${className} ${
+        fullWidth ? "w-full" : "w-full sm:w-auto"
+      } border border-emerald-200 bg-white text-emerald-900`}
+    >
+      <MessageCircle className="h-4 w-4" />
+      Cobrar
+    </a>
+  );
+}
+
 function PaymentOrderCard({
   order,
   busy,
@@ -2602,7 +2677,17 @@ function PaymentOrderCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
-            <div className="mt-1 text-sm text-emerald-900/65">{order.productoNombre}</div>
+            <div className="mt-1 space-y-1 text-sm text-emerald-900/65">
+              {renderGroupedItemLines(
+                order.items.map((item) => ({
+                  name: item.productoNombre,
+                  quantity: item.cantidad
+                })),
+                3
+              ).map((line) => (
+                <div key={`${order.id}-${line}`}>{line}</div>
+              ))}
+            </div>
           </div>
           <StatusBadge
             tone="neutral"
@@ -2633,6 +2718,7 @@ function PaymentOrderCard({
             {busy ? "Procesando..." : "Dejar fiado"}
           </button>
         </div>
+        <DebtCollectionButton order={order} />
       </div>
     </article>
   );
@@ -3577,6 +3663,75 @@ function MobileQuickHomeButton({
     >
       <Home className="h-4 w-4" />
     </Link>
+  );
+}
+
+function mergeOrderItems(
+  current: Array<{ name: string; quantity: number }>,
+  incoming: Array<{ name: string; quantity: number }>
+) {
+  const grouped = new Map<string, number>();
+
+  [...current, ...incoming].forEach((item) => {
+    grouped.set(item.name, (grouped.get(item.name) ?? 0) + item.quantity);
+  });
+
+  return Array.from(grouped.entries()).map(([name, quantity]) => ({ name, quantity }));
+}
+
+function renderGroupedItemLines(
+  items: Array<{ name: string; quantity: number }>,
+  visibleLimit = 3
+) {
+  const grouped = mergeOrderItems([], items);
+  const visibleLines = grouped
+    .slice(0, visibleLimit)
+    .map((item) => `- ${item.quantity} x ${item.name}`);
+
+  if (grouped.length > visibleLimit) {
+    visibleLines.push(`+ ${grouped.length - visibleLimit} producto(s) mas`);
+  }
+
+  return visibleLines;
+}
+
+function getDebtCollectionAction(order: AdminOrderSummary) {
+  if (
+    order.saldoPendiente <= 0 &&
+    order.estadoPago !== "FIADO" &&
+    order.estadoPago !== "SIN_PAGO"
+  ) {
+    return null;
+  }
+
+  const notification = notificationService.prepareOrderConfirmationNotification({
+    customerName: order.clienteNombre,
+    customerPhone: order.clienteTelefono,
+    items: order.items.map((item) => ({
+      name: item.productoNombre,
+      quantity: item.cantidad
+    }))
+  });
+
+  if (notification.status !== "ready" || !order.clienteTelefono) {
+    return null;
+  }
+
+  const normalizedPhone = parseChileanMobilePhone(order.clienteTelefono);
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  return buildWhatsAppManualUrl(
+    normalizedPhone.e164.replace(/\D/g, ""),
+    buildDebtCollectionMessage({
+      amount: order.saldoPendiente > 0 ? order.saldoPendiente : order.total,
+      items: order.items.map((item) => ({
+        name: item.productoNombre,
+        quantity: item.cantidad
+      }))
+    })
   );
 }
 

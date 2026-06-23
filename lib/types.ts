@@ -57,6 +57,7 @@ export type CustomOrderRequest = {
   telefono?: string;
   lugarTrabajo?: string;
   nombreProducto: string;
+  productoBaseId?: string;
   descripcion?: string;
   cantidad: number;
   precioAcordado: number;

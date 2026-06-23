@@ -7,12 +7,16 @@ type ProductCatalogProps = {
   products: ProductRecord[];
   quantities: Record<string, number>;
   onAdd: (productId: string) => void;
+  showStockCount?: boolean;
+  footerLabel?: string;
 };
 
 export function ProductCatalog({
   products,
   quantities,
-  onAdd
+  onAdd,
+  showStockCount = false,
+  footerLabel
 }: ProductCatalogProps) {
   return (
     <div className="grid w-full max-w-full min-w-0 gap-4 md:auto-rows-fr md:grid-cols-2">
@@ -22,6 +26,8 @@ export function ProductCatalog({
           product={product}
           quantity={quantities[product.id] ?? 0}
           onAdd={() => onAdd(product.id)}
+          showStockCount={showStockCount}
+          footerLabel={footerLabel}
         />
       ))}
     </div>

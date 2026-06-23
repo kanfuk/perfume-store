@@ -37,6 +37,7 @@ import {
   validateCustomOrderForm,
   validateCustomerOrderForm
 } from "@/lib/validators";
+import { getAvailableProductStock } from "@/lib/stock";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
 import type { PedidoRepository } from "@/repositories/pedidoRepository";
@@ -79,7 +80,7 @@ export class PedidoService {
         throw new Error("El producto seleccionado no esta disponible.");
       }
 
-      const stockActual = productData.stockActual ?? 0;
+      const stockActual = getAvailableProductStock(productData);
 
       if (line.cantidad > stockActual) {
         throw new Error(
@@ -256,7 +257,8 @@ export class PedidoService {
   }
 
   async crearPedidoPersonalizado(input: CustomOrderRequest): Promise<CustomerOrderResponse> {
-    const validation = validateCustomOrderForm(input);
+    const products = await this.productRepository.buscarProductosActivos();
+    const validation = validateCustomOrderForm(input, products);
 
     if (!validation.isValid) {
       throw new Error(Object.values(validation.errors)[0] ?? "Formulario invalido.");
@@ -270,19 +272,22 @@ export class PedidoService {
       telefono,
       lugarTrabajo: input.lugarTrabajo?.trim() || "Pedido personalizado"
     });
+    const linkedProduct = input.productoBaseId
+      ? products.find((product) => product.id === input.productoBaseId)
+      : undefined;
     const producto = new Producto({
-      id: "pedido-personalizado",
+      id: linkedProduct?.id ?? "pedido-personalizado",
       nombre: input.nombreProducto.trim(),
       descripcion: input.descripcion?.trim() || "",
       precioVenta: input.precioAcordado,
-      imageUrl: "/images/products/pedido-personalizado.png",
-      badgeLabel: "PEDIDO PERSONALIZADO",
+      imageUrl: linkedProduct?.imageUrl || "/images/products/pedido-personalizado.png",
+      badgeLabel: linkedProduct ? "PERSONALIZADO VINCULADO" : "PEDIDO PERSONALIZADO",
       costoUnitario:
         input.costoEstimadoTotal && input.cantidad > 0
           ? Math.round(input.costoEstimadoTotal / input.cantidad)
-          : 0,
+          : linkedProduct?.costoUnitario ?? 0,
       activo: true,
-      tipoProducto: "personalizado"
+      tipoProducto: linkedProduct ? "personalizado-vinculado" : "personalizado"
     });
     const item = new DetallePedido({
       producto,
@@ -332,12 +337,16 @@ export class PedidoService {
     await this.pedidoRepository.insertarPedidoItem({
       pedidoId,
       item,
-      productoId: undefined,
+      productoId: linkedProduct?.id,
       productoNombre: producto.nombre,
       productoDescripcion: producto.descripcion,
       productoImageUrl: producto.imageUrl,
       productoTipo: producto.tipoProducto
     });
+
+    if (linkedProduct) {
+      await this.productRepository.ajustarStockAgenda(linkedProduct.id, -item.cantidad);
+    }
 
     if (estadoPago === ESTADO_PAGO_PAGADO) {
       await this.pedidoRepository.insertarPago({
@@ -434,7 +443,7 @@ export class PedidoService {
     const domainPedido = this.mapListItemToPedido(pedido);
     const fechaProgramada = this.parseFechaEntrega(fechaEntrega);
 
-    await this.validarStockAgenda(pedido, fechaProgramada, pedidoId);
+    await this.validarStockAgenda(pedido);
     domainPedido.agendar(fechaProgramada);
 
     await this.pedidoRepository.actualizarEstadoPedido({
@@ -473,11 +482,7 @@ export class PedidoService {
     });
 
     // Restaurar stock de agenda por cada item
-    await Promise.all(
-      items.map((item) =>
-        this.productRepository.ajustarStockAgenda(item.productoId, item.cantidad)
-      )
-    );
+    await this.restoreLinkedCatalogStock(items);
   }
 
   async marcarPedidoPagado(pedidoId: string) {
@@ -719,59 +724,68 @@ export class PedidoService {
   }
 
   private async validarStockAgenda(
-    pedido: PedidoListItemRecord,
-    fechaEntrega: Date,
-    pedidoId: string
+    pedido: PedidoListItemRecord
   ) {
-    const [agendados, productos] = await Promise.all([
-      this.pedidoRepository.buscarPedidosPorEstado(ESTADO_PEDIDO_AGENDADO),
-      this.productRepository.buscarTodosProductos()
-    ]);
-
-    const fechaKey = toDateOnlyString(fechaEntrega);
-    const consumoPorProducto = new Map<string, number>();
-
-    agendados
-      .filter((order) => order.id !== pedidoId && order.fechaEntrega === fechaKey)
-      .forEach((order) => {
-        order.items.forEach((item) => {
-          consumoPorProducto.set(
-            item.productoId,
-            (consumoPorProducto.get(item.productoId) ?? 0) + item.cantidad
-          );
-        });
-      });
+    const productos = await this.productRepository.buscarTodosProductos();
 
     for (const item of pedido.items) {
       const producto = productos.find((product) => product.id === item.productoId);
 
       if (!producto) {
-        throw new Error("Uno de los productos del pedido ya no existe.");
+        continue;
       }
 
       const domainProduct = new Producto(producto);
-      const stockDisponible = domainProduct.stockAgenda;
-      const comprometido = consumoPorProducto.get(item.productoId) ?? 0;
-      const restante = stockDisponible - comprometido;
+      const stockDisponible = getAvailableProductStock(domainProduct) + item.cantidad;
 
-      if (item.cantidad > restante) {
+      if (item.cantidad > stockDisponible) {
         throw new Error(
-          `No alcanza el stock de agenda para ${domainProduct.nombre} el ${formatDateOnly(fechaKey)}. Disponible: ${Math.max(
-            restante,
+          `No alcanza el stock disponible para ${domainProduct.nombre}. Disponible: ${Math.max(
+            stockDisponible,
             0
           )}.`
         );
       }
     }
   }
+
+  private async reserveLinkedCatalogStock(items: DetallePedido[]) {
+    await Promise.all(
+      items.map((item) =>
+        this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad)
+      )
+    );
+  }
+
+  private async restoreLinkedCatalogStock(
+    items: Array<{ productoId: string; cantidad: number }>
+  ) {
+    const settled = await Promise.allSettled(
+      items.map(async (item) => {
+        if (!item.productoId) {
+          return;
+        }
+
+        const linkedProduct = await this.productRepository.buscarProductoPorId(item.productoId);
+
+        if (!linkedProduct) {
+          return;
+        }
+
+        await this.productRepository.ajustarStockAgenda(item.productoId, item.cantidad);
+      })
+    );
+
+    const firstRejected = settled.find((result) => result.status === "rejected");
+
+    if (firstRejected?.status === "rejected") {
+      throw firstRejected.reason;
+    }
+  }
 }
 
 function toDateOnlyString(value: Date) {
   return value.toISOString().slice(0, 10);
-}
-
-function formatDateOnly(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("es-CL");
 }
 
 export function createPedidoService() {

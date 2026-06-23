@@ -16,6 +16,7 @@ import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
+import { getAvailableProductStock } from "@/lib/stock";
 import type { CustomerOrderResponse, ProductRecord } from "@/lib/types";
 import {
   type CustomerFormData,
@@ -200,7 +201,7 @@ export function OrderForm() {
     nextQuantity: number,
     onAccept: () => void
   ) {
-    const available = Math.max(product.stockActual ?? 0, 0);
+    const available = getAvailableProductStock(product);
 
     if (nextQuantity <= available) {
       onAccept();
@@ -224,22 +225,23 @@ export function OrderForm() {
     const existing = form.items.find((item) => item.productoId === productId);
     const nextQuantity = (existing?.cantidad ?? 0) + 1;
 
-    if ((product.stockActual ?? 0) <= 0) {
+    if (getAvailableProductStock(product) <= 0) {
       setServerError(`${product.nombre} no tiene stock disponible por ahora.`);
       return;
     }
 
-    if (nextQuantity > (product.stockActual ?? 0)) {
+    if (nextQuantity > getAvailableProductStock(product)) {
       requestStockAdjustment(product, nextQuantity, () => {
         setForm((latest) => {
           const latestExisting = latest.items.find((item) => item.productoId === productId);
+          const maxAvailable = getAvailableProductStock(product);
 
           if (latestExisting) {
             return {
               ...latest,
               items: latest.items.map((item) =>
                 item.productoId === productId
-                  ? { ...item, cantidad: Math.max(product.stockActual ?? 0, 0) }
+                  ? { ...item, cantidad: maxAvailable }
                   : item
               )
             };
@@ -251,7 +253,7 @@ export function OrderForm() {
               ...latest.items,
               {
                 productoId: productId,
-                cantidad: Math.max(product.stockActual ?? 0, 0)
+                cantidad: maxAvailable
               }
             ]
           };
@@ -292,15 +294,16 @@ export function OrderForm() {
       return;
     }
 
-    if (nextQuantity > (product.stockActual ?? 0)) {
+    if (nextQuantity > getAvailableProductStock(product)) {
       requestStockAdjustment(product, nextQuantity, () => {
+        const maxAvailable = getAvailableProductStock(product);
         setForm((current) => ({
           ...current,
           items: current.items.map((item) =>
             item.productoId === productId
               ? {
                   ...item,
-                  cantidad: Math.max(product.stockActual ?? 0, 0)
+                  cantidad: maxAvailable
                 }
               : item
           )

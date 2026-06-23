@@ -38,6 +38,19 @@ class ProductRepositoryStub implements ProductRepository {
     return this.buscarProductosActivos();
   }
 
+  async ajustarStockAgenda(id: string, cantidad: number) {
+    const product = await this.buscarProductoPorId();
+
+    if (!product) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    return {
+      ...product,
+      stockAgenda: (product.stockAgenda ?? 0) + cantidad
+    };
+  }
+
   async eliminarProducto() {
     return;
   }
@@ -252,7 +265,7 @@ describe("PedidoService admin transitions", () => {
     expect(repository.actualizado?.fechaEntrega).toBe("2026-06-13");
   });
 
-  it("bloquea la agenda si el stock del dia ya esta comprometido", async () => {
+  it("permite agendar si el pedido ya habia reservado su stock", async () => {
     const repository = new AdminPedidoRepositoryStub({
       PENDIENTE: [buildOrder("PENDIENTE")],
       AGENDADO: [
@@ -296,9 +309,9 @@ describe("PedidoService admin transitions", () => {
       repository
     );
 
-    await expect(service.agendarPedido("pedido-1", "2026-06-13")).rejects.toThrow(
-      "No alcanza el stock de agenda para Pan amasado"
-    );
+    await service.agendarPedido("pedido-1", "2026-06-13");
+
+    expect(repository.actualizado?.estadoPedido).toBe("AGENDADO");
   });
 
   it("marca pagado un pedido agendado", async () => {

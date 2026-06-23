@@ -11,6 +11,7 @@ type ProductCardProps = {
   onAdd: () => void;
   actionLabel?: string;
   footerLabel?: string;
+  showStockCount?: boolean;
 };
 
 export function ProductCard({
@@ -18,9 +19,11 @@ export function ProductCard({
   quantity = 0,
   onAdd,
   actionLabel,
-  footerLabel = "Disponibles hoy"
+  footerLabel = "Disponibilidad",
+  showStockCount = false
 }: ProductCardProps) {
-  const isOutOfStock = (product.stockActual ?? 0) <= 0;
+  const availableStock = Math.max(product.stockActual ?? 0, 0);
+  const isOutOfStock = availableStock <= 0;
 
   return (
     <article className="flex h-full max-w-full flex-col overflow-hidden rounded-[28px] border border-[#d8ebdd] bg-white shadow-sm transition-[border-color,box-shadow,background-color] duration-200 touch-manipulation hover:shadow-soft">
@@ -72,7 +75,7 @@ export function ProductCard({
         <div className="flex items-center justify-between rounded-[18px] bg-[#f6fcf7] px-4 py-3 text-sm">
           <span className="font-medium text-[#6b7c70]">{footerLabel}</span>
           <span className="font-semibold text-[#247a4d]">
-            {Math.max(product.stockActual ?? 0, 0)}
+            {showStockCount ? String(availableStock) : isOutOfStock ? "Agotado" : "Disponible"}
           </span>
         </div>
       </div>

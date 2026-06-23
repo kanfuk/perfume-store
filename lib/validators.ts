@@ -9,6 +9,7 @@
 
 import type { ProductoProps } from "@/domain/Producto";
 import { isValidChileanMobilePhone } from "@/lib/chile-phone";
+import { getAvailableProductStock } from "@/lib/stock";
 import type {
   AdminDirectSaleRequest,
   CustomOrderRequest,
@@ -66,9 +67,7 @@ export function validateCustomerOrderForm(
         break;
       }
 
-      const stockActual = producto.stockActual ?? 0;
-      const stockAgenda = producto.stockAgenda ?? 0;
-      const stockDisponible = Math.max(0, stockActual - stockAgenda);
+      const stockDisponible = getAvailableProductStock(producto);
 
       if (item.cantidad > stockDisponible) {
         errors.items = `El producto ${producto.nombre} solo tiene ${stockDisponible} disponible(s).`;
@@ -105,11 +104,10 @@ export function validateAdminDirectSaleForm(
         break;
       }
 
-      if (
-        typeof producto.stockActual === "number" &&
-        item.cantidad > producto.stockActual
-      ) {
-        errors.items = `El producto ${producto.nombre} solo tiene ${producto.stockActual} disponible(s).`;
+      const stockDisponible = getAvailableProductStock(producto);
+
+      if (item.cantidad > stockDisponible) {
+        errors.items = `El producto ${producto.nombre} solo tiene ${stockDisponible} disponible(s).`;
         break;
       }
     }
@@ -129,7 +127,10 @@ export function validateAdminDirectSaleForm(
   };
 }
 
-export function validateCustomOrderForm(data: CustomOrderRequest) {
+export function validateCustomOrderForm(
+  data: CustomOrderRequest,
+  products: ProductoProps[] = []
+) {
   const errors: Record<string, string> = {};
 
   if (!data.nombre.trim()) {
@@ -161,6 +162,16 @@ export function validateCustomOrderForm(data: CustomOrderRequest) {
 
   if (data.estadoInicial === "FIADO" && !data.nombre.trim()) {
     errors.nombre = "Para registrar fiado, indica al menos el nombre del cliente.";
+  }
+
+  if (data.productoBaseId) {
+    const producto = products.find((product) => product.id === data.productoBaseId);
+
+    if (!producto || producto.activo === false) {
+      errors.productoBaseId = "Selecciona un producto base activo.";
+    } else if (data.cantidad > getAvailableProductStock(producto)) {
+      errors.productoBaseId = `El producto ${producto.nombre} solo tiene ${getAvailableProductStock(producto)} disponible(s).`;
+    }
   }
 
   return {

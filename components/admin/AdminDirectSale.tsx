@@ -19,6 +19,7 @@ import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButt
 import { formatChileanMobileInput } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
+import { getAvailableProductStock } from "@/lib/stock";
 import type { AdminDashboardData, AdminProductRecord } from "@/lib/types";
 
 type Mode = "catalogo" | "personalizado";
@@ -40,6 +41,7 @@ const initialCustomForm = {
   telefono: "",
   lugarTrabajo: "",
   nombreProducto: "",
+  productoBaseId: "",
   descripcion: "",
   cantidad: "1",
   precioAcordado: "",
@@ -103,6 +105,7 @@ export function AdminDirectSale({
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [stockLimitMessage, setStockLimitMessage] = useState("");
 
   const cartLines = useMemo(
     () => normalizarProductoParaCarrito(saleItems, products),
@@ -143,8 +146,12 @@ export function AdminDirectSale({
       }
 
       const nextQuantity = (existing?.cantidad ?? 0) + 1;
+      const availableStock = getAvailableProductStock(product);
 
-      if (nextQuantity > (product.stockActual ?? 0)) {
+      if (nextQuantity > availableStock) {
+        setStockLimitMessage(
+          `Solo quedan ${availableStock} unidades disponibles para ${product.nombre}. Ajustamos la venta a ${availableStock}.`
+        );
         return current;
       }
 
@@ -170,7 +177,13 @@ export function AdminDirectSale({
         return current;
       }
 
-      const quantity = Math.min(nextQuantity, product.stockActual ?? 0);
+      const quantity = Math.min(nextQuantity, getAvailableProductStock(product));
+
+      if (nextQuantity > quantity) {
+        setStockLimitMessage(
+          `Solo quedan ${quantity} unidades disponibles para ${product.nombre}. Ajustamos la venta a ${quantity}.`
+        );
+      }
 
       return current.map((item) =>
         item.productoId === productId ? { ...item, cantidad: quantity } : item
@@ -213,6 +226,7 @@ export function AdminDirectSale({
       setCustomerPhone("");
       setCustomerPlace("");
       setPaymentState("PAGADO");
+      setStockLimitMessage("");
       setSuccessMessage(
         `Venta directa registrada correctamente. Código interno: ${data.pedidoId ?? "OK"}.`
       );
@@ -241,6 +255,7 @@ export function AdminDirectSale({
           telefono: customForm.telefono,
           lugarTrabajo: customForm.lugarTrabajo,
           nombreProducto: customForm.nombreProducto,
+          productoBaseId: customForm.productoBaseId || undefined,
           descripcion: customForm.descripcion,
           cantidad: Number(customForm.cantidad),
           precioAcordado: Number(customForm.precioAcordado),
@@ -256,8 +271,8 @@ export function AdminDirectSale({
       if (!response.ok) {
         throw new Error(data.error ?? "No fue posible registrar el pedido personalizado.");
       }
-
       setCustomForm(initialCustomForm);
+      setStockLimitMessage("");
       setSuccessMessage(
         `Pedido personalizado registrado correctamente. Código interno: ${data.pedidoId ?? "OK"}.`
       );
@@ -274,8 +289,8 @@ export function AdminDirectSale({
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-6 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
-      <section className="overflow-hidden rounded-[34px] border border-[#d8ebdd] bg-white/92 shadow-soft">
-        <div className="bg-[linear-gradient(140deg,#fff4da_0%,#f8d8cb_48%,#fdecef_100%)] p-6 sm:p-8">
+      <section className="overflow-hidden rounded-[34px] border border-[#cbebd6] bg-[#f3faf4] shadow-soft">
+        <div className="bg-[linear-gradient(140deg,#f3faf4_0%,#eaf8ef_48%,#ddf4e5_100%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
               <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-[#247a4d]">
@@ -326,6 +341,11 @@ export function AdminDirectSale({
           {serverError}
         </div>
       ) : null}
+      {stockLimitMessage ? (
+        <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+          {stockLimitMessage}
+        </div>
+      ) : null}
 
       {mode === "catalogo" ? (
         <section className="grid w-full max-w-full min-w-0 gap-6 pb-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -339,6 +359,8 @@ export function AdminDirectSale({
                 products={products}
                 quantities={quantities}
                 onAdd={addProduct}
+                showStockCount
+                footerLabel="Disponibles hoy"
               />
             </CardSection>
 
@@ -454,7 +476,7 @@ export function AdminDirectSale({
             <div className="rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6fcf7] text-[#3fa66b]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
                     <BadgeCheck className="h-5 w-5" />
                   </div>
                   <div>
@@ -470,7 +492,7 @@ export function AdminDirectSale({
                   type="button"
                   disabled={submitting || saleItems.length === 0}
                   onClick={() => void submitDirectSale()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-emerald-600 px-4 py-4 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200"
                 >
                   <ShoppingBag className="h-5 w-5" />
                   {submitting ? "Registrando venta..." : "Registrar venta"}
@@ -518,6 +540,29 @@ export function AdminDirectSale({
                 placeholder="Ejemplo: Torre norte"
                 icon={<Building2 className="h-4 w-4" />}
               />
+
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-[#1f3328]">
+                  Vincular a producto del catalogo (opcional)
+                </span>
+                <select
+                  value={customForm.productoBaseId}
+                  onChange={(event) =>
+                    setCustomForm((current) => ({
+                      ...current,
+                      productoBaseId: event.target.value
+                    }))
+                  }
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                >
+                  <option value="">Personalizada libre</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.nombre} - {getAvailableProductStock(product)} disponible(s)
+                    </option>
+                  ))}
+                </select>
+              </label>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <TextField
@@ -624,6 +669,14 @@ export function AdminDirectSale({
                   label="Producto"
                   value={customForm.nombreProducto || "Sin definir"}
                 />
+                <SummaryFact
+                  label="Tipo"
+                  value={
+                    customForm.productoBaseId
+                      ? "Vinculada a catalogo"
+                      : "Personalizada libre"
+                  }
+                />
                 <SummaryFact label="Cantidad" value={customForm.cantidad || "0"} />
                 <SummaryFact label="Total" value={formatCurrency(customTotal)} />
                 <SummaryFact
@@ -649,7 +702,7 @@ export function AdminDirectSale({
                   type="button"
                   disabled={submitting}
                   onClick={() => void submitCustomOrder()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-emerald-600 px-4 py-4 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200"
                 >
                   <Sparkles className="h-5 w-5" />
                   {submitting
@@ -745,7 +798,7 @@ function ChoiceButton({
       onClick={onClick}
       className={`flex h-full flex-col justify-between rounded-[22px] border px-4 py-4 text-left transition ${
         active
-          ? "border-[#3fa66b] bg-[#f6fcf7] shadow-soft"
+          ? "border-emerald-200 bg-emerald-50 shadow-soft"
           : "border-[#d8ebdd] bg-white"
       }`}
     >

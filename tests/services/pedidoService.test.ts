@@ -58,6 +58,19 @@ class ProductRepositoryStub implements ProductRepository {
     return this.buscarProductosActivos();
   }
 
+  async ajustarStockAgenda(id: string, cantidad: number) {
+    const product = await this.buscarProductoPorId(id);
+
+    if (!product) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    return {
+      ...product,
+      stockAgenda: (product.stockAgenda ?? 0) + cantidad
+    };
+  }
+
   async eliminarProducto() {
     return;
   }

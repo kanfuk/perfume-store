@@ -9,7 +9,7 @@ export default function HomePage() {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative h-full w-full max-w-lg opacity-90">
               <Image
-                src="/icons/icon-512x512.png"
+                src="/pauli-store-logo-transparent.png"
                 alt="Logo Pauli Store"
                 fill
                 className="object-contain"

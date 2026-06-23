@@ -1,17 +1,12 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
+import { buildReservationInviteMessage } from "@/lib/whatsapp/buildReservationInviteMessage";
 
 type WhatsAppFloatingButtonProps = {
   hidden?: boolean;
   bottomOffsetClassName?: string;
 };
-
-const FALLBACK_MESSAGE = [
-  "¡Hola! Ya está disponible el link para registrar pedidos en Pauli Store.",
-  "Ingresa aquí:",
-  "https://pauli-store-clientes.vercel.app/"
-].join("\n");
 
 export function WhatsAppFloatingButton({
   hidden = false,
@@ -22,7 +17,8 @@ export function WhatsAppFloatingButton({
   }
 
   const groupUrl = process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL?.trim();
-  const shareMessage = process.env.NEXT_PUBLIC_WHATSAPP_SHARE_URL?.trim() || FALLBACK_MESSAGE;
+  const shareMessage =
+    process.env.NEXT_PUBLIC_WHATSAPP_SHARE_URL?.trim() || buildReservationInviteMessage();
   const href = groupUrl || `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
 
   return (

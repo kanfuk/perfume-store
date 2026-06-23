@@ -9,6 +9,7 @@
 
 import { Producto } from "@/domain/Producto";
 import { getProductVisualMeta } from "@/lib/product-catalog";
+import { getAvailableProductStock } from "@/lib/stock";
 import type { AdminProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
@@ -36,7 +37,7 @@ export class ProductoService {
             visual.badgeLabel ||
             product.tipoProducto ||
             "PRODUCTO CASERO",
-          stockActual: product.stockActual,
+          stockActual: getAvailableProductStock(product),
           stockAgenda: product.stockAgenda,
           tipoProducto: product.tipoProducto
         };
