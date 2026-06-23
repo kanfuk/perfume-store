@@ -4,7 +4,19 @@
 
 :root {
   color-scheme: light;
-  --app-revision: "2026-06-12-multiproduct-ui";
+  --app-revision: "2026-06-22-green-pastel-ui";
+  --bg-main: #f3faf4;
+  --bg-soft: #eaf6ec;
+  --card: #ffffff;
+  --primary: #3fa66b;
+  --primary-dark: #247a4d;
+  --primary-soft: #ddf4e5;
+  --accent: #f4d77a;
+  --danger-soft: #f28b82;
+  --text-main: #1f3328;
+  --text-muted: #6b7c70;
+  --border-soft: #d8ebdd;
+  --shadow-soft-green: 0 12px 30px rgba(31, 51, 40, 0.08);
 }
 
 * {
@@ -12,7 +24,7 @@
 }
 
 html {
-  background: #fff6f8;
+  background: var(--bg-main);
   overflow-x: hidden;
   max-width: 100%;
   overscroll-behavior-x: none;
@@ -26,10 +38,10 @@ body {
   max-width: 100%;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(255, 177, 198, 0.34), transparent 28%),
-    radial-gradient(circle at top right, rgba(248, 214, 224, 0.48), transparent 24%),
-    linear-gradient(180deg, #fffafc 0%, #fff3f6 100%);
-  color: #5f3041;
+    radial-gradient(circle at top left, rgba(173, 225, 187, 0.36), transparent 28%),
+    radial-gradient(circle at top right, rgba(234, 246, 236, 0.72), transparent 24%),
+    linear-gradient(180deg, #f8fdf9 0%, #eef8f0 100%);
+  color: var(--text-main);
   font-family: Inter, Arial, Helvetica, sans-serif;
 }
 
@@ -68,10 +80,18 @@ input[type="date"] {
 }
 
 ::selection {
-  background: rgba(214, 123, 148, 0.2);
+  background: rgba(63, 166, 107, 0.2);
 }
 
 .copy-justified {
   text-align: justify;
   text-justify: inter-word;
+}
+
+.text-danger {
+  color: #d66d63;
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-soft-green);
 }

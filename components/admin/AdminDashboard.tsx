@@ -853,16 +853,16 @@ export function AdminDashboard({
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
-      <section className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+      <section className="max-w-full overflow-x-hidden rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-800">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
               <Store className="h-4 w-4" />
               Panel admin
             </span>
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-rose-950">{currentViewMeta.title}</h1>
-              <p className="max-w-3xl text-sm leading-6 text-rose-900/70">
+              <h1 className="text-3xl font-bold text-emerald-950">{currentViewMeta.title}</h1>
+              <p className="max-w-3xl text-sm leading-6 text-emerald-900/70">
                 {currentViewMeta.description}
               </p>
             </div>
@@ -873,7 +873,7 @@ export function AdminDashboard({
               <button
                 type="button"
                 onClick={() => navigateToView("home")}
-                className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-rose-200 bg-white px-3 py-2.5 text-sm font-semibold text-rose-900 sm:px-4"
+                className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-emerald-100 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-900 sm:px-4"
               >
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Inicio</span>
@@ -882,7 +882,7 @@ export function AdminDashboard({
             <button
               type="button"
               onClick={() => void refreshAll()}
-              className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900"
+              className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-900"
             >
               <RefreshCcw className="h-4 w-4" />
               Actualizar
@@ -890,7 +890,7 @@ export function AdminDashboard({
             <button
               type="button"
               onClick={logout}
-              className="min-h-11 rounded-[18px] border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900"
+              className="min-h-11 rounded-[18px] border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900"
             >
               Cerrar sesión
             </button>
@@ -898,7 +898,7 @@ export function AdminDashboard({
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/95 p-3 shadow-soft backdrop-blur">
+      <section className="sticky top-0 z-20 max-w-full overflow-x-hidden rounded-lg border border-emerald-100 bg-white/95 p-3 shadow-soft backdrop-blur">
         <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
           <AdminSectionTab
             label="Inicio"
@@ -944,23 +944,23 @@ export function AdminDashboard({
           />
           <Link
             href="/admin/venta-directa"
-            className="min-h-[88px] min-w-[132px] rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-left text-rose-900 transition hover:border-rose-300 sm:min-w-[146px]"
+            className="min-h-[88px] min-w-[132px] rounded-[20px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-left text-emerald-900 transition hover:border-emerald-200 sm:min-w-[146px]"
           >
             <div className="flex items-start justify-between gap-3">
-              <span className="rounded-[16px] bg-white p-2 text-rose-700">
+              <span className="rounded-[16px] bg-white p-2 text-emerald-700">
                 <ShoppingBag className="h-4 w-4" />
               </span>
             </div>
             <div className="mt-3 min-w-0">
-              <div className="text-sm font-semibold text-rose-950">Venta directa</div>
-              <div className="mt-1 text-xs text-rose-700/80">Personalizada</div>
+              <div className="text-sm font-semibold text-emerald-950">Venta directa</div>
+              <div className="mt-1 text-xs text-emerald-700/80">Personalizada</div>
             </div>
           </Link>
         </StableHorizontalRail>
       </section>
 
       {error ? (
-        <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {error}
         </div>
       ) : null}
@@ -1005,14 +1005,14 @@ export function AdminDashboard({
           </div>
 
           <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <article className="rounded-[24px] border border-rose-200 bg-white/95 p-5 shadow-soft">
+            <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
               <div className="flex items-center gap-3">
-                <span className="rounded-2xl bg-rose-100 p-3 text-rose-700">
+                <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
                   <Sparkles className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="text-xl font-bold text-rose-950">Lo de hoy</h2>
-                  <p className="text-sm text-rose-900/65">
+                  <h2 className="text-xl font-bold text-emerald-950">Lo de hoy</h2>
+                  <p className="text-sm text-emerald-900/65">
                     Tres decisiones y listo.
                   </p>
                 </div>
@@ -1046,14 +1046,14 @@ export function AdminDashboard({
               </div>
             </article>
 
-            <article className="rounded-[24px] border border-rose-200 bg-white/95 p-5 shadow-soft">
+            <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
               <div className="flex items-center gap-3">
                 <span className="rounded-2xl bg-violet-100 p-3 text-violet-700">
                   <BarChart3 className="h-5 w-5" />
                 </span>
                 <div>
-                  <h2 className="text-xl font-bold text-rose-950">Cierre rápido</h2>
-                  <p className="text-sm text-rose-900/65">
+                  <h2 className="text-xl font-bold text-emerald-950">Cierre rápido</h2>
+                  <p className="text-sm text-emerald-900/65">
                     Números puntuales del negocio.
                   </p>
                 </div>
@@ -1091,10 +1091,10 @@ export function AdminDashboard({
             />
           </section>
 
-          <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+          <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-rose-950">Atajos principales</h2>
-              <p className="text-sm text-rose-900/70">
+              <h2 className="text-2xl font-bold text-emerald-950">Atajos principales</h2>
+              <p className="text-sm text-emerald-900/70">
                 Entra directo a lo que más usa Pauli en el día a día.
               </p>
             </div>
@@ -1144,12 +1144,12 @@ export function AdminDashboard({
           </section>
 
           <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-rose-950">
+            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+              <div className="flex items-center gap-2 text-emerald-950">
                 <Sparkles className="h-5 w-5" />
                 <h3 className="text-lg font-bold">Agenda agrupada</h3>
               </div>
-              <p className="mt-1 text-sm text-rose-900/70">
+              <p className="mt-1 text-sm text-emerald-900/70">
                 Si una misma persona pidió varias veces para el mismo día, aquí aparece todo junto.
               </p>
 
@@ -1160,12 +1160,12 @@ export function AdminDashboard({
                 {agendaGroups.slice(0, 4).map((group) => (
                   <article
                     key={group.key}
-                    className="rounded-lg border border-rose-200 bg-rose-50/60 p-4"
+                    className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-rose-950">{group.clienteNombre}</div>
-                        <div className="mt-1 text-sm text-rose-900/65">
+                        <div className="font-semibold text-emerald-950">{group.clienteNombre}</div>
+                        <div className="mt-1 text-sm text-emerald-900/65">
                           {group.fechaEntrega === "sin-fecha"
                             ? "Sin fecha"
                             : formatDateOnly(group.fechaEntrega)}
@@ -1183,8 +1183,8 @@ export function AdminDashboard({
               </div>
             </section>
 
-            <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-rose-950">
+            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+              <div className="flex items-center gap-2 text-emerald-950">
                 <Store className="h-5 w-5" />
                 <h3 className="text-lg font-bold">Resumen al grano</h3>
               </div>
@@ -1220,9 +1220,9 @@ export function AdminDashboard({
             helper="Paso 1: entra aquí varias veces al día. Lo pendiente arriba, el detalle al costado."
           />
 
-          <div className="grid gap-4 rounded-lg border border-rose-200 bg-white/90 p-4 shadow-soft lg:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="grid gap-4 rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft lg:grid-cols-[minmax(0,1fr)_220px]">
             <label className="space-y-2">
-              <span className="flex items-center gap-2 text-sm font-semibold text-rose-900">
+              <span className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
                 <Search className="h-4 w-4" />
                 Buscar pedido
               </span>
@@ -1230,16 +1230,16 @@ export function AdminDashboard({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Cliente, teléfono, producto o fecha"
-                className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950 outline-none placeholder:text-rose-400"
+                className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 outline-none placeholder:text-emerald-400"
               />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-rose-900">Vista</span>
+              <span className="text-sm font-semibold text-emerald-900">Vista</span>
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-                className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
               >
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -1336,7 +1336,7 @@ export function AdminDashboard({
             </div>
 
             {statusFilter !== "historial" ? (
-              <aside className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
+              <aside className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
                 <OrderDetailPanel order={selectedOrder} agendaGroups={agendaGroups} />
               </aside>
             ) : null}
@@ -1355,7 +1355,7 @@ export function AdminDashboard({
               <button
                 type="button"
                 onClick={() => setProductModalState({ mode: "create" })}
-                className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-3 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
               >
                 <Plus className="h-4 w-4" />
                 Nuevo producto
@@ -1363,10 +1363,10 @@ export function AdminDashboard({
             }
           />
 
-          <section className="rounded-lg border border-rose-200 bg-white/90 p-4 shadow-soft">
+          <section className="rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft">
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
               <label className="space-y-2">
-                <span className="flex items-center gap-2 text-sm font-semibold text-rose-900">
+                <span className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
                   <Search className="h-4 w-4" />
                   Buscar producto
                 </span>
@@ -1374,12 +1374,12 @@ export function AdminDashboard({
                   value={productSearch}
                   onChange={(event) => setProductSearch(event.target.value)}
                   placeholder="Nombre, descripción o tipo"
-                  className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950 outline-none placeholder:text-rose-400"
+                  className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 outline-none placeholder:text-emerald-400"
                 />
               </label>
 
               <div className="space-y-2">
-                <span className="text-sm font-semibold text-rose-900">Filtro rápido</span>
+                <span className="text-sm font-semibold text-emerald-900">Filtro rápido</span>
                 <StableHorizontalRail className="flex gap-2 overflow-x-auto">
                   <FilterChip
                     label="Activos"
@@ -1492,10 +1492,10 @@ export function AdminDashboard({
           </div>
 
           <div className="grid gap-5 xl:grid-cols-2">
-            <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
               <div className="space-y-1">
-                <h2 className="text-xl font-bold text-rose-950">Cerrar pedidos agendados</h2>
-                <p className="text-sm text-rose-900/70">
+                <h2 className="text-xl font-bold text-emerald-950">Cerrar pedidos agendados</h2>
+                <p className="text-sm text-emerald-900/70">
                   Marca rápido como pagado o fiado.
                 </p>
               </div>
@@ -1516,10 +1516,10 @@ export function AdminDashboard({
               </div>
             </section>
 
-            <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
               <div className="space-y-1">
-                <h2 className="text-xl font-bold text-rose-950">Fiados pendientes</h2>
-                <p className="text-sm text-rose-900/70">
+                <h2 className="text-xl font-bold text-emerald-950">Fiados pendientes</h2>
+                <p className="text-sm text-emerald-900/70">
                   Registra abonos sin perder el historial del cliente.
                 </p>
               </div>
@@ -1531,13 +1531,13 @@ export function AdminDashboard({
                 {data.fiadosPendientes.map((order) => (
                   <article
                     key={order.id}
-                    className="rounded-lg border border-rose-200 bg-rose-50/60 p-4"
+                    className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
                   >
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="font-semibold text-rose-950">{order.clienteNombre}</div>
-                          <div className="mt-1 text-sm text-rose-900/65">
+                          <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
+                          <div className="mt-1 text-sm text-emerald-900/65">
                             Saldo {formatCurrency(order.saldoPendiente)}
                           </div>
                         </div>
@@ -1571,20 +1571,20 @@ export function AdminDashboard({
             </section>
           </div>
 
-          <section className="rounded-[24px] border border-rose-200 bg-white/90 p-5 shadow-soft">
-            <div className="flex items-center gap-2 text-rose-950">
+          <section className="rounded-[24px] border border-emerald-100 bg-white/90 p-5 shadow-soft">
+            <div className="flex items-center gap-2 text-emerald-950">
               <Archive className="h-5 w-5" />
               <h3 className="text-lg font-bold">Cierre de mes</h3>
             </div>
-            <p className="copy-justified mt-3 text-sm leading-6 text-rose-900/70">
+            <p className="copy-justified mt-3 text-sm leading-6 text-emerald-900/70">
               Usa cierre de mes cuando ya no queden pedidos pendientes ni agendados y
               quieras archivar la operación completa del periodo. Esta vista ya no expone
               herramientas de prueba para mantener el flujo más limpio y profesional.
             </p>
             <div className="mt-4">
-              <article className="rounded-[20px] border border-rose-200 bg-rose-50/70 p-4">
-                <h4 className="text-base font-semibold text-rose-950">Cierre de mes</h4>
-                <p className="copy-justified mt-2 text-sm leading-6 text-rose-900/70">
+              <article className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4">
+                <h4 className="text-base font-semibold text-emerald-950">Cierre de mes</h4>
+                <p className="copy-justified mt-2 text-sm leading-6 text-emerald-900/70">
                   Archiva pedidos, items, pagos, fiados y clientes en un log histórico y
                   deja limpio el panel operativo. Conserva productos y stock.
                 </p>
@@ -1592,7 +1592,7 @@ export function AdminDashboard({
                   type="button"
                   disabled={busyMaintenanceAction !== ""}
                   onClick={() => void runMaintenanceAction("close-month")}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-300"
                 >
                   <Archive className="h-4 w-4" />
                   {busyMaintenanceAction === "close-month"
@@ -1614,20 +1614,20 @@ export function AdminDashboard({
             helper="Sirve para ubicar rápido a cada cliente antes de confirmar o cobrar."
           />
 
-          <section className="rounded-[30px] border border-[#E8D3B0] bg-[#FFF7E8] p-4 shadow-soft sm:p-5">
+          <section className="overflow-hidden rounded-[30px] border border-[#D8EBDD] bg-[linear-gradient(135deg,#F6FCF7_0%,#EAF6EC_55%,#F3FAF4_100%)] p-4 shadow-[0_20px_40px_rgba(31,51,40,0.08)] sm:p-5">
             <div className="space-y-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div className="min-w-0 space-y-3">
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#A86B32]">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#D8EBDD] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#247A4D]">
                     Clientes
                   </span>
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-[#3A2A1A] sm:text-3xl">
-                      Agenda visual de clientes
+                    <h2 className="text-2xl font-bold text-[#1F3328] sm:text-3xl">
+                      Administra tus clientes y revisa su actividad
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-[#6E5337]">
-                      Busca rÃ¡pido, revisa fiados y ubica a cada cliente desde una vista
-                      cÃ³moda para celular.
+                    <p className="max-w-2xl text-sm leading-6 text-[#6B7C70]">
+                      Busca rapido, revisa fiados y ubica a cada cliente desde una vista
+                      comoda para celular y escritorio.
                     </p>
                   </div>
                 </div>
@@ -1666,18 +1666,18 @@ export function AdminDashboard({
             {customerCards.map((customer) => (
               <article
                 key={customer.clienteId}
-                className="rounded-lg border border-rose-200 bg-white/90 p-4 shadow-soft"
+                className="rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-rose-950">{customer.nombre}</h3>
-                      <p className="mt-1 text-sm text-rose-900/65">{customer.lugarTrabajo}</p>
+                      <h3 className="text-lg font-semibold text-emerald-950">{customer.nombre}</h3>
+                      <p className="mt-1 text-sm text-emerald-900/65">{customer.lugarTrabajo}</p>
                     </div>
                     <StatusBadge tone="neutral" label={`${customer.pedidos} pedido(s)`} />
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-rose-900/70">
+                  <div className="flex items-center gap-2 text-sm text-emerald-900/70">
                     <Phone className="h-4 w-4" />
                     {customer.telefono || "Sin teléfono"}
                   </div>
@@ -1693,18 +1693,18 @@ export function AdminDashboard({
                     />
                   </div>
 
-                  <div className="rounded-lg border border-rose-200 bg-rose-50/60 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-rose-700/70">
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
                       Fechas agendadas
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {customer.proximasFechas.length === 0 ? (
-                        <span className="text-sm text-rose-900/55">Sin fechas activas</span>
+                        <span className="text-sm text-emerald-900/55">Sin fechas activas</span>
                       ) : (
                         customer.proximasFechas.slice(0, 4).map((fecha) => (
                           <span
                             key={`${customer.clienteId}-${fecha}`}
-                            className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-800"
+                            className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800"
                           >
                             {formatDateOnly(fecha)}
                           </span>
@@ -1728,24 +1728,24 @@ export function AdminDashboard({
             helper="Ideal para mirar cómo cerró la semana y que producto conviene reponer."
           />
 
-          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-rose-200 bg-white/90 p-4 shadow-soft sm:p-5">
+          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft sm:p-5">
             <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
               <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
-                <span className="text-sm font-semibold text-rose-900">Desde</span>
+                <span className="text-sm font-semibold text-emerald-900">Desde</span>
                 <input
                   type="date"
                   value={reportFrom}
                   onChange={(event) => setReportFrom(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
                 />
               </label>
               <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
-                <span className="text-sm font-semibold text-rose-900">Hasta</span>
+                <span className="text-sm font-semibold text-emerald-900">Hasta</span>
                 <input
                   type="date"
                   value={reportTo}
                   onChange={(event) => setReportTo(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
                 />
               </label>
             </div>
@@ -1785,8 +1785,8 @@ export function AdminDashboard({
           </div>
 
           <div className="grid gap-5 xl:grid-cols-2">
-            <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-rose-950">
+            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+              <div className="flex items-center gap-2 text-emerald-950">
                 <Box className="h-5 w-5" />
                 <h3 className="text-lg font-bold">Top productos</h3>
               </div>
@@ -1797,16 +1797,16 @@ export function AdminDashboard({
                 {reportSummary.topProductos.map((item) => (
                   <article
                     key={item.nombre}
-                    className="rounded-lg border border-rose-200 bg-white p-4"
+                    className="rounded-lg border border-emerald-100 bg-white p-4"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-rose-950">{item.nombre}</div>
-                        <div className="text-sm text-rose-900/65">
+                        <div className="font-semibold text-emerald-950">{item.nombre}</div>
+                        <div className="text-sm text-emerald-900/65">
                           {item.unidades} unidades
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-rose-700">
+                      <div className="text-sm font-semibold text-emerald-700">
                         {formatCurrency(item.total)}
                       </div>
                     </div>
@@ -1815,8 +1815,8 @@ export function AdminDashboard({
               </div>
             </section>
 
-            <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-rose-950">
+            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+              <div className="flex items-center gap-2 text-emerald-950">
                 <UserRound className="h-5 w-5" />
                 <h3 className="text-lg font-bold">Top clientes</h3>
               </div>
@@ -1827,16 +1827,16 @@ export function AdminDashboard({
                 {reportSummary.topClientes.map((item) => (
                   <article
                     key={item.nombre}
-                    className="rounded-lg border border-rose-200 bg-white p-4"
+                    className="rounded-lg border border-emerald-100 bg-white p-4"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-rose-950">{item.nombre}</div>
-                        <div className="text-sm text-rose-900/65">
+                        <div className="font-semibold text-emerald-950">{item.nombre}</div>
+                        <div className="text-sm text-emerald-900/65">
                           {item.pedidos} pedido(s)
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-rose-700">
+                      <div className="text-sm font-semibold text-emerald-700">
                         {formatCurrency(item.total)}
                       </div>
                     </div>
@@ -1899,19 +1899,19 @@ function SectionIntro({
   helper?: string;
 }) {
   return (
-    <section className="max-w-full overflow-x-hidden rounded-[24px] border border-rose-200 bg-white/90 p-5 shadow-soft">
+    <section className="max-w-full overflow-x-hidden rounded-[24px] border border-emerald-100 bg-white/90 p-5 shadow-soft">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="rounded-[18px] bg-rose-100 p-3 text-rose-700">
+          <span className="rounded-[18px] bg-emerald-100 p-3 text-emerald-700">
             <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0 space-y-1">
-            <h2 className="break-words text-2xl font-bold text-rose-950">{title}</h2>
-            <p className="copy-justified break-words text-sm text-rose-900/70">
+            <h2 className="break-words text-2xl font-bold text-emerald-950">{title}</h2>
+            <p className="copy-justified break-words text-sm text-emerald-900/70">
               {subtitle}
             </p>
             {helper ? (
-              <p className="copy-justified break-words rounded-[18px] bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              <p className="copy-justified break-words rounded-[18px] bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
                 {helper}
               </p>
             ) : null}
@@ -1941,9 +1941,9 @@ function HomeActionCard({
   const palette =
     tone === "rose"
       ? {
-          gradientClass: "from-rose-50 to-white",
-          iconTextClass: "text-rose-700",
-          iconBgClass: "bg-rose-100"
+          gradientClass: "from-emerald-50 to-white",
+          iconTextClass: "text-emerald-700",
+          iconBgClass: "bg-emerald-100"
         }
       : tone === "violet"
         ? {
@@ -1973,7 +1973,7 @@ function HomeActionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`max-w-full overflow-x-hidden rounded-[20px] border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-rose-300`}
+      className={`max-w-full overflow-x-hidden rounded-[20px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-emerald-200`}
     >
       <div className="flex items-start justify-between gap-3">
         <span
@@ -1981,16 +1981,16 @@ function HomeActionCard({
         >
           <Icon className="h-5 w-5" />
         </span>
-        <span className="inline-flex min-h-8 items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-800">
+        <span className="inline-flex min-h-8 items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
           {badge}
         </span>
       </div>
       <div className="mt-4 min-w-0 space-y-2">
-        <div className="break-words text-lg font-semibold text-rose-950">{title}</div>
-        <p className="copy-justified break-words text-sm leading-6 text-rose-900/70">
+        <div className="break-words text-lg font-semibold text-emerald-950">{title}</div>
+        <p className="copy-justified break-words text-sm leading-6 text-emerald-900/70">
           {subtitle}
         </p>
-        <div className="inline-flex items-center gap-2 text-sm font-semibold text-rose-800">
+        <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800">
           Abrir
           <ArrowRight className="h-4 w-4" />
         </div>
@@ -2014,20 +2014,20 @@ function QuickTaskRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-4 text-left transition hover:border-rose-300 sm:flex-nowrap"
+      className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-4 text-left transition hover:border-emerald-200 sm:flex-nowrap"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <span className="rounded-2xl bg-white p-3 text-rose-700 shadow-sm">
+        <span className="rounded-2xl bg-white p-3 text-emerald-700 shadow-sm">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-rose-950">{title}</div>
-          <div className="copy-justified mt-1 break-words text-xs text-rose-900/65">
+          <div className="text-sm font-semibold text-emerald-950">{title}</div>
+          <div className="copy-justified mt-1 break-words text-xs text-emerald-900/65">
             {detail}
           </div>
         </div>
       </div>
-      <ArrowRight className="h-4 w-4 shrink-0 text-rose-500" />
+      <ArrowRight className="h-4 w-4 shrink-0 text-emerald-500" />
     </button>
   );
 }
@@ -2051,14 +2051,14 @@ function AdminSectionTab({
       onClick={onClick}
       className={`min-h-[88px] min-w-[132px] rounded-[20px] border px-4 py-3 text-left transition sm:min-w-[146px] ${
         active
-          ? "border-rose-300 bg-rose-600 text-white"
-          : "border-rose-200 bg-rose-50 text-rose-900"
+          ? "border-emerald-200 bg-emerald-600 text-white"
+          : "border-emerald-100 bg-emerald-50 text-emerald-900"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <span
           className={`rounded-[16px] p-2 ${
-            active ? "bg-white/20 text-white" : "bg-white text-rose-700"
+            active ? "bg-white/20 text-white" : "bg-white text-emerald-700"
           }`}
         >
           <Icon className="h-4 w-4" />
@@ -2066,7 +2066,7 @@ function AdminSectionTab({
       </div>
       <div className="mt-3">
         <div className="text-sm font-semibold">{label}</div>
-        <div className={`mt-1 text-xs ${active ? "text-white/80" : "text-rose-700/80"}`}>
+        <div className={`mt-1 text-xs ${active ? "text-white/80" : "text-emerald-700/80"}`}>
           {badge}
         </div>
       </div>
@@ -2088,7 +2088,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-        active ? "bg-rose-600 text-white" : "bg-rose-50 text-rose-800"
+        active ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800"
       }`}
     >
       {label}
@@ -2116,10 +2116,10 @@ function StockProductCard({
   onSave: () => void;
 }) {
   return (
-    <article className="max-w-full overflow-x-hidden rounded-[24px] border border-rose-200 bg-white/90 p-4 shadow-soft">
+    <article className="max-w-full overflow-x-hidden rounded-[24px] border border-emerald-100 bg-white/90 p-4 shadow-soft">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 gap-4">
-          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-rose-100 bg-rose-50">
+          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50">
             <ProductImage
               src={product.imageUrl ?? "/images/products/dobladita-ave-pimenton.jpeg"}
               alt={product.nombre}
@@ -2129,13 +2129,13 @@ function StockProductCard({
           </div>
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="break-words text-lg font-semibold text-rose-950">{product.nombre}</h3>
+              <h3 className="break-words text-lg font-semibold text-emerald-950">{product.nombre}</h3>
               <StatusBadge
                 tone={product.activo ? "pedido" : "neutral"}
                 label={product.activo ? "ACTIVO" : "PAUSADO"}
               />
             </div>
-            <p className="text-sm leading-6 text-rose-900/70">
+            <p className="text-sm leading-6 text-emerald-900/70">
               {product.descripcion || "Sin descripción."}
             </p>
           </div>
@@ -2144,7 +2144,7 @@ function StockProductCard({
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-semibold text-rose-900"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-900"
         >
           <PencilLine className="h-4 w-4" />
           Editar
@@ -2201,8 +2201,8 @@ function StockProductCard({
         />
       </div>
 
-      <details className="mt-4 rounded-lg border border-rose-200 bg-rose-50/50 p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-rose-900">
+      <details className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-emerald-900">
           Ver detalle del producto
         </summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -2217,7 +2217,7 @@ function StockProductCard({
       </details>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0 break-words text-sm text-rose-900/60">
+        <div className="min-w-0 break-words text-sm text-emerald-900/60">
           Ajusta aquí lo rápido. Editar abre el detalle completo.
         </div>
         <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
@@ -2225,7 +2225,7 @@ function StockProductCard({
             type="button"
             disabled={busy}
             onClick={onDelete}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700"
           >
             <Trash2 className="h-4 w-4" />
             {busy ? "Procesando..." : "Eliminar"}
@@ -2234,7 +2234,7 @@ function StockProductCard({
             type="button"
             disabled={busy}
             onClick={onSave}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white"
           >
             <Archive className="h-4 w-4" />
             {busy ? "Guardando..." : "Guardar"}
@@ -2275,10 +2275,10 @@ function OrderSection({
   onAction
 }: OrderSectionProps) {
   return (
-    <section className="rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+    <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
       <div className="space-y-1">
-        <h2 className="text-xl font-bold text-rose-950">{title}</h2>
-        <p className="text-sm text-rose-900/70">{subtitle}</p>
+        <h2 className="text-xl font-bold text-emerald-950">{title}</h2>
+        <p className="text-sm text-emerald-900/70">{subtitle}</p>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -2289,15 +2289,15 @@ function OrderSection({
             key={order.id}
             className={`rounded-lg border p-4 ${
               selectedOrderId === order.id
-                ? "border-rose-400 bg-rose-50"
-                : "border-rose-200 bg-white"
+                ? "border-emerald-300 bg-emerald-50"
+                : "border-emerald-100 bg-white"
             }`}
           >
             <button type="button" onClick={() => onSelect(order.id)} className="w-full text-left">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-semibold text-rose-950">
+                    <h3 className="text-base font-semibold text-emerald-950">
                       {order.clienteNombre}
                     </h3>
                     {order.fechaEntrega ? (
@@ -2307,11 +2307,11 @@ function OrderSection({
                       />
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-rose-900/65">
+                  <div className="flex items-center gap-2 text-sm text-emerald-900/65">
                     <Phone className="h-4 w-4" />
                     {order.clienteTelefono || "Sin teléfono"}
                   </div>
-                  <div className="text-sm text-rose-900/65">
+                  <div className="text-sm text-emerald-900/65">
                     {order.items.length > 1
                       ? `${order.items.length} productos en el pedido`
                       : order.productoNombre}
@@ -2334,7 +2334,7 @@ function OrderSection({
               </div>
 
               {selectedOrderId === order.id ? (
-                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/60 p-3 xl:hidden">
+                <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 xl:hidden">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <MiniMetric
                       label="Lugar"
@@ -2353,14 +2353,14 @@ function OrderSection({
                         className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2"
                       >
                         <div>
-                          <div className="text-sm font-semibold text-rose-950">
+                          <div className="text-sm font-semibold text-emerald-950">
                             {item.productoNombre}
                           </div>
-                          <div className="text-xs text-rose-900/65">
+                          <div className="text-xs text-emerald-900/65">
                             {item.cantidad} x {formatCurrency(item.precioUnitario)}
                           </div>
                         </div>
-                        <div className="text-sm font-semibold text-rose-700">
+                        <div className="text-sm font-semibold text-emerald-700">
                           {formatCurrency(item.subtotal)}
                         </div>
                       </div>
@@ -2422,14 +2422,14 @@ function OrderDetailPanel({
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-bold text-rose-950">{order.clienteNombre}</h2>
+          <h2 className="text-xl font-bold text-emerald-950">{order.clienteNombre}</h2>
           <StatusBadge tone="pedido" label={order.estadoPedido} />
           <StatusBadge
             tone={order.estadoPago === "FIADO" ? "warning" : "neutral"}
             label={order.estadoPago}
           />
         </div>
-        <div className="text-sm text-rose-900/70">
+        <div className="text-sm text-emerald-900/70">
           {order.clienteLugarTrabajo || "Sin lugar de entrega"}
         </div>
       </div>
@@ -2453,24 +2453,24 @@ function OrderDetailPanel({
         <MiniMetric label="Saldo" value={formatCurrency(order.saldoPendiente)} />
       </div>
 
-      <section className="rounded-lg border border-rose-200 bg-rose-50/60 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-rose-700/70">
+      <section className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
           Productos
         </div>
         <div className="mt-3 space-y-3">
           {order.items.map((item) => (
             <div
               key={`${order.id}-${item.productoId}`}
-              className="rounded-lg border border-rose-200 bg-white p-3"
+              className="rounded-lg border border-emerald-100 bg-white p-3"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-semibold text-rose-950">{item.productoNombre}</div>
-                  <div className="text-sm text-rose-900/65">
+                  <div className="font-semibold text-emerald-950">{item.productoNombre}</div>
+                  <div className="text-sm text-emerald-900/65">
                     {formatCurrency(item.precioUnitario)} x {item.cantidad}
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-rose-700">
+                <div className="text-sm font-semibold text-emerald-700">
                   {formatCurrency(item.subtotal)}
                 </div>
               </div>
@@ -2494,12 +2494,12 @@ function PaymentOrderCard({
   onFiado: () => void;
 }) {
   return (
-    <article className="rounded-lg border border-rose-200 bg-rose-50/60 p-4">
+    <article className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="font-semibold text-rose-950">{order.clienteNombre}</div>
-            <div className="mt-1 text-sm text-rose-900/65">{order.productoNombre}</div>
+            <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
+            <div className="mt-1 text-sm text-emerald-900/65">{order.productoNombre}</div>
           </div>
           <StatusBadge
             tone="neutral"
@@ -2563,10 +2563,10 @@ function AdminActionModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-rose-950/35 px-4 py-4">
-      <div className="mx-auto max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto rounded-[20px] border border-rose-200 bg-white p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-soft">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-emerald-950/20 px-4 py-4">
+      <div className="mx-auto max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto rounded-[20px] border border-emerald-100 bg-white p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-soft">
         <div className="space-y-1">
-          <div className="inline-flex rounded-2xl bg-rose-100 p-3 text-rose-700">
+          <div className="inline-flex rounded-2xl bg-emerald-100 p-3 text-emerald-700">
             {state.type === "agendar" ? (
               <CalendarClock className="h-5 w-5" />
             ) : state.type === "cancelar" ? (
@@ -2575,37 +2575,37 @@ function AdminActionModal({
               <HandCoins className="h-5 w-5" />
             )}
           </div>
-          <h3 className="pt-2 text-xl font-bold text-rose-950">
+          <h3 className="pt-2 text-xl font-bold text-emerald-950">
             {state.type === "agendar"
               ? "Agendar pedido"
               : state.type === "cancelar"
                 ? "Cancelar pedido"
                 : "Registrar abono"}
           </h3>
-          <p className="text-sm text-rose-900/70">{state.order.clienteNombre}</p>
+          <p className="text-sm text-emerald-900/70">{state.order.clienteNombre}</p>
         </div>
 
         <div className="mt-4 space-y-4">
           {state.type === "agendar" ? (
             <label className="block min-w-0 max-w-full space-y-2 overflow-hidden">
-              <span className="text-sm font-semibold text-rose-900">Fecha de entrega</span>
+              <span className="text-sm font-semibold text-emerald-900">Fecha de entrega</span>
               <input
                 type="date"
                 value={deliveryDate}
                 onChange={(event) => setDeliveryDate(event.target.value)}
-                className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-[16px] text-rose-950"
+                className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-3 text-[16px] text-emerald-950"
               />
             </label>
           ) : null}
 
           {state.type === "cancelar" ? (
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-rose-900">Motivo</span>
+              <span className="text-sm font-semibold text-emerald-900">Motivo</span>
               <textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
               />
             </label>
           ) : null}
@@ -2613,22 +2613,22 @@ function AdminActionModal({
           {state.type === "abonar" ? (
             <>
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-rose-900">Monto abonado</span>
+                <span className="text-sm font-semibold text-emerald-900">Monto abonado</span>
                 <input
                   type="number"
                   min={1}
                   max={state.order.saldoPendiente}
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
-                  className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-rose-900">Metodo de pago</span>
+                <span className="text-sm font-semibold text-emerald-900">Metodo de pago</span>
                 <select
                   value={method}
                   onChange={(event) => setMethod(event.target.value)}
-                  className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+                  className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
                 >
                   <option value="EFECTIVO">Efectivo</option>
                   <option value="TRANSFERENCIA">Transferencia</option>
@@ -2643,7 +2643,7 @@ function AdminActionModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-900"
+            className="rounded-lg border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
           >
             Cerrar
           </button>
@@ -2665,7 +2665,7 @@ function AdminActionModal({
                       }
               )
             }
-            className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
           >
             {busy ? "Guardando..." : "Confirmar"}
           </button>
@@ -2713,20 +2713,20 @@ function ProductModal({
   const [activo, setActivo] = useState(current?.activo ?? true);
 
   return (
-    <div className="fixed inset-0 z-50 bg-rose-950/35 px-3 py-3 sm:px-4 sm:py-5">
+    <div className="fixed inset-0 z-50 bg-emerald-950/20 px-3 py-3 sm:px-4 sm:py-5">
       <div className="mx-auto flex h-full w-full max-w-2xl items-center justify-center">
-        <div className="flex max-h-[calc(100dvh-24px)] min-h-0 w-full flex-col overflow-hidden rounded-[24px] border border-rose-200 bg-white shadow-soft sm:max-h-[calc(100dvh-40px)]">
-          <div className="shrink-0 border-b border-rose-100 bg-white/95 px-5 py-4 backdrop-blur">
+        <div className="flex max-h-[calc(100dvh-24px)] min-h-0 w-full flex-col overflow-hidden rounded-[24px] border border-emerald-100 bg-white shadow-soft sm:max-h-[calc(100dvh-40px)]">
+          <div className="shrink-0 border-b border-emerald-100 bg-white/95 px-5 py-4 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="inline-flex rounded-2xl bg-rose-100 p-3 text-rose-700">
+                <div className="inline-flex rounded-2xl bg-emerald-100 p-3 text-emerald-700">
                   <Package2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-rose-950">
+                  <h3 className="text-xl font-bold text-emerald-950">
                     {state.mode === "create" ? "Nuevo producto" : "Editar producto"}
                   </h3>
-                  <p className="text-sm text-rose-900/70">
+                  <p className="text-sm text-emerald-900/70">
                     Ajusta catálogo, stock y precio sin perderte en el celular.
                   </p>
                 </div>
@@ -2734,7 +2734,7 @@ function ProductModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-2xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-900"
+                className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
               >
                 Cerrar
               </button>
@@ -2755,10 +2755,10 @@ function ProductModal({
               />
             </section>
 
-            <label className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-900">
+            <label className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
               <div>
-                <div className="font-semibold text-rose-950">Disponible para clientes</div>
-                <div className="mt-1 text-xs text-rose-900/65">
+                <div className="font-semibold text-emerald-950">Disponible para clientes</div>
+                <div className="mt-1 text-xs text-emerald-900/65">
                   Apágalo cuando no quieras vender este producto.
                 </div>
               </div>
@@ -2780,98 +2780,98 @@ function ProductModal({
 
             <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-rose-900">Nombre</span>
+            <span className="text-sm font-semibold text-emerald-900">Nombre</span>
             <input
               value={nombre}
               onChange={(event) => setNombre(event.target.value)}
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-rose-900">Descripción corta</span>
+            <span className="text-sm font-semibold text-emerald-900">Descripción corta</span>
             <textarea
               value={descripcion}
               onChange={(event) => setDescripcion(event.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-rose-900">Badge visible</span>
+            <span className="text-sm font-semibold text-emerald-900">Badge visible</span>
             <input
               value={badgeLabel}
               onChange={(event) => setBadgeLabel(event.target.value)}
               placeholder="Ejemplo: DOBLADITA QUESO"
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-rose-900">Ruta pública de imagen</span>
+            <span className="text-sm font-semibold text-emerald-900">Ruta pública de imagen</span>
             <input
               value={imageUrl}
               onChange={(event) => setImageUrl(event.target.value)}
               placeholder="/images/products/dobladita-solo-queso.jpeg"
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-rose-900">Precio</span>
+            <span className="text-sm font-semibold text-emerald-900">Precio</span>
             <input
               type="number"
               min={0}
               value={precioVenta}
               onChange={(event) => setPrecioVenta(event.target.value)}
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-rose-900">Costo</span>
+            <span className="text-sm font-semibold text-emerald-900">Costo</span>
             <input
               type="number"
               min={0}
               value={costoUnitario}
               onChange={(event) => setCostoUnitario(event.target.value)}
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-rose-900">Stock hoy</span>
+            <span className="text-sm font-semibold text-emerald-900">Stock hoy</span>
             <input
               type="number"
               min={0}
               value={stockActual}
               onChange={(event) => setStockActual(event.target.value)}
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-rose-900">Stock agenda</span>
+            <span className="text-sm font-semibold text-emerald-900">Stock agenda</span>
             <input
               type="number"
               min={0}
               value={stockAgenda}
               onChange={(event) => setStockAgenda(event.target.value)}
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-rose-900">Tipo</span>
+            <span className="text-sm font-semibold text-emerald-900">Tipo</span>
             <input
               value={tipoProducto}
               onChange={(event) => setTipoProducto(event.target.value)}
-              className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
             </div>
             </div>
           </div>
 
-          <div className="shrink-0 border-t border-rose-100 bg-white/95 px-5 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] backdrop-blur">
+          <div className="shrink-0 border-t border-emerald-100 bg-white/95 px-5 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] backdrop-blur">
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="min-h-11 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-900"
+              className="min-h-11 rounded-lg border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
             >
               Cerrar
             </button>
@@ -2893,7 +2893,7 @@ function ProductModal({
                   activo
                 })
               }
-              className="min-h-11 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+              className="min-h-11 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
             >
               {busy ? "Guardando..." : "Guardar producto"}
             </button>
@@ -2921,9 +2921,9 @@ function HeroMetric({
   const palette =
     tone === "rose"
       ? {
-          gradientClass: "from-white to-rose-50",
-          iconBgClass: "bg-rose-100",
-          iconTextClass: "text-rose-700"
+          gradientClass: "from-white to-emerald-50",
+          iconBgClass: "bg-emerald-100",
+          iconTextClass: "text-emerald-700"
         }
       : tone === "violet"
         ? {
@@ -2944,12 +2944,12 @@ function HeroMetric({
             };
   return (
     <article
-      className={`max-w-full overflow-x-hidden rounded-[22px] border border-rose-200 bg-gradient-to-br ${palette.gradientClass} p-5 shadow-soft`}
+      className={`max-w-full overflow-x-hidden rounded-[22px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-5 shadow-soft`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm text-rose-900/65">{label}</div>
-          <div className="mt-2 break-words text-3xl font-bold text-rose-950">{value}</div>
+          <div className="text-sm text-emerald-900/65">{label}</div>
+          <div className="mt-2 break-words text-3xl font-bold text-emerald-950">{value}</div>
         </div>
         <span
           className={`rounded-2xl p-3 shadow-sm ${palette.iconBgClass} ${palette.iconTextClass}`}
@@ -2957,7 +2957,7 @@ function HeroMetric({
           <Icon className="h-5 w-5" />
         </span>
       </div>
-      <p className="mt-3 break-words text-sm text-rose-900/65">{detail}</p>
+      <p className="mt-3 break-words text-sm text-emerald-900/65">{detail}</p>
     </article>
   );
 }
@@ -2975,7 +2975,7 @@ function FocusCard({
 }) {
   const className =
     tone === "rose"
-      ? "border-rose-200 bg-rose-50 text-rose-800"
+      ? "border-emerald-100 bg-emerald-50 text-emerald-800"
       : tone === "violet"
         ? "border-violet-200 bg-violet-50 text-violet-800"
         : "border-amber-200 bg-amber-50 text-amber-800";
@@ -3011,8 +3011,8 @@ function MiniHomeTab({
   const palette =
     tone === "rose"
       ? active
-        ? "bg-rose-600 text-white"
-        : "bg-rose-50 text-rose-800"
+        ? "bg-emerald-600 text-white"
+        : "bg-emerald-50 text-emerald-800"
       : tone === "violet"
         ? active
           ? "bg-violet-600 text-white"
@@ -3045,11 +3045,11 @@ function CompactHistorySection({
   emptyText: string;
 }) {
   return (
-    <details className="max-w-full overflow-x-hidden rounded-lg border border-rose-200 bg-white/90 p-5 shadow-soft">
+    <details className="max-w-full overflow-x-hidden rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <h2 className="text-xl font-bold text-rose-950">{title}</h2>
-          <p className="break-words text-sm text-rose-900/70">{subtitle}</p>
+          <h2 className="text-xl font-bold text-emerald-950">{title}</h2>
+          <p className="break-words text-sm text-emerald-900/70">{subtitle}</p>
         </div>
         <StatusBadge tone="neutral" label={`${orders.length} registro(s)`} />
       </summary>
@@ -3059,12 +3059,12 @@ function CompactHistorySection({
         {orders.map((order) => (
           <article
             key={order.id}
-            className="rounded-lg border border-rose-200 bg-rose-50/60 p-4"
+            className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-semibold text-rose-950">{order.clienteNombre}</div>
-                <div className="mt-1 text-sm text-rose-900/65">{order.productoNombre}</div>
+                <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
+                <div className="mt-1 text-sm text-emerald-900/65">{order.productoNombre}</div>
               </div>
               <StatusBadge
                 tone={title.toLowerCase().includes("cancelados") ? "warning" : "neutral"}
@@ -3091,9 +3091,9 @@ function CompactHistorySection({
 
 function SimpleFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50/60 px-4 py-3">
-      <span className="text-sm text-rose-900/70">{label}</span>
-      <span className="text-base font-semibold text-rose-950">{value}</span>
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+      <span className="text-sm text-emerald-900/70">{label}</span>
+      <span className="text-base font-semibold text-emerald-950">{value}</span>
     </div>
   );
 }
@@ -3113,25 +3113,25 @@ function ClientStatsCards({
       label: "Total clientes",
       value: String(summary.total),
       detail: "Contactos visibles en el panel",
-      accent: "bg-[#A86B32]"
+      accent: "bg-[#3FA66B]"
     },
     {
       label: "Con pedidos",
       value: String(summary.conPedidos),
       detail: "Ya tienen historial de compra",
-      accent: "bg-[#D99A3D]"
+      accent: "bg-[#F4D77A]"
     },
     {
       label: "Con fiado",
       value: String(summary.conFiado),
       detail: "Requieren seguimiento de cobro",
-      accent: "bg-[#B85C5C]"
+      accent: "bg-[#F28B82]"
     },
     {
       label: "Recientes",
       value: String(summary.recientes),
-      detail: "Movimiento dentro de 14 dÃ­as",
-      accent: "bg-[#4F8A5B]"
+      detail: "Movimiento dentro de 14 dias",
+      accent: "bg-[#247A4D]"
     }
   ];
 
@@ -3140,16 +3140,16 @@ function ClientStatsCards({
       {items.map((item) => (
         <article
           key={item.label}
-          className="rounded-[24px] border border-[#E8D3B0] bg-white p-4 shadow-[0_12px_32px_rgba(168,107,50,0.08)]"
+          className="rounded-[24px] border border-[#D8EBDD] bg-white p-4 shadow-[0_12px_30px_rgba(31,51,40,0.08)]"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-[#6E5337]">{item.label}</p>
-              <p className="mt-2 text-3xl font-bold text-[#3A2A1A]">{item.value}</p>
+              <p className="text-sm font-medium text-[#6B7C70]">{item.label}</p>
+              <p className="mt-2 text-3xl font-bold text-[#1F3328]">{item.value}</p>
             </div>
             <span className={`mt-1 h-3 w-3 rounded-full ${item.accent}`} />
           </div>
-          <p className="mt-3 text-sm leading-5 text-[#7A6248]">{item.detail}</p>
+          <p className="mt-3 text-sm leading-5 text-[#6B7C70]">{item.detail}</p>
         </article>
       ))}
     </div>
@@ -3164,13 +3164,13 @@ function ClientSearchBar({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex w-full max-w-xl items-center gap-3 rounded-[22px] border border-[#E8D3B0] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(168,107,50,0.08)]">
-      <Search className="h-5 w-5 text-[#A86B32]" />
+    <label className="flex w-full max-w-xl items-center gap-3 rounded-[22px] border border-[#D8EBDD] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(31,51,40,0.08)]">
+      <Search className="h-5 w-5 text-[#247A4D]" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Buscar por nombre, telÃ©fono o lugar de trabajo"
-        className="w-full border-0 bg-transparent p-0 text-[15px] text-[#3A2A1A] outline-none placeholder:text-[#9B7F61]"
+        placeholder="Buscar por nombre, telefono o unidad..."
+        className="w-full border-0 bg-transparent p-0 text-[15px] text-[#1F3328] outline-none placeholder:text-[#6B7C70]"
       />
     </label>
   );
@@ -3209,14 +3209,14 @@ function ClientFilterChips({
             onClick={() => onChange(filter.value)}
             className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
               active
-                ? "border-[#A86B32] bg-[#A86B32] text-white"
-                : "border-[#E8D3B0] bg-white text-[#6E5337]"
+                ? "border-[#3FA66B] bg-[#3FA66B] text-white shadow-[0_10px_24px_rgba(63,166,107,0.22)]"
+                : "border-[#D8EBDD] bg-white text-[#247A4D]"
             }`}
           >
             <span>{filter.label}</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${
-                active ? "bg-white/20 text-white" : "bg-[#FFF7E8] text-[#A86B32]"
+                active ? "bg-white/20 text-white" : "bg-[#DDF4E5] text-[#247A4D]"
               }`}
             >
               {filter.count}
@@ -3237,22 +3237,29 @@ function ClientCard({
   onOpenOrders: () => void;
   onOpenPayments: () => void;
 }) {
+  const initial = customer.nombre.trim().charAt(0).toUpperCase() || "C";
+
   return (
-    <article className="overflow-hidden rounded-[28px] border border-[#E8D3B0] bg-white shadow-[0_18px_40px_rgba(168,107,50,0.12)]">
-      <div className="border-b border-[#F2E2C2] bg-[linear-gradient(135deg,rgba(242,200,121,0.2),rgba(255,247,232,0.9))] p-5">
+    <article className="overflow-hidden rounded-[28px] border border-[#D8EBDD] bg-white shadow-[0_18px_40px_rgba(31,51,40,0.08)]">
+      <div className="border-b border-[#D8EBDD] bg-[linear-gradient(135deg,#F6FCF7_0%,#EAF6EC_72%,#FFFFFF_100%)] p-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-2">
-            <h3 className="text-xl font-bold text-[#3A2A1A]">{customer.nombre}</h3>
-            <div className="flex flex-wrap gap-2">
-              <ClientPill label={`${customer.pedidos} pedido(s)`} tone="neutral" />
-              <ClientPill
-                label={customer.pendiente > 0 ? "Fiado pendiente" : "Sin deuda"}
-                tone={customer.pendiente > 0 ? "danger" : "success"}
-              />
-              {customer.isRecent ? <ClientPill label="Reciente" tone="accent" /> : null}
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#DDF4E5] text-lg font-bold text-[#247A4D] shadow-[0_10px_20px_rgba(63,166,107,0.15)]">
+              {initial}
+            </div>
+            <div className="min-w-0 space-y-2">
+              <h3 className="text-xl font-bold text-[#1F3328]">{customer.nombre}</h3>
+              <div className="flex flex-wrap gap-2">
+                <ClientPill label={`${customer.pedidos} pedido(s)`} tone="neutral" />
+                <ClientPill
+                  label={customer.pendiente > 0 ? "Fiado pendiente" : "Sin deuda"}
+                  tone={customer.pendiente > 0 ? "danger" : "success"}
+                />
+                {customer.isRecent ? <ClientPill label="Reciente" tone="accent" /> : null}
+              </div>
             </div>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#A86B32]">
+          <span className="rounded-full border border-[#D8EBDD] bg-white px-3 py-1 text-xs font-semibold text-[#247A4D]">
             {formatDateOnly(customer.ultimoMovimiento.slice(0, 10))}
           </span>
         </div>
@@ -3260,15 +3267,11 @@ function ClientCard({
 
       <div className="space-y-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2">
-          <ClientFact
-            icon={Phone}
-            label="TelÃ©fono"
-            value={customer.telefono || "Sin telÃ©fono"}
-          />
+          <ClientFact icon={Phone} label="Telefono" value={customer.telefono || "Sin telefono"} />
           <ClientFact
             icon={Store}
-            label="Lugar de trabajo"
-            value={customer.lugarTrabajo || "Sin lugar de trabajo"}
+            label="Unidad"
+            value={customer.lugarTrabajo || "Sin unidad"}
           />
           <ClientFact
             icon={ReceiptText}
@@ -3285,24 +3288,21 @@ function ClientCard({
         <div className="grid gap-3 sm:grid-cols-3">
           <MiniMetric label="Pedidos activos" value={String(customer.pedidosActivos)} />
           <MiniMetric label="Pedidos cerrados" value={String(customer.pedidosFinalizados)} />
-          <MiniMetric
-            label="Ãšltimo pedido"
-            value={formatShortDateTime(customer.ultimoMovimiento)}
-          />
+          <MiniMetric label="Ultimo pedido" value={formatShortDateTime(customer.ultimoMovimiento)} />
         </div>
 
-        <div className="rounded-[22px] border border-[#E8D3B0] bg-[#FFFAF2] p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A86B32]">
+        <div className="rounded-[22px] border border-[#D8EBDD] bg-[#F6FCF7] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#247A4D]">
             Fechas agendadas
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {customer.proximasFechas.length === 0 ? (
-              <span className="text-sm text-[#8B6F52]">Sin pedidos agendados por ahora</span>
+              <span className="text-sm text-[#6B7C70]">Sin pedidos agendados por ahora</span>
             ) : (
               customer.proximasFechas.slice(0, 4).map((fecha) => (
                 <span
                   key={`${customer.clienteId}-${fecha}`}
-                  className="rounded-full border border-[#E8D3B0] bg-white px-3 py-1 text-xs font-semibold text-[#6E5337]"
+                  className="rounded-full border border-[#D8EBDD] bg-white px-3 py-1 text-xs font-semibold text-[#247A4D]"
                 >
                   {formatDateOnly(fecha)}
                 </span>
@@ -3315,14 +3315,14 @@ function ClientCard({
           <button
             type="button"
             onClick={onOpenOrders}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-[#A86B32] px-4 py-3 text-sm font-semibold text-white"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-[#3FA66B] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(63,166,107,0.2)]"
           >
             Ver pedidos
           </button>
           <button
             type="button"
             onClick={onOpenPayments}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#E8D3B0] bg-[#FFF7E8] px-4 py-3 text-sm font-semibold text-[#6E5337]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#D8EBDD] bg-[#F6FCF7] px-4 py-3 text-sm font-semibold text-[#247A4D]"
           >
             Revisar cobros
           </button>
@@ -3342,12 +3342,12 @@ function ClientFact({
   value: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-[#E8D3B0] bg-[#FFFDF8] p-4">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#A86B32]">
+    <div className="rounded-[20px] border border-[#D8EBDD] bg-[#F6FCF7] p-4">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#247A4D]">
         <Icon className="h-4 w-4" />
         {label}
       </div>
-      <div className="mt-3 text-sm font-semibold leading-6 text-[#3A2A1A]">{value}</div>
+      <div className="mt-3 text-sm font-semibold leading-6 text-[#1F3328]">{value}</div>
     </div>
   );
 }
@@ -3361,12 +3361,12 @@ function ClientPill({
 }) {
   const className =
     tone === "success"
-      ? "border-[#CDE1D1] bg-[#EEF7F0] text-[#4F8A5B]"
+      ? "border-[#D8EBDD] bg-[#DDF4E5] text-[#247A4D]"
       : tone === "danger"
-        ? "border-[#E5C4C4] bg-[#FBEDED] text-[#B85C5C]"
+        ? "border-[#F5C0BB] bg-[#FFF0EF] text-[#D66D63]"
         : tone === "accent"
-          ? "border-[#F0D48D] bg-[#FFF2CF] text-[#A86B32]"
-          : "border-[#E8D3B0] bg-white text-[#6E5337]";
+          ? "border-[#F0E2AA] bg-[#FFF8DE] text-[#8A6A14]"
+          : "border-[#D8EBDD] bg-white text-[#247A4D]";
 
   return (
     <span
@@ -3379,17 +3379,17 @@ function ClientPill({
 
 function ClientEmptyState({ hasSearch }: { hasSearch: boolean }) {
   return (
-    <div className="rounded-[28px] border border-dashed border-[#E8D3B0] bg-[#FFF7E8] p-8 text-center shadow-soft">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#A86B32]">
+    <div className="rounded-[28px] border border-dashed border-[#D8EBDD] bg-[#F3FAF4] p-8 text-center shadow-soft">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#247A4D] shadow-[0_12px_24px_rgba(31,51,40,0.08)]">
         <UserRound className="h-6 w-6" />
       </div>
-      <h3 className="mt-4 text-xl font-bold text-[#3A2A1A]">
-        {hasSearch ? "No encontramos coincidencias." : "AÃºn no hay clientes registrados."}
+      <h3 className="mt-4 text-xl font-bold text-[#1F3328]">
+        {hasSearch ? "No encontramos coincidencias." : "Aun no hay clientes registrados."}
       </h3>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6E5337]">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6B7C70]">
         {hasSearch
-          ? "Prueba con otro nombre, telÃ©fono o lugar de trabajo para seguir buscando."
-          : "Cuando ingresen pedidos, aparecerÃ¡n aquÃ­ automÃ¡ticamente."}
+          ? "Prueba con otro nombre, telefono o lugar de trabajo para seguir buscando."
+          : "Cuando ingresen pedidos, apareceran aqui automaticamente."}
       </p>
     </div>
   );
@@ -3406,13 +3406,13 @@ function InlineField({
 }) {
   return (
     <label className="space-y-2">
-      <span className="text-sm font-semibold text-rose-900">{label}</span>
+      <span className="text-sm font-semibold text-emerald-900">{label}</span>
       <input
         type="number"
         min={0}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-950"
+        className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
       />
     </label>
   );
@@ -3420,16 +3420,16 @@ function InlineField({
 
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-h-[72px] flex-col justify-center rounded-[18px] border border-rose-200 bg-white px-3 py-3">
-      <div className="text-[11px] uppercase tracking-wide text-rose-700/70">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-rose-950">{value}</div>
+    <div className="flex min-h-[72px] flex-col justify-center rounded-[18px] border border-emerald-100 bg-white px-3 py-3">
+      <div className="text-[11px] uppercase tracking-wide text-emerald-700/70">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-emerald-950">{value}</div>
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-rose-200 bg-rose-50/50 p-4 text-sm text-rose-900/60">
+    <div className="rounded-lg border border-dashed border-emerald-100 bg-emerald-50/50 p-4 text-sm text-emerald-900/60">
       {text}
     </div>
   );
@@ -3444,7 +3444,7 @@ function StatusBadge({
 }) {
   const classes =
     tone === "pedido"
-      ? "bg-rose-100 text-rose-800"
+      ? "bg-emerald-100 text-emerald-800"
       : tone === "warning"
         ? "bg-amber-100 text-amber-800"
         : "bg-violet-100 text-violet-800";
@@ -3468,7 +3468,7 @@ function MobileQuickHomeButton({
   return (
     <Link
       href={href}
-      className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white/95 text-rose-900 shadow-soft backdrop-blur md:hidden"
+      className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-100 bg-white/95 text-emerald-900 shadow-soft backdrop-blur md:hidden"
       aria-label={label}
       title={label}
     >
@@ -3527,14 +3527,14 @@ function todayDateValue() {
 
 function buttonToneClass(tone: "primary" | "warning" | "muted") {
   if (tone === "primary") {
-    return "inline-flex min-h-11 items-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm";
+    return "inline-flex min-h-11 items-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm";
   }
 
   if (tone === "warning") {
     return "inline-flex min-h-11 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800";
   }
 
-  return "inline-flex min-h-11 items-center rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-900";
+  return "inline-flex min-h-11 items-center rounded-xl border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900";
 }
 
 function StableHorizontalRail({

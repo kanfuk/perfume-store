@@ -274,19 +274,19 @@ export function AdminDirectSale({
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-6 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
-      <section className="overflow-hidden rounded-[34px] border border-[#ecd7b3] bg-white/92 shadow-soft">
+      <section className="overflow-hidden rounded-[34px] border border-[#d8ebdd] bg-white/92 shadow-soft">
         <div className="bg-[linear-gradient(140deg,#fff4da_0%,#f8d8cb_48%,#fdecef_100%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-[#8f5728]">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-[#247a4d]">
                 <ShoppingBag className="h-4 w-4" />
                 Admin Pauli Store
               </span>
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold text-[#6f3146] sm:text-4xl">
+                <h1 className="text-3xl font-bold text-[#1f3328] sm:text-4xl">
                   Venta directa
                 </h1>
-                <p className="max-w-3xl text-sm leading-6 text-[#7e4a5c] sm:text-base">
+                <p className="max-w-3xl text-sm leading-6 text-[#6b7c70] sm:text-base">
                   Registra ventas realizadas en el momento sin usar el formulario público.
                 </p>
               </div>
@@ -294,7 +294,7 @@ export function AdminDirectSale({
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admin"
-                className="inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] border border-[#ecd7b3] bg-white/80 px-4 py-3 text-center text-sm font-semibold text-[#7e4a5c] sm:min-w-[146px]"
+                className="inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] border border-[#d8ebdd] bg-white/80 px-4 py-3 text-center text-sm font-semibold text-[#6b7c70] sm:min-w-[146px]"
               >
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Inicio</span>
@@ -322,7 +322,7 @@ export function AdminDirectSale({
         </div>
       ) : null}
       {serverError ? (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-800">
+        <div className="rounded-[24px] border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
           {serverError}
         </div>
       ) : null}
@@ -370,11 +370,11 @@ export function AdminDirectSale({
 
               {customerMode === "existente" ? (
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#5f3041]">Cliente existente</span>
+                  <span className="text-sm font-medium text-[#1f3328]">Cliente existente</span>
                   <select
                     value={selectedCustomerKey}
                     onChange={(event) => syncExistingCustomer(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#f0d6da] bg-white px-4 py-3 text-base text-[#5f3041]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
                   >
                     <option value="">Selecciona cliente</option>
                     {customers.map((customer) => (
@@ -427,12 +427,12 @@ export function AdminDirectSale({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#5f3041]">Nota interna opcional</span>
+                <span className="text-sm font-medium text-[#1f3328]">Nota interna opcional</span>
                 <textarea
                   value={catalogNote}
                   onChange={(event) => setCatalogNote(event.target.value)}
                   rows={3}
-                  className="w-full rounded-[18px] border border-[#f0d6da] bg-white px-4 py-3 text-base text-[#5f3041] outline-none"
+                  className="w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
                   placeholder="Ejemplo: venta del pasillo o retiro inmediato"
                 />
               </label>
@@ -451,17 +451,17 @@ export function AdminDirectSale({
               subtitle="Mismo calculo del cliente, pero listo para cerrar al instante."
             />
 
-            <div className="rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft">
+            <div className="rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff6e7] text-[#a86b32]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6fcf7] text-[#3fa66b]">
                     <BadgeCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#5f3041]">
+                    <h3 className="text-lg font-semibold text-[#1f3328]">
                       Registrar venta
                     </h3>
-                    <p className="text-sm text-[#7f5b67]">
+                    <p className="text-sm text-[#6b7c70]">
                       La venta se guardara como FINALIZADO/{paymentState}.
                     </p>
                   </div>
@@ -470,7 +470,7 @@ export function AdminDirectSale({
                   type="button"
                   disabled={submitting || saleItems.length === 0}
                   onClick={() => void submitDirectSale()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#a86b32] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
                 >
                   <ShoppingBag className="h-5 w-5" />
                   {submitting ? "Registrando venta..." : "Registrar venta"}
@@ -541,14 +541,14 @@ export function AdminDirectSale({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#5f3041]">Descripción / observación</span>
+                <span className="text-sm font-medium text-[#1f3328]">Descripción / observación</span>
                 <textarea
                   value={customForm.descripcion}
                   onChange={(event) =>
                     setCustomForm((current) => ({ ...current, descripcion: event.target.value }))
                   }
                   rows={4}
-                  className="w-full rounded-[18px] border border-[#f0d6da] bg-white px-4 py-3 text-base text-[#5f3041] outline-none"
+                  className="w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
                   placeholder="Detalles del pedido, sabores, relleno o instrucciones."
                 />
               </label>
@@ -578,7 +578,7 @@ export function AdminDirectSale({
               </div>
 
               <div className="space-y-3">
-                <div className="text-sm font-medium text-[#5f3041]">Estado inicial del pedido</div>
+                <div className="text-sm font-medium text-[#1f3328]">Estado inicial del pedido</div>
                 <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
                   <ChoiceButton
                     active={customForm.estadoInicial === "AGENDADO"}
@@ -610,11 +610,11 @@ export function AdminDirectSale({
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
-            <div className="rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft">
+            <div className="rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#5f3041]">Resumen antes de guardar</h3>
-                  <p className="mt-1 text-sm text-[#7f5b67]">
+                  <h3 className="text-lg font-semibold text-[#1f3328]">Resumen antes de guardar</h3>
+                  <p className="mt-1 text-sm text-[#6b7c70]">
                     Cliente, producto, total y estado en una sola vista.
                   </p>
                 </div>
@@ -649,7 +649,7 @@ export function AdminDirectSale({
                   type="button"
                   disabled={submitting}
                   onClick={() => void submitCustomOrder()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#a86b32] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
                 >
                   <Sparkles className="h-5 w-5" />
                   {submitting
@@ -664,7 +664,7 @@ export function AdminDirectSale({
 
       <Link
         href="/admin"
-        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#ecd7b3] bg-white/95 text-[#7e4a5c] shadow-soft backdrop-blur md:hidden"
+        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d8ebdd] bg-white/95 text-[#6b7c70] shadow-soft backdrop-blur md:hidden"
         aria-label="Inicio admin"
       >
         <Home className="h-4 w-4" />
@@ -686,14 +686,14 @@ function CardSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
+    <section className="space-y-4 rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#a86b32] shadow-sm">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
           {icon}
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[#5f3041]">{title}</h2>
-          <p className="copy-justified text-sm text-[#7f5b67]">{subtitle}</p>
+          <h2 className="text-lg font-semibold text-[#1f3328]">{title}</h2>
+          <p className="copy-justified text-sm text-[#6b7c70]">{subtitle}</p>
         </div>
       </div>
       {children}
@@ -718,8 +718,8 @@ function ModeButton({
       onClick={onClick}
       className={`inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] px-4 py-3 text-center text-sm font-semibold transition sm:min-w-[146px] ${
         active
-          ? "bg-[#a86b32] text-white"
-          : "border border-[#ecd7b3] bg-white/80 text-[#7e4a5c]"
+          ? "bg-[#3fa66b] text-white"
+          : "border border-[#d8ebdd] bg-white/80 text-[#6b7c70]"
       }`}
     >
       {icon}
@@ -745,12 +745,12 @@ function ChoiceButton({
       onClick={onClick}
       className={`flex h-full flex-col justify-between rounded-[22px] border px-4 py-4 text-left transition ${
         active
-          ? "border-[#a86b32] bg-[#fff6e7] shadow-soft"
-          : "border-[#eedcc3] bg-white"
+          ? "border-[#3fa66b] bg-[#f6fcf7] shadow-soft"
+          : "border-[#d8ebdd] bg-white"
       }`}
     >
-      <div className="font-semibold text-[#5f3041]">{title}</div>
-      <div className="mt-1 text-sm leading-6 text-[#7f5b67]">{text}</div>
+      <div className="font-semibold text-[#1f3328]">{title}</div>
+      <div className="mt-1 text-sm leading-6 text-[#6b7c70]">{text}</div>
     </button>
   );
 }
@@ -770,14 +770,14 @@ function TextField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#5f3041]">{label}</span>
-      <div className="flex items-center gap-3 rounded-[18px] border border-[#f0d6da] bg-white px-4 py-3">
-        <span className="text-[#b797a2]">{icon}</span>
+      <span className="text-sm font-medium text-[#1f3328]">{label}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3">
+        <span className="text-[#6b7c70]">{icon}</span>
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#5f3041] outline-none placeholder:text-[#b797a2]"
+          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#1f3328] outline-none placeholder:text-[#6b7c70]"
         />
       </div>
     </label>
@@ -795,13 +795,13 @@ function NumberField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#5f3041]">{label}</span>
+      <span className="text-sm font-medium text-[#1f3328]">{label}</span>
       <input
         type="number"
         min={0}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#f0d6da] bg-white px-4 py-3 text-base text-[#5f3041] outline-none"
+        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
       />
     </label>
   );
@@ -809,9 +809,9 @@ function NumberField({
 
 function SummaryFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#eedcc3] bg-[#fff9ef] px-4 py-3">
-      <span className="text-sm text-[#7f5b67]">{label}</span>
-      <span className="text-right text-sm font-semibold text-[#5f3041]">{value}</span>
+    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-3">
+      <span className="text-sm text-[#6b7c70]">{label}</span>
+      <span className="text-right text-sm font-semibold text-[#1f3328]">{value}</span>
     </div>
   );
 }

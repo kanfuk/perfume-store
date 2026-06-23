@@ -7,3 +7,5 @@ dist
 *.tsbuildinfo
 .tmp-*
 docs/*key.txt
+
+.vercel

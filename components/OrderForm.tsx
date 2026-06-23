@@ -411,20 +411,20 @@ export function OrderForm() {
         <form
           id="customer-order-form"
           method="post"
-          className="max-w-full space-y-6 overflow-x-hidden rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
+          className="max-w-full space-y-6 overflow-x-hidden rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
           onSubmit={handleSubmit}
         >
         {recentCustomers.length > 0 ? (
-          <div className="rounded-[26px] border border-[#eedcc3] bg-[#fff9ef] p-4 sm:p-5">
+          <div className="rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#a86b32] shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
                 <Clock3 className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-[#5f3041]">
+                <h3 className="text-lg font-semibold text-[#1f3328]">
                   Clientes frecuentes
                 </h3>
-                <p className="copy-justified text-sm text-[#7f5b67]">
+                <p className="copy-justified text-sm text-[#6b7c70]">
                   Si ya pediste desde este equipo, toca tu nombre y seguimos.
                 </p>
               </div>
@@ -435,35 +435,35 @@ export function OrderForm() {
                   key={customer.telefono}
                   type="button"
                   onClick={() => applyRecentCustomer(customer)}
-                  className="max-w-full rounded-full border border-[#eedcc3] bg-white px-4 py-3 text-left transition hover:border-[#d8a55d] hover:shadow-sm"
+                  className="max-w-full rounded-full border border-[#d8ebdd] bg-white px-4 py-3 text-left transition hover:border-[#3fa66b] hover:shadow-sm"
                 >
-                  <div className="text-sm font-semibold text-[#5f3041]">
+                  <div className="text-sm font-semibold text-[#1f3328]">
                     {customer.nombre}
                   </div>
-                  <div className="text-xs text-[#8b6a74]">{customer.lugarTrabajo}</div>
+                  <div className="text-xs text-[#6b7c70]">{customer.lugarTrabajo}</div>
                 </button>
               ))}
             </div>
           </div>
         ) : null}
 
-        <div className="space-y-4 rounded-[26px] border border-[#eedcc3] bg-[linear-gradient(180deg,#fffaf2_0%,#fff6fb_100%)] p-4 sm:p-5">
+        <div className="space-y-4 rounded-[26px] border border-[#d8ebdd] bg-[linear-gradient(180deg,#eef8f0_0%,#f8fcf8_100%)] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#a86b32] shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
                 <ShoppingBag className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-[#5f3041]">
-                  Catálogo del día
+                <h3 className="text-lg font-semibold text-[#1f3328]">
+                  Catalogo del dia
                 </h3>
-                <p className="copy-justified text-sm text-[#7f5b67]">
+                <p className="copy-justified text-sm text-[#6b7c70]">
                   Elige tu dobladita favorita y suma las que necesites.
                 </p>
               </div>
             </div>
             {loadingProducts ? (
-              <span className="text-sm text-[#8f6070]">Cargando...</span>
+              <span className="text-sm text-[#6b7c70]">Cargando...</span>
             ) : null}
           </div>
           <ProductCatalog
@@ -476,16 +476,16 @@ export function OrderForm() {
           ) : null}
         </div>
 
-        <div className="space-y-4 rounded-[26px] border border-[#eedcc3] bg-[#fff9ef] p-4 sm:p-5">
+        <div className="space-y-4 rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#a86b32] shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
               <UserRound className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-[#5f3041]">
+              <h3 className="text-lg font-semibold text-[#1f3328]">
                 Tus datos
               </h3>
-              <p className="copy-justified text-sm text-[#7f5b67]">
+              <p className="copy-justified text-sm text-[#6b7c70]">
                 Completa esto y Pauli te confirma disponibilidad por WhatsApp.
               </p>
             </div>
@@ -494,9 +494,9 @@ export function OrderForm() {
           {autoFillMessage ? (
             <div
               aria-live="polite"
-              className="flex items-start gap-2 rounded-2xl border border-[#eedcc3] bg-white px-4 py-3 text-sm text-[#7f5b67]"
+              className="flex items-start gap-2 rounded-2xl border border-[#d8ebdd] bg-white px-4 py-3 text-sm text-[#6b7c70]"
             >
-              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#a86b32]" />
+              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#3fa66b]" />
               <span>{autoFillMessage}</span>
             </div>
           ) : null}
@@ -547,7 +547,7 @@ export function OrderForm() {
         <button
           type="submit"
           disabled={submitting || loadingProducts || products.length === 0}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#a86b32] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
         >
           <ShoppingBag className="h-5 w-5" />
           {submitting ? "Registrando pedido..." : "Registrar mi pedido"}
@@ -562,18 +562,18 @@ export function OrderForm() {
             onDecrease={updateQuantity}
             onIncrease={updateQuantity}
             onRemove={removeItem}
-            emptyText="Tu resumen aparecerá apenas elijas una dobladita."
+            emptyText="Tu resumen aparecera apenas elijas una dobladita."
           />
 
-          <div className="rounded-[30px] border border-[#ecd7b3] bg-white/95 p-5 shadow-soft">
+          <div className="rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff6e7] text-[#a86b32]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f6fcf7] text-[#3fa66b]">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-[#5f3041]">Pedido simple</h3>
-                <p className="copy-justified text-sm text-[#7f5b67]">
-                  Tu pedido queda pendiente de confirmación. Pauli revisa stock y luego te escribe.
+                <h3 className="text-lg font-semibold text-[#1f3328]">Pedido simple</h3>
+                <p className="copy-justified text-sm text-[#6b7c70]">
+                  Tu pedido queda pendiente de confirmacion. Pauli revisa stock y luego te escribe.
                 </p>
               </div>
             </div>
@@ -581,13 +581,14 @@ export function OrderForm() {
         </aside>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 w-full max-w-full overflow-x-hidden border-t border-[#ecd7b3] bg-white/94 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(91,49,65,0.08)] backdrop-blur xl:hidden">
+      {cartLines.length > 0 ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 w-full max-w-full overflow-x-hidden border-t border-[#d8ebdd] bg-white/94 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgba(31,51,40,0.08)] backdrop-blur xl:hidden">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#8b6a74]">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#6b7c70]">
               Total del carrito
             </div>
-            <div className="truncate text-lg font-semibold text-[#5f3041]">
+            <div className="truncate text-lg font-semibold text-[#1f3328]">
               {formatCurrency(total)}
             </div>
           </div>
@@ -595,41 +596,42 @@ export function OrderForm() {
             type="submit"
             form="customer-order-form"
             disabled={submitting || loadingProducts || products.length === 0}
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#8f5728] disabled:cursor-not-allowed disabled:bg-[#d7b894]"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
           >
             <ShoppingBag className="h-4 w-4" />
             {submitting ? "Registrando..." : "Registrar pedido"}
           </button>
         </div>
-      </div>
+        </div>
+      ) : null}
 
       <AppFooter className="pb-[calc(140px+env(safe-area-inset-bottom))] xl:pb-6" />
 
       {submitted ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#5f3041]/30 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[32px] border border-[#f0d6da] bg-white p-6 shadow-[0_24px_60px_rgba(91,49,65,0.18)]">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1f3328]/30 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[32px] border border-[#d8ebdd] bg-white p-6 shadow-[0_24px_60px_rgba(31,51,40,0.18)]">
             <div className="flex items-start gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef8f0] text-success">
                 <BadgeCheck className="h-6 w-6" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-[#5f3041]">
+                <h3 className="text-xl font-semibold text-[#1f3328]">
                   Pedido registrado correctamente
                 </h3>
-                <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
-                  Tu pedido quedó pendiente de confirmación. Pauli revisará disponibilidad y te avisará por WhatsApp.
+                <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
+                  Tu pedido quedo pendiente de confirmacion. Pauli revisara disponibilidad y te avisara por WhatsApp.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-[22px] border border-[#f2d9df] bg-[#fff8fa] p-4">
+            <div className="mt-5 rounded-[22px] border border-[#d8ebdd] bg-[#f6fcf7] p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#8b6a74]">Código</span>
-                <span className="font-medium text-[#5f3041]">{submitted.pedidoId}</span>
+                <span className="text-[#6b7c70]">Codigo</span>
+                <span className="font-medium text-[#1f3328]">{submitted.pedidoId}</span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="text-[#8b6a74]">Total</span>
-                <span className="font-semibold text-[#a86b32]">
+                <span className="text-[#6b7c70]">Total</span>
+                <span className="font-semibold text-[#3fa66b]">
                   {formatCurrency(submitted.total)}
                 </span>
               </div>
@@ -638,7 +640,7 @@ export function OrderForm() {
             <button
               type="button"
               onClick={() => setSubmitted(null)}
-              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#a86b32] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#8f5728]"
+              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#247a4d]"
             >
               Entendido
             </button>
@@ -647,17 +649,17 @@ export function OrderForm() {
       ) : null}
 
       {stockLimitState ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#5f3041]/30 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-[28px] border border-[#f0d6da] bg-white p-6 shadow-[0_24px_60px_rgba(91,49,65,0.18)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f3328]/30 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[28px] border border-[#d8ebdd] bg-white p-6 shadow-[0_24px_60px_rgba(31,51,40,0.18)]">
             <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff4f7] text-[#b85f79]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eef8f0] text-[#247a4d]">
                 <ShoppingBag className="h-5 w-5" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-[#5f3041]">
+                <h3 className="text-lg font-semibold text-[#1f3328]">
                   Stock disponible
                 </h3>
-                <p className="copy-justified text-sm leading-6 text-[#7f5b67]">
+                <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
                   {stockLimitState.productName} solo cuenta con{" "}
                   {stockLimitState.available} disponible(s). Si quieres, dejamos esa
                   cantidad en tu pedido.
@@ -669,9 +671,9 @@ export function OrderForm() {
               <button
                 type="button"
                 onClick={() => setStockLimitState(null)}
-                className="rounded-2xl border border-[#f0d6da] bg-white px-4 py-3 text-sm font-semibold text-[#5f3041]"
+                className="rounded-2xl border border-[#d8ebdd] bg-white px-4 py-3 text-sm font-semibold text-[#1f3328]"
               >
-                Mantener como está
+                Mantener como esta
               </button>
               <button
                 type="button"
@@ -680,7 +682,7 @@ export function OrderForm() {
                   setStockLimitState(null);
                   setServerError("");
                 }}
-                className="rounded-2xl bg-[#b85f79] px-4 py-3 text-sm font-semibold text-white"
+                className="rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#247a4d]"
               >
                 Agendar lo disponible
               </button>
@@ -713,15 +715,15 @@ function TextField({
 }: TextFieldProps) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#5f3041]">{label}</span>
-      <div className="flex items-center gap-3 rounded-[18px] border border-[#f0d6da] bg-white px-4 py-3 transition focus-within:border-[#d37b94]">
-        {icon ? <span className="text-[#b797a2]">{icon}</span> : null}
+      <span className="text-sm font-medium text-[#1f3328]">{label}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 transition focus-within:border-[#3fa66b]">
+        {icon ? <span className="text-[#6b7c70]">{icon}</span> : null}
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className="w-full border-0 bg-transparent p-0 text-base text-[#5f3041] outline-none placeholder:text-[#b797a2]"
+          className="w-full border-0 bg-transparent p-0 text-base text-[#1f3328] outline-none placeholder:text-[#6b7c70]"
         />
       </div>
       {error ? <span className="text-sm text-danger">{error}</span> : null}
@@ -739,17 +741,17 @@ type PhoneFieldProps = {
 function PhoneField({ label, value, error, onChange }: PhoneFieldProps) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#5f3041]">{label}</span>
-      <div className="flex items-center gap-3 rounded-[18px] border border-[#f0d6da] bg-white px-4 py-3 transition focus-within:border-[#d37b94]">
-        <Phone className="h-4 w-4 text-[#b797a2]" />
-        <span className="text-sm font-semibold text-[#8b6a74]">+56</span>
+      <span className="text-sm font-medium text-[#1f3328]">{label}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 transition focus-within:border-[#3fa66b]">
+        <Phone className="h-4 w-4 text-[#6b7c70]" />
+        <span className="text-sm font-semibold text-[#247a4d]">+56</span>
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="9 1234 5678"
           autoComplete="tel"
           inputMode="tel"
-          className="w-full border-0 bg-transparent p-0 text-base text-[#5f3041] outline-none placeholder:text-[#b797a2]"
+          className="w-full border-0 bg-transparent p-0 text-base text-[#1f3328] outline-none placeholder:text-[#6b7c70]"
         />
       </div>
       {error ? <span className="text-sm text-danger">{error}</span> : null}
