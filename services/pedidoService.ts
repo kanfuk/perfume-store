@@ -466,7 +466,7 @@ export class PedidoService {
     // Restaurar stock de agenda por cada item
     await Promise.all(
       items.map((item) =>
-        this.productRepository.ajustarStockAgenda(item.producto_id, item.cantidad)
+        this.productRepository.ajustarStockAgenda(item.productoId, item.cantidad)
       )
     );
   }
