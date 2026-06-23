@@ -34,6 +34,8 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 | `31_ELIMINA_NAVBAR_INFERIOR_ADMIN_UX_FINAL.md` | Retiro de la navbar inferior admin y ajustes finales de espaciado mobile. |
 | `33_FASE_FINAL_WHATSAPP_CONFIRMACION_PEDIDOS.md` | Arquitectura y flujo de confirmacion manual de pedidos por WhatsApp. |
 | `34_CHECKLIST_QA_WHATSAPP_CONFIRMACION.md` | Checklist tecnico, funcional y responsive para validar la integracion de WhatsApp. |
+| `35_WHATSAPP_AUTO_AGENDA_PEDIDOS.md` | Apertura automatica de WhatsApp al agendar pedidos manteniendo el boton manual. |
+| `36_CHECKLIST_QA_WHATSAPP_AUTO_AGENDA.md` | Checklist de validacion para la apertura automatica de WhatsApp al agendar. |
 | `PROMPT_CODEX_INTEGRAR_ICONOS.md` | Prompt operativo para reinstalar o revisar el pack de iconos de Pauli Store. |
 
 ## Instruccion general para Codex

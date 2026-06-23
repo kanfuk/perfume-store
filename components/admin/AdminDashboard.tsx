@@ -636,19 +636,48 @@ export function AdminDashboard({
     }
   }
 
+  function handleOrderAgendaWhatsApp(
+    order: AdminOrderSummary,
+    deliveryDateValue?: string
+  ) {
+    const notification = getOrderWhatsAppNotification(order, deliveryDateValue);
+
+    if (notification.status !== "ready" || !notification.url) {
+      setSuccessMessage(
+        notification.error === "Sin telefono"
+          ? "Pedido agendado, pero el cliente no tiene telefono valido para WhatsApp."
+          : "Pedido agendado, pero el telefono del cliente no es valido para WhatsApp."
+      );
+      return;
+    }
+
+    const opened = window.open(notification.url, "_blank", "noopener,noreferrer");
+
+    if (!opened) {
+      setSuccessMessage(
+        "Pedido agendado. Si WhatsApp no se abrio, usa el boton Enviar WhatsApp."
+      );
+      return;
+    }
+
+    setSuccessMessage("Pedido agendado correctamente.");
+  }
+
   async function runAction(
     pedidoId: string,
     action: AdminOrdersAction,
+    order?: AdminOrderSummary,
     payload?: {
       fechaEntrega?: string;
       motivoCancelacion?: string;
       monto?: number;
       metodoPago?: string;
     }
-  ) {
+    ) {
     try {
       setBusyOrderId(pedidoId);
       setError("");
+      setSuccessMessage("");
       const response = await fetch(`/api/admin/orders/${pedidoId}`, {
         method: "PATCH",
         headers: {
@@ -668,6 +697,10 @@ export function AdminDashboard({
 
       setOrderModalState(null);
       await loadOrders();
+
+      if (action === "agendar" && order) {
+        handleOrderAgendaWhatsApp(order, payload?.fechaEntrega);
+      }
     } catch (currentError) {
       setError(
         currentError instanceof Error
@@ -1316,7 +1349,7 @@ export function AdminDashboard({
                         return;
                       }
 
-                      void runAction(order.id, action);
+                      void runAction(order.id, action, order);
                     }}
                   />
                 ))}
@@ -1858,7 +1891,12 @@ export function AdminDashboard({
           busy={busyOrderId === orderModalState.order.id}
           onClose={() => setOrderModalState(null)}
           onConfirm={(payload) =>
-            void runAction(orderModalState.order.id, orderModalState.type, payload)
+            void runAction(
+              orderModalState.order.id,
+              orderModalState.type,
+              orderModalState.order,
+              payload
+            )
           }
         />
       ) : null}
@@ -3550,7 +3588,10 @@ function shouldShowOrderWhatsAppAction(order: AdminOrderSummary) {
   return order.estadoPedido === "AGENDADO" || order.estadoPedido === "FINALIZADO";
 }
 
-function getOrderWhatsAppNotification(order: AdminOrderSummary) {
+function getOrderWhatsAppNotification(
+  order: AdminOrderSummary,
+  deliveryDateValue?: string
+) {
   return notificationService.prepareOrderConfirmationNotification({
     customerName: order.clienteNombre,
     customerPhone: order.clienteTelefono,
@@ -3559,7 +3600,11 @@ function getOrderWhatsAppNotification(order: AdminOrderSummary) {
       quantity: item.cantidad
     })),
     total: order.total,
-    deliveryDateLabel: order.fechaEntrega ? formatDateOnly(order.fechaEntrega) : "Por coordinar"
+    deliveryDateLabel: deliveryDateValue
+      ? formatDateOnly(deliveryDateValue)
+      : order.fechaEntrega
+        ? formatDateOnly(order.fechaEntrega)
+        : "Por coordinar"
   });
 }
 
