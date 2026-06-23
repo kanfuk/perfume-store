@@ -1,10 +1,24 @@
+import Image from "next/image";
 import { OrderForm } from "@/components/OrderForm";
 
 export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-6xl flex-col gap-6 overflow-x-hidden px-4 py-4 sm:px-6 lg:gap-8 lg:px-8 lg:py-6">
-      <section className="overflow-hidden rounded-[34px] border border-[#d8ebdd] bg-white/92 shadow-soft backdrop-blur">
-        <div className="bg-[linear-gradient(140deg,#f6fcf7_0%,#eaf6ec_48%,#f3faf4_100%)] p-6 sm:p-8">
+      <section className="relative overflow-hidden rounded-[34px] border border-[#d8ebdd] bg-white/92 shadow-soft backdrop-blur">
+        <div className="pointer-events-none absolute inset-0 opacity-10 sm:opacity-20">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative h-full w-full max-w-lg opacity-90">
+              <Image
+                src="/icons/icon-512x512.png"
+                alt="Logo Pauli Store"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
+        </div>
+        <div className="relative bg-[linear-gradient(140deg,#f6fcf7_0%,#eaf6ec_48%,#f3faf4_100%)] p-6 sm:p-8">
           <div className="space-y-6">
             <div className="space-y-3">
               <h1 className="text-4xl font-bold tracking-normal text-[#1f3328] sm:text-5xl">
