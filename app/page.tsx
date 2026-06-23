@@ -26,9 +26,9 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#6b7c70] backdrop-blur">
-                Pedido
+                Entrega
                 <div className="mt-1 text-xl font-semibold text-[#1f3328]">
-                  Con entrega coordinada
+                  Previa coordinación
                 </div>
               </div>
             </div>
