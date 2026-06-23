@@ -6,9 +6,6 @@ export default function HomePage() {
       <section className="overflow-hidden rounded-[34px] border border-[#d8ebdd] bg-white/92 shadow-soft backdrop-blur">
         <div className="bg-[linear-gradient(140deg,#f6fcf7_0%,#eaf6ec_48%,#f3faf4_100%)] p-6 sm:p-8">
           <div className="space-y-6">
-            <span className="inline-flex w-fit rounded-full bg-white/80 px-3 py-1 text-sm font-semibold text-[#247a4d]">
-              Cositas ricas hechas en casa
-            </span>
             <div className="space-y-3">
               <h1 className="text-4xl font-bold tracking-normal text-[#1f3328] sm:text-5xl">
                 Pauli Store
@@ -23,9 +20,9 @@ export default function HomePage() {
 
             <div className="grid gap-3 text-sm sm:grid-cols-2">
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#6b7c70] backdrop-blur">
-                Preparado hoy
+                Producto casero
                 <div className="mt-1 text-xl font-semibold text-[#1f3328]">
-                  Recién hecho
+                  Recién horneado
                 </div>
               </div>
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#6b7c70] backdrop-blur">
