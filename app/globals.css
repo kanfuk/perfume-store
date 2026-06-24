@@ -84,6 +84,20 @@ input[type="date"] {
   background: rgba(63, 166, 107, 0.2);
 }
 
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .copy-justified {
   text-align: justify;
   text-justify: inter-word;
