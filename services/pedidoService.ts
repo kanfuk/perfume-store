@@ -37,6 +37,7 @@ import {
   validateCustomOrderForm,
   validateCustomerOrderForm
 } from "@/lib/validators";
+import { getPendingAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
 import { getAvailableProductStock } from "@/lib/stock";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
@@ -431,22 +432,25 @@ export class PedidoService {
         (b.fechaCierre ?? b.fechaPedido).localeCompare(a.fechaCierre ?? a.fechaPedido)
       );
 
+    const pendientesEnriched = pendientes
+      .map((order) => byId.get(order.id))
+      .filter((order): order is AdminOrderSummary => Boolean(order));
+    const agendadosEnriched = agendados
+      .map((order) => byId.get(order.id))
+      .filter((order): order is AdminOrderSummary => Boolean(order));
     const fiadosPendientes = finalizadosEnriched.filter(
       (order) => order.estadoPago === ESTADO_PAGO_FIADO && order.saldoPendiente > 0
     );
-    const pedidosNuevos = pendientes
-      .map((order) => byId.get(order.id))
-      .filter((order): order is AdminOrderSummary => Boolean(order))
-      .filter((order) => order.adminSeen !== true).length;
+    const pedidosNuevos = getPendingAdminOrdersCount([
+      ...pendientesEnriched,
+      ...agendadosEnriched
+    ]);
 
     return {
-      pendientes: pendientes
-        .map((order) => byId.get(order.id))
-        .filter((order): order is AdminOrderSummary => Boolean(order))
-        .sort((a, b) => Number(a.adminSeen === true) - Number(b.adminSeen === true)),
-      agendados: agendados
-        .map((order) => byId.get(order.id))
-        .filter((order): order is AdminOrderSummary => Boolean(order)),
+      pendientes: pendientesEnriched.sort(
+        (a, b) => Number(a.adminSeen === true) - Number(b.adminSeen === true)
+      ),
+      agendados: agendadosEnriched,
       finalizados: finalizadosEnriched,
       cancelados: cancelados
         .map((order) => byId.get(order.id))
@@ -473,6 +477,8 @@ export class PedidoService {
       pedidoId,
       estadoPedido: domainPedido.estadoPedido,
       estadoPago: domainPedido.estadoPago,
+      adminSeen: true,
+      adminSeenAt: new Date().toISOString(),
       fechaEntrega: toDateOnlyString(fechaProgramada),
       fechaAgendado: domainPedido.fechaAgendado?.toISOString()
     });

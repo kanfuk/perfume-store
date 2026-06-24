@@ -268,6 +268,7 @@ describe("PedidoService admin transitions", () => {
     expect(repository.actualizado?.pedidoId).toBe("pedido-1");
     expect(repository.actualizado?.estadoPedido).toBe("AGENDADO");
     expect(repository.actualizado?.estadoPago).toBe("SIN_PAGO");
+    expect(repository.actualizado?.adminSeen).toBe(true);
     expect(repository.actualizado?.fechaEntrega).toBe("2026-06-13");
   });
 
@@ -414,5 +415,43 @@ describe("PedidoService admin transitions", () => {
     await expect(service.marcarPedidoPagado("pedido-1")).rejects.toThrow(
       "Pedido no encontrado."
     );
+  });
+
+  it("cuenta como pendientes de atencion los pedidos sin agendar o no vistos", async () => {
+    const repository = new AdminPedidoRepositoryStub({
+      PENDIENTE: [
+        buildOrder("PENDIENTE"),
+        {
+          ...buildOrder("PENDIENTE"),
+          id: "pedido-2",
+          adminSeen: true
+        }
+      ],
+      AGENDADO: [
+        {
+          ...buildOrder("AGENDADO"),
+          id: "pedido-3",
+          fechaEntrega: "2026-06-13",
+          adminSeen: false
+        },
+        {
+          ...buildOrder("AGENDADO"),
+          id: "pedido-4",
+          fechaEntrega: "2026-06-14",
+          adminSeen: true
+        }
+      ],
+      FINALIZADO: [],
+      CANCELADO: []
+    });
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      repository
+    );
+
+    const dashboard = await service.obtenerDashboardAdmin();
+
+    expect(dashboard.pedidosNuevos).toBe(3);
   });
 });

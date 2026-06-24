@@ -37,10 +37,16 @@ import {
   WalletCards
 } from "lucide-react";
 import { AppFooter } from "@/components/AppFooter";
+import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
+import {
+  getPendingAdminOrders,
+  getPendingAdminOrdersCount
+} from "@/lib/admin/getPendingAdminOrders";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
+import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
@@ -124,6 +130,8 @@ const ADMIN_VIEW_ROUTES: Record<AdminView, string> = {
 };
 
 const notificationService = createNotificationService();
+const PENDING_ORDERS_SECTION_ID = "agenda-pendientes";
+const SCHEDULED_ORDERS_SECTION_ID = "agenda-agendados";
 
 const ADMIN_VIEW_META: Record<
   AdminView,
@@ -333,6 +341,18 @@ export function AdminDashboard({
     return () => window.cancelAnimationFrame(frameId);
   }, []);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      void loadOrders();
+    }, 60000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const homeSummary = useMemo(() => {
     const agendaHoy = todayDate
       ? data.agendados.filter((order) => order.fechaEntrega === todayDate)
@@ -357,14 +377,29 @@ export function AdminDashboard({
     };
   }, [data, products, todayDate]);
 
-  const pendingUnseenOrders = useMemo(
-    () =>
-      data.pendientes
-        .filter((order) => order.adminSeen !== true)
-        .sort((a, b) => b.fechaPedido.localeCompare(a.fechaPedido))
-        .slice(0, 4),
+  const pendingAttentionCount = useMemo(
+    () => getPendingAdminOrdersCount(data.pendientes),
     [data.pendientes]
   );
+
+  const scheduledAttentionCount = useMemo(
+    () => getPendingAdminOrdersCount(data.agendados),
+    [data.agendados]
+  );
+
+  const attentionCount = pendingAttentionCount + scheduledAttentionCount;
+
+  const pendingUnseenOrders = useMemo(
+    () =>
+      getPendingAdminOrders([...data.pendientes, ...data.agendados])
+        .sort((a, b) => b.fechaPedido.localeCompare(a.fechaPedido))
+        .slice(0, 4),
+    [data.agendados, data.pendientes]
+  );
+
+  useEffect(() => {
+    void updateAppBadge(attentionCount);
+  }, [attentionCount]);
 
   const customerCards = useMemo(() => {
     const grouped = new Map<string, CustomerCardData>();
@@ -897,6 +932,21 @@ export function AdminDashboard({
     router.push(ADMIN_VIEW_ROUTES[nextView]);
   }
 
+  function openAttentionOrders() {
+    const nextFilter = pendingAttentionCount > 0 ? "pendientes" : "agendados";
+    const targetId =
+      nextFilter === "pendientes" ? PENDING_ORDERS_SECTION_ID : SCHEDULED_ORDERS_SECTION_ID;
+
+    setStatusFilter(nextFilter);
+    setView("agenda");
+    router.push(`/admin/pedidos#${targetId}`);
+
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(targetId);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   function openCustomerOrders(customer: CustomerCardData) {
     setSearch(customer.nombre);
     setStatusFilter("historial");
@@ -908,10 +958,31 @@ export function AdminDashboard({
     navigateToView("cobros");
   }
 
+  useEffect(() => {
+    if (view !== "agenda") {
+      return;
+    }
+
+    const hash = window.location.hash.replace("#", "");
+
+    if (hash !== PENDING_ORDERS_SECTION_ID && hash !== SCHEDULED_ORDERS_SECTION_ID) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const target = document.getElementById(hash);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [statusFilter, view]);
+
   const currentViewMeta = ADMIN_VIEW_META[view];
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
+      <AdminNotificationBadge count={attentionCount} onClick={openAttentionOrders} />
+
       <section className="max-w-full overflow-x-hidden rounded-[28px] border border-emerald-100 bg-[linear-gradient(135deg,#f8fdf9_0%,#edf8f0_100%)] p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
@@ -991,7 +1062,7 @@ export function AdminDashboard({
             label="Pedidos"
             icon={ClipboardList}
             active={view === "agenda"}
-            badge={`${data.pedidosNuevos} nuevos`}
+            badge={`${attentionCount} por atender`}
             onClick={() => navigateToView("agenda")}
           />
           <AdminSectionTab
@@ -1055,9 +1126,9 @@ export function AdminDashboard({
         <section className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <HeroMetric
-              label="Pedidos nuevos"
-              value={String(data.pedidosNuevos)}
-              detail="Aún no marcados como vistos"
+              label="Pedidos por atender"
+              value={String(attentionCount)}
+              detail="Sin agendar o aun no revisados"
               icon={Clock3}
               tone="rose"
             />
@@ -1101,12 +1172,9 @@ export function AdminDashboard({
               <div className="mt-4 grid gap-3">
                 <QuickTaskRow
                   title="Revisar pendientes"
-                  detail={`${data.pedidosNuevos} pedido(s) nuevos por revisar`}
+                  detail={`${attentionCount} pedido(s) por atender`}
                   icon={Clock3}
-                  onClick={() => {
-                    navigateToView("agenda");
-                    setStatusFilter("pendientes");
-                  }}
+                  onClick={openAttentionOrders}
                 />
                 <QuickTaskRow
                   title="Cerrar ventas"
@@ -1154,17 +1222,14 @@ export function AdminDashboard({
             <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft lg:col-span-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-bold text-emerald-950">Pedidos nuevos</h2>
+                  <h2 className="text-xl font-bold text-emerald-950">Pedidos por atender</h2>
                   <p className="mt-1 text-sm text-emerald-900/65">
-                    Lo ultimo que entro sin marcar como visto. Desde aqui puedes revisar, abrir agenda o compartir el resumen por WhatsApp.
+                    Lo ultimo que entro y aun sigue sin agenda o sin revision final. Desde aqui puedes revisar, abrir agenda o compartir el resumen por WhatsApp.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    navigateToView("agenda");
-                    setStatusFilter("pendientes");
-                  }}
+                  onClick={openAttentionOrders}
                   className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
                 >
                   Abrir pedidos
@@ -1173,7 +1238,7 @@ export function AdminDashboard({
 
               <div className="mt-4 space-y-3">
                 {pendingUnseenOrders.length === 0 ? (
-                  <EmptyState text="No hay pedidos nuevos por revisar ahora mismo." />
+                  <EmptyState text="No hay pedidos por atender ahora mismo." />
                 ) : null}
                 {pendingUnseenOrders.map((order) => (
                   <article
@@ -1227,8 +1292,7 @@ export function AdminDashboard({
                       <button
                         type="button"
                         onClick={() => {
-                          navigateToView("agenda");
-                          setStatusFilter("pendientes");
+                          openAttentionOrders();
                           setSelectedOrderId(order.id);
                         }}
                         className={`${buttonToneClass("primary")} w-full justify-center sm:w-auto`}
@@ -1281,10 +1345,10 @@ export function AdminDashboard({
               <HomeActionCard
                 title="Agenda"
                 subtitle="Revisar pendientes, agendar fechas y ver pedidos del día."
-                badge={`${data.pendientes.length} por revisar`}
+                badge={`${attentionCount} por atender`}
                 icon={ClipboardList}
                 tone="rose"
-                onClick={() => navigateToView("agenda")}
+                onClick={openAttentionOrders}
               />
               <HomeActionCard
                 title="Stock"
@@ -1441,7 +1505,7 @@ export function AdminDashboard({
           <div className="grid gap-3 md:grid-cols-3">
             <MiniHomeTab
               title="Pendientes"
-              value={`${ordersByFilter.pendientes.filter((order) => order.adminSeen !== true).length}/${ordersByFilter.pendientes.length}`}
+              value={`${pendingAttentionCount}/${ordersByFilter.pendientes.length}`}
               active={statusFilter === "pendientes"}
               onClick={() => setStatusFilter("pendientes")}
               tone="rose"
@@ -1475,6 +1539,13 @@ export function AdminDashboard({
                 .map((section) => (
                   <OrderSection
                     key={section.key}
+                    htmlId={
+                      section.key === "pendientes"
+                        ? PENDING_ORDERS_SECTION_ID
+                        : section.key === "agendados"
+                          ? SCHEDULED_ORDERS_SECTION_ID
+                          : undefined
+                    }
                     title={section.title}
                     subtitle={section.subtitle}
                     orders={section.orders}
@@ -2461,6 +2532,7 @@ function StockProductCard({
 }
 
 type OrderSectionProps = {
+  htmlId?: string;
   title: string;
   subtitle: string;
   orders: AdminOrderSummary[];
@@ -2478,6 +2550,7 @@ type OrderSectionProps = {
 };
 
 function OrderSection({
+  htmlId,
   title,
   subtitle,
   orders,
@@ -2490,7 +2563,10 @@ function OrderSection({
   onAction
 }: OrderSectionProps) {
   return (
-    <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+    <section
+      id={htmlId}
+      className="scroll-mt-32 rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft"
+    >
       <div className="space-y-1">
         <h2 className="text-xl font-bold text-emerald-950">{title}</h2>
         <p className="text-sm text-emerald-900/70">{subtitle}</p>

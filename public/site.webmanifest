@@ -1,6 +1,6 @@
 {
   "name": "Pauli Store",
-  "short_name": "Pauli Store",
+  "short_name": "Pauli",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -19,13 +19,18 @@
       "type": "image/png"
     },
     {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
       "src": "/icons/maskable-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#f3faf4",
+  "theme_color": "#247a4d",
   "background_color": "#f3faf4",
   "display": "standalone",
   "start_url": "/"
