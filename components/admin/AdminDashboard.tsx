@@ -42,8 +42,10 @@ import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButt
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
+import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
 import { buildWhatsAppManualUrl } from "@/lib/whatsapp/buildWhatsAppManualUrl";
+import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
 import { createNotificationService } from "@/services/NotificationService";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
@@ -354,6 +356,15 @@ export function AdminDashboard({
       ventasCerradas: data.finalizados.reduce((sum, order) => sum + order.totalPagado, 0)
     };
   }, [data, products, todayDate]);
+
+  const pendingUnseenOrders = useMemo(
+    () =>
+      data.pendientes
+        .filter((order) => order.adminSeen !== true)
+        .sort((a, b) => b.fechaPedido.localeCompare(a.fechaPedido))
+        .slice(0, 4),
+    [data.pendientes]
+  );
 
   const customerCards = useMemo(() => {
     const grouped = new Map<string, CustomerCardData>();
@@ -1105,7 +1116,7 @@ export function AdminDashboard({
                 />
                 <QuickTaskRow
                   title="Ajustar stock"
-              detail={`${products.filter((product) => getUnifiedProductStock(product) <= 0).length} producto(s) sin stock`}
+                  detail={`${products.filter((product) => getUnifiedProductStock(product) <= 0).length} producto(s) sin stock`}
                   icon={Boxes}
                   onClick={() => {
                     navigateToView("stock");
@@ -1140,6 +1151,104 @@ export function AdminDashboard({
           </section>
 
           <section className="grid gap-4 lg:grid-cols-3">
+            <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft lg:col-span-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold text-emerald-950">Pedidos nuevos</h2>
+                  <p className="mt-1 text-sm text-emerald-900/65">
+                    Lo ultimo que entro sin marcar como visto. Desde aqui puedes revisar, abrir agenda o compartir el resumen por WhatsApp.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigateToView("agenda");
+                    setStatusFilter("pendientes");
+                  }}
+                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Abrir pedidos
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {pendingUnseenOrders.length === 0 ? (
+                  <EmptyState text="No hay pedidos nuevos por revisar ahora mismo." />
+                ) : null}
+                {pendingUnseenOrders.map((order) => (
+                  <article
+                    key={order.id}
+                    className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-base font-semibold text-emerald-950">
+                            {order.clienteNombre}
+                          </div>
+                          <StatusBadge tone="warning" label="NUEVO" />
+                          {order.fechaEntrega ? (
+                            <StatusBadge
+                              tone="neutral"
+                              label={`Entrega ${formatDateOnly(order.fechaEntrega)}`}
+                            />
+                          ) : null}
+                        </div>
+                        <div className="text-sm text-emerald-900/70">
+                          {order.clienteLugarTrabajo || "Sin lugar"} ·{" "}
+                          {order.clienteTelefono || "Sin teléfono"}
+                        </div>
+                        <div className="space-y-1 text-sm text-emerald-900/80">
+                          {renderGroupedItemLines(
+                            order.items.map((item) => ({
+                              name: item.productoNombre,
+                              quantity: item.cantidad
+                            })),
+                            3
+                          ).map((line) => (
+                            <div key={`${order.id}-${line}`}>{line}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs uppercase tracking-wide text-emerald-700/70">
+                          Total
+                        </div>
+                        <div className="mt-1 text-lg font-bold text-emerald-950">
+                          {formatCurrency(order.total)}
+                        </div>
+                        <div className="mt-1 text-xs text-emerald-900/65">
+                          {formatShortDateTime(order.fechaPedido)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigateToView("agenda");
+                          setStatusFilter("pendientes");
+                          setSelectedOrderId(order.id);
+                        }}
+                        className={`${buttonToneClass("primary")} w-full justify-center sm:w-auto`}
+                      >
+                        Ver detalle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void runAction(order.id, "visto", order)}
+                        className={`${buttonToneClass("muted")} w-full justify-center sm:w-auto`}
+                      >
+                        Marcar visto
+                      </button>
+                      <NewOrderWhatsAppButton order={order} />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </article>
+
             <FocusCard
               title="Lo primero hoy"
               text="Revisa pedidos pendientes y asígnales fecha antes de todo."
@@ -2596,6 +2705,22 @@ function OrderDetailPanel({
         </section>
       ) : null}
 
+      {order.adminSeen === false ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 shadow-soft">
+          <div className="space-y-1">
+            <div className="text-xs font-semibold uppercase tracking-wide text-amber-800/80">
+              Aviso interno
+            </div>
+            <p className="text-sm text-amber-900/80">
+              Si quieres compartir este pedido nuevo manualmente por WhatsApp, abre el mensaje ya preparado.
+            </p>
+          </div>
+          <div className="mt-3">
+            <NewOrderWhatsAppButton order={order} fullWidth />
+          </div>
+        </section>
+      ) : null}
+
       <DebtCollectionButton order={order} fullWidth />
 
       <section className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
@@ -2672,6 +2797,27 @@ function OrderWhatsAppButton({
       <MessageCircle className="h-4 w-4" />
       {label}
     </button>
+  );
+}
+
+function NewOrderWhatsAppButton({
+  order,
+  fullWidth = false
+}: {
+  order: AdminOrderSummary;
+  fullWidth?: boolean;
+}) {
+  const href = getNewOrderAdminWhatsAppUrl(order);
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={`${buttonToneClass("warning")} ${fullWidth ? "w-full" : "w-full justify-center sm:w-auto"}`}
+    >
+      Avisar por WhatsApp
+    </a>
   );
 }
 
@@ -3761,6 +3907,22 @@ function getDebtCollectionAction(order: AdminOrderSummary) {
     normalizedPhone.e164.replace(/\D/g, ""),
     buildDebtCollectionMessage({
       amount: order.saldoPendiente > 0 ? order.saldoPendiente : order.total,
+      items: order.items.map((item) => ({
+        name: item.productoNombre,
+        quantity: item.cantidad
+      }))
+    })
+  );
+}
+
+function getNewOrderAdminWhatsAppUrl(order: AdminOrderSummary) {
+  return buildWhatsAppShareUrl(
+    buildAdminOrderAlertMessage({
+      customerName: order.clienteNombre,
+      deliveryDateLabel: order.fechaEntrega
+        ? formatDateOnly(order.fechaEntrega)
+        : "Por coordinar",
+      total: order.total,
       items: order.items.map((item) => ({
         name: item.productoNombre,
         quantity: item.cantidad

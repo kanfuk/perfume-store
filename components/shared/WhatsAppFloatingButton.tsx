@@ -2,6 +2,7 @@
 
 import { MessageCircle } from "lucide-react";
 import { buildReservationInviteMessage } from "@/lib/whatsapp/buildReservationInviteMessage";
+import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
 
 type WhatsAppFloatingButtonProps = {
   hidden?: boolean;
@@ -19,7 +20,7 @@ export function WhatsAppFloatingButton({
   const groupUrl = process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL?.trim();
   const shareMessage =
     process.env.NEXT_PUBLIC_WHATSAPP_SHARE_URL?.trim() || buildReservationInviteMessage();
-  const href = groupUrl || `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+  const href = groupUrl || buildWhatsAppShareUrl(shareMessage);
 
   return (
     <a
