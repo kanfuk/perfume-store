@@ -41,21 +41,21 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="copy-justified max-w-2xl text-base leading-7 text-[#6b7c70] sm:text-lg">
-                Comienza tu dia con algo rico. Disfruta de nuestras ricas dobladitas recien
+                Comienza tu día con algo rico. Disfruta de nuestras ricas dobladitas recién
                 horneadas, sabrosos quequitos y otras preparaciones caseras, ideales para
-                acompanar tu desayuno o darte un gustito.
+                acompañar tu desayuno o darte un gustito.
               </p>
             </div>
 
             <div className="grid gap-3 text-sm sm:grid-cols-2">
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#6b7c70] backdrop-blur">
                 Producto casero
-                <div className="mt-1 text-xl font-semibold text-[#1f3328]">Recien horneado</div>
+                <div className="mt-1 text-xl font-semibold text-[#1f3328]">Recién horneado</div>
               </div>
               <div className="rounded-[22px] border border-white/60 bg-white/55 p-4 text-[#6b7c70] backdrop-blur">
                 Entrega
                 <div className="mt-1 text-xl font-semibold text-[#1f3328]">
-                  Previa coordinacion
+                  Previa coordinación
                 </div>
               </div>
             </div>
@@ -65,7 +65,7 @@ export default function HomePage() {
                 href="#hacer-pedido"
                 className="inline-flex items-center justify-center rounded-2xl bg-[#3fa66b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#247a4d]"
               >
-                Ver catalogo
+                Ver catálogo
               </a>
             </div>
           </div>

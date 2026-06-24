@@ -587,11 +587,11 @@ export function OrderForm() {
       setRecentCustomers(nextCustomers);
       persistRecentCustomers(nextCustomers);
       setSubmitted(data);
-      setAutoFillMessage("Guardamos tus datos en este dispositivo para tu proximo pedido.");
+      setAutoFillMessage("Guardamos tus datos en este dispositivo para tu próximo pedido.");
       setLastAutoFilledPhone("");
       setForm(initialForm);
       setIsCartSheetOpen(false);
-      showToast("Pedido registrado. Pauli confirmara disponibilidad por WhatsApp.", "success");
+      showToast("Pedido registrado. Pauli confirmará disponibilidad por WhatsApp.", "success");
     } catch (error) {
       setSubmitted(null);
       const message =
@@ -669,9 +669,9 @@ export function OrderForm() {
                   <ShoppingBag className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#1f3328]">Catalogo del dia</h3>
+                  <h3 className="text-lg font-semibold text-[#1f3328]">Catálogo del día</h3>
                   <p className="copy-justified text-sm text-[#6b7c70]">
-                    Elige tus favoritos del catalogo y suma lo que necesites.
+                    Elige tus favoritos del catálogo y suma lo que necesites.
                   </p>
                 </div>
               </div>
@@ -761,7 +761,7 @@ export function OrderForm() {
               value={form.lugarTrabajo}
               onChange={(value) => setForm((current) => ({ ...current, lugarTrabajo: value }))}
               error={validation.errors.lugarTrabajo}
-              placeholder="Ejemplo: Finanzas, recepcion o piso 3"
+              placeholder="Ejemplo: Finanzas, recepción o piso 3"
               autoComplete="organization"
               icon={<Building2 className="h-4 w-4" />}
               highlighted={highlightedArea === "lugar"}
@@ -801,7 +801,7 @@ export function OrderForm() {
               onDecrease={updateItemFromSummary}
               onIncrease={updateItemFromSummary}
               onRemove={removeItem}
-              emptyText="Tu resumen aparecera apenas elijas algo del catalogo."
+              emptyText="Tu resumen aparecerá apenas elijas algo del catálogo."
             />
           </div>
 
@@ -813,7 +813,7 @@ export function OrderForm() {
               <div>
                 <h3 className="text-lg font-semibold text-[#1f3328]">Pedido simple</h3>
                 <p className="copy-justified text-sm text-[#6b7c70]">
-                  Tu pedido queda pendiente de confirmacion. Pauli revisa stock y luego te escribe.
+                  Tu pedido queda pendiente de confirmación. Pauli revisa stock y luego te escribe.
                 </p>
               </div>
             </div>
@@ -829,7 +829,7 @@ export function OrderForm() {
                 {itemCount} producto{itemCount === 1 ? "" : "s"} · {formatCurrency(total)}
               </div>
               <div className="truncate text-sm font-medium text-white/90">
-                Tu pedido esta listo para revisarlo.
+                Tu pedido está listo para revisarlo.
               </div>
             </div>
             <button
@@ -881,7 +881,7 @@ export function OrderForm() {
                 onDecrease={updateItemFromSummary}
                 onIncrease={updateItemFromSummary}
                 onRemove={removeItem}
-                emptyText="Tu resumen aparecera apenas elijas algo del catalogo."
+                emptyText="Tu resumen aparecerá apenas elijas algo del catálogo."
                 footer={
                   <div className="grid gap-3 sm:grid-cols-2">
                     <button
@@ -920,14 +920,14 @@ export function OrderForm() {
                   Pedido registrado correctamente
                 </h3>
                 <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
-                  Tu pedido quedo pendiente de confirmacion. Pauli revisara disponibilidad y te avisara por WhatsApp.
+                  Tu pedido quedó pendiente de confirmación. Pauli revisará disponibilidad y te avisará por WhatsApp.
                 </p>
               </div>
             </div>
 
             <div className="mt-5 rounded-[22px] border border-[#d8ebdd] bg-[#f6fcf7] p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#6b7c70]">Codigo</span>
+                <span className="text-[#6b7c70]">Código</span>
                 <span className="font-medium text-[#1f3328]">{submitted.pedidoId}</span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">

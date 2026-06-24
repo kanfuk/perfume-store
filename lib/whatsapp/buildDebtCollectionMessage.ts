@@ -18,10 +18,10 @@ export function buildDebtCollectionMessage(input: BuildDebtCollectionMessageInpu
       : ["- Pedido pendiente"];
 
   return [
-    "Buenas tardes!",
+    "¡Buenas tardes!",
     "",
-    "Muchas gracias por preferirme estas semanas para acompanar sus desayunos.",
-    "Le envio el detalle de su cuenta:",
+    "Muchas gracias por preferirme estas semanas para acompañar sus desayunos.",
+    "Le envío el detalle de su cuenta:",
     "",
     `Monto: ${formatCurrency(input.amount)}`,
     "Dobladitas",
@@ -30,7 +30,7 @@ export function buildDebtCollectionMessage(input: BuildDebtCollectionMessageInpu
     "",
     "Le dejo mis datos para transferencia.",
     "",
-    "Muchas gracias nuevamente! 🤗",
+    "¡Muchas gracias nuevamente! 🤗",
     "",
     paymentInfo.accountHolder,
     paymentInfo.rut,

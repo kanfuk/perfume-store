@@ -658,8 +658,8 @@ export function AdminDashboard({
     if (notification.status !== "ready" || !notification.url) {
       setSuccessMessage(
         notification.error === "Sin telefono"
-          ? "Pedido agendado, pero el cliente no tiene telefono valido para WhatsApp."
-          : "Pedido agendado, pero el telefono del cliente no es valido para WhatsApp."
+          ? "Pedido agendado, pero el cliente no tiene teléfono válido para WhatsApp."
+          : "Pedido agendado, pero el teléfono del cliente no es válido para WhatsApp."
       );
       return;
     }
@@ -1139,12 +1139,12 @@ export function AdminDashboard({
           <section className="grid gap-4 lg:grid-cols-3">
             <FocusCard
               title="Lo primero hoy"
-              text="Revisa pedidos pendientes y asígnales fecha antes de todo."
+              text="Revisa pedidos pendientes y asígnales fecha antes de todo."
               icon={AlertCircle}
               tone="rose"
             />
             <FocusCard
-              title="Después cobra"
+              title="Después cobra"
               text="Los pedidos agendados se cierran como pagados o fiados desde Ventas."
               icon={CheckCircle2}
               tone="violet"
@@ -1221,7 +1221,7 @@ export function AdminDashboard({
 
               <div className="mt-4 space-y-3">
                 {agendaGroups.length === 0 ? (
-                  <EmptyState text="Todavia no hay pedidos agendados." />
+                  <EmptyState text="Todavía no hay pedidos agendados." />
                 ) : null}
                 {agendaGroups.slice(0, 4).map((group) => (
                   <article
@@ -1242,7 +1242,7 @@ export function AdminDashboard({
                     <div className="mt-3 grid gap-2 sm:grid-cols-3">
                       <MiniMetric label="Items" value={String(group.totalItems)} />
                       <MiniMetric label="Monto" value={formatCurrency(group.totalMonto)} />
-                      <MiniMetric label="Telefono" value={group.clienteTelefono || "-"} />
+                      <MiniMetric label="Teléfono" value={group.clienteTelefono || "-"} />
                     </div>
                     <div className="mt-3 space-y-2 rounded-2xl border border-emerald-100 bg-white/90 p-3">
                       <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
@@ -1434,7 +1434,7 @@ export function AdminDashboard({
             title="Stock y productos"
             subtitle="Crea productos, cambia precio, activa o pausa ventas y define cupo de agenda."
             icon={Boxes}
-            helper="Paso 2: deja aqui lo que sí vas a vender y el cupo maximo para no sobreagendar."
+            helper="Paso 2: deja aquí lo que sí vas a vender y el cupo máximo para no sobreagendar."
             action={
               <button
                 type="button"
@@ -1546,7 +1546,7 @@ export function AdminDashboard({
             title="Ventas y pagos"
             subtitle="Desde aquí se ve clarito qué pedidos cobrar, cuáles dejar fiados y dónde registrar abonos."
             icon={WalletCards}
-            helper="Paso 3: al entregar, marca pagado o fiado. Si te pagan después, registra el abono aqui."
+            helper="Paso 3: al entregar, marca pagado o fiado. Si te pagan después, registra el abono aquí."
           />
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -1711,8 +1711,8 @@ export function AdminDashboard({
                       Administra tus clientes y revisa su actividad
                     </h2>
                     <p className="max-w-2xl text-sm leading-6 text-[#6B7C70]">
-                      Busca rapido, revisa fiados y ubica a cada cliente desde una vista
-                      comoda para celular y escritorio.
+                      Busca rápido, revisa fiados y ubica a cada cliente desde una vista
+                      cómoda para celular y escritorio.
                     </p>
                   </div>
                 </div>
@@ -1746,7 +1746,7 @@ export function AdminDashboard({
 
           <div className="hidden grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {customerCards.length === 0 ? (
-              <EmptyState text="Todavia no hay clientes registrados." />
+              <EmptyState text="Todavía no hay clientes registrados." />
             ) : null}
             {customerCards.map((customer) => (
               <article
@@ -1810,7 +1810,7 @@ export function AdminDashboard({
             title="Reportes"
             subtitle="Sólo los números importantes: ventas, ticket promedio y lo que mejor se vende."
             icon={CalendarRange}
-            helper="Ideal para mirar cómo cerró la semana y que producto conviene reponer."
+            helper="Ideal para mirar cómo cerró la semana y que producto conviene reponer."
           />
 
           <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft sm:p-5">
@@ -2560,7 +2560,7 @@ function OrderDetailPanel({
         <section className="rounded-lg border border-emerald-100 bg-white p-4 shadow-soft">
           <div className="space-y-1">
             <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
-              Confirmacion al cliente
+              Confirmación al cliente
             </div>
             <p className="text-sm text-emerald-900/70">
               Abre WhatsApp con el mensaje listo para confirmar el pedido manualmente.
@@ -2630,7 +2630,7 @@ function OrderWhatsAppButton({
     );
   }
 
-  const label = notification.error === "Sin telefono" ? "Sin telefono" : "Telefono invalido";
+  const label = notification.error === "Sin telefono" ? "Sin teléfono" : "Teléfono inválido";
 
   return (
     <button
@@ -2714,7 +2714,7 @@ function PaymentOrderCard({
 
         <div className="grid gap-2 sm:grid-cols-2">
           <MiniMetric label="Total" value={formatCurrency(order.total)} />
-          <MiniMetric label="Telefono" value={order.clienteTelefono || "-"} />
+          <MiniMetric label="Teléfono" value={order.clienteTelefono || "-"} />
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
@@ -3375,7 +3375,7 @@ function ClientSearchBar({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Buscar por nombre, telefono o unidad..."
+        placeholder="Buscar por nombre, teléfono o unidad..."
         className="w-full border-0 bg-transparent p-0 text-[15px] text-[#1F3328] outline-none placeholder:text-[#6B7C70]"
       />
     </label>
@@ -3473,7 +3473,7 @@ function ClientCard({
 
       <div className="space-y-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2">
-          <ClientFact icon={Phone} label="Telefono" value={customer.telefono || "Sin telefono"} />
+          <ClientFact icon={Phone} label="Teléfono" value={customer.telefono || "Sin teléfono"} />
           <ClientFact
             icon={Store}
             label="Unidad"
@@ -3494,7 +3494,7 @@ function ClientCard({
         <div className="grid gap-3 sm:grid-cols-3">
           <MiniMetric label="Pedidos activos" value={String(customer.pedidosActivos)} />
           <MiniMetric label="Pedidos cerrados" value={String(customer.pedidosFinalizados)} />
-          <MiniMetric label="Ultimo pedido" value={formatShortDateTime(customer.ultimoMovimiento)} />
+          <MiniMetric label="Último pedido" value={formatShortDateTime(customer.ultimoMovimiento)} />
         </div>
 
         <div className="rounded-[22px] border border-[#D8EBDD] bg-[#F6FCF7] p-4">
@@ -3590,12 +3590,12 @@ function ClientEmptyState({ hasSearch }: { hasSearch: boolean }) {
         <UserRound className="h-6 w-6" />
       </div>
       <h3 className="mt-4 text-xl font-bold text-[#1F3328]">
-        {hasSearch ? "No encontramos coincidencias." : "Aun no hay clientes registrados."}
+        {hasSearch ? "No encontramos coincidencias." : "Aún no hay clientes registrados."}
       </h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6B7C70]">
         {hasSearch
-          ? "Prueba con otro nombre, telefono o lugar de trabajo para seguir buscando."
-          : "Cuando ingresen pedidos, apareceran aqui automaticamente."}
+          ? "Prueba con otro nombre, teléfono o lugar de trabajo para seguir buscando."
+          : "Cuando ingresen pedidos, aparecerán aquí automáticamente."}
       </p>
     </div>
   );

@@ -62,7 +62,7 @@ export function AdminLoginForm({
           Ingreso administrador
         </h1>
         <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
-          Bienvenida, Pauli. Inicia sesión para administrar tu tiendita con todo en orden.
+          Bienvenida, Pauli. Inicia sesión para administrar tu tienda con todo en orden.
         </p>
       </div>
 

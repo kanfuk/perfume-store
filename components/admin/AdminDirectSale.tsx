@@ -11,6 +11,7 @@ import {
   Sparkles,
   UserRound
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
@@ -291,11 +292,26 @@ export function AdminDirectSale({
       <section className="overflow-hidden rounded-[34px] border border-[#cbebd6] bg-[#f3faf4] shadow-soft">
         <div className="bg-[linear-gradient(140deg,#f3faf4_0%,#eaf8ef_48%,#ddf4e5_100%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-[#247a4d]">
-                <ShoppingBag className="h-4 w-4" />
-                Admin Pauli Store
-              </span>
+            <div className="space-y-4">
+              <div className="flex w-fit items-center gap-3 rounded-[24px] border border-white/70 bg-white/85 px-4 py-3 shadow-[0_16px_30px_rgba(31,51,40,0.08)]">
+                <div className="relative h-14 w-14 overflow-hidden rounded-[18px] bg-white ring-1 ring-[#d8ebdd]">
+                  <Image
+                    src="/brand/pauli-store-logo-transparent.png"
+                    alt="Logo de Pauli Store"
+                    fill
+                    className="object-contain p-2"
+                    sizes="56px"
+                    priority
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#f3faf4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
+                    <ShoppingBag className="h-3.5 w-3.5" />
+                    Admin Pauli Store
+                  </span>
+                  <p className="text-sm font-semibold text-[#1f3328]">Ventas ágiles con identidad de marca</p>
+                </div>
+              </div>
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-[#1f3328] sm:text-4xl">
                   Venta directa
@@ -409,14 +425,14 @@ export function AdminDirectSale({
 
               <div className="grid gap-4 md:grid-cols-2">
                 <TextField
-                  label="Nombre cliente opcional"
+                  label="Nombre del cliente opcional"
                   value={customerName}
                   onChange={setCustomerName}
                   placeholder="Ejemplo: Paola"
                   icon={<UserRound className="h-4 w-4" />}
                 />
                 <TextField
-                  label="Telefono opcional"
+                  label="Teléfono opcional"
                   value={customerPhone}
                   onChange={(value) => setCustomerPhone(formatChileanMobileInput(value))}
                   placeholder="9 1234 5678"
@@ -428,7 +444,7 @@ export function AdminDirectSale({
                 label="Lugar de trabajo opcional"
                 value={customerPlace}
                 onChange={setCustomerPlace}
-                placeholder="Ejemplo: Recepcion o piso 3"
+                placeholder="Ejemplo: Recepción o piso 3"
                 icon={<Building2 className="h-4 w-4" />}
               />
 
@@ -517,7 +533,7 @@ export function AdminDirectSale({
                   icon={<UserRound className="h-4 w-4" />}
                 />
                 <TextField
-                  label="Telefono opcional"
+                  label="Teléfono opcional"
                   value={customForm.telefono}
                   onChange={(value) =>
                     setCustomForm((current) => ({
@@ -542,7 +558,7 @@ export function AdminDirectSale({
 
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-[#1f3328]">
-                  Vincular a producto del catalogo (opcional)
+                  Vincular a producto del catálogo (opcional)
                 </span>
                 <select
                   value={customForm.productoBaseId}
@@ -672,7 +688,7 @@ export function AdminDirectSale({
                   label="Tipo"
                   value={
                     customForm.productoBaseId
-                      ? "Vinculada a catalogo"
+                      ? "Vinculada a catálogo"
                       : "Personalizada libre"
                   }
                 />
