@@ -38,6 +38,7 @@ export type CustomerOrderRequest = {
   nombre: string;
   telefono: string;
   lugarTrabajo: string;
+  fechaEntrega: string;
   items: CustomerOrderLineInput[];
   contactoOculto?: string;
 };
@@ -72,12 +73,16 @@ export type CustomerOrderResponse = {
   total: number;
   estadoPedido: string;
   estadoPago: string;
+  fechaEntrega?: string;
   origenPedido?: OrderOrigin;
   items: Array<{
     productoId: string;
     nombre: string;
     cantidad: number;
     precioUnitario: number;
+    costoUnitario: number;
+    costoTotal: number;
+    utilidadBruta: number;
     subtotal: number;
   }>;
 };
@@ -87,6 +92,9 @@ export type AdminOrderItemSummary = {
   productoNombre: string;
   cantidad: number;
   precioUnitario: number;
+  costoUnitario: number;
+  costoTotal: number;
+  utilidadBruta: number;
   subtotal: number;
 };
 
@@ -105,6 +113,8 @@ export type AdminOrderSummary = {
   estadoPedido: string;
   estadoPago: string;
   total: number;
+  totalCost: number;
+  grossProfit: number;
   fechaPedido: string;
   fechaEntrega?: string;
   fechaAgendado?: string;
@@ -118,6 +128,8 @@ export type AdminOrderSummary = {
   fiadoEstado?: string;
   fechaFiado?: string;
   fechaPagoFiado?: string;
+  adminSeen?: boolean;
+  adminSeenAt?: string;
   origenPedido?: OrderOrigin;
   observacion?: string;
 };
@@ -128,9 +140,16 @@ export type AdminDashboardData = {
   finalizados: AdminOrderSummary[];
   cancelados: AdminOrderSummary[];
   fiadosPendientes: AdminOrderSummary[];
+  pedidosNuevos: number;
 };
 
-export type AdminOrdersAction = "agendar" | "cancelar" | "pagado" | "fiado" | "abonar";
+export type AdminOrdersAction =
+  | "agendar"
+  | "cancelar"
+  | "pagado"
+  | "fiado"
+  | "abonar"
+  | "visto";
 
 export type AdminPageData = {
   dashboard: AdminDashboardData;

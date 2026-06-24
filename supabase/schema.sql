@@ -1,240 +1,396 @@
--- Pauli Store
--- Esquema inicial para Supabase PostgreSQL
+# PAULI STORE - CORREGIR MENSAJE DE WHATSAPP CON LINK DE LA APP
 
-create extension if not exists pgcrypto;
+## 1. Problema detectado
 
-create table if not exists clientes (
-  id uuid primary key default gen_random_uuid(),
-  nombre text not null,
-  telefono text,
-  lugar_trabajo text not null,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+El botón de WhatsApp de Pauli Store actualmente abre WhatsApp con este mensaje:
 
-create table if not exists productos (
-  id uuid primary key default gen_random_uuid(),
-  nombre text not null,
-  descripcion text,
-  precio_venta integer not null,
-  image_url text,
-  badge_label text,
-  costo_unitario integer not null default 0,
-  stock_actual integer default 0,
-  stock_agenda integer default 0,
-  activo boolean default true,
-  tipo_producto text,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+```txt
+Hola! Tus dobladitas favoritas de siempre ahora pueden ser reservadas a traves de nuestra app. No te quedes sin la tuya: agenda con anticipacion y reserva tu desayuno 🤗
+```
 
-create table if not exists pedidos (
-  id uuid primary key default gen_random_uuid(),
-  cliente_id uuid not null references clientes(id),
-  estado_pedido text not null default 'PENDIENTE',
-  estado_pago text not null default 'SIN_PAGO',
-  origen_pedido text default 'PUBLICO',
-  total integer not null,
-  observacion text,
-  motivo_cancelacion text,
-  fecha_pedido timestamp with time zone default now(),
-  fecha_entrega date,
-  fecha_agendado timestamp with time zone,
-  fecha_cierre timestamp with time zone,
-  fecha_cancelacion timestamp with time zone,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+El problema es que **el mensaje no incluye el link de la app**, por lo que el cliente recibe el texto, pero no tiene acceso directo al sitio para reservar.
 
-create table if not exists pedido_items (
-  id uuid primary key default gen_random_uuid(),
-  pedido_id uuid not null references pedidos(id),
-  producto_id uuid references productos(id),
-  producto_nombre text,
-  producto_descripcion text,
-  producto_image_url text,
-  producto_tipo text,
-  cantidad integer not null,
-  precio_unitario integer not null,
-  subtotal integer not null,
-  created_at timestamp with time zone default now()
-);
+La URL pública correcta es:
 
-create table if not exists pagos (
-  id uuid primary key default gen_random_uuid(),
-  pedido_id uuid not null references pedidos(id),
-  monto integer not null,
-  metodo_pago text,
-  estado_pago text not null,
-  fecha_pago timestamp with time zone default now(),
-  created_at timestamp with time zone default now()
-);
+```txt
+https://pauli-store-clientes.vercel.app/
+```
 
-create table if not exists fiados (
-  id uuid primary key default gen_random_uuid(),
-  pedido_id uuid not null references pedidos(id),
-  cliente_id uuid not null references clientes(id),
-  monto_pendiente integer not null,
-  estado text not null default 'FIADO',
-  fecha_fiado timestamp with time zone default now(),
-  fecha_pago_fiado timestamp with time zone,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+---
 
-create table if not exists usuarios_admin (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique,
-  nombre text,
-  rol text not null default 'ADMIN',
-  activo boolean default true,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
-);
+## 2. Objetivo
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'pedidos' and column_name = 'origen_pedido'
-  ) then
-    alter table pedidos add column origen_pedido text default 'PUBLICO';
-  end if;
-end $$;
+Corregir todos los botones/enlaces de WhatsApp para que el mensaje incluya el link público de la app.
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'productos' and column_name = 'image_url'
-  ) then
-    alter table productos add column image_url text;
-  end if;
-end $$;
+El mensaje final debe ser:
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'productos' and column_name = 'badge_label'
-  ) then
-    alter table productos add column badge_label text;
-  end if;
-end $$;
+```txt
+Hola! Tus dobladitas favoritas de siempre ahora pueden ser reservadas a través de nuestra app. No te quedes sin la tuya: agenda con anticipación y reserva tu desayuno 🤗
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'productos' and column_name = 'stock_agenda'
-  ) then
-    alter table productos add column stock_agenda integer default 0;
-  end if;
-end $$;
+Ingresa aquí:
+https://pauli-store-clientes.vercel.app/
+```
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'pedidos' and column_name = 'fecha_entrega'
-  ) then
-    alter table pedidos add column fecha_entrega date;
-  end if;
-end $$;
+---
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'pedido_items' and column_name = 'producto_nombre'
-  ) then
-    alter table pedido_items add column producto_nombre text;
-  end if;
-end $$;
+## 3. Alcance
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'pedido_items' and column_name = 'producto_descripcion'
-  ) then
-    alter table pedido_items add column producto_descripcion text;
-  end if;
-end $$;
+Aplicar esta corrección en todos los lugares donde exista un botón o enlace de WhatsApp relacionado con:
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'pedido_items' and column_name = 'producto_image_url'
-  ) then
-    alter table pedido_items add column producto_image_url text;
-  end if;
-end $$;
+* botón flotante de WhatsApp;
+* botón de contacto;
+* botón de compartir app;
+* botón del home;
+* botón del catálogo;
+* botón de reserva;
+* cualquier `window.open` hacia WhatsApp;
+* cualquier `<a href="https://wa.me/...">`;
+* cualquier `<a href="https://api.whatsapp.com/send?...">`.
 
-do $$
-begin
-  if not exists (
-    select 1
-    from information_schema.columns
-    where table_name = 'pedido_items' and column_name = 'producto_tipo'
-  ) then
-    alter table pedido_items add column producto_tipo text;
-  end if;
-end $$;
+---
 
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint
-    where conname = 'pedidos_estado_pedido_check'
-  ) then
-    alter table pedidos
-    add constraint pedidos_estado_pedido_check
-    check (estado_pedido in ('PENDIENTE', 'AGENDADO', 'FINALIZADO', 'CANCELADO'));
-  end if;
-end $$;
+## 4. Archivos probables a revisar
 
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint
-    where conname = 'pedidos_estado_pago_check'
-  ) then
-    alter table pedidos
-    add constraint pedidos_estado_pago_check
-    check (estado_pago in ('SIN_PAGO', 'PAGADO', 'FIADO'));
-  end if;
-end $$;
+Buscar en el proyecto por estas palabras:
 
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint
-    where conname = 'pedidos_origen_pedido_check'
-  ) then
-    alter table pedidos
-    add constraint pedidos_origen_pedido_check
-    check (origen_pedido in ('PUBLICO', 'ADMIN_DIRECTO', 'PERSONALIZADO'));
-  end if;
-end $$;
+```txt
+whatsapp
+WhatsApp
+wa.me
+api.whatsapp.com
+window.open
+mensajeWhatsApp
+whatsappMessage
+WHATSAPP_MESSAGE
+WHATSAPP_PHONE
+phoneNumber
+whatsappUrl
+FloatingWhatsApp
+WhatsAppButton
+```
 
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint
+Posibles archivos:
+
+```txt
+src/App.tsx
+src/components/WhatsAppButton.tsx
+src/components/FloatingWhatsApp.tsx
+src/components/Home.tsx
+src/components/Layout.tsx
+src/pages/index.tsx
+src/pages/Home.tsx
+src/lib/whatsapp.ts
+src/utils/whatsapp.ts
+src/constants.ts
+src/config.ts
+```
+
+---
+
+## 5. Regla técnica principal
+
+El texto del mensaje debe pasar por:
+
+```ts
+encodeURIComponent()
+```
+
+No concatenar el mensaje manualmente dentro de la URL sin codificar.
+
+Correcto:
+
+```ts
+const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+```
+
+Incorrecto:
+
+```ts
+const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${WHATSAPP_MESSAGE}`;
+```
+
+---
+
+## 6. No cambiar el número de WhatsApp
+
+Mantener el número actual que ya usa el proyecto.
+
+No inventar otro número.
+
+Si existe una constante como:
+
+```ts
+WHATSAPP_PHONE
+PAULI_PHONE
+phoneNumber
+whatsappNumber
+```
+
+mantenerla.
+
+Solo modificar el mensaje.
+
+---
+
+## 7. Implementación recomendada
+
+Si existe archivo de utilidades, usarlo. Si no existe, crear uno.
+
+Crear o actualizar:
+
+```txt
+src/lib/whatsapp.ts
+```
+
+con este contenido:
+
+```ts
+export const PUBLIC_APP_URL = 'https://pauli-store-clientes.vercel.app/';
+
+export const WHATSAPP_INVITE_MESSAGE = `Hola! Tus dobladitas favoritas de siempre ahora pueden ser reservadas a través de nuestra app. No te quedes sin la tuya: agenda con anticipación y reserva tu desayuno 🤗
+
+Ingresa aquí:
+${PUBLIC_APP_URL}`;
+
+export function buildWhatsAppUrl(phone: string, message = WHATSAPP_INVITE_MESSAGE) {
+  const cleanPhone = phone.replace(/\D/g, '');
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+```
+
+---
+
+## 8. Uso en componentes
+
+En cualquier componente donde exista el botón de WhatsApp, usar el helper anterior.
+
+Ejemplo:
+
+```tsx
+import { buildWhatsAppUrl } from '@/lib/whatsapp';
+
+const WHATSAPP_PHONE = '569XXXXXXXX'; // mantener el número real existente
+
+export function WhatsAppButton() {
+  const whatsappUrl = buildWhatsAppUrl(WHATSAPP_PHONE);
+
+  return (
+    <a
+      href={whatsappUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Enviar mensaje por WhatsApp"
+    >
+      WhatsApp
+    </a>
+  );
+}
+```
+
+Si el proyecto no usa alias `@/`, ajustar import según estructura real:
+
+```tsx
+import { buildWhatsAppUrl } from '../lib/whatsapp';
+```
+
+o:
+
+```tsx
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
+```
+
+---
+
+## 9. Si el botón usa window.open
+
+Si el código actual usa algo como:
+
+```ts
+window.open(whatsappUrl);
+```
+
+reemplazar por:
+
+```ts
+const handleWhatsAppClick = () => {
+  const whatsappUrl = buildWhatsAppUrl(WHATSAPP_PHONE);
+  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+};
+```
+
+---
+
+## 10. Si el botón tiene href directo
+
+Si el botón tiene algo parecido a:
+
+```tsx
+<a href={`https://wa.me/${phone}?text=${message}`}>
+```
+
+reemplazar por:
+
+```tsx
+<a
+  href={buildWhatsAppUrl(WHATSAPP_PHONE)}
+  target="_blank"
+  rel="noopener noreferrer"
+>
+```
+
+---
+
+## 11. Mensaje exacto que debe quedar
+
+El mensaje visible en WhatsApp debe ser exactamente:
+
+```txt
+Hola! Tus dobladitas favoritas de siempre ahora pueden ser reservadas a través de nuestra app. No te quedes sin la tuya: agenda con anticipación y reserva tu desayuno 🤗
+
+Ingresa aquí:
+https://pauli-store-clientes.vercel.app/
+```
+
+Corregir ortografía:
+
+* `traves` → `través`
+* `anticipacion` → `anticipación`
+
+---
+
+## 12. Revisión de múltiples botones
+
+Buscar todos los botones de WhatsApp y evitar mensajes duplicados distintos.
+
+Todos deben usar la misma fuente:
+
+```ts
+WHATSAPP_INVITE_MESSAGE
+```
+
+y el mismo builder:
+
+```ts
+buildWhatsAppUrl()
+```
+
+No dejar un botón con el mensaje antiguo.
+
+---
+
+## 13. No modificar
+
+No tocar:
+
+```txt
+Supabase
+productos
+stock
+stock_actual
+stock_agenda
+pedidos
+pedido_items
+clientes
+pagos
+fiados
+reportes
+login admin
+branding
+rutas principales
+estructura de base de datos
+```
+
+Esta tarea solo corrige el mensaje y enlace de WhatsApp.
+
+---
+
+## 14. Validación manual
+
+Después de aplicar el cambio:
+
+1. Abrir:
+
+```txt
+https://pauli-store-clientes.vercel.app/
+```
+
+2. Presionar el botón de WhatsApp.
+
+3. Verificar que WhatsApp abre con este mensaje completo:
+
+```txt
+Hola! Tus dobladitas favoritas de siempre ahora pueden ser reservadas a través de nuestra app. No te quedes sin la tuya: agenda con anticipación y reserva tu desayuno 🤗
+
+Ingresa aquí:
+https://pauli-store-clientes.vercel.app/
+```
+
+4. Confirmar que:
+
+   * el link aparece dentro del mensaje;
+   * el link queda clickeable;
+   * las tildes se ven bien;
+   * el emoji se ve bien;
+   * no aparece `%20`;
+   * no aparece `%0A`;
+   * no aparece texto codificado visible al usuario;
+   * el botón abre WhatsApp Web o WhatsApp App correctamente.
+
+---
+
+## 15. Validación técnica
+
+Revisar que la URL generada tenga una estructura similar a:
+
+```txt
+https://wa.me/569XXXXXXXX?text=...
+```
+
+El texto dentro del parámetro `text` debe estar codificado por `encodeURIComponent`, pero WhatsApp debe mostrarlo decodificado correctamente al usuario.
+
+---
+
+## 16. Build
+
+Después de modificar:
+
+```bash
+npm run build
+```
+
+o según el proyecto:
+
+```bash
+pnpm build
+```
+
+Verificar que no existan errores TypeScript.
+
+---
+
+## 17. Criterio de aceptación
+
+La tarea está terminada cuando:
+
+1. El botón de WhatsApp abre correctamente.
+2. El mensaje incluye el link de la app.
+3. El link es clickeable.
+4. Las tildes y emoji se ven bien.
+5. Todos los botones de WhatsApp usan el mismo mensaje.
+6. No se modifica ninguna lógica de base de datos.
+7. No se rompen pedidos, stock, pagos ni fiados.
+
+---
+
+## 18. Resultado final esperado
+
+```txt
+Hola! Tus dobladitas favoritas de siempre ahora pueden ser reservadas a través de nuestra app. No te quedes sin la tuya: agenda con anticipación y reserva tu desayuno 🤗
+
+Ingresa aquí:
+https://pauli-store-clientes.vercel.app/
+```
+onstraint
     where conname = 'pedido_items_cantidad_check'
   ) then
     alter table pedido_items

@@ -12,7 +12,7 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as {
-      action?: "agendar" | "cancelar" | "pagado" | "fiado" | "abonar";
+      action?: "agendar" | "cancelar" | "pagado" | "fiado" | "abonar" | "visto";
       fechaEntrega?: string;
       motivoCancelacion?: string;
       monto?: number;
@@ -43,6 +43,9 @@ export async function PATCH(
           body.monto ?? 0,
           body.metodoPago || "EFECTIVO"
         );
+        break;
+      case "visto":
+        await pedidoService.marcarPedidoVisto(pedidoId);
         break;
       default:
         return NextResponse.json(

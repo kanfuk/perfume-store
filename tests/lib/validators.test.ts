@@ -11,6 +11,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
+        fechaEntrega: "2026-06-13",
         items: [{ productoId: activeProductId, cantidad: 2 }]
       },
       mockProducts
@@ -26,6 +27,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "",
         telefono: "",
         lugarTrabajo: "",
+        fechaEntrega: "",
         items: []
       },
       mockProducts
@@ -33,7 +35,7 @@ describe("validateCustomerOrderForm", () => {
 
     expect(result.isValid).toBe(false);
     expect(result.errors.nombre).toBe("Ingresa tu nombre.");
-    expect(result.errors.telefono).toBe("Ingresa tu numero de telefono.");
+    expect(result.errors.telefono).toBe("Ingresa tu número de teléfono.");
     expect(result.errors.lugarTrabajo).toBe("Ingresa tu lugar de trabajo.");
     expect(result.errors.items).toBe("Agrega al menos un producto al pedido.");
   });
@@ -44,6 +46,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
+        fechaEntrega: "2026-06-13",
         items: [{ productoId: "producto-inactivo", cantidad: 1 }]
       },
       [
@@ -67,6 +70,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "1234",
         lugarTrabajo: "Finanzas",
+        fechaEntrega: "2026-06-13",
         items: [{ productoId: activeProductId, cantidad: 1 }]
       },
       mockProducts
@@ -74,7 +78,7 @@ describe("validateCustomerOrderForm", () => {
 
     expect(result.isValid).toBe(false);
     expect(result.errors.telefono).toBe(
-      "Ingresa un celular chileno valido. Ejemplo: +56 9 1234 5678."
+      "Ingresa un celular chileno válido. Ejemplo: +56 9 1234 5678."
     );
   });
 
@@ -84,6 +88,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "+56 9 1234 5678",
         lugarTrabajo: "Finanzas",
+        fechaEntrega: "2026-06-13",
         items: [{ productoId: activeProductId, cantidad: 1 }]
       },
       mockProducts
@@ -98,6 +103,7 @@ describe("validateCustomerOrderForm", () => {
         nombre: "Rodrigo",
         telefono: "+56 2 2345 6789",
         lugarTrabajo: "Finanzas",
+        fechaEntrega: "2026-06-13",
         items: [{ productoId: activeProductId, cantidad: 1 }]
       },
       mockProducts
@@ -105,7 +111,7 @@ describe("validateCustomerOrderForm", () => {
 
     expect(result.isValid).toBe(false);
     expect(result.errors.telefono).toBe(
-      "Ingresa un celular chileno valido. Ejemplo: +56 9 1234 5678."
+      "Ingresa un celular chileno válido. Ejemplo: +56 9 1234 5678."
     );
   });
 });

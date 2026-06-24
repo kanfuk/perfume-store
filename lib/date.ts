@@ -61,6 +61,15 @@ export function getChileTodayInputValue(reference = new Date()) {
   return formatter.format(reference);
 }
 
+export function getTomorrowLocalDate(reference = new Date()) {
+  const date = new Date(reference);
+  date.setDate(date.getDate() + 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function parseDateOnlyForChile(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 

@@ -28,6 +28,8 @@ export type PedidoListItemRecord = {
   items: AdminOrderItemSummary[];
   estadoPedido: string;
   estadoPago: string;
+  adminSeen?: boolean;
+  adminSeenAt?: string;
   origenPedido?: string;
   total: number;
   observacion?: string;
@@ -79,6 +81,8 @@ export interface PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
+    adminSeen?: boolean;
+    adminSeenAt?: string;
     fechaEntrega?: string;
     fechaAgendado?: string;
     fechaCierre?: string;
@@ -122,6 +126,8 @@ class MemoryPedidoRepository implements PedidoRepository {
       clienteId,
       estadoPedido: pedido.estadoPedido,
       estadoPago: pedido.estadoPago,
+      adminSeen: false,
+      adminSeenAt: undefined,
       origenPedido,
       total: pedido.total,
       observacion,
@@ -152,6 +158,10 @@ class MemoryPedidoRepository implements PedidoRepository {
       productoTipo: args.productoTipo,
       cantidad: args.item.cantidad,
       precioUnitario: args.item.precioUnitario,
+      costoUnitario: args.item.producto.costoUnitario,
+      costoTotal: args.item.producto.costoUnitario * args.item.cantidad,
+      utilidadBruta:
+        args.item.subtotal - args.item.producto.costoUnitario * args.item.cantidad,
       subtotal: args.item.subtotal
     });
 
@@ -176,6 +186,15 @@ class MemoryPedidoRepository implements PedidoRepository {
             productoNombre: orderItem.productoNombre ?? product?.nombre ?? "Producto",
             cantidad: orderItem.cantidad,
             precioUnitario: orderItem.precioUnitario,
+            costoUnitario: orderItem.costoUnitario ?? product?.costoUnitario ?? 0,
+            costoTotal:
+              orderItem.costoTotal ??
+              (orderItem.costoUnitario ?? product?.costoUnitario ?? 0) * orderItem.cantidad,
+            utilidadBruta:
+              orderItem.utilidadBruta ??
+              orderItem.subtotal -
+                (orderItem.costoTotal ??
+                  (orderItem.costoUnitario ?? product?.costoUnitario ?? 0) * orderItem.cantidad),
             subtotal: orderItem.subtotal
           };
         });
@@ -202,6 +221,8 @@ class MemoryPedidoRepository implements PedidoRepository {
           items: normalizedItems,
           estadoPedido: order.estadoPedido,
           estadoPago: order.estadoPago,
+          adminSeen: order.adminSeen ?? false,
+          adminSeenAt: order.adminSeenAt,
           origenPedido: order.origenPedido,
           total: order.total,
           observacion: order.observacion,
@@ -220,6 +241,8 @@ class MemoryPedidoRepository implements PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
+    adminSeen?: boolean;
+    adminSeenAt?: string;
     fechaEntrega?: string;
     fechaAgendado?: string;
     fechaCierre?: string;
@@ -235,6 +258,12 @@ class MemoryPedidoRepository implements PedidoRepository {
     order.estadoPedido = args.estadoPedido;
     if (args.estadoPago) {
       order.estadoPago = args.estadoPago;
+    }
+    if (args.adminSeen !== undefined) {
+      order.adminSeen = args.adminSeen;
+    }
+    if (args.adminSeenAt !== undefined) {
+      order.adminSeenAt = args.adminSeenAt;
     }
     order.fechaEntrega = args.fechaEntrega;
     order.fechaAgendado = args.fechaAgendado;
@@ -347,6 +376,8 @@ class SupabasePedidoRepository implements PedidoRepository {
         cliente_id: clienteId,
         estado_pedido: pedido.estadoPedido,
         estado_pago: pedido.estadoPago,
+        admin_seen: false,
+        admin_seen_at: null,
         total: pedido.total,
         observacion: observacion ?? null,
         origen_pedido: origenPedido ?? null,
@@ -404,6 +435,10 @@ class SupabasePedidoRepository implements PedidoRepository {
         producto_tipo: args.productoTipo ?? args.item.producto.tipoProducto,
         cantidad: args.item.cantidad,
         precio_unitario: args.item.precioUnitario,
+        costo_unitario: args.item.producto.costoUnitario,
+        total_costo: args.item.producto.costoUnitario * args.item.cantidad,
+        utilidad_bruta:
+          args.item.subtotal - args.item.producto.costoUnitario * args.item.cantidad,
         subtotal: args.item.subtotal
       })
       .select("id")
@@ -440,6 +475,8 @@ class SupabasePedidoRepository implements PedidoRepository {
         cliente_id,
         estado_pedido,
         estado_pago,
+        admin_seen,
+        admin_seen_at,
         total,
         fecha_pedido,
         origen_pedido,
@@ -456,6 +493,9 @@ class SupabasePedidoRepository implements PedidoRepository {
           subtotal,
           producto_id,
           producto_nombre,
+          costo_unitario,
+          total_costo,
+          utilidad_bruta,
           productos:producto_id (nombre)
         )
       `
@@ -507,6 +547,9 @@ class SupabasePedidoRepository implements PedidoRepository {
           : currentItem?.productos;
         const currentItemWithOverrides = currentItem as {
           producto_nombre?: string | null;
+          costo_unitario?: number | null;
+          total_costo?: number | null;
+          utilidad_bruta?: number | null;
         };
 
         return {
@@ -515,6 +558,14 @@ class SupabasePedidoRepository implements PedidoRepository {
             currentItemWithOverrides.producto_nombre ?? product?.nombre ?? "Producto",
           cantidad: currentItem?.cantidad ?? 0,
           precioUnitario: currentItem?.precio_unitario ?? 0,
+          costoUnitario: currentItemWithOverrides.costo_unitario ?? 0,
+          costoTotal:
+            currentItemWithOverrides.total_costo ??
+            (currentItemWithOverrides.costo_unitario ?? 0) * (currentItem?.cantidad ?? 0),
+          utilidadBruta:
+            currentItemWithOverrides.utilidad_bruta ??
+            (currentItem?.subtotal ?? 0) -
+              (currentItemWithOverrides.costo_unitario ?? 0) * (currentItem?.cantidad ?? 0),
           subtotal: currentItem?.subtotal ?? 0
         };
       });
@@ -542,6 +593,8 @@ class SupabasePedidoRepository implements PedidoRepository {
         items: normalizedItems,
         estadoPedido: order.estado_pedido,
         estadoPago: order.estado_pago,
+        adminSeen: (order as { admin_seen?: boolean | null }).admin_seen ?? false,
+        adminSeenAt: (order as { admin_seen_at?: string | null }).admin_seen_at ?? undefined,
         origenPedido: (order as { origen_pedido?: string | null }).origen_pedido ?? undefined,
         total: order.total,
         observacion: order.observacion ?? undefined,
@@ -559,6 +612,8 @@ class SupabasePedidoRepository implements PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
+    adminSeen?: boolean;
+    adminSeenAt?: string;
     fechaEntrega?: string;
     fechaAgendado?: string;
     fechaCierre?: string;
@@ -566,11 +621,13 @@ class SupabasePedidoRepository implements PedidoRepository {
     motivoCancelacion?: string;
   }) {
     const supabase = createSupabaseServerClient();
-    const { error } = await supabase
+    let { error } = await supabase
       .from("pedidos")
       .update({
         estado_pedido: args.estadoPedido,
         estado_pago: args.estadoPago,
+        admin_seen: args.adminSeen,
+        admin_seen_at: args.adminSeenAt ?? null,
         fecha_entrega: args.fechaEntrega ?? null,
         fecha_agendado: args.fechaAgendado ?? null,
         fecha_cierre: args.fechaCierre ?? null,
@@ -578,6 +635,21 @@ class SupabasePedidoRepository implements PedidoRepository {
         motivo_cancelacion: args.motivoCancelacion ?? null
       })
       .eq("id", args.pedidoId);
+
+    if (hasMissingOrdersColumnError(error)) {
+      ({ error } = await supabase
+        .from("pedidos")
+        .update({
+          estado_pedido: args.estadoPedido,
+          estado_pago: args.estadoPago,
+          fecha_entrega: args.fechaEntrega ?? null,
+          fecha_agendado: args.fechaAgendado ?? null,
+          fecha_cierre: args.fechaCierre ?? null,
+          fecha_cancelacion: args.fechaCancelacion ?? null,
+          motivo_cancelacion: args.motivoCancelacion ?? null
+        })
+        .eq("id", args.pedidoId));
+    }
 
     if (error) {
       throw new Error("No fue posible actualizar el pedido.");
@@ -709,7 +781,8 @@ class SupabasePedidoRepository implements PedidoRepository {
 function hasMissingOrdersColumnError(error: { message?: string; code?: string } | null) {
   return (
     error?.code === "PGRST204" ||
-    error?.message?.includes("origen_pedido") === true
+    error?.message?.includes("origen_pedido") === true ||
+    error?.message?.includes("admin_seen") === true
   );
 }
 
@@ -717,7 +790,10 @@ function hasMissingOrderItemsColumnError(error: { message?: string; code?: strin
   return (
     error?.code === "PGRST204" ||
     error?.message?.includes("producto_nombre") === true ||
-    error?.message?.includes("producto_id") === true
+    error?.message?.includes("producto_id") === true ||
+    error?.message?.includes("costo_unitario") === true ||
+    error?.message?.includes("total_costo") === true ||
+    error?.message?.includes("utilidad_bruta") === true
   );
 }
 

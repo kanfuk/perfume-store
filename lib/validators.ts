@@ -20,6 +20,7 @@ export type CustomerFormData = {
   nombre: string;
   telefono: string;
   lugarTrabajo: string;
+  fechaEntrega: string;
   items: CustomerOrderLineInput[];
   contactoOculto?: string;
 };
@@ -44,6 +45,10 @@ export function validateCustomerOrderForm(
 
   if (!data.lugarTrabajo.trim()) {
     errors.lugarTrabajo = "Ingresa tu lugar de trabajo.";
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data.fechaEntrega)) {
+    errors.fechaEntrega = "Selecciona una fecha de entrega válida.";
   }
 
   if (!Array.isArray(data.items) || data.items.length === 0) {

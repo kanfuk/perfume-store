@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { formatCurrency } from "@/lib/format";
@@ -29,9 +30,11 @@ export function ProductCard({
 }: ProductCardProps) {
   const availableStock = getAvailableProductStock(product);
   const isOutOfStock = availableStock <= 0;
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const hasLongDescription = (product.descripcion?.trim().length ?? 0) > 96;
 
   return (
-    <article className="flex h-full max-w-full flex-col overflow-hidden rounded-[30px] border border-[#d8ebdd] bg-white shadow-sm transition-[border-color,box-shadow,background-color,transform] duration-200 touch-manipulation hover:-translate-y-0.5 hover:shadow-soft">
+    <article className="interactive-card flex h-full max-w-full flex-col overflow-hidden rounded-[30px] border border-[#d8ebdd] bg-white shadow-sm touch-manipulation">
       <div className="relative aspect-[4/3] min-w-0 bg-[#f6fcf7]">
         <ProductImage
           src={product.imageUrl ?? "/images/products/dobladita-ave-mayo.png"}
@@ -45,7 +48,7 @@ export function ProductCard({
             {product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
           </span>
           {quantity > 0 ? (
-            <span className="rounded-full border border-white/35 bg-[#f6fcf7]/96 px-3 py-1 text-xs font-semibold text-[#247a4d] shadow-sm backdrop-blur-md">
+            <span className="cart-badge-pop rounded-full border border-white/35 bg-[#f6fcf7]/96 px-3 py-1 text-xs font-semibold text-[#247a4d] shadow-sm backdrop-blur-md">
               En carrito x{quantity}
             </span>
           ) : null}
@@ -56,9 +59,22 @@ export function ProductCard({
           <h4 className="font-display text-[1.35rem] font-semibold leading-tight text-[#1f3328]">
             {product.nombre}
           </h4>
-          <p className="mt-1 text-sm leading-relaxed text-[#6b7c70] break-words line-clamp-2">
+          <p
+            className={`product-description mt-1 text-sm leading-relaxed text-[#6b7c70] break-words ${
+              descriptionExpanded ? "" : "line-clamp-2 sm:line-clamp-3"
+            }`}
+          >
             {product.descripcion}
           </p>
+          {hasLongDescription ? (
+            <button
+              type="button"
+              onClick={() => setDescriptionExpanded((current) => !current)}
+              className="inline-flex text-sm font-semibold text-[#247a4d] transition-colors hover:text-[#1f3328]"
+            >
+              {descriptionExpanded ? "Ver menos" : "Ver más"}
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-3">
@@ -103,7 +119,7 @@ export function ProductCard({
               type="button"
               onClick={onAdd}
               disabled={isOutOfStock}
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-medium text-white shadow-[0_14px_26px_rgba(63,166,107,0.18)] transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-medium text-white shadow-[0_14px_26px_rgba(63,166,107,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
             >
               <Plus className="h-4 w-4" />
               {isOutOfStock ? "Sin stock" : actionLabel ?? "Elegir"}

@@ -13,6 +13,8 @@ export type LocalOrderRecord = {
   clienteId: string;
   estadoPedido: string;
   estadoPago: string;
+  adminSeen?: boolean;
+  adminSeenAt?: string;
   origenPedido?: string;
   total: number;
   observacion?: string;
@@ -34,6 +36,9 @@ export type LocalOrderItemRecord = {
   productoTipo?: string;
   cantidad: number;
   precioUnitario: number;
+  costoUnitario: number;
+  costoTotal: number;
+  utilidadBruta: number;
   subtotal: number;
 };
 

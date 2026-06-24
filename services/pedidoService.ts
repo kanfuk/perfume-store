@@ -98,7 +98,8 @@ export class PedidoService {
 
     const pedido = new Pedido({
       cliente,
-      items
+      items,
+      fechaEntrega: this.parseOptionalFechaEntrega(input.fechaEntrega)
     });
 
     const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
@@ -152,8 +153,12 @@ export class PedidoService {
         nombre: item.producto.nombre,
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
+        costoUnitario: item.producto.costoUnitario,
+        costoTotal: item.producto.costoUnitario * item.cantidad,
+        utilidadBruta: item.subtotal - item.producto.costoUnitario * item.cantidad,
         subtotal: item.subtotal
-      }))
+      })),
+      fechaEntrega: pedido.fechaEntrega ? toDateOnlyString(pedido.fechaEntrega) : undefined
     };
   }
 
@@ -257,6 +262,9 @@ export class PedidoService {
         nombre: item.producto.nombre,
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario,
+        costoUnitario: item.producto.costoUnitario,
+        costoTotal: item.producto.costoUnitario * item.cantidad,
+        utilidadBruta: item.subtotal - item.producto.costoUnitario * item.cantidad,
         subtotal: item.subtotal
       }))
     };
@@ -387,6 +395,9 @@ export class PedidoService {
           nombre: producto.nombre,
           cantidad: item.cantidad,
           precioUnitario: item.precioUnitario,
+          costoUnitario: producto.costoUnitario,
+          costoTotal: producto.costoUnitario * item.cantidad,
+          utilidadBruta: item.subtotal - producto.costoUnitario * item.cantidad,
           subtotal: item.subtotal
         }
       ]
@@ -423,11 +434,16 @@ export class PedidoService {
     const fiadosPendientes = finalizadosEnriched.filter(
       (order) => order.estadoPago === ESTADO_PAGO_FIADO && order.saldoPendiente > 0
     );
+    const pedidosNuevos = pendientes
+      .map((order) => byId.get(order.id))
+      .filter((order): order is AdminOrderSummary => Boolean(order))
+      .filter((order) => order.adminSeen !== true).length;
 
     return {
       pendientes: pendientes
         .map((order) => byId.get(order.id))
-        .filter((order): order is AdminOrderSummary => Boolean(order)),
+        .filter((order): order is AdminOrderSummary => Boolean(order))
+        .sort((a, b) => Number(a.adminSeen === true) - Number(b.adminSeen === true)),
       agendados: agendados
         .map((order) => byId.get(order.id))
         .filter((order): order is AdminOrderSummary => Boolean(order)),
@@ -440,7 +456,8 @@ export class PedidoService {
             a.fechaCancelacion ?? a.fechaPedido
           )
         ),
-      fiadosPendientes
+      fiadosPendientes,
+      pedidosNuevos
     };
   }
 
@@ -500,6 +517,8 @@ export class PedidoService {
       pedidoId,
       estadoPedido: domainPedido.estadoPedido,
       estadoPago: ESTADO_PAGO_PAGADO,
+      adminSeen: true,
+      adminSeenAt: new Date().toISOString(),
       fechaAgendado: domainPedido.fechaAgendado?.toISOString(),
       fechaCierre: domainPedido.fechaCierre?.toISOString()
     });
@@ -521,6 +540,8 @@ export class PedidoService {
       pedidoId,
       estadoPedido: domainPedido.estadoPedido,
       estadoPago: ESTADO_PAGO_FIADO,
+      adminSeen: true,
+      adminSeenAt: new Date().toISOString(),
       fechaAgendado: domainPedido.fechaAgendado?.toISOString(),
       fechaCierre: domainPedido.fechaCierre?.toISOString()
     });
@@ -585,10 +606,29 @@ export class PedidoService {
         pedidoId,
         estadoPedido: ESTADO_PEDIDO_FINALIZADO,
         estadoPago: ESTADO_PAGO_PAGADO,
+        adminSeen: true,
+        adminSeenAt: new Date().toISOString(),
         fechaAgendado: pedido.fechaAgendado,
         fechaCierre: pedido.fechaCierre ?? fechaPago
       });
     }
+  }
+
+  async marcarPedidoVisto(pedidoId: string) {
+    const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_PENDIENTE);
+
+    await this.pedidoRepository.actualizarEstadoPedido({
+      pedidoId,
+      estadoPedido: pedido.estadoPedido,
+      estadoPago: pedido.estadoPago,
+      adminSeen: true,
+      adminSeenAt: new Date().toISOString(),
+      fechaEntrega: pedido.fechaEntrega,
+      fechaAgendado: pedido.fechaAgendado,
+      fechaCierre: pedido.fechaCierre,
+      fechaCancelacion: pedido.fechaCancelacion,
+      motivoCancelacion: pedido.motivoCancelacion
+    });
   }
 
   private async obtenerPedidoUnico(pedidoId: string, estadoPedido: string) {
@@ -624,6 +664,9 @@ export class PedidoService {
             productoNombre: order.productoNombre,
             cantidad: order.cantidad,
             precioUnitario: order.precioUnitario,
+            costoUnitario: 0,
+            costoTotal: 0,
+            utilidadBruta: order.subtotal,
             subtotal: order.subtotal
           }
         ];
@@ -635,6 +678,7 @@ export class PedidoService {
               id: currentItem.productoId,
               nombre: currentItem.productoNombre,
               precioVenta: currentItem.precioUnitario,
+              costoUnitario: currentItem.costoUnitario ?? 0,
               activo: true
             });
 
@@ -700,6 +744,18 @@ export class PedidoService {
           order.estadoPago === ESTADO_PAGO_PAGADO && totalPagado === 0
             ? order.total
             : totalPagado,
+        totalCost: order.items.reduce(
+          (sum, item) =>
+            sum + (item.costoTotal ?? (item.costoUnitario ?? 0) * item.cantidad),
+          0
+        ),
+        grossProfit: order.items.reduce(
+          (sum, item) =>
+            sum +
+            (item.utilidadBruta ??
+              item.subtotal - (item.costoTotal ?? (item.costoUnitario ?? 0) * item.cantidad)),
+          0
+        ),
         fechaEntrega: order.fechaEntrega,
         saldoPendiente:
           currentFiado?.montoPendiente ??
@@ -709,6 +765,8 @@ export class PedidoService {
         fiadoEstado: currentFiado?.estado,
         fechaFiado: currentFiado?.fechaFiado,
         fechaPagoFiado: currentFiado?.fechaPagoFiado,
+        adminSeen: order.adminSeen ?? false,
+        adminSeenAt: order.adminSeenAt,
         origenPedido: order.origenPedido as CustomerOrderResponse["origenPedido"],
         observacion: order.observacion
       };
@@ -727,6 +785,14 @@ export class PedidoService {
     }
 
     return fecha;
+  }
+
+  private parseOptionalFechaEntrega(rawValue?: string) {
+    if (!rawValue?.trim()) {
+      return undefined;
+    }
+
+    return this.parseFechaEntrega(rawValue);
   }
 
   private async validarStockAgenda(

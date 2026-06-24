@@ -1,11 +1,40 @@
-.next
-node_modules
+# dependencies
+node_modules/
+
+# build outputs
+.next/
+dist/
+build/
+coverage/
+.vite/
+
+# environment
+.env
 .env.local
-coverage
-dist
+.env.*.local
+
+# logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# caches and temp
 *.tsbuildinfo
 .tmp-*
-docs/*key.txt
+supabase/.temp/
 
-.vercel
+# deployment
+.vercel/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# docs
+docs/*key.txt

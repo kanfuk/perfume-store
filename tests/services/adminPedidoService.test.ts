@@ -118,6 +118,8 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
         pedidoId: string;
         estadoPedido: string;
         estadoPago?: string;
+        adminSeen?: boolean;
+        adminSeenAt?: string;
         fechaEntrega?: string;
         fechaAgendado?: string;
         fechaCierre?: string;
@@ -236,11 +238,15 @@ function buildOrder(estadoPedido: string): PedidoListItemRecord {
         productoNombre: "Pan amasado",
         cantidad: 2,
         precioUnitario: 500,
+        costoUnitario: 0,
+        costoTotal: 0,
+        utilidadBruta: 1000,
         subtotal: 1000
       }
     ],
     estadoPedido,
     estadoPago: "SIN_PAGO",
+    adminSeen: false,
     total: 1000,
     fechaPedido: new Date("2026-06-12T10:00:00.000Z").toISOString()
   };

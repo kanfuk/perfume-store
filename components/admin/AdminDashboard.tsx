@@ -511,6 +511,7 @@ export function AdminDashboard({
         visible: statusFilter === "pendientes",
         emptyText: "No hay pedidos pendientes.",
         actions: [
+          { key: "visto" as const, label: "Marcar visto", tone: "muted" as const },
           { key: "agendar" as const, label: "Agendar fecha", tone: "primary" as const },
           { key: "cancelar" as const, label: "Cancelar", tone: "muted" as const }
         ]
@@ -979,7 +980,7 @@ export function AdminDashboard({
             label="Pedidos"
             icon={ClipboardList}
             active={view === "agenda"}
-            badge={`${data.pendientes.length} pendientes`}
+            badge={`${data.pedidosNuevos} nuevos`}
             onClick={() => navigateToView("agenda")}
           />
           <AdminSectionTab
@@ -1043,9 +1044,9 @@ export function AdminDashboard({
         <section className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <HeroMetric
-              label="Pendientes"
-              value={String(homeSummary.pendientes)}
-              detail="Pedidos esperando revision"
+              label="Pedidos nuevos"
+              value={String(data.pedidosNuevos)}
+              detail="Aún no marcados como vistos"
               icon={Clock3}
               tone="rose"
             />
@@ -1089,7 +1090,7 @@ export function AdminDashboard({
               <div className="mt-4 grid gap-3">
                 <QuickTaskRow
                   title="Revisar pendientes"
-                  detail={`${data.pendientes.length} pedido(s) esperando respuesta`}
+                  detail={`${data.pedidosNuevos} pedido(s) nuevos por revisar`}
                   icon={Clock3}
                   onClick={() => {
                     navigateToView("agenda");
@@ -1331,7 +1332,7 @@ export function AdminDashboard({
           <div className="grid gap-3 md:grid-cols-3">
             <MiniHomeTab
               title="Pendientes"
-              value={String(ordersByFilter.pendientes.length)}
+              value={`${ordersByFilter.pendientes.filter((order) => order.adminSeen !== true).length}/${ordersByFilter.pendientes.length}`}
               active={statusFilter === "pendientes"}
               onClick={() => setStatusFilter("pendientes")}
               tone="rose"
@@ -1640,6 +1641,28 @@ export function AdminDashboard({
                               : "Sin abonos"
                           }
                         />
+                      </div>
+
+                      <div className="space-y-2 rounded-xl border border-emerald-100 bg-white px-3 py-3">
+                        {order.items.length > 0 ? (
+                          order.items.map((item) => (
+                            <div
+                              key={`${order.id}-${item.productoId}`}
+                              className="flex items-start justify-between gap-3 text-sm"
+                            >
+                              <div className="text-emerald-950">
+                                {item.cantidad}x {item.productoNombre}
+                              </div>
+                              <div className="text-right font-semibold text-emerald-700">
+                                {formatCurrency(item.subtotal)}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-emerald-900/65">
+                            Detalle no disponible en registro antiguo.
+                          </div>
+                        )}
                       </div>
 
                       <button
@@ -2383,6 +2406,11 @@ function OrderSection({
                     <h3 className="text-base font-semibold text-emerald-950">
                       {order.clienteNombre}
                     </h3>
+                    {order.adminSeen === false ? (
+                      <StatusBadge tone="warning" label="NUEVO" />
+                    ) : (
+                      <StatusBadge tone="neutral" label="VISTO" />
+                    )}
                     {order.fechaEntrega ? (
                       <StatusBadge
                         tone="neutral"
@@ -2524,6 +2552,7 @@ function OrderDetailPanel({
             tone={order.estadoPago === "FIADO" ? "warning" : "neutral"}
             label={order.estadoPago}
           />
+          {order.adminSeen === false ? <StatusBadge tone="warning" label="NUEVO" /> : null}
         </div>
         <div className="text-sm text-emerald-900/70">
           {order.clienteLugarTrabajo || "Sin lugar de entrega"}
@@ -2545,6 +2574,8 @@ function OrderDetailPanel({
           value={order.fechaEntrega ? formatDateOnly(order.fechaEntrega) : "Sin agendar"}
         />
         <MiniMetric label="Total pedido" value={formatCurrency(order.total)} />
+        <MiniMetric label="Costo total" value={formatCurrency(order.totalCost)} />
+        <MiniMetric label="Utilidad bruta" value={formatCurrency(order.grossProfit)} />
         <MiniMetric label="Pagado" value={formatCurrency(order.totalPagado)} />
         <MiniMetric label="Saldo" value={formatCurrency(order.saldoPendiente)} />
       </div>
@@ -2582,6 +2613,10 @@ function OrderDetailPanel({
                   <div className="font-semibold text-emerald-950">{item.productoNombre}</div>
                   <div className="text-sm text-emerald-900/65">
                     {formatCurrency(item.precioUnitario)} x {item.cantidad}
+                  </div>
+                  <div className="text-xs text-emerald-700/75">
+                    Costo {formatCurrency(item.costoUnitario)} · Utilidad{" "}
+                    {formatCurrency(item.utilidadBruta)}
                   </div>
                 </div>
                 <div className="text-sm font-semibold text-emerald-700">

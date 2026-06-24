@@ -10,6 +10,7 @@ SET
   precio_venta = 1400,
   image_url = '/images/dobladita-napolitana.png',
   badge_label = 'Napolitana',
+  costo_unitario = 760,
   activo = true,
   tipo_producto = 'dobladita',
   updated_at = NOW()
@@ -33,7 +34,7 @@ SELECT
   1400,
   '/images/dobladita-napolitana.png',
   'Napolitana',
-  0,
+  760,
   0,
   0,
   true,

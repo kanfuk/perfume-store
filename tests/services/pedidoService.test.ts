@@ -182,6 +182,7 @@ describe("PedidoService", () => {
       nombre: "Rodrigo",
       telefono: "999999999",
       lugarTrabajo: "Finanzas",
+      fechaEntrega: "2026-06-13",
       items: [
         { productoId: "pan-amasado", cantidad: 2 },
         { productoId: "queque", cantidad: 1 }
@@ -209,6 +210,7 @@ describe("PedidoService", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
+        fechaEntrega: "2026-06-13",
         items: [{ productoId: "otro", cantidad: 1 }]
       })
     ).rejects.toThrow("Todos los items deben usar productos activos.");
@@ -234,6 +236,7 @@ describe("PedidoService", () => {
       nombre: "Rodrigo",
       telefono: "9 1234 5678",
       lugarTrabajo: "Finanzas",
+      fechaEntrega: "2026-06-13",
       items: [{ productoId: "pan-amasado", cantidad: 1 }]
     });
 
@@ -252,6 +255,7 @@ describe("PedidoService", () => {
         nombre: "Rodrigo",
         telefono: "999999999",
         lugarTrabajo: "Finanzas",
+        fechaEntrega: "2026-06-13",
         items: [{ productoId: "pan-amasado", cantidad: 21 }]
       })
     ).rejects.toThrow("El producto Pan amasado solo tiene 20 disponible(s).");

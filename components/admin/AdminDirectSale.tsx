@@ -106,6 +106,7 @@ export function AdminDirectSale({
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [stockLimitMessage, setStockLimitMessage] = useState("");
+  const [productSearch, setProductSearch] = useState("");
 
   const cartLines = useMemo(
     () => normalizarProductoParaCarrito(saleItems, products),
@@ -116,6 +117,20 @@ export function AdminDirectSale({
     () => Object.fromEntries(saleItems.map((item) => [item.productoId, item.cantidad])),
     [saleItems]
   );
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+
+    if (!query) {
+      return products;
+    }
+
+    return products.filter((product) =>
+      [product.nombre, product.descripcion, product.tipoProducto]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [productSearch, products]);
   const customTotal =
     (Number(customForm.cantidad) || 0) * (Number(customForm.precioAcordado) || 0);
   const utilidadEstimada =
@@ -192,6 +207,20 @@ export function AdminDirectSale({
   }
 
   async function submitDirectSale() {
+    if (saleItems.length === 0) {
+      setServerError("Agrega al menos un producto antes de registrar la venta.");
+      return;
+    }
+
+    if (paymentState === "FIADO" && !customerName.trim()) {
+      setServerError("Para dejar fiado, registra al menos el nombre del cliente.");
+      return;
+    }
+
+    if (!window.confirm(`Se registrará una venta por ${formatCurrency(total)}. ¿Continuar?`)) {
+      return;
+    }
+
     setSubmitting(true);
     setServerError("");
     setSuccessMessage("");
@@ -370,8 +399,17 @@ export function AdminDirectSale({
               title="Catálogo activo"
               subtitle="Usa las mismas tarjetas del cliente para vender rápido desde el celular."
             >
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-[#1f3328]">Buscar producto</span>
+                <input
+                  value={productSearch}
+                  onChange={(event) => setProductSearch(event.target.value)}
+                  placeholder="Escribe nombre, tipo o descripción"
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                />
+              </label>
               <ProductCatalog
-                products={products}
+                products={filteredProducts}
                 quantities={quantities}
                 onAdd={addProduct}
                 showStockCount
