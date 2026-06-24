@@ -52,9 +52,9 @@ Estado actual:
 
 - `public/site.webmanifest` para cliente
 - `public/admin.webmanifest` para admin
-- `public/apple-touch-icon.png`
-- `public/android-chrome-192x192.png`
-- `public/android-chrome-512x512.png`
+- `public/icons/apple-touch-icon.png`
+- `public/icons/android-chrome-192x192.png`
+- `public/icons/android-chrome-512x512.png`
 - `public/icons/*` como pack extendido
 - `app/icon.png`, `app/apple-icon.png` y `app/favicon.ico` para metadata App Router
 

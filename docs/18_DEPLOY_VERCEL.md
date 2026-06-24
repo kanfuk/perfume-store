@@ -114,8 +114,8 @@ Seguridad:
 - no hay claves privadas en navegador
 - headers de seguridad presentes
 - `/favicon.ico?v=99` responde
-- `/apple-touch-icon.png?v=99` responde
-- `/android-chrome-192x192.png?v=99` responde
+- `/icons/apple-touch-icon.png?v=99` responde
+- `/icons/android-chrome-192x192.png?v=99` responde
 - `/site.webmanifest?v=99` responde
 - `/admin.webmanifest?v=99` responde
 

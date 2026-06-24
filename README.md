@@ -98,9 +98,9 @@ La app ya integra:
 - `app/icon.png`
 - `app/apple-icon.png`
 - `public/favicon.ico`
-- `public/apple-touch-icon.png`
-- `public/android-chrome-192x192.png`
-- `public/android-chrome-512x512.png`
+- `public/icons/apple-touch-icon.png`
+- `public/icons/android-chrome-192x192.png`
+- `public/icons/android-chrome-512x512.png`
 - `public/site.webmanifest`
 - `public/admin.webmanifest`
 - `public/icons/*`
@@ -109,8 +109,8 @@ Verificacion recomendada despues del deploy:
 
 ```text
 /favicon.ico?v=99
-/apple-touch-icon.png?v=99
-/android-chrome-192x192.png?v=99
+/icons/apple-touch-icon.png?v=99
+/icons/android-chrome-192x192.png?v=99
 /site.webmanifest?v=99
 /admin.webmanifest?v=99
 ```
