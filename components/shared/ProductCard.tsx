@@ -48,7 +48,7 @@ export function ProductCard({
             {product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
           </span>
           {quantity > 0 ? (
-            <span className="cart-badge-pop rounded-full border border-white/35 bg-[#f6fcf7]/96 px-3 py-1 text-xs font-semibold text-[#247a4d] shadow-sm backdrop-blur-md">
+            <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#14532d] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
               En carrito x{quantity}
             </span>
           ) : null}
