@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -909,8 +910,24 @@ export function AdminDashboard({
               <Store className="h-4 w-4" />
               Panel admin
             </span>
+            <div className="flex items-center gap-4">
+              <div className="relative h-16 w-16 shrink-0 rounded-[20px] bg-[#f3faf4] p-2 shadow-[0_12px_24px_rgba(31,51,40,0.08)]">
+                <Image
+                  src="/brand/pauli-store-logo-transparent.png"
+                  alt="Logo Pauli Store"
+                  fill
+                  className="object-contain p-2"
+                  priority
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
+                  Pauli Store
+                </div>
+                <h1 className="text-3xl font-bold text-emerald-950">{currentViewMeta.title}</h1>
+              </div>
+            </div>
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-emerald-950">{currentViewMeta.title}</h1>
               <p className="max-w-3xl text-sm leading-6 text-emerald-900/70">
                 {currentViewMeta.description}
               </p>

@@ -541,6 +541,7 @@ export function OrderForm() {
 
   function scrollToForm() {
     setIsCartSheetOpen(false);
+    setToast(null);
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.setTimeout(() => nombreRef.current?.focus(), 250);
   }
@@ -822,7 +823,7 @@ export function OrderForm() {
 
       {itemCount > 0 ? (
         <div className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-xl xl:hidden">
-          <div className="flex items-center justify-between gap-4 rounded-[24px] bg-[#247a4d] px-4 py-4 text-white shadow-[0_18px_40px_rgba(31,51,40,0.24)]">
+          <div className="flex items-center justify-between gap-4 rounded-[24px] bg-[#247a4d] px-4 py-3 text-white shadow-[0_18px_40px_rgba(31,51,40,0.24)]">
             <div className="min-w-0">
               <div className="text-xs font-semibold uppercase tracking-wide text-white/75">
                 {itemCount} producto{itemCount === 1 ? "" : "s"} · {formatCurrency(total)}
@@ -833,7 +834,10 @@ export function OrderForm() {
             </div>
             <button
               type="button"
-              onClick={() => setIsCartSheetOpen(true)}
+              onClick={() => {
+                setToast(null);
+                setIsCartSheetOpen(true);
+              }}
               className="inline-flex min-h-11 shrink-0 items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#247a4d]"
             >
               Ver pedido
