@@ -46,6 +46,11 @@ import {
 } from "@/lib/admin/getPendingAdminOrders";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
+import {
+  getNotificationPermissionState,
+  isRunningAsInstalledPwa,
+  requestNotificationPermission
+} from "@/lib/pwa/notifications";
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
@@ -199,6 +204,10 @@ export function AdminDashboard({
   const [reportFrom, setReportFrom] = useState("");
   const [reportTo, setReportTo] = useState("");
   const [todayDate, setTodayDate] = useState("");
+  const [notificationPermission, setNotificationPermission] = useState<
+    NotificationPermission | "unsupported"
+  >("unsupported");
+  const [isInstalledPwa, setIsInstalledPwa] = useState(false);
 
   const allOrders = useMemo(
     () => [
@@ -339,6 +348,11 @@ export function AdminDashboard({
     });
 
     return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
+    setIsInstalledPwa(isRunningAsInstalledPwa());
+    void getNotificationPermissionState().then(setNotificationPermission);
   }, []);
 
   useEffect(() => {
@@ -645,6 +659,26 @@ export function AdminDashboard({
   async function refreshAll() {
     setError("");
     await Promise.all([loadOrders(), loadProducts()]);
+  }
+
+  async function enableHomeScreenBadge() {
+    const permission = await requestNotificationPermission();
+    setNotificationPermission(permission);
+
+    if (permission === "granted") {
+      await updateAppBadge(attentionCount);
+      setSuccessMessage("Badge del icono activado para esta app en iPhone.");
+      return;
+    }
+
+    if (permission === "denied") {
+      setError(
+        "iPhone no permitió las notificaciones. Actívalas en Ajustes > Notificaciones > Pauli Admin."
+      );
+      return;
+    }
+
+    setError("No fue posible activar el badge del icono en este dispositivo.");
   }
 
   async function runMaintenanceAction(action: AdminMaintenanceAction) {
@@ -1016,6 +1050,17 @@ export function AdminDashboard({
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700/80">
                 Pauli Store admin
               </p>
+              {isInstalledPwa &&
+              attentionCount > 0 &&
+              notificationPermission !== "granted" ? (
+                <button
+                  type="button"
+                  onClick={() => void enableHomeScreenBadge()}
+                  className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#F0D69B] bg-[#FFF8DE] px-4 py-2 text-sm font-semibold text-[#7A5A10] shadow-[0_10px_22px_rgba(122,90,16,0.12)]"
+                >
+                  Activar badge en icono
+                </button>
+              ) : null}
             </div>
           </div>
 

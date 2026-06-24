@@ -1,6 +1,7 @@
 {
   "name": "Pauli Admin",
   "short_name": "Pauli Admin",
+  "id": "/admin",
   "description": "Panel admin de Pauli Store",
   "start_url": "/admin",
   "scope": "/admin",
