@@ -10,6 +10,7 @@
 import type { ProductoProps } from "@/domain/Producto";
 import { isSupabaseConfigured } from "@/lib/env";
 import { localStore } from "@/lib/local-store";
+import { getUnifiedProductStock } from "@/lib/stock";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface ProductRepository {
@@ -78,12 +79,13 @@ class MockProductRepository implements ProductRepository {
       throw new Error("Producto no encontrado.");
     }
 
-    const nuevoStock = (current.stockAgenda ?? 0) + cantidad;
+    const nuevoStock = getUnifiedProductStock(current) + cantidad;
     
     if (nuevoStock < 0) {
       throw new Error("Stock insuficiente para esta operación.");
     }
 
+    current.stockActual = nuevoStock;
     current.stockAgenda = nuevoStock;
     return current;
   }
@@ -242,13 +244,13 @@ class SupabaseProductRepository implements ProductRepository {
       throw new Error("Producto no encontrado.");
     }
 
-    const nuevoStock = (product.stockAgenda ?? 0) + cantidad;
+    const nuevoStock = getUnifiedProductStock(product) + cantidad;
     
     if (nuevoStock < 0) {
       throw new Error("Stock insuficiente para esta operación.");
     }
 
-    return this.actualizarProducto(id, { stockAgenda: nuevoStock });
+    return this.actualizarProducto(id, { stockActual: nuevoStock, stockAgenda: nuevoStock });
   }
 }
 
@@ -273,8 +275,8 @@ function mapSupabaseProduct(data: {
     imageUrl: data.image_url ?? "",
     badgeLabel: data.badge_label ?? "",
     costoUnitario: data.costo_unitario ?? 0,
-    stockActual: data.stock_actual ?? 0,
-    stockAgenda: data.stock_agenda ?? data.stock_actual ?? 0,
+    stockActual: data.stock_actual ?? data.stock_agenda ?? 0,
+    stockAgenda: data.stock_actual ?? data.stock_agenda ?? 0,
     activo: data.activo ?? true,
     tipoProducto: data.tipo_producto ?? "simple"
   };

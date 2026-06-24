@@ -9,7 +9,7 @@
 
 import { Producto } from "@/domain/Producto";
 import { getProductVisualMeta } from "@/lib/product-catalog";
-import { getAvailableProductStock } from "@/lib/stock";
+import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import type { AdminProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
@@ -37,8 +37,8 @@ export class ProductoService {
             visual.badgeLabel ||
             product.tipoProducto ||
             "PRODUCTO CASERO",
-          stockActual: getAvailableProductStock(product),
-          stockAgenda: product.stockAgenda,
+          stockActual: getUnifiedProductStock(product),
+          stockAgenda: getUnifiedProductStock(product),
           tipoProducto: product.tipoProducto
         };
       });
@@ -63,8 +63,8 @@ export class ProductoService {
           domainProduct.tipoProducto ||
           "PRODUCTO CASERO",
         costoUnitario: domainProduct.costoUnitario,
-        stockActual: domainProduct.stockActual,
-        stockAgenda: domainProduct.stockAgenda,
+        stockActual: getUnifiedProductStock(domainProduct),
+        stockAgenda: getUnifiedProductStock(domainProduct),
         activo: domainProduct.activo,
         tipoProducto: domainProduct.tipoProducto,
         utilidadUnitaria: domainProduct.calcularUtilidadUnitaria()
@@ -92,8 +92,8 @@ export class ProductoService {
       imageUrl: input.imageUrl,
       badgeLabel: input.badgeLabel,
       costoUnitario: input.costoUnitario ?? 0,
-      stockActual: input.stockActual ?? 0,
-      stockAgenda: input.stockAgenda ?? input.stockActual ?? 0,
+      stockActual: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0),
+      stockAgenda: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0),
       activo: input.activo ?? true,
       tipoProducto: input.tipoProducto ?? "simple"
     });
@@ -142,8 +142,8 @@ export class ProductoService {
       imageUrl: input.imageUrl,
       badgeLabel: input.badgeLabel,
       costoUnitario: input.costoUnitario ?? 0,
-      stockActual: input.stockActual ?? 0,
-      stockAgenda: input.stockAgenda ?? input.stockActual ?? 0,
+      stockActual: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual),
+      stockAgenda: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual),
       activo: input.activo ?? true,
       tipoProducto: input.tipoProducto ?? "simple"
     });

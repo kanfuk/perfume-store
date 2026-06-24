@@ -8,11 +8,14 @@ Hoy el proyecto ya incluye:
 
 - Next.js + TypeScript + Tailwind CSS
 - flujo cliente publico para registrar pedidos
-- carrito simple e interfaz mobile-first
+- carrito mobile-first con resumen flotante y hoja inferior
 - validacion de celular chileno
 - guardado local de clientes frecuentes en el dispositivo
 - modal de confirmacion al agendar pedido
 - panel admin con login real usando Supabase Auth
+- branding visible de Pauli Store en cliente y admin
+- venta directa y pedido personalizado desde admin
+- stock unificado visible en admin, sincronizado con `stock_actual` y `stock_agenda`
 - control adicional contra tabla `usuarios_admin`
 - repositorios y servicios con reglas de negocio
 - seguridad base en headers, RLS y validaciones servidor
@@ -79,7 +82,13 @@ Pendiente para una fase posterior:
 
 - CSP con nonce por request
 - automatizacion WhatsApp
-- pulido final del panel admin para uso diario desde celular
+- QA funcional en Supabase real para stock unificado y cierres operativos
+
+## Produccion actual
+
+- URL publica: `https://pauli-store-clientes.vercel.app`
+- ultimo deploy validado: `2026-06-23`
+- estado operativo resumido: [docs/37_ESTADO_ACTUAL_APP_2026_06_23.md](docs/37_ESTADO_ACTUAL_APP_2026_06_23.md)
 
 ## Iconografia y manifest
 
@@ -119,10 +128,11 @@ Acceso directo admin en iPhone:
 - [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
 - [docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md](docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md)
+- [docs/37_ESTADO_ACTUAL_APP_2026_06_23.md](docs/37_ESTADO_ACTUAL_APP_2026_06_23.md)
 
 ## Siguiente fase recomendada
 
-1. validar cierre mensual en Supabase real
+1. validar en Supabase real que `stock_actual = stock_agenda` despues de editar y vender
 2. ejecutar limpieza final de datos de prueba antes del lanzamiento
-3. preparar confirmacion automatica por WhatsApp
-4. validar flujo completo desde celular con Pauli
+3. preparar automatizacion adicional de WhatsApp si sigue siendo prioridad
+4. validar flujo completo desde celular con Pauli usando datos reales

@@ -3,6 +3,7 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { formatCurrency } from "@/lib/format";
+import { getAvailableProductStock } from "@/lib/stock";
 import type { ProductRecord } from "@/lib/types";
 
 type ProductCardProps = {
@@ -26,7 +27,7 @@ export function ProductCard({
   footerLabel = "Disponibilidad",
   showStockCount = false
 }: ProductCardProps) {
-  const availableStock = Math.max(product.stockActual ?? 0, 0);
+  const availableStock = getAvailableProductStock(product);
   const isOutOfStock = availableStock <= 0;
 
   return (

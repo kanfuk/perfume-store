@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { normalizeStockValue } from "@/lib/stock";
 import { createProductoService } from "@/services/productoService";
 
 export async function PATCH(
@@ -21,6 +22,7 @@ export async function PATCH(
       costoUnitario?: number;
       stockActual?: number;
       stockAgenda?: number;
+      stock?: number;
       activo?: boolean;
       tipoProducto?: string;
     };
@@ -30,6 +32,9 @@ export async function PATCH(
     if (body.mode === "toggle") {
       await productoService.cambiarEstadoProducto(productId, Boolean(body.activo));
     } else {
+      const normalizedStock = normalizeStockValue(
+        body.stock ?? body.stockActual ?? body.stockAgenda ?? 0
+      );
       await productoService.actualizarProductoAdmin(productId, {
         nombre: body.nombre ?? "",
         descripcion: body.descripcion ?? "",
@@ -37,8 +42,8 @@ export async function PATCH(
         imageUrl: body.imageUrl ?? "",
         badgeLabel: body.badgeLabel ?? "",
         costoUnitario: body.costoUnitario ?? 0,
-        stockActual: body.stockActual ?? 0,
-        stockAgenda: body.stockAgenda ?? body.stockActual ?? 0,
+        stockActual: normalizedStock,
+        stockAgenda: normalizedStock,
         activo: body.activo ?? true,
         tipoProducto: body.tipoProducto ?? "simple"
       });

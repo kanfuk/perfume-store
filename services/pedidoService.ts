@@ -122,16 +122,18 @@ export class PedidoService {
       )
     );
 
-    // Deducir stock de agenda por cada item
+    // Descuenta el stock unificado y mantiene ambas columnas sincronizadas.
     await Promise.all(
       items.map((item) => {
-        console.log(`[Stock] Deduciendo ${item.cantidad} de ${item.producto.nombre} (ID: ${item.producto.id})`);
+        console.log(
+          `[Stock] Deduciendo ${item.cantidad} de ${item.producto.nombre} (ID: ${item.producto.id})`
+        );
         return this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad)
-          .then(result => {
+          .then((result) => {
             console.log(`[Stock] Stock actualizado a: ${result.stockAgenda}`);
             return result;
           })
-          .catch(err => {
+          .catch((err) => {
             console.error(`[Stock] Error al deducir: ${err.message}`);
             throw err;
           });
@@ -217,6 +219,10 @@ export class PedidoService {
           productoTipo: item.producto.tipoProducto
         })
       )
+    );
+
+    await Promise.all(
+      items.map((item) => this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad))
     );
 
     if (input.estadoPago === ESTADO_PAGO_PAGADO) {

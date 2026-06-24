@@ -41,6 +41,7 @@ import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
+import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
 import { buildWhatsAppManualUrl } from "@/lib/whatsapp/buildWhatsAppManualUrl";
 import { createNotificationService } from "@/services/NotificationService";
@@ -82,8 +83,7 @@ type ProductModalState =
   | { mode: "edit"; product: AdminProductRecord }
   | null;
 type StockDraft = {
-  stockActual: string;
-  stockAgenda: string;
+  stock: string;
   precioVenta: string;
 };
 type CustomerCardData = {
@@ -213,7 +213,7 @@ export function AdminDashboard({
             ? product.activo
             : stockFilter === "pausados"
               ? !product.activo
-              : product.stockActual <= 0;
+              : getUnifiedProductStock(product) <= 0;
 
       if (!stockMatches) {
         return false;
@@ -336,8 +336,8 @@ export function AdminDashboard({
       ? data.agendados.filter((order) => order.fechaEntrega === todayDate)
       : [];
     const productosActivos = products.filter((product) => product.activo);
-    const stockAgendaTotal = productosActivos.reduce(
-      (sum, product) => sum + product.stockAgenda,
+    const stockTotal = productosActivos.reduce(
+      (sum, product) => sum + getUnifiedProductStock(product),
       0
     );
     const saldoPorCobrar = data.fiadosPendientes.reduce(
@@ -349,7 +349,7 @@ export function AdminDashboard({
       pendientes: data.pendientes.length,
       agendaHoy: agendaHoy.length,
       productosActivos: productosActivos.length,
-      stockAgendaTotal,
+      stockTotal,
       saldoPorCobrar,
       ventasCerradas: data.finalizados.reduce((sum, order) => sum + order.totalPagado, 0)
     };
@@ -733,8 +733,7 @@ export function AdminDashboard({
     imageUrl?: string;
     badgeLabel?: string;
     costoUnitario: number;
-    stockActual: number;
-    stockAgenda: number;
+    stock: number;
     tipoProducto: string;
     activo: boolean;
   }) {
@@ -817,8 +816,7 @@ export function AdminDashboard({
       imageUrl: product.imageUrl,
       badgeLabel: product.badgeLabel,
       costoUnitario: product.costoUnitario,
-      stockActual: Number(draft?.stockActual ?? product.stockActual),
-      stockAgenda: Number(draft?.stockAgenda ?? product.stockAgenda),
+      stock: normalizeStockValue(draft?.stock ?? getUnifiedProductStock(product)),
       tipoProducto: product.tipoProducto,
       activo: product.activo
     });
@@ -869,8 +867,7 @@ export function AdminDashboard({
     setStockDrafts((current) => ({
       ...current,
       [productId]: {
-        stockActual: current[productId]?.stockActual ?? String(product.stockActual),
-        stockAgenda: current[productId]?.stockAgenda ?? String(product.stockAgenda),
+        stock: current[productId]?.stock ?? String(getUnifiedProductStock(product)),
         precioVenta: current[productId]?.precioVenta ?? String(product.precioVenta),
         [key]: value
       }
@@ -1107,7 +1104,7 @@ export function AdminDashboard({
                 />
                 <QuickTaskRow
                   title="Ajustar stock"
-                  detail={`${products.filter((product) => product.stockActual <= 0).length} producto(s) sin stock hoy`}
+              detail={`${products.filter((product) => getUnifiedProductStock(product) <= 0).length} producto(s) sin stock`}
                   icon={Boxes}
                   onClick={() => {
                     navigateToView("stock");
@@ -1135,7 +1132,7 @@ export function AdminDashboard({
                 <SimpleFact label="Ticket promedio" value={formatCurrency(reportSummary.ticketPromedio)} />
                 <SimpleFact
                   label="Productos sin stock"
-                  value={String(products.filter((product) => product.stockActual <= 0).length)}
+                  value={String(products.filter((product) => getUnifiedProductStock(product) <= 0).length)}
                 />
               </div>
             </article>
@@ -1275,8 +1272,8 @@ export function AdminDashboard({
                   value={`${homeSummary.productosActivos}`}
                 />
                 <SimpleFact
-                  label="Stock agenda total"
-                  value={`${homeSummary.stockAgendaTotal}`}
+                  label="Stock total"
+                  value={`${homeSummary.stockTotal}`}
                 />
                 <SimpleFact
                   label="Pedidos agendados"
@@ -1437,7 +1434,7 @@ export function AdminDashboard({
         <section className="space-y-5">
           <SectionIntro
             title="Stock y productos"
-            subtitle="Crea productos, cambia precio, activa o pausa ventas y define cupo de agenda."
+            subtitle="Crea productos, cambia precio, activa o pausa ventas y define stock disponible."
             icon={Boxes}
             helper="Paso 2: deja aquí lo que sí vas a vender y el cupo máximo para no sobreagendar."
             action={
@@ -1511,8 +1508,8 @@ export function AdminDashboard({
               tone="violet"
             />
             <HeroMetric
-              label="Sin stock hoy"
-              value={String(products.filter((product) => product.stockActual <= 0).length)}
+              label="Sin stock"
+              value={String(products.filter((product) => getUnifiedProductStock(product) <= 0).length)}
               detail="Revisar antes de abrir ventas"
               icon={AlertCircle}
               tone="amber"
@@ -2269,30 +2266,21 @@ function StockProductCard({
           label={product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
         />
         <StatusBadge
-          tone={product.stockActual > 0 ? "pedido" : "warning"}
-          label={`Stock hoy ${product.stockActual}`}
-        />
-        <StatusBadge
-          tone={product.stockAgenda > 0 ? "neutral" : "warning"}
-          label={`Agenda ${product.stockAgenda}`}
+          tone={getUnifiedProductStock(product) > 0 ? "pedido" : "warning"}
+          label={`Stock ${getUnifiedProductStock(product)}`}
         />
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <InlineField
           label="Precio"
           value={draft?.precioVenta ?? String(product.precioVenta)}
           onChange={(value) => onChange("precioVenta", value)}
         />
         <InlineField
-          label="Stock hoy"
-          value={draft?.stockActual ?? String(product.stockActual)}
-          onChange={(value) => onChange("stockActual", value)}
-        />
-        <InlineField
-          label="Stock agenda"
-          value={draft?.stockAgenda ?? String(product.stockAgenda)}
-          onChange={(value) => onChange("stockAgenda", value)}
+          label="Stock"
+          value={draft?.stock ?? String(getUnifiedProductStock(product))}
+          onChange={(value) => onChange("stock", value)}
         />
       </div>
 
@@ -2903,8 +2891,7 @@ function ProductModal({
     imageUrl?: string;
     badgeLabel?: string;
     costoUnitario: number;
-    stockActual: number;
-    stockAgenda: number;
+    stock: number;
     tipoProducto: string;
     activo: boolean;
   }) => void;
@@ -2918,8 +2905,9 @@ function ProductModal({
   const [costoUnitario, setCostoUnitario] = useState(
     String(current?.costoUnitario ?? 0)
   );
-  const [stockActual, setStockActual] = useState(String(current?.stockActual ?? 0));
-  const [stockAgenda, setStockAgenda] = useState(String(current?.stockAgenda ?? 0));
+  const [stock, setStock] = useState(
+    String(getUnifiedProductStock(current ?? { stockActual: 0, stockAgenda: 0 }))
+  );
   const [tipoProducto, setTipoProducto] = useState(current?.tipoProducto ?? "simple");
   const [activo, setActivo] = useState(current?.activo ?? true);
 
@@ -2959,7 +2947,7 @@ function ProductModal({
                 label="Catálogo"
                 value={activo ? "Activo" : "Pausado"}
               />
-              <MiniMetric label="Stock hoy" value={stockActual} />
+              <MiniMetric label="Stock" value={stock} />
               <MiniMetric
                 label="Badge"
                 value={badgeLabel || tipoProducto || "PRODUCTO CASERO"}
@@ -3046,22 +3034,12 @@ function ProductModal({
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-emerald-900">Stock hoy</span>
+            <span className="text-sm font-semibold text-emerald-900">Stock</span>
             <input
               type="number"
               min={0}
-              value={stockActual}
-              onChange={(event) => setStockActual(event.target.value)}
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
-            />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-emerald-900">Stock agenda</span>
-            <input
-              type="number"
-              min={0}
-              value={stockAgenda}
-              onChange={(event) => setStockAgenda(event.target.value)}
+              value={stock}
+              onChange={(event) => setStock(event.target.value)}
               className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
@@ -3098,8 +3076,7 @@ function ProductModal({
                   imageUrl,
                   badgeLabel,
                   costoUnitario: Number(costoUnitario),
-                  stockActual: Number(stockActual),
-                  stockAgenda: Number(stockAgenda),
+                  stock: normalizeStockValue(stock),
                   tipoProducto,
                   activo
                 })

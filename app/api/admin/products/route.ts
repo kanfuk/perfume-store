@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { normalizeStockValue } from "@/lib/stock";
 import { createProductoService } from "@/services/productoService";
 
 export async function GET() {
@@ -45,11 +46,17 @@ export async function POST(request: Request) {
       costoUnitario?: number;
       stockActual?: number;
       stockAgenda?: number;
+      stock?: number;
       activo?: boolean;
       tipoProducto?: string;
     };
+    const normalizedStock = normalizeStockValue(body.stock ?? body.stockActual ?? body.stockAgenda ?? 0);
     const productoService = createProductoService();
-    await productoService.crearProductoAdmin(body);
+    await productoService.crearProductoAdmin({
+      ...body,
+      stockActual: normalizedStock,
+      stockAgenda: normalizedStock
+    });
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
