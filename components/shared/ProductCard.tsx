@@ -56,9 +56,7 @@ export function ProductCard({
           <h4 className="font-display text-[1.35rem] font-semibold leading-tight text-[#1f3328]">
             {product.nombre}
           </h4>
-          <p className="mt-1 text-sm leading-relaxed text-[#6b7c70] break-words line-clamp-2">
-            {product.descripcion}
-          </p>
+          <p className="text-sm leading-6 text-[#6b7c70]">{product.descripcion}</p>
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-3">

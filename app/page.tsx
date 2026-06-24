@@ -22,7 +22,7 @@ export default function HomePage() {
           <div className="space-y-7">
             <div className="space-y-5">
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#247a4d] shadow-[0_12px_24px_rgba(31,51,40,0.06)]">
-                PRODUCTOS CASEROS
+                Pedidos caseros
               </div>
               <div className="flex items-center gap-4">
                 <div className="relative h-16 w-16 shrink-0 rounded-[20px] bg-white/80 p-2 shadow-[0_12px_24px_rgba(31,51,40,0.08)]">
