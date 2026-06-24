@@ -25,7 +25,7 @@ from (
   values
     ('Dobladita solo queso', 'Dobladita casera recien horneada, rellena solo con queso.', 1000, '/images/products/dobladita-solo-queso.jpeg', 'DOBLADITA QUESO', 580, 18, 18, true, 'dobladita'),
     ('Dobladita jamon de pavo acaramelado/queso', 'Dobladita casera con jamon de pavo acaramelado y queso.', 1300, '/images/products/dobladita-jamon-pavo-queso.jpeg', 'JAMON PAVO / QUESO', 760, 14, 14, true, 'dobladita premium'),
-    ('Dobladita Napolitana', 'Queso, tomate en laminas y oregano.', 1400, '/images/dobladita-napolitana.png', 'Napolitana', 760, 0, 0, true, 'dobladita'),
+    ('Dobladita Napolitana', 'Queso, tomate en laminas y oregano.', 1400, '/images/products/dobladita-napolitana.png', 'Napolitana', 760, 0, 0, true, 'dobladita'),
     ('Dobladita huevo', 'Dobladita casera rellena con huevo, ideal para desayuno.', 1500, '/images/products/dobladita-huevo.jpeg', 'DOBLADITA HUEVO', 840, 10, 10, true, 'desayuno'),
     ('Dobladita ave mayo', 'Dobladita casera con ave mayo cremosa, perfecta para media manana.', 1500, '/images/products/dobladita-ave-mayo.png', 'AVE MAYO', 950, 12, 12, true, 'dobladita'),
     ('Dobladita ave pimenton', 'Dobladita casera rellena con ave y pimenton. Precio pendiente de confirmacion.', 0, '/images/products/dobladita-ave-pimenton.jpeg', 'PRECIO PENDIENTE', 1000, 0, 0, false, 'dobladita'),
@@ -70,7 +70,7 @@ from (
   values
     ('Dobladita solo queso', 'Dobladita casera recien horneada, rellena solo con queso.', 1000, '/images/products/dobladita-solo-queso.jpeg', 'DOBLADITA QUESO', 580, 18, 18, true, 'dobladita'),
     ('Dobladita jamon de pavo acaramelado/queso', 'Dobladita casera con jamon de pavo acaramelado y queso.', 1300, '/images/products/dobladita-jamon-pavo-queso.jpeg', 'JAMON PAVO / QUESO', 760, 14, 14, true, 'dobladita premium'),
-    ('Dobladita Napolitana', 'Queso, tomate en laminas y oregano.', 1400, '/images/dobladita-napolitana.png', 'Napolitana', 760, 0, 0, true, 'dobladita'),
+    ('Dobladita Napolitana', 'Queso, tomate en laminas y oregano.', 1400, '/images/products/dobladita-napolitana.png', 'Napolitana', 760, 0, 0, true, 'dobladita'),
     ('Dobladita huevo', 'Dobladita casera rellena con huevo, ideal para desayuno.', 1500, '/images/products/dobladita-huevo.jpeg', 'DOBLADITA HUEVO', 840, 10, 10, true, 'desayuno'),
     ('Dobladita ave mayo', 'Dobladita casera con ave mayo cremosa, perfecta para media manana.', 1500, '/images/products/dobladita-ave-mayo.png', 'AVE MAYO', 950, 12, 12, true, 'dobladita'),
     ('Dobladita ave pimenton', 'Dobladita casera rellena con ave y pimenton. Precio pendiente de confirmacion.', 0, '/images/products/dobladita-ave-pimenton.jpeg', 'PRECIO PENDIENTE', 1000, 0, 0, false, 'dobladita'),

@@ -7,7 +7,7 @@
 Si quieres entender como esta la app hoy, lee en este orden:
 
 1. `docs/00_INDICE_DOCUMENTACION.md`
-2. `docs/37_ESTADO_ACTUAL_APP_2026_06_23.md`
+2. `docs/38_ESTADO_ACTUAL_APP_2026_06_24.md`
 3. `README.md`
 
 Despues baja a documentos historicos o de arquitectura segun el tipo de tarea.

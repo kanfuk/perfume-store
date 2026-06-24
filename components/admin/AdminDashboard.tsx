@@ -207,7 +207,7 @@ export function AdminDashboard({
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
   >("unsupported");
-  const [isInstalledPwa, setIsInstalledPwa] = useState(false);
+  const [isInstalledPwa] = useState(() => isRunningAsInstalledPwa());
 
   const allOrders = useMemo(
     () => [
@@ -351,7 +351,6 @@ export function AdminDashboard({
   }, []);
 
   useEffect(() => {
-    setIsInstalledPwa(isRunningAsInstalledPwa());
     void getNotificationPermissionState().then(setNotificationPermission);
   }, []);
 

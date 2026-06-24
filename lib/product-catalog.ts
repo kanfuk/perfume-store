@@ -17,7 +17,7 @@ const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {
     badgeLabel: "JAMON PAVO / QUESO"
   },
   "dobladita-napolitana": {
-    imageUrl: "/images/dobladita-napolitana.png",
+    imageUrl: "/images/products/dobladita-napolitana.png",
     badgeLabel: "Napolitana"
   },
   "dobladita-huevo": {

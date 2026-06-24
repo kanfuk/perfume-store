@@ -37,8 +37,9 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 | `35_WHATSAPP_AUTO_AGENDA_PEDIDOS.md` | Apertura automatica de WhatsApp al agendar pedidos manteniendo el boton manual. |
 | `36_CHECKLIST_QA_WHATSAPP_AUTO_AGENDA.md` | Checklist de validacion para la apertura automatica de WhatsApp al agendar. |
 | `37_ESTADO_ACTUAL_APP_2026_06_23.md` | Estado operativo actual: branding, UX mobile, panel admin, stock unificado y despliegue vigente. |
+| `38_ESTADO_ACTUAL_APP_2026_06_24.md` | Estado final vigente tras badge PWA iPhone, contador admin, limpieza de repo y unificacion de assets. |
 | `PROMPT_CODEX_INTEGRAR_ICONOS.md` | Prompt operativo para reinstalar o revisar el pack de iconos de Pauli Store. |
 
 ## Instruccion general para Codex
 
-Leer primero este indice. Si la tarea es sobre el sistema actual, revisar `37_ESTADO_ACTUAL_APP_2026_06_23.md` antes de navegar por documentos historicos. No inventar estados, modulos ni reglas que no esten documentadas.
+Leer primero este indice. Si la tarea es sobre el sistema actual, revisar `38_ESTADO_ACTUAL_APP_2026_06_24.md` antes de navegar por documentos historicos. No inventar estados, modulos ni reglas que no esten documentadas.

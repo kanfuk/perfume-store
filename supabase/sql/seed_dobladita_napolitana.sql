@@ -8,7 +8,7 @@ UPDATE productos
 SET
   descripcion = 'Queso, tomate en láminas y orégano.',
   precio_venta = 1400,
-  image_url = '/images/dobladita-napolitana.png',
+  image_url = '/images/products/dobladita-napolitana.png',
   badge_label = 'Napolitana',
   costo_unitario = 760,
   activo = true,
@@ -32,7 +32,7 @@ SELECT
   'Dobladita Napolitana',
   'Queso, tomate en láminas y orégano.',
   1400,
-  '/images/dobladita-napolitana.png',
+  '/images/products/dobladita-napolitana.png',
   'Napolitana',
   760,
   0,

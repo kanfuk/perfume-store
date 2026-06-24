@@ -125,6 +125,8 @@ Acceso directo admin en iPhone:
 - agregar a pantalla de inicio desde esa misma ruta
 - si el icono admin abre cliente, borrar el acceso directo anterior y crearlo de nuevo
 - la ruta admin usa `start_url: /admin` mediante `public/admin.webmanifest`
+- para ver badge en el icono, abrir la PWA instalada y aceptar el permiso de notificaciones desde el boton `Activar badge en icono`
+- confirmar en `Ajustes -> Notificaciones -> Pauli Admin` que `Insignias` este activo
 
 ## Incidentes comunes
 

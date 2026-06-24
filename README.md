@@ -87,8 +87,8 @@ Pendiente para una fase posterior:
 ## Produccion actual
 
 - URL publica: `https://pauli-store-clientes.vercel.app`
-- ultimo deploy validado: `2026-06-23`
-- estado operativo resumido: [docs/37_ESTADO_ACTUAL_APP_2026_06_23.md](docs/37_ESTADO_ACTUAL_APP_2026_06_23.md)
+- ultimo deploy validado: `2026-06-24`
+- estado operativo resumido: [docs/38_ESTADO_ACTUAL_APP_2026_06_24.md](docs/38_ESTADO_ACTUAL_APP_2026_06_24.md)
 
 ## Iconografia y manifest
 
@@ -120,6 +120,7 @@ Acceso directo admin en iPhone:
 - abrir `https://tu-dominio/admin` o `https://tu-dominio/admin/login`
 - usar `Compartir -> Agregar a pantalla de inicio`
 - si ya existia un acceso directo viejo, eliminarlo y crearlo de nuevo para que tome `start_url: /admin`
+- para ver badge en el icono, abrir la PWA instalada y aceptar el permiso con `Activar badge en icono`
 
 ## Documentacion clave
 
@@ -128,7 +129,7 @@ Acceso directo admin en iPhone:
 - [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
 - [docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md](docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md)
-- [docs/37_ESTADO_ACTUAL_APP_2026_06_23.md](docs/37_ESTADO_ACTUAL_APP_2026_06_23.md)
+- [docs/38_ESTADO_ACTUAL_APP_2026_06_24.md](docs/38_ESTADO_ACTUAL_APP_2026_06_24.md)
 
 ## Siguiente fase recomendada
 
