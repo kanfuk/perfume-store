@@ -625,6 +625,20 @@ export function OrderForm() {
           className="max-w-full space-y-6 overflow-x-hidden rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6"
           onSubmit={handleSubmit}
         >
+          <div className="rounded-[26px] border border-[#d8ebdd] bg-[linear-gradient(135deg,#f8fdf9_0%,#eef8f0_100%)] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
+                Pedido guiado
+              </div>
+              <p className="text-sm text-[#6b7c70]">Elige, completa tus datos y envía en menos de un minuto.</p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <StepChip step="1" title="Elige productos" text="Suma tus favoritos del día." />
+              <StepChip step="2" title="Completa tus datos" text="Así Pauli te ubica rápido." />
+              <StepChip step="3" title="Envía tu pedido" text="La confirmación llega por WhatsApp." />
+            </div>
+          </div>
+
           {recentCustomers.length > 0 ? (
             <div className="rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
               <div className="flex items-center gap-3">
@@ -633,7 +647,7 @@ export function OrderForm() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-[#1f3328]">Clientes frecuentes</h3>
-                  <p className="copy-justified text-sm text-[#6b7c70]">
+                  <p className="text-sm text-[#6b7c70]">
                     Si ya pediste desde este equipo, toca tu nombre y seguimos.
                   </p>
                 </div>
@@ -669,8 +683,11 @@ export function OrderForm() {
                   <ShoppingBag className="h-5 w-5" />
                 </div>
                 <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
+                    Paso 1
+                  </div>
                   <h3 className="text-lg font-semibold text-[#1f3328]">Catálogo del día</h3>
-                  <p className="copy-justified text-sm text-[#6b7c70]">
+                  <p className="text-sm text-[#6b7c70]">
                     Elige tus favoritos del catálogo y suma lo que necesites.
                   </p>
                 </div>
@@ -710,15 +727,18 @@ export function OrderForm() {
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
-                <UserRound className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-[#1f3328]">Tus datos</h3>
-                <p className="copy-justified text-sm text-[#6b7c70]">
-                  Completa esto y Pauli te confirma disponibilidad por WhatsApp.
-                </p>
-              </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
+                  <UserRound className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
+                    Paso 2
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#1f3328]">Tus datos</h3>
+                  <p className="text-sm text-[#6b7c70]">
+                    Completa esto y Pauli te confirma disponibilidad por WhatsApp.
+                  </p>
+                </div>
             </div>
 
             {autoFillMessage ? (
@@ -781,14 +801,30 @@ export function OrderForm() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting || loadingProducts || products.length === 0}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
-          >
-            <ShoppingBag className="h-5 w-5" />
-            {submitting ? "Registrando pedido..." : "Registrar mi pedido"}
-          </button>
+          <div className="rounded-[26px] border border-[#d8ebdd] bg-[linear-gradient(135deg,#f8fdf9_0%,#f1f9f3_100%)] p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
+                  Paso 3
+                </div>
+                <h3 className="text-lg font-semibold text-[#1f3328]">Envía tu pedido</h3>
+                <p className="text-sm leading-6 text-[#6b7c70]">
+                  Tu pedido queda pendiente hasta que Pauli confirme stock, horario y entrega por WhatsApp.
+                </p>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={submitting || loadingProducts || products.length === 0}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(63,166,107,0.2)] transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+            >
+              <ShoppingBag className="h-5 w-5" />
+              {submitting ? "Enviando pedido..." : "Enviar pedido a Pauli"}
+            </button>
+          </div>
           {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
         </form>
 
@@ -812,7 +848,7 @@ export function OrderForm() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-[#1f3328]">Pedido simple</h3>
-                <p className="copy-justified text-sm text-[#6b7c70]">
+                <p className="text-sm text-[#6b7c70]">
                   Tu pedido queda pendiente de confirmación. Pauli revisa stock y luego te escribe.
                 </p>
               </div>
@@ -823,7 +859,7 @@ export function OrderForm() {
 
       {itemCount > 0 ? (
         <div className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-xl xl:hidden">
-          <div className="flex items-center justify-between gap-4 rounded-[24px] bg-[#247a4d] px-4 py-3 text-white shadow-[0_18px_40px_rgba(31,51,40,0.24)]">
+          <div className="flex items-center justify-between gap-4 rounded-[26px] bg-[linear-gradient(135deg,#247a4d_0%,#3fa66b_100%)] px-4 py-3 text-white shadow-[0_18px_40px_rgba(31,51,40,0.24)]">
             <div className="min-w-0">
               <div className="text-xs font-semibold uppercase tracking-wide text-white/75">
                 {itemCount} producto{itemCount === 1 ? "" : "s"} · {formatCurrency(total)}
@@ -840,10 +876,10 @@ export function OrderForm() {
               }}
               className="inline-flex min-h-11 shrink-0 items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#247a4d]"
             >
-              Ver pedido
-            </button>
+                Revisar
+              </button>
+            </div>
           </div>
-        </div>
       ) : null}
 
       {isCartSheetOpen ? (
@@ -860,7 +896,7 @@ export function OrderForm() {
               <div>
                 <h3 className="text-xl font-semibold text-[#1f3328]">Tu pedido</h3>
                 <p className="text-sm text-[#6b7c70]">
-                  Revisa cantidades, total y completa tus datos cuando quieras.
+                  Revisa cantidades, total y después completa tus datos.
                 </p>
               </div>
               <button
@@ -919,7 +955,7 @@ export function OrderForm() {
                 <h3 className="text-xl font-semibold text-[#1f3328]">
                   Pedido registrado correctamente
                 </h3>
-                <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
+                <p className="text-sm leading-6 text-[#6b7c70]">
                   Tu pedido quedó pendiente de confirmación. Pauli revisará disponibilidad y te avisará por WhatsApp.
                 </p>
               </div>
@@ -949,6 +985,22 @@ export function OrderForm() {
         </div>
       ) : null}
     </>
+  );
+}
+
+function StepChip({ step, title, text }: { step: string; title: string; text: string }) {
+  return (
+    <div className="rounded-[22px] border border-[#d8ebdd] bg-white/85 p-4 shadow-[0_10px_24px_rgba(31,51,40,0.06)]">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3fa66b] text-sm font-bold text-white">
+          {step}
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-[#1f3328]">{title}</div>
+          <div className="text-xs leading-5 text-[#6b7c70]">{text}</div>
+        </div>
+      </div>
+    </div>
   );
 }
 

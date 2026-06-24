@@ -30,7 +30,7 @@ export function ProductCard({
   const isOutOfStock = availableStock <= 0;
 
   return (
-    <article className="flex h-full max-w-full flex-col overflow-hidden rounded-[28px] border border-[#d8ebdd] bg-white shadow-sm transition-[border-color,box-shadow,background-color] duration-200 touch-manipulation hover:shadow-soft">
+    <article className="flex h-full max-w-full flex-col overflow-hidden rounded-[30px] border border-[#d8ebdd] bg-white shadow-sm transition-[border-color,box-shadow,background-color,transform] duration-200 touch-manipulation hover:-translate-y-0.5 hover:shadow-soft">
       <div className="relative aspect-[4/3] min-w-0 bg-[#f6fcf7]">
         <ProductImage
           src={product.imageUrl ?? "/images/products/dobladita-ave-mayo.png"}
@@ -38,7 +38,7 @@ export function ProductCard({
           sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
           className="object-cover"
         />
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 via-black/20 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
           <span className="rounded-full border border-white/15 bg-[#1f3328]/82 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-md">
             {product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
@@ -52,10 +52,10 @@ export function ProductCard({
       </div>
       <div className="flex flex-1 flex-col space-y-4 p-4">
         <div className="space-y-2">
-          <h4 className="text-lg font-semibold text-[#1f3328]">{product.nombre}</h4>
-          <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
-            {product.descripcion}
-          </p>
+          <h4 className="font-display text-[1.35rem] font-semibold leading-tight text-[#1f3328]">
+            {product.nombre}
+          </h4>
+          <p className="text-sm leading-6 text-[#6b7c70]">{product.descripcion}</p>
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-3">
@@ -100,7 +100,7 @@ export function ProductCard({
               type="button"
               onClick={onAdd}
               disabled={isOutOfStock}
-              className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-medium text-white shadow-[0_14px_26px_rgba(63,166,107,0.18)] transition-colors hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
             >
               <Plus className="h-4 w-4" />
               {isOutOfStock ? "Sin stock" : actionLabel ?? "Elegir"}

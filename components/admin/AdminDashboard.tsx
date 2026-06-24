@@ -903,7 +903,7 @@ export function AdminDashboard({
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
-      <section className="max-w-full overflow-x-hidden rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+      <section className="max-w-full overflow-x-hidden rounded-[28px] border border-emerald-100 bg-[linear-gradient(135deg,#f8fdf9_0%,#edf8f0_100%)] p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
@@ -924,12 +924,17 @@ export function AdminDashboard({
                 <div className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
                   Pauli Store
                 </div>
-                <h1 className="text-3xl font-bold text-emerald-950">{currentViewMeta.title}</h1>
+                <h1 className="font-display text-3xl font-semibold text-emerald-950">
+                  {currentViewMeta.title}
+                </h1>
               </div>
             </div>
             <div className="space-y-1">
               <p className="max-w-3xl text-sm leading-6 text-emerald-900/70">
                 {currentViewMeta.description}
+              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700/80">
+                Pauli Store admin
               </p>
             </div>
           </div>

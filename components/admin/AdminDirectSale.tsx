@@ -313,7 +313,7 @@ export function AdminDirectSale({
                 </div>
               </div>
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold text-[#1f3328] sm:text-4xl">
+                <h1 className="font-display text-3xl font-semibold text-[#1f3328] sm:text-4xl">
                   Venta directa
                 </h1>
                 <p className="max-w-3xl text-sm leading-6 text-[#6b7c70] sm:text-base">

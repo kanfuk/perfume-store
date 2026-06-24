@@ -26,8 +26,8 @@ export function CartSummary({
   onDecrease,
   onIncrease,
   onRemove,
-  emptyText = "Tu resumen aparecera apenas elijas un producto.",
-  title = "Tu pedido",
+  emptyText = "Tu resumen aparecerá apenas elijas un producto.",
+  title = "Resumen de tu pedido",
   subtitle = "Revisa cantidad, valor unitario y total antes de enviarlo.",
   footer
 }: CartSummaryProps) {
@@ -36,8 +36,8 @@ export function CartSummary({
       <div className="bg-[linear-gradient(180deg,#f6fcf7_0%,#eef8f0_100%)] p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-[#1f3328]">{title}</h3>
-            <p className="copy-justified mt-1 text-sm text-[#6b7c70]">{subtitle}</p>
+            <h3 className="font-display text-xl font-semibold text-[#1f3328]">{title}</h3>
+            <p className="mt-1 text-sm text-[#6b7c70]">{subtitle}</p>
           </div>
           <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#247a4d]">
             {(totalItems ?? lines.length)} unidad{(totalItems ?? lines.length) === 1 ? "" : "es"}
@@ -57,11 +57,11 @@ export function CartSummary({
                 className="flex items-start justify-between gap-4 rounded-[22px] border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-3"
               >
                 <div className="flex min-w-0 gap-3">
-                  <div className="relative hidden h-16 w-16 shrink-0 overflow-hidden rounded-[16px] border border-[#d8ebdd] bg-white sm:block">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[16px] border border-[#d8ebdd] bg-white sm:h-16 sm:w-16">
                     <ProductImage
                       src={item.product?.imageUrl ?? "/images/products/pedido-personalizado.png"}
                       alt={item.product?.nombre ?? "Producto"}
-                      sizes="64px"
+                      sizes="(max-width: 640px) 56px, 64px"
                       className="object-cover"
                     />
                   </div>

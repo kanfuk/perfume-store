@@ -42,7 +42,8 @@ body {
     radial-gradient(circle at top right, rgba(234, 246, 236, 0.72), transparent 24%),
     linear-gradient(180deg, #f8fdf9 0%, #eef8f0 100%);
   color: var(--text-main);
-  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
 main {
@@ -86,6 +87,11 @@ input[type="date"] {
 .copy-justified {
   text-align: justify;
   text-justify: inter-word;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.03em;
 }
 
 .text-danger {

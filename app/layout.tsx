@@ -1,5 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap"
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap"
+});
 
 export const metadata: Metadata = {
   title: "Pauli Store",
@@ -47,7 +60,7 @@ type RootLayoutProps = Readonly<{
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className={`${manrope.variable} ${fraunces.variable}`}>{children}</body>
     </html>
   );
 }
