@@ -287,6 +287,7 @@ export class PedidoService {
       ? parseChileanMobilePhone(input.telefono)?.e164 ?? ""
       : "";
     const cliente = new Cliente({
+      id: input.clienteId,
       nombre: input.nombre.trim(),
       telefono,
       lugarTrabajo: input.lugarTrabajo?.trim() || "Pedido personalizado"
@@ -342,7 +343,10 @@ export class PedidoService {
       motivoCancelacion: undefined
     });
 
-    const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
+    const { id: clienteId } = await this.clienteRepository.upsertCliente(
+      cliente,
+      input.clienteId
+    );
     const observationParts = [input.descripcion?.trim(), input.costoEstimadoTotal !== undefined
       ? `Costo estimado total: ${input.costoEstimadoTotal}`
       : undefined].filter(Boolean);

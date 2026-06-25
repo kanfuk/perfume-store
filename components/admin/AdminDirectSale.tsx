@@ -19,6 +19,7 @@ import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { formatChileanMobileInput } from "@/lib/chile-phone";
+import { getChileTodayInputValue } from "@/lib/date";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
 import { getAvailableProductStock } from "@/lib/stock";
@@ -73,6 +74,8 @@ const initialCustomForm = {
   fechaEntrega: "",
   estadoInicial: "AGENDADO" as "AGENDADO" | "PAGADO" | "FIADO"
 };
+
+const todayDate = getChileTodayInputValue();
 
 export function AdminDirectSale({
   initialDashboard,
@@ -136,6 +139,8 @@ export function AdminDirectSale({
   const [paymentState, setPaymentState] = useState<"PAGADO" | "FIADO">("PAGADO");
   const [catalogNote, setCatalogNote] = useState("");
   const [customForm, setCustomForm] = useState(initialCustomForm);
+  const [customSelectedCustomerId, setCustomSelectedCustomerId] = useState("");
+  const [customCustomerSearch, setCustomCustomerSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -239,6 +244,77 @@ export function AdminDirectSale({
   function selectSuggestedCustomer(customer: ExistingCustomer) {
     setCustomerMode("existente");
     syncExistingCustomer(customer.id);
+  }
+
+  const customCustomerSearchQuery = normalizarTexto(customCustomerSearch);
+  const normalizedCustomCustomerName = normalizarTexto(customForm.nombre);
+  const normalizedCustomCustomerPhone = customForm.telefono.replace(/\D/g, "");
+  const normalizedCustomCustomerPlace = normalizarTexto(customForm.lugarTrabajo);
+  const filteredCustomCustomers = useMemo(() => {
+    if (!customCustomerSearchQuery) {
+      return [];
+    }
+
+    return customers.filter((customer) => {
+      return (
+        normalizarTexto(customer.nombre).includes(customCustomerSearchQuery) ||
+        normalizarTexto(customer.telefono).includes(customCustomerSearchQuery) ||
+        normalizarTexto(customer.lugarTrabajo).includes(customCustomerSearchQuery)
+      );
+    });
+  }, [customCustomerSearchQuery, customers]);
+  const matchedCustomCustomer = useMemo(() => {
+    if (customSelectedCustomerId) {
+      return customers.find((customer) => customer.id === customSelectedCustomerId) ?? null;
+    }
+
+    return (
+      customers.find((customer) => {
+        const phoneMatches =
+          normalizedCustomCustomerPhone.length > 0 &&
+          customer.telefono.replace(/\D/g, "") === normalizedCustomCustomerPhone;
+        const nameMatches =
+          normalizedCustomCustomerName.length > 0 &&
+          normalizarTexto(customer.nombre) === normalizedCustomCustomerName;
+        const placeMatches =
+          normalizedCustomCustomerPlace.length === 0 ||
+          normalizarTexto(customer.lugarTrabajo) === normalizedCustomCustomerPlace;
+
+        return phoneMatches || (nameMatches && placeMatches);
+      }) ?? null
+    );
+  }, [
+    customers,
+    customSelectedCustomerId,
+    normalizedCustomCustomerName,
+    normalizedCustomCustomerPhone,
+    normalizedCustomCustomerPlace
+  ]);
+
+  function syncCustomExistingCustomer(customerId: string) {
+    setCustomSelectedCustomerId(customerId);
+    const customer = customers.find((item) => item.id === customerId);
+
+    if (!customer) {
+      return;
+    }
+
+    setCustomForm((current) => ({
+      ...current,
+      nombre: customer.nombre,
+      telefono: customer.telefono,
+      lugarTrabajo: customer.lugarTrabajo
+    }));
+    setCustomCustomerSearch(customer.nombre);
+  }
+
+  function handleCustomCustomerSearchChange(value: string) {
+    setCustomCustomerSearch(value);
+    setCustomSelectedCustomerId("");
+  }
+
+  function selectSuggestedCustomCustomer(customer: ExistingCustomer) {
+    syncCustomExistingCustomer(customer.id);
   }
 
   function addProduct(productId: string) {
@@ -372,6 +448,7 @@ export function AdminDirectSale({
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          clienteId: matchedCustomCustomer?.id,
           nombre: customForm.nombre,
           telefono: customForm.telefono,
           lugarTrabajo: customForm.lugarTrabajo,
@@ -393,6 +470,8 @@ export function AdminDirectSale({
         throw new Error(data.error ?? "No fue posible registrar el pedido personalizado.");
       }
       setCustomForm(initialCustomForm);
+      setCustomSelectedCustomerId("");
+      setCustomCustomerSearch("");
       setStockLimitMessage("");
       setSuccessMessage(
         `Pedido personalizado registrado correctamente. Código interno: ${data.pedidoId ?? "OK"}.`
@@ -690,6 +769,48 @@ export function AdminDirectSale({
               title="Pedido personalizado"
               subtitle="Registra pedidos especiales como queques enteros, preparaciones a pedido u otros productos."
             >
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-[#1f3328]">Cliente existente opcional</span>
+                <label className="relative block">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7c70]" />
+                  <input
+                    value={customCustomerSearch}
+                    onChange={(event) => handleCustomCustomerSearchChange(event.target.value)}
+                    placeholder="Busca por nombre, telefono o lugar de trabajo"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
+                  />
+                </label>
+                {filteredCustomCustomers.length > 0 ? (
+                  <div className="max-h-64 overflow-y-auto rounded-[20px] border border-[#d8ebdd] bg-[#f8fdf9] p-2">
+                    {filteredCustomCustomers.slice(0, 8).map((customer) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        onClick={() => selectSuggestedCustomCustomer(customer)}
+                        className="flex w-full items-start justify-between gap-3 rounded-[16px] px-3 py-3 text-left transition hover:bg-white"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[#1f3328]">{customer.nombre}</div>
+                          <div className="text-sm text-[#6b7c70]">
+                            {customer.telefono || "Sin telefono"}
+                          </div>
+                          {customer.lugarTrabajo ? (
+                            <div className="text-sm text-[#6b7c70]">{customer.lugarTrabajo}</div>
+                          ) : null}
+                        </div>
+                        {customSelectedCustomerId === customer.id ? (
+                          <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : customCustomerSearchQuery ? (
+                  <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                    No encontramos coincidencias. Puedes seguir con cliente nuevo.
+                  </div>
+                ) : null}
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <TextField
                   label="Nombre cliente"
@@ -721,6 +842,16 @@ export function AdminDirectSale({
                 placeholder="Ejemplo: Torre norte"
                 icon={<Building2 className="h-4 w-4" />}
               />
+
+              {matchedCustomCustomer ? (
+                <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  Este pedido se asociara al cliente existente {matchedCustomCustomer.nombre}.
+                </div>
+              ) : normalizedCustomCustomerName ? (
+                <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                  Si no coincide con un cliente existente, se registrara como cliente nuevo.
+                </div>
+              ) : null}
 
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-[#1f3328]">
@@ -755,15 +886,40 @@ export function AdminDirectSale({
                   placeholder="Queque entero de naranja"
                   icon={<NotebookPen className="h-4 w-4" />}
                 />
-                <TextField
-                  label="Fecha de entrega opcional"
-                  value={customForm.fechaEntrega}
-                  onChange={(value) =>
-                    setCustomForm((current) => ({ ...current, fechaEntrega: value }))
-                  }
-                  placeholder="2026-06-20"
-                  icon={<CalendarClock className="h-4 w-4" />}
-                />
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[#1f3328]">
+                    Fecha de entrega opcional
+                  </span>
+                  <div className="flex items-center gap-3 rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3">
+                    <span className="text-[#6b7c70]">
+                      <CalendarClock className="h-4 w-4" />
+                    </span>
+                    <input
+                      type="date"
+                      min={todayDate}
+                      value={customForm.fechaEntrega}
+                      onChange={(event) =>
+                        setCustomForm((current) => ({
+                          ...current,
+                          fechaEntrega: event.target.value
+                        }))
+                      }
+                      className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#1f3328] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCustomForm((current) => ({
+                          ...current,
+                          fechaEntrega: todayDate
+                        }))
+                      }
+                      className="shrink-0 rounded-xl border border-[#d8ebdd] bg-[#f6fcf7] px-3 py-2 text-sm font-semibold text-[#247a4d]"
+                    >
+                      Hoy
+                    </button>
+                  </div>
+                </label>
               </div>
 
               <label className="block space-y-2">

@@ -62,6 +62,7 @@ export type AdminCustomerOption = {
 };
 
 export type CustomOrderRequest = {
+  clienteId?: string;
   nombre: string;
   telefono?: string;
   lugarTrabajo?: string;
