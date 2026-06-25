@@ -39,8 +39,9 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 | `37_ESTADO_ACTUAL_APP_2026_06_23.md` | Estado operativo actual: branding, UX mobile, panel admin, stock unificado y despliegue vigente. |
 | `38_ESTADO_ACTUAL_APP_2026_06_24.md` | Estado final vigente tras badge PWA iPhone, contador admin, limpieza de repo y unificacion de assets. |
 | `39_PRELANZAMIENTO_OPERATIVO_2026_06_24.md` | Resultado de la pasada final sobre produccion, Supabase, seguridad visible y checklist de cierre operativo. |
+| `40_ESTADO_ACTUAL_APP_2026_06_25.md` | Estado vigente tras ajustes de fiados agrupados, clientes existentes, cobro WhatsApp y cierre documental del fix final. |
 | `PROMPT_CODEX_INTEGRAR_ICONOS.md` | Prompt operativo para reinstalar o revisar el pack de iconos de Pauli Store. |
 
 ## Instruccion general para Codex
 
-Leer primero este indice. Si la tarea es sobre el sistema actual, revisar `38_ESTADO_ACTUAL_APP_2026_06_24.md` y `39_PRELANZAMIENTO_OPERATIVO_2026_06_24.md` antes de navegar por documentos historicos. No inventar estados, modulos ni reglas que no esten documentadas.
+Leer primero este indice. Si la tarea es sobre el sistema actual, revisar `40_ESTADO_ACTUAL_APP_2026_06_25.md` y luego `39_PRELANZAMIENTO_OPERATIVO_2026_06_24.md` antes de navegar por documentos historicos. No inventar estados, modulos ni reglas que no esten documentadas.

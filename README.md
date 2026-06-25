@@ -15,7 +15,10 @@ Hoy el proyecto ya incluye:
 - panel admin con login real usando Supabase Auth
 - branding visible de Pauli Store en cliente y admin
 - venta directa y pedido personalizado desde admin
+- seleccion de clientes existentes en venta directa y pedido personalizado
 - stock unificado visible en admin, sincronizado con `stock_actual` y `stock_agenda`
+- agrupacion de fiados por cliente con cobro consolidado por WhatsApp
+- contador de pedidos por atender ajustado al estado real de atencion admin
 - control adicional contra tabla `usuarios_admin`
 - repositorios y servicios con reglas de negocio
 - seguridad base en headers, RLS y validaciones servidor
@@ -87,8 +90,8 @@ Pendiente para una fase posterior:
 ## Produccion actual
 
 - URL publica: `https://pauli-store-clientes.vercel.app`
-- ultimo deploy validado: `2026-06-24`
-- estado operativo resumido: [docs/38_ESTADO_ACTUAL_APP_2026_06_24.md](docs/38_ESTADO_ACTUAL_APP_2026_06_24.md)
+- ultimo deploy validado: `2026-06-25`
+- estado operativo resumido: [docs/40_ESTADO_ACTUAL_APP_2026_06_25.md](docs/40_ESTADO_ACTUAL_APP_2026_06_25.md)
 
 ## Iconografia y manifest
 
@@ -129,11 +132,11 @@ Acceso directo admin en iPhone:
 - [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
 - [docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md](docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md)
-- [docs/38_ESTADO_ACTUAL_APP_2026_06_24.md](docs/38_ESTADO_ACTUAL_APP_2026_06_24.md)
+- [docs/40_ESTADO_ACTUAL_APP_2026_06_25.md](docs/40_ESTADO_ACTUAL_APP_2026_06_25.md)
 
 ## Siguiente fase recomendada
 
 1. validar en Supabase real que `stock_actual = stock_agenda` despues de editar y vender
-2. ejecutar limpieza final de datos de prueba antes del lanzamiento
-3. preparar automatizacion adicional de WhatsApp si sigue siendo prioridad
+2. confirmar en produccion la reasociacion de pedidos manuales al cliente correcto cuando se dejan fiados
+3. ejecutar limpieza final de datos de prueba antes del lanzamiento
 4. validar flujo completo desde celular con Pauli usando datos reales
