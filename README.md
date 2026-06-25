@@ -103,7 +103,7 @@ La app ya integra:
 - `public/icons/android-chrome-512x512.png`
 - `public/site.webmanifest`
 - `public/admin.webmanifest`
-- `public/icons/*`
+- `public/icons/` con el set vigente del logo de Pauli Store
 
 Verificacion recomendada despues del deploy:
 

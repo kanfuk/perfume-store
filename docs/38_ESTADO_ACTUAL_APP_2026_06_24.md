@@ -55,7 +55,7 @@ Estado actual:
 - `public/icons/apple-touch-icon.png`
 - `public/icons/android-chrome-192x192.png`
 - `public/icons/android-chrome-512x512.png`
-- `public/icons/*` como pack extendido
+- `public/icons/` solo con los iconos vigentes del logo de Pauli Store
 - `app/icon.png`, `app/apple-icon.png` y `app/favicon.ico` para metadata App Router
 
 Importante:
@@ -70,7 +70,7 @@ Importante:
 - se eliminaron archivos versionados de `supabase/.temp/`
 - se unifico la imagen de `Dobladita Napolitana` a `/images/products/dobladita-napolitana.png`
 - se dejo una migracion para corregir `image_url` antigua en base remota
-- se mantuvo el pack de iconos realmente usado por manifests y metadata
+- se dejo solo el pack de iconos realmente usado por manifests y metadata
 
 ## QA local ejecutado en esta pasada
 
