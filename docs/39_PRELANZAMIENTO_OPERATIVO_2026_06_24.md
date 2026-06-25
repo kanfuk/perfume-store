@@ -69,20 +69,27 @@ Recomendacion:
 
 - revisar desde admin que productos deben quedar visibles antes de considerar cerrado el lanzamiento
 
-### 2. Existe un admin de desarrollo en produccion
+### 2. Warning manual de Supabase Auth
 
-Se detecta un usuario/admin con correo local de desarrollo:
+Sigue pendiente una advertencia del Advisor:
 
-- `admin@paulistore.local`
+- `Leaked Password Protection Disabled`
 
 Impacto:
 
-- no rompe la app hoy
-- pero no deberia quedar como cuenta operativa si ya no se usa
+- no rompe la app ni el login actual
+- pero conviene activarlo para bloquear passwords filtradas
 
 Recomendacion:
 
-- confirmar si se elimina de `usuarios_admin` y de Supabase Auth
+- activar el switch en el dashboard de Supabase Auth
+
+## Limpieza aplicada despues del chequeo
+
+- se elimino `admin@paulistore.local` de `usuarios_admin`
+- se elimino `admin@paulistore.local` de Supabase Auth
+- se elimino la tabla backup `productos_backup_textos_20260623`
+- se cerraron permisos RPC de mantenimiento a `anon` y `authenticated`
 
 ## Activos vigentes para mantenimiento
 

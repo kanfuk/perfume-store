@@ -32,6 +32,7 @@ Dejar el MVP expuesto en internet con una base de seguridad razonable para una t
 - politica publica solo para insertar `pedidos` y `pedido_items`
 - insercion de `clientes` cerrada al publico; se resuelve desde servidor
 - politicas admin para lectura y gestion autenticada en tablas internas
+- funciones de mantenimiento SQL sin `EXECUTE` para `anon` ni `authenticated`
 - trigger `set_updated_at()` con `search_path` fijo
 - limpieza de funcion antigua `public.rls_auto_enable()`
 
@@ -173,6 +174,23 @@ Hay cosas que el codigo no puede activar por si solo y deben quedar revisadas en
 2. `Authentication -> URL Configuration`
 3. usuarios admin reales creados en Auth y reflejados en `usuarios_admin`
 4. volver a ejecutar `supabase/schema.sql` cuando se actualicen politicas RLS
+
+## Supabase Advisor al cierre
+
+Corregido desde SQL:
+
+- funciones `SECURITY DEFINER` expuestas a `anon` y `authenticated`
+- tabla backup tecnica `productos_backup_textos_20260623`
+- admin local de desarrollo eliminado del flujo operativo
+
+Sigue siendo manual en dashboard:
+
+- `Leaked Password Protection Disabled`
+
+Motivo:
+
+- Supabase no expone ese switch como migracion SQL del proyecto
+- debe activarse desde `Authentication -> Providers / Password security` segun la version visible del panel
 
 ## Riesgo residual aceptado
 
