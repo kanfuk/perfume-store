@@ -4080,7 +4080,7 @@ function agruparFiadosPorCliente(fiados: AdminOrderSummary[] = []) {
   const groups = new Map<string, GroupedFiadoCustomer>();
 
   fiados.forEach((fiado) => {
-    const clienteId = fiado.clienteId || buildCustomerIdentityKey(fiado);
+    const clienteId = findGroupedFiadoKey(groups, fiado);
 
     if (!clienteId) {
       return;
@@ -4095,6 +4095,15 @@ function agruparFiadosPorCliente(fiados: AdminOrderSummary[] = []) {
       cantidadFiados: 0,
       fiados: []
     };
+
+    if (shouldReplaceGroupedCustomerData(current, fiado)) {
+      current.clienteId = fiado.clienteId || current.clienteId;
+      current.nombre = fiado.clienteNombre || current.nombre;
+      current.telefono = fiado.clienteTelefono || current.telefono;
+      current.lugarTrabajo = pickBetterWorkplace(current.lugarTrabajo, fiado.clienteLugarTrabajo);
+    } else if (!current.lugarTrabajo) {
+      current.lugarTrabajo = fiado.clienteLugarTrabajo || current.lugarTrabajo;
+    }
 
     current.totalPendiente += Number(fiado.saldoPendiente || 0);
     current.cantidadFiados += 1;
@@ -4111,6 +4120,107 @@ function agruparFiadosPorCliente(fiados: AdminOrderSummary[] = []) {
       )
     }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
+function findGroupedFiadoKey(
+  groups: Map<string, GroupedFiadoCustomer>,
+  fiado: AdminOrderSummary
+) {
+  const normalizedPhone = fiado.clienteTelefono.replace(/\D/g, "");
+  const normalizedName = normalizeIdentityValue(fiado.clienteNombre);
+  const normalizedWorkplace = normalizeIdentityValue(fiado.clienteLugarTrabajo);
+
+  if (normalizedPhone) {
+    const phoneMatch = Array.from(groups.entries()).find(([, customer]) => {
+      return customer.telefono.replace(/\D/g, "") === normalizedPhone;
+    });
+
+    if (phoneMatch) {
+      return phoneMatch[0];
+    }
+  }
+
+  const nameMatch = Array.from(groups.entries()).find(([, customer]) => {
+    const sameName = normalizeIdentityValue(customer.nombre) === normalizedName;
+
+    if (!sameName) {
+      return false;
+    }
+
+    const customerWorkplace = normalizeIdentityValue(customer.lugarTrabajo);
+    const workplacesCompatible =
+      !normalizedWorkplace ||
+      !customerWorkplace ||
+      normalizedWorkplace === customerWorkplace ||
+      isWeakCustomerWorkplace(normalizedWorkplace) ||
+      isWeakCustomerWorkplace(customerWorkplace);
+    const phoneCompatible =
+      !normalizedPhone || !customer.telefono || customer.telefono.replace(/\D/g, "") === normalizedPhone;
+
+    return workplacesCompatible && phoneCompatible;
+  });
+
+  if (nameMatch) {
+    return nameMatch[0];
+  }
+
+  return fiado.clienteId || buildCustomerIdentityKey(fiado);
+}
+
+function isWeakCustomerWorkplace(value: string) {
+  return (
+    value === "" ||
+    value === "venta directa" ||
+    value === "venta whatsapp manual" ||
+    value === "pedido personalizado"
+  );
+}
+
+function pickBetterWorkplace(currentValue: string, incomingValue: string) {
+  const current = currentValue || "";
+  const incoming = incomingValue || "";
+
+  if (!current) {
+    return incoming;
+  }
+
+  if (!incoming) {
+    return current;
+  }
+
+  const currentWeak = isWeakCustomerWorkplace(normalizeIdentityValue(current));
+  const incomingWeak = isWeakCustomerWorkplace(normalizeIdentityValue(incoming));
+
+  if (currentWeak && !incomingWeak) {
+    return incoming;
+  }
+
+  if (!currentWeak && incomingWeak) {
+    return current;
+  }
+
+  return incoming.length > current.length ? incoming : current;
+}
+
+function shouldReplaceGroupedCustomerData(
+  current: GroupedFiadoCustomer,
+  fiado: AdminOrderSummary
+) {
+  const currentScore =
+    Number(Boolean(current.telefono)) * 4 +
+    Number(!isWeakCustomerWorkplace(normalizeIdentityValue(current.lugarTrabajo || ""))) * 2 +
+    Number(Boolean(current.lugarTrabajo)) +
+    Number(Boolean(current.nombre));
+  const incomingScore =
+    Number(Boolean(fiado.clienteTelefono)) * 4 +
+    Number(
+      !isWeakCustomerWorkplace(normalizeIdentityValue(fiado.clienteLugarTrabajo || ""))
+    ) *
+      2 +
+    Number(Boolean(fiado.clienteLugarTrabajo)) +
+    Number(Boolean(fiado.clienteNombre));
+
+  return incomingScore > currentScore;
 }
 
 function getFiadoDateValue(order: AdminOrderSummary) {
@@ -4151,7 +4261,12 @@ function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
     })
     .join("\n\n");
 
-  const message = [
+  return buildWhatsAppManualUrl(
+    normalizedPhone.e164.replace(/\D/g, ""),
+    buildGroupedDebtCollectionMessage(total, detail)
+  );
+
+  void [
     "Buenas tardes! ☀️",
     "",
     "Muchas gracias por preferirme esta semana para acompanar sus desayunos 💛",
@@ -4173,7 +4288,7 @@ function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
     paymentInfo.email
   ].join("\n");
 
-  return buildWhatsAppManualUrl(normalizedPhone.e164.replace(/\D/g, ""), message);
+  return "";
 }
 
 function getDebtCollectionAction(order: AdminOrderSummary) {
@@ -4214,6 +4329,30 @@ function getDebtCollectionAction(order: AdminOrderSummary) {
       }))
     })
   );
+}
+
+function buildGroupedDebtCollectionMessage(total: string, detail: string) {
+  return [
+    "Buenas tardes! \u2600\uFE0F",
+    "",
+    "Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos \u{1F49B}",
+    "Le env\u00EDo el detalle de su cuenta:",
+    "",
+    `\u2728Monto total: ${total}`,
+    "\u{1F4DD}Detalle:",
+    detail,
+    "",
+    "Le dejo mis datos para transferencia.",
+    "",
+    "Muchas gracias nuevamente! \u{1F917}",
+    "",
+    paymentInfo.accountHolder,
+    paymentInfo.rut,
+    paymentInfo.bank,
+    paymentInfo.accountType,
+    paymentInfo.accountNumber,
+    paymentInfo.email
+  ].join("\n");
 }
 
 function getNewOrderAdminWhatsAppUrl(order: AdminOrderSummary) {

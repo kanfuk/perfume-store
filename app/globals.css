@@ -130,19 +130,14 @@ input[type="date"] {
 }
 
 .product-description {
-  text-align: left;
+  text-align: justify;
+  text-justify: inter-word;
+  text-align-last: left;
   line-height: 1.5;
   letter-spacing: 0.01em;
   overflow-wrap: anywhere;
   hyphens: auto;
   word-break: normal;
-}
-
-@media (min-width: 640px) {
-  .product-description {
-    text-align: justify;
-    text-justify: inter-word;
-  }
 }
 
 .cart-badge-pop {
