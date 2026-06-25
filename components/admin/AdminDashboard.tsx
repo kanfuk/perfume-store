@@ -40,6 +40,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
+import { paymentInfo } from "@/config/paymentInfo";
 import {
   getPendingAdminOrders,
   getPendingAdminOrdersCount
@@ -4141,25 +4142,35 @@ function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
       const items = fiado.items.length
         ? fiado.items
             .map((item) => {
-              const subtotal = item.subtotal ? ` - ${formatCurrency(item.subtotal)}` : "";
-              return `  - ${item.cantidad}x ${item.productoNombre}${subtotal}`;
+              return `  (${item.cantidad} ${item.productoNombre})`;
             })
             .join("\n")
-        : "  - Pedido registrado";
+        : "  (Pedido registrado)";
 
-      return `- ${formatFiadoDate(fiado)} - ${formatCurrency(fiado.saldoPendiente)}\n${items}`;
+      return `- ${formatCurrency(fiado.saldoPendiente)} del ${formatFiadoDate(fiado)}\n${items}`;
     })
     .join("\n\n");
 
   const message = [
-    `Hola ${customer.nombre}, te escribo de Pauli Store para recordarte tu saldo pendiente.`,
+    "Buenas tardes! ☀️",
     "",
-    `Total pendiente: ${total}`,
+    "Muchas gracias por preferirme esta semana para acompanar sus desayunos 💛",
+    "Le envio el detalle de su cuenta:",
     "",
-    "Detalle:",
+    `✨Monto total: ${total}`,
+    "📝Detalle:",
     detail,
     "",
-    "Cuando puedas me confirmas el pago por este medio. Muchas gracias."
+    "Le dejo mis datos para transferencia.",
+    "",
+    "Muchas gracias nuevamente! 🤗",
+    "",
+    paymentInfo.accountHolder,
+    paymentInfo.rut,
+    paymentInfo.bank,
+    paymentInfo.accountType,
+    paymentInfo.accountNumber,
+    paymentInfo.email
   ].join("\n");
 
   return buildWhatsAppManualUrl(normalizedPhone.e164.replace(/\D/g, ""), message);
