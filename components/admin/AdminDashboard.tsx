@@ -4332,22 +4332,42 @@ function getDebtCollectionAction(order: AdminOrderSummary) {
   );
 }
 
+function waSunEmoji() {
+  return String.fromCodePoint(0x2600, 0xfe0f);
+}
+
+function waHeartEmoji() {
+  return String.fromCodePoint(0x1f49b);
+}
+
+function waSparklesEmoji() {
+  return String.fromCodePoint(0x2728);
+}
+
+function waMemoEmoji() {
+  return String.fromCodePoint(0x1f4dd);
+}
+
+function waHugEmoji() {
+  return String.fromCodePoint(0x1f917);
+}
+
 function buildGroupedDebtCollectionMessage(name: string, total: string, detail: string) {
   return [
-    "Buenas tardes! \u2600",
+    `Buenas tardes! ${waSunEmoji()}`,
     "",
     `Hola ${name},`,
     "",
-    "Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos \u2665",
+    `Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos ${waHeartEmoji()}`,
     "Le env\u00EDo el detalle de su cuenta:",
     "",
-    `\u2728Monto total: ${total}`,
-    "\u2022Detalle:",
+    `${waSparklesEmoji()}Monto total: ${total}`,
+    `${waMemoEmoji()}Detalle:`,
     detail,
     "",
     "Le dejo mis datos para transferencia.",
     "",
-    "Muchas gracias nuevamente! \u263A",
+    `¡Muchas gracias nuevamente! ${waHugEmoji()}`,
     "",
     paymentInfo.accountHolder,
     paymentInfo.rut,
