@@ -20,19 +20,19 @@ export function buildDebtCollectionMessage(input: BuildDebtCollectionMessageInpu
   const greetingLines = input.customerName ? [`Hola ${input.customerName},`, ""] : [];
 
   return [
-    "Buenas tardes! \u2600\uFE0F",
+    "Buenas tardes! \u2600",
     "",
     ...greetingLines,
-    "Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos \ud83d\udc9b",
+    "Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos \u2665",
     "Le env\u00EDo el detalle de su cuenta:",
     "",
     `\u2728Monto total: ${formatCurrency(input.amount)}`,
-    "\ud83d\udcddDetalle:",
+    "\u2022Detalle:",
     ...detailLines,
     "",
     "Le dejo mis datos para transferencia.",
     "",
-    "Muchas gracias nuevamente! \ud83e\udd17",
+    "Muchas gracias nuevamente! \u263A",
     "",
     paymentInfo.accountHolder,
     paymentInfo.rut,
