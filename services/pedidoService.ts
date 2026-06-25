@@ -175,6 +175,7 @@ export class PedidoService {
       ? parseChileanMobilePhone(input.telefono)?.e164 ?? ""
       : "";
     const cliente = new Cliente({
+      id: input.clienteId,
       nombre: input.nombre?.trim() || "Cliente ocasional",
       telefono,
       lugarTrabajo: input.lugarTrabajo?.trim() || "Venta directa"
@@ -205,7 +206,10 @@ export class PedidoService {
       fechaCierre: new Date()
     });
 
-    const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
+    const { id: clienteId } = await this.clienteRepository.upsertCliente(
+      cliente,
+      input.clienteId
+    );
     const { id: pedidoId } = await this.pedidoRepository.insertarPedido({
       pedido,
       clienteId,

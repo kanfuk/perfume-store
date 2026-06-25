@@ -4,9 +4,11 @@ import {
   BadgeCheck,
   Building2,
   CalendarClock,
+  Check,
   Home,
   NotebookPen,
   Phone,
+  Search,
   ShoppingBag,
   Sparkles,
   UserRound
@@ -20,21 +22,43 @@ import { formatChileanMobileInput } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
 import { getAvailableProductStock } from "@/lib/stock";
-import type { AdminDashboardData, AdminProductRecord } from "@/lib/types";
+import type {
+  AdminCustomerOption,
+  AdminDashboardData,
+  AdminProductRecord
+} from "@/lib/types";
 
 type Mode = "catalogo" | "personalizado";
 
 type AdminDirectSaleProps = {
   initialDashboard: AdminDashboardData;
   initialProducts: AdminProductRecord[];
+  initialCustomers: AdminCustomerOption[];
 };
 
 type ExistingCustomer = {
-  key: string;
+  id: string;
   nombre: string;
   telefono: string;
   lugarTrabajo: string;
 };
+
+function normalizarTexto(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function buildCustomerKey(customer: Pick<ExistingCustomer, "nombre" | "telefono" | "lugarTrabajo">) {
+  return [
+    customer.telefono.replace(/\D/g, ""),
+    normalizarTexto(customer.nombre),
+    normalizarTexto(customer.lugarTrabajo)
+  ].join("|");
+}
 
 const initialCustomForm = {
   nombre: "",
@@ -52,7 +76,8 @@ const initialCustomForm = {
 
 export function AdminDirectSale({
   initialDashboard,
-  initialProducts
+  initialProducts,
+  initialCustomers
 }: AdminDirectSaleProps) {
   const products = useMemo(
     () =>
@@ -74,12 +99,20 @@ export function AdminDirectSale({
       ...initialDashboard.cancelados
     ];
 
+    initialCustomers.forEach((customer) => {
+      map.set(buildCustomerKey(customer), customer);
+    });
+
     allOrders.forEach((order) => {
-      const key = order.clienteTelefono || `${order.clienteNombre}__${order.clienteLugarTrabajo}`;
+      const key = buildCustomerKey({
+        nombre: order.clienteNombre,
+        telefono: order.clienteTelefono,
+        lugarTrabajo: order.clienteLugarTrabajo
+      });
 
       if (!map.has(key)) {
         map.set(key, {
-          key,
+          id: order.clienteId,
           nombre: order.clienteNombre,
           telefono: order.clienteTelefono,
           lugarTrabajo: order.clienteLugarTrabajo
@@ -87,15 +120,16 @@ export function AdminDirectSale({
       }
     });
 
-    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [initialDashboard]);
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [initialCustomers, initialDashboard]);
 
   const [mode, setMode] = useState<Mode>("catalogo");
   const [saleItems, setSaleItems] = useState<Array<{ productoId: string; cantidad: number }>>([]);
   const [customerMode, setCustomerMode] = useState<"ocasional" | "existente" | "nuevo">(
     "ocasional"
   );
-  const [selectedCustomerKey, setSelectedCustomerKey] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerPlace, setCustomerPlace] = useState("");
@@ -138,9 +172,54 @@ export function AdminDirectSale({
       ? customTotal - Number(customForm.costoEstimadoTotal)
       : null;
 
-  function syncExistingCustomer(customerKey: string) {
-    setSelectedCustomerKey(customerKey);
-    const customer = customers.find((item) => item.key === customerKey);
+  const customerSearchQuery = normalizarTexto(customerSearch);
+  const normalizedCustomerName = normalizarTexto(customerName);
+  const normalizedCustomerPhone = customerPhone.replace(/\D/g, "");
+  const normalizedCustomerPlace = normalizarTexto(customerPlace);
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearchQuery) {
+      return [];
+    }
+
+    return customers.filter((customer) => {
+      return (
+        normalizarTexto(customer.nombre).includes(customerSearchQuery) ||
+        normalizarTexto(customer.telefono).includes(customerSearchQuery) ||
+        normalizarTexto(customer.lugarTrabajo).includes(customerSearchQuery)
+      );
+    });
+  }, [customerSearchQuery, customers]);
+  const matchedCustomer = useMemo(() => {
+    if (selectedCustomerId) {
+      return customers.find((customer) => customer.id === selectedCustomerId) ?? null;
+    }
+
+    return (
+      customers.find((customer) => {
+        const phoneMatches =
+          normalizedCustomerPhone.length > 0 &&
+          customer.telefono.replace(/\D/g, "") === normalizedCustomerPhone;
+        const nameMatches =
+          normalizedCustomerName.length > 0 &&
+          normalizarTexto(customer.nombre) === normalizedCustomerName;
+        const placeMatches =
+          normalizedCustomerPlace.length === 0 ||
+          normalizarTexto(customer.lugarTrabajo) === normalizedCustomerPlace;
+
+        return phoneMatches || (nameMatches && placeMatches);
+      }) ?? null
+    );
+  }, [
+    customers,
+    normalizedCustomerName,
+    normalizedCustomerPhone,
+    normalizedCustomerPlace,
+    selectedCustomerId
+  ]);
+
+  function syncExistingCustomer(customerId: string) {
+    setSelectedCustomerId(customerId);
+    const customer = customers.find((item) => item.id === customerId);
 
     if (!customer) {
       return;
@@ -149,6 +228,17 @@ export function AdminDirectSale({
     setCustomerName(customer.nombre);
     setCustomerPhone(customer.telefono);
     setCustomerPlace(customer.lugarTrabajo);
+    setCustomerSearch(customer.nombre);
+  }
+
+  function handleCustomerSearchChange(value: string) {
+    setCustomerSearch(value);
+    setSelectedCustomerId("");
+  }
+
+  function selectSuggestedCustomer(customer: ExistingCustomer) {
+    setCustomerMode("existente");
+    syncExistingCustomer(customer.id);
   }
 
   function addProduct(productId: string) {
@@ -232,6 +322,7 @@ export function AdminDirectSale({
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          clienteId: matchedCustomer?.id,
           nombre: customerName,
           telefono: customerPhone,
           lugarTrabajo: customerPlace,
@@ -250,7 +341,8 @@ export function AdminDirectSale({
       setSaleItems([]);
       setCatalogNote("");
       setCustomerMode("ocasional");
-      setSelectedCustomerKey("");
+      setSelectedCustomerId("");
+      setCustomerSearch("");
       setCustomerName("");
       setCustomerPhone("");
       setCustomerPlace("");
@@ -444,21 +536,47 @@ export function AdminDirectSale({
               </div>
 
               {customerMode === "existente" ? (
-                <label className="block space-y-2">
+                <div className="space-y-2">
                   <span className="text-sm font-medium text-[#1f3328]">Cliente existente</span>
-                  <select
-                    value={selectedCustomerKey}
-                    onChange={(event) => syncExistingCustomer(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
-                  >
-                    <option value="">Selecciona cliente</option>
-                    {customers.map((customer) => (
-                      <option key={customer.key} value={customer.key}>
-                        {customer.nombre} {customer.lugarTrabajo ? `- ${customer.lugarTrabajo}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label className="relative block">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7c70]" />
+                    <input
+                      value={customerSearch}
+                      onChange={(event) => handleCustomerSearchChange(event.target.value)}
+                      placeholder="Busca por nombre, telefono o lugar de trabajo"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
+                    />
+                  </label>
+                  {filteredCustomers.length > 0 ? (
+                    <div className="max-h-64 overflow-y-auto rounded-[20px] border border-[#d8ebdd] bg-[#f8fdf9] p-2">
+                      {filteredCustomers.slice(0, 8).map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          onClick={() => selectSuggestedCustomer(customer)}
+                          className="flex w-full items-start justify-between gap-3 rounded-[16px] px-3 py-3 text-left transition hover:bg-white"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-semibold text-[#1f3328]">{customer.nombre}</div>
+                            <div className="text-sm text-[#6b7c70]">
+                              {customer.telefono || "Sin telefono"}
+                            </div>
+                            {customer.lugarTrabajo ? (
+                              <div className="text-sm text-[#6b7c70]">{customer.lugarTrabajo}</div>
+                            ) : null}
+                          </div>
+                          {selectedCustomerId === customer.id ? (
+                            <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : customerSearchQuery ? (
+                    <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                      No encontramos coincidencias. Puedes seguir como cliente nuevo.
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -485,6 +603,16 @@ export function AdminDirectSale({
                 placeholder="Ejemplo: Recepción o piso 3"
                 icon={<Building2 className="h-4 w-4" />}
               />
+
+              {matchedCustomer ? (
+                <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  La venta se asociara al cliente existente {matchedCustomer.nombre}.
+                </div>
+              ) : customerMode !== "ocasional" && normalizedCustomerName ? (
+                <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                  Si no coincide con un cliente existente, se registrara como cliente nuevo.
+                </div>
+              ) : null}
 
               <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-2">
                 <ChoiceButton

@@ -44,6 +44,7 @@ export type CustomerOrderRequest = {
 };
 
 export type AdminDirectSaleRequest = {
+  clienteId?: string;
   nombre?: string;
   telefono?: string;
   lugarTrabajo?: string;
@@ -51,6 +52,13 @@ export type AdminDirectSaleRequest = {
   estadoPago: "PAGADO" | "FIADO";
   clienteModo: "ocasional" | "existente" | "nuevo";
   observacion?: string;
+};
+
+export type AdminCustomerOption = {
+  id: string;
+  nombre: string;
+  telefono: string;
+  lugarTrabajo: string;
 };
 
 export type CustomOrderRequest = {

@@ -113,6 +113,15 @@ type CustomerCardData = {
   pedidosFinalizados: number;
   isRecent: boolean;
 };
+type GroupedFiadoCustomer = {
+  clienteId: string;
+  nombre: string;
+  telefono: string;
+  lugarTrabajo: string;
+  totalPendiente: number;
+  cantidadFiados: number;
+  fiados: AdminOrderSummary[];
+};
 
 const statusOptions: Array<{ value: StatusFilter; label: string }> = [
   { value: "pendientes", label: "Pendientes" },
@@ -460,6 +469,11 @@ export function AdminDashboard({
       }))
       .sort((a, b) => b.ultimoMovimiento.localeCompare(a.ultimoMovimiento));
   }, [allOrders]);
+
+  const groupedFiados = useMemo(
+    () => agruparFiadosPorCliente(data.fiadosPendientes),
+    [data.fiadosPendientes]
+  );
 
   const filteredCustomerCards = useMemo(() => {
     return customerCards.filter((customer) => {
@@ -1120,7 +1134,7 @@ export function AdminDashboard({
             label="Ventas"
             icon={WalletCards}
             active={view === "cobros"}
-            badge={`${data.fiadosPendientes.length} fiados`}
+            badge={`${groupedFiados.length} fiados`}
             onClick={() => navigateToView("cobros")}
           />
           <AdminSectionTab
@@ -1405,7 +1419,7 @@ export function AdminDashboard({
               <HomeActionCard
                 title="Ventas"
                 subtitle="Marcar pagado, dejar fiado y registrar abonos fácilmente."
-                badge={`${data.fiadosPendientes.length} fiados`}
+                badge={`${groupedFiados.length} fiados`}
                 icon={WalletCards}
                 tone="amber"
                 onClick={() => navigateToView("cobros")}
@@ -1786,15 +1800,15 @@ export function AdminDashboard({
             />
             <HeroMetric
               label="Fiados abiertos"
-              value={String(data.fiadosPendientes.length)}
-              detail="Pedidos con saldo pendiente"
+              value={String(groupedFiados.length)}
+              detail="Clientes con saldo pendiente"
               icon={HandCoins}
               tone="amber"
             />
             <HeroMetric
               label="Saldo por cobrar"
               value={formatCurrency(
-                data.fiadosPendientes.reduce((sum, order) => sum + order.saldoPendiente, 0)
+                groupedFiados.reduce((sum, customer) => sum + customer.totalPendiente, 0)
               )}
               detail="Total pendiente de pago"
               icon={CircleDollarSign}
@@ -1836,68 +1850,104 @@ export function AdminDashboard({
               </div>
 
               <div className="mt-4 space-y-3">
-                {data.fiadosPendientes.length === 0 ? (
+                {groupedFiados.length === 0 ? (
                   <EmptyState text="No hay fiados pendientes ahora mismo." />
                 ) : null}
-                {data.fiadosPendientes.map((order) => (
+                {groupedFiados.map((customer) => (
                   <article
-                    key={order.id}
+                    key={customer.clienteId}
                     className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
                   >
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
-                          <div className="mt-1 text-sm text-emerald-900/65">
-                            Saldo {formatCurrency(order.saldoPendiente)}
+                          <div className="font-semibold text-emerald-950">{customer.nombre}</div>
+                          <div className="mt-1 space-y-1 text-sm text-emerald-900/65">
+                            <div>Saldo total {formatCurrency(customer.totalPendiente)}</div>
+                            {customer.telefono ? <div>{customer.telefono}</div> : null}
+                            {customer.lugarTrabajo ? <div>{customer.lugarTrabajo}</div> : null}
                           </div>
                         </div>
                         <StatusBadge tone="warning" label="FIADO" />
                       </div>
 
                       <div className="grid gap-2 sm:grid-cols-2">
-                        <MiniMetric label="Pedido" value={order.productoNombre} />
+                        <MiniMetric label="Pedidos" value={String(customer.cantidadFiados)} />
                         <MiniMetric
                           label="Último pago"
                           value={
-                            order.fechaUltimoPago
-                              ? formatShortDateTime(order.fechaUltimoPago)
+                            getLastDebtPaymentDate(customer.fiados)
+                              ? formatShortDateTime(getLastDebtPaymentDate(customer.fiados) as string)
                               : "Sin abonos"
                           }
                         />
                       </div>
 
-                      <div className="space-y-2 rounded-xl border border-emerald-100 bg-white px-3 py-3">
-                        {order.items.length > 0 ? (
-                          order.items.map((item) => (
-                            <div
-                              key={`${order.id}-${item.productoId}`}
-                              className="flex items-start justify-between gap-3 text-sm"
-                            >
-                              <div className="text-emerald-950">
-                                {item.cantidad}x {item.productoNombre}
+                      <div className="space-y-3 rounded-xl border border-emerald-100 bg-white px-3 py-3">
+                        {customer.fiados.map((fiado) => (
+                          <div
+                            key={fiado.id}
+                            className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/40 px-3 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="font-semibold text-emerald-950">
+                                  Pedido del {formatFiadoDate(fiado)}
+                                </div>
+                                <div className="text-sm text-emerald-900/65">
+                                  Pendiente {formatCurrency(fiado.saldoPendiente)}
+                                </div>
                               </div>
-                              <div className="text-right font-semibold text-emerald-700">
-                                {formatCurrency(item.subtotal)}
-                              </div>
+                              <StatusBadge tone="neutral" label={`${fiado.items.length || 0} item(s)`} />
                             </div>
-                          ))
-                        ) : (
-                          <div className="text-sm text-emerald-900/65">
-                            Detalle no disponible en registro antiguo.
+
+                            <div className="space-y-2">
+                              {fiado.items.length > 0 ? (
+                                fiado.items.map((item) => (
+                                  <div
+                                    key={`${fiado.id}-${item.productoId}-${item.productoNombre}`}
+                                    className="flex items-start justify-between gap-3 text-sm"
+                                  >
+                                    <div className="text-emerald-950">
+                                      {item.cantidad}x {item.productoNombre}
+                                    </div>
+                                    <div className="text-right font-semibold text-emerald-700">
+                                      {formatCurrency(item.subtotal)}
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-sm text-emerald-900/65">
+                                  Detalle no disponible en registro antiguo.
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <MiniMetric label="Subtotal" value={formatCurrency(fiado.total)} />
+                              <MiniMetric
+                                label="Ultimo pago"
+                                value={
+                                  fiado.fechaUltimoPago
+                                    ? formatShortDateTime(fiado.fechaUltimoPago)
+                                    : "Sin abonos"
+                                }
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={busyOrderId === fiado.id}
+                              onClick={() => setOrderModalState({ type: "abonar", order: fiado })}
+                              className={buttonToneClass("warning")}
+                            >
+                              {busyOrderId === fiado.id ? "Procesando..." : "Registrar abono"}
+                            </button>
                           </div>
-                        )}
+                        ))}
                       </div>
 
-                      <button
-                        type="button"
-                        disabled={busyOrderId === order.id}
-                        onClick={() => setOrderModalState({ type: "abonar", order })}
-                        className={buttonToneClass("warning")}
-                      >
-                        {busyOrderId === order.id ? "Procesando..." : "Registrar abono"}
-                      </button>
-                      <DebtCollectionButton order={order} />
+                      <GroupedDebtCollectionButton customer={customer} />
                     </div>
                   </article>
                 ))}
@@ -2971,6 +3021,36 @@ function DebtCollectionButton({
   );
 }
 
+function GroupedDebtCollectionButton({
+  customer,
+  fullWidth = false
+}: {
+  customer: GroupedFiadoCustomer;
+  fullWidth?: boolean;
+}) {
+  const href = getGroupedDebtCollectionAction(customer);
+  const className =
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold";
+
+  if (!href) {
+    return null;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={`${className} ${
+        fullWidth ? "w-full" : "w-full sm:w-auto"
+      } border border-emerald-200 bg-white text-emerald-900`}
+    >
+      <MessageCircle className="h-4 w-4" />
+      Cobrar por WhatsApp
+    </a>
+  );
+}
+
 function PaymentOrderCard({
   order,
   busy,
@@ -3993,6 +4073,96 @@ function renderGroupedItemLines(
   }
 
   return visibleLines;
+}
+
+function agruparFiadosPorCliente(fiados: AdminOrderSummary[] = []) {
+  const groups = new Map<string, GroupedFiadoCustomer>();
+
+  fiados.forEach((fiado) => {
+    const clienteId = fiado.clienteId || buildCustomerIdentityKey(fiado);
+
+    if (!clienteId) {
+      return;
+    }
+
+    const current = groups.get(clienteId) ?? {
+      clienteId,
+      nombre: fiado.clienteNombre || "Cliente sin nombre",
+      telefono: fiado.clienteTelefono || "",
+      lugarTrabajo: fiado.clienteLugarTrabajo || "",
+      totalPendiente: 0,
+      cantidadFiados: 0,
+      fiados: []
+    };
+
+    current.totalPendiente += Number(fiado.saldoPendiente || 0);
+    current.cantidadFiados += 1;
+    current.fiados.push(fiado);
+
+    groups.set(clienteId, current);
+  });
+
+  return Array.from(groups.values())
+    .map((customer) => ({
+      ...customer,
+      fiados: [...customer.fiados].sort((a, b) =>
+        getFiadoDateValue(b).localeCompare(getFiadoDateValue(a))
+      )
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
+function getFiadoDateValue(order: AdminOrderSummary) {
+  return order.fechaFiado || order.fechaPedido || order.fechaAgendado || "";
+}
+
+function formatFiadoDate(order: AdminOrderSummary) {
+  const value = getFiadoDateValue(order);
+  return value ? formatDateOnly(value) : "Sin fecha";
+}
+
+function getLastDebtPaymentDate(orders: AdminOrderSummary[]) {
+  return orders
+    .map((order) => order.fechaUltimoPago)
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => b.localeCompare(a))[0];
+}
+
+function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
+  const normalizedPhone = parseChileanMobilePhone(customer.telefono);
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  const total = formatCurrency(customer.totalPendiente);
+  const detail = customer.fiados
+    .map((fiado) => {
+      const items = fiado.items.length
+        ? fiado.items
+            .map((item) => {
+              const subtotal = item.subtotal ? ` - ${formatCurrency(item.subtotal)}` : "";
+              return `  - ${item.cantidad}x ${item.productoNombre}${subtotal}`;
+            })
+            .join("\n")
+        : "  - Pedido registrado";
+
+      return `- ${formatFiadoDate(fiado)} - ${formatCurrency(fiado.saldoPendiente)}\n${items}`;
+    })
+    .join("\n\n");
+
+  const message = [
+    `Hola ${customer.nombre}, te escribo de Pauli Store para recordarte tu saldo pendiente.`,
+    "",
+    `Total pendiente: ${total}`,
+    "",
+    "Detalle:",
+    detail,
+    "",
+    "Cuando puedas me confirmas el pago por este medio. Muchas gracias."
+  ].join("\n");
+
+  return buildWhatsAppManualUrl(normalizedPhone.e164.replace(/\D/g, ""), message);
 }
 
 function getDebtCollectionAction(order: AdminOrderSummary) {

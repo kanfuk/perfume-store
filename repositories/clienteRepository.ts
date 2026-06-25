@@ -13,7 +13,7 @@ import { localStore } from "@/lib/local-store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface ClienteRepository {
-  upsertCliente(cliente: Cliente): Promise<{ id: string }>;
+  upsertCliente(cliente: Cliente, preferredId?: string): Promise<{ id: string }>;
 }
 
 function normalizeIdentityText(value: string) {
@@ -40,7 +40,18 @@ function matchesCustomerIdentity(
 }
 
 class MemoryClienteRepository implements ClienteRepository {
-  async upsertCliente(cliente: Cliente) {
+  async upsertCliente(cliente: Cliente, preferredId?: string) {
+    if (preferredId) {
+      const existingById = localStore.customers.find((item) => item.id === preferredId);
+
+      if (existingById) {
+        existingById.nombre = cliente.nombre;
+        existingById.telefono = cliente.telefono;
+        existingById.lugarTrabajo = cliente.lugarTrabajo;
+        return { id: existingById.id };
+      }
+    }
+
     const existing = localStore.customers.find(
       (item) =>
         matchesCustomerIdentity(
@@ -74,19 +85,37 @@ class MemoryClienteRepository implements ClienteRepository {
 }
 
 class SupabaseClienteRepository implements ClienteRepository {
-  async upsertCliente(cliente: Cliente) {
+  async upsertCliente(cliente: Cliente, preferredId?: string) {
     const supabase = createSupabaseServerClient();
-    const { data: existingByPhone, error: existingError } = await supabase
-      .from("clientes")
-      .select("id, nombre, lugar_trabajo, telefono")
-      .eq("telefono", cliente.telefono)
-      .limit(1);
+    let existingId = preferredId;
 
-    if (existingError) {
-      throw new Error("No fue posible consultar el cliente.");
+    if (existingId) {
+      const { data: existingById, error: existingByIdError } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("id", existingId)
+        .limit(1);
+
+      if (existingByIdError) {
+        throw new Error("No fue posible consultar el cliente.");
+      }
+
+      existingId = existingById?.[0]?.id;
     }
 
-    let existingId = existingByPhone?.[0]?.id;
+    if (!existingId && cliente.telefono) {
+      const { data: existingByPhone, error: existingError } = await supabase
+        .from("clientes")
+        .select("id, nombre, lugar_trabajo, telefono")
+        .eq("telefono", cliente.telefono)
+        .limit(1);
+
+      if (existingError) {
+        throw new Error("No fue posible consultar el cliente.");
+      }
+
+      existingId = existingByPhone?.[0]?.id;
+    }
 
     if (!existingId) {
       const { data: fallbackMatches, error: fallbackError } = await supabase

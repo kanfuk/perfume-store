@@ -2,6 +2,7 @@ type PendingAdminOrderLike = {
   estadoPedido?: string;
   adminSeen?: boolean;
   fechaEntrega?: string;
+  fechaAgendado?: string;
 };
 
 function normalizeStatus(value?: string) {
@@ -23,7 +24,12 @@ export function isClosedAdminOrder(order: PendingAdminOrderLike) {
 
 export function isScheduledAdminOrder(order: PendingAdminOrderLike) {
   const status = normalizeStatus(order.estadoPedido);
-  return Boolean(order.fechaEntrega) || status.includes("agendado") || status.includes("confirmado");
+  return (
+    Boolean(order.fechaAgendado) ||
+    Boolean(order.fechaEntrega) ||
+    status.includes("agendado") ||
+    status.includes("confirmado")
+  );
 }
 
 export function needsAdminOrderAttention(order: PendingAdminOrderLike) {
@@ -31,10 +37,15 @@ export function needsAdminOrderAttention(order: PendingAdminOrderLike) {
     return false;
   }
 
-  const isSeen = order.adminSeen === true;
-  const isScheduled = isScheduledAdminOrder(order);
+  if (order.adminSeen === true) {
+    return false;
+  }
 
-  return !isScheduled || !isSeen;
+  if (isScheduledAdminOrder(order)) {
+    return false;
+  }
+
+  return true;
 }
 
 export function getPendingAdminOrders<T extends PendingAdminOrderLike>(orders: T[]) {
