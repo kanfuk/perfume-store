@@ -780,6 +780,20 @@ export function AdminDirectSale({
                     className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
                   />
                 </label>
+                <select
+                  value={customSelectedCustomerId}
+                  onChange={(event) => syncCustomExistingCustomer(event.target.value)}
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                >
+                  <option value="">Selecciona cliente existente</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.nombre}
+                      {customer.telefono ? ` - ${customer.telefono}` : ""}
+                      {customer.lugarTrabajo ? ` - ${customer.lugarTrabajo}` : ""}
+                    </option>
+                  ))}
+                </select>
                 {filteredCustomCustomers.length > 0 ? (
                   <div className="max-h-64 overflow-y-auto rounded-[20px] border border-[#d8ebdd] bg-[#f8fdf9] p-2">
                     {filteredCustomCustomers.slice(0, 8).map((customer) => (
