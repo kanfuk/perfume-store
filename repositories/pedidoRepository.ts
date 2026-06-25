@@ -89,6 +89,7 @@ export interface PedidoRepository {
     fechaCancelacion?: string;
     motivoCancelacion?: string;
   }): Promise<void>;
+  actualizarClientePedido(args: { pedidoId: string; clienteId: string }): Promise<void>;
   buscarPagosPorPedidoIds(pedidoIds: string[]): Promise<PedidoPagoRecord[]>;
   buscarFiadosPorPedidoIds(pedidoIds: string[]): Promise<PedidoFiadoRecord[]>;
   insertarPago(args: {
@@ -270,6 +271,16 @@ class MemoryPedidoRepository implements PedidoRepository {
     order.fechaCierre = args.fechaCierre;
     order.fechaCancelacion = args.fechaCancelacion;
     order.motivoCancelacion = args.motivoCancelacion;
+  }
+
+  async actualizarClientePedido(args: { pedidoId: string; clienteId: string }) {
+    const order = localStore.orders.find((item) => item.id === args.pedidoId);
+
+    if (!order) {
+      throw new Error("Pedido no encontrado.");
+    }
+
+    order.clienteId = args.clienteId;
   }
 
   async buscarPagosPorPedidoIds(pedidoIds: string[]) {
@@ -653,6 +664,20 @@ class SupabasePedidoRepository implements PedidoRepository {
 
     if (error) {
       throw new Error("No fue posible actualizar el pedido.");
+    }
+  }
+
+  async actualizarClientePedido(args: { pedidoId: string; clienteId: string }) {
+    const supabase = createSupabaseServerClient();
+    const { error } = await supabase
+      .from("pedidos")
+      .update({
+        cliente_id: args.clienteId
+      })
+      .eq("id", args.pedidoId);
+
+    if (error) {
+      throw new Error("No fue posible actualizar el cliente del pedido.");
     }
   }
 

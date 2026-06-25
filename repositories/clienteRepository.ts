@@ -14,6 +14,34 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface ClienteRepository {
   upsertCliente(cliente: Cliente, preferredId?: string): Promise<{ id: string }>;
+  buscarClienteRelacionado(cliente: Cliente): Promise<{ id: string } | null>;
+}
+
+function isWeakCustomerWorkplace(value: string) {
+  const normalized = normalizeIdentityText(value);
+
+  return (
+    normalized === "" ||
+    normalized === "venta directa" ||
+    normalized === "venta whatsapp manual" ||
+    normalized === "pedido personalizado"
+  );
+}
+
+function hasStrongerCustomerData(
+  current: { telefono: string; lugarTrabajo: string },
+  candidate: { telefono: string; lugarTrabajo: string }
+) {
+  const currentScore =
+    Number(Boolean(current.telefono)) * 4 +
+    Number(Boolean(current.lugarTrabajo && !isWeakCustomerWorkplace(current.lugarTrabajo))) * 2 +
+    Number(Boolean(current.lugarTrabajo));
+  const candidateScore =
+    Number(Boolean(candidate.telefono)) * 4 +
+    Number(Boolean(candidate.lugarTrabajo && !isWeakCustomerWorkplace(candidate.lugarTrabajo))) * 2 +
+    Number(Boolean(candidate.lugarTrabajo));
+
+  return candidateScore > currentScore;
 }
 
 function normalizeIdentityText(value: string) {
@@ -40,6 +68,41 @@ function matchesCustomerIdentity(
 }
 
 class MemoryClienteRepository implements ClienteRepository {
+  async buscarClienteRelacionado(cliente: Cliente) {
+    const exactByPhone = cliente.telefono
+      ? localStore.customers.find((item) => item.telefono === cliente.telefono)
+      : null;
+
+    if (exactByPhone) {
+      return { id: exactByPhone.id };
+    }
+
+    const candidates = localStore.customers.filter(
+      (item) => normalizeIdentityText(item.nombre) === normalizeIdentityText(cliente.nombre)
+    );
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const best = candidates.reduce((currentBest, candidate) =>
+      hasStrongerCustomerData(
+        {
+          telefono: currentBest.telefono,
+          lugarTrabajo: currentBest.lugarTrabajo
+        },
+        {
+          telefono: candidate.telefono,
+          lugarTrabajo: candidate.lugarTrabajo
+        }
+      )
+        ? candidate
+        : currentBest
+    );
+
+    return { id: best.id };
+  }
+
   async upsertCliente(cliente: Cliente, preferredId?: string) {
     if (preferredId) {
       const existingById = localStore.customers.find((item) => item.id === preferredId);
@@ -85,6 +148,63 @@ class MemoryClienteRepository implements ClienteRepository {
 }
 
 class SupabaseClienteRepository implements ClienteRepository {
+  async buscarClienteRelacionado(cliente: Cliente) {
+    const supabase = createSupabaseServerClient();
+
+    if (cliente.telefono) {
+      const { data: existingByPhone, error: phoneError } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("telefono", cliente.telefono)
+        .limit(1);
+
+      if (phoneError) {
+        throw new Error("No fue posible consultar el cliente.");
+      }
+
+      if (existingByPhone?.[0]?.id) {
+        return { id: existingByPhone[0].id };
+      }
+    }
+
+    const { data: matchesByName, error: nameError } = await supabase
+      .from("clientes")
+      .select("id, nombre, telefono, lugar_trabajo")
+      .ilike("nombre", cliente.nombre)
+      .limit(20);
+
+    if (nameError) {
+      throw new Error("No fue posible consultar el cliente.");
+    }
+
+    const candidates = (matchesByName ?? []).filter(
+      (item) =>
+        normalizeIdentityText(item.nombre ?? "") ===
+        normalizeIdentityText(cliente.nombre)
+    );
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const best = candidates.reduce((currentBest, candidate) =>
+      hasStrongerCustomerData(
+        {
+          telefono: currentBest.telefono ?? "",
+          lugarTrabajo: currentBest.lugar_trabajo ?? ""
+        },
+        {
+          telefono: candidate.telefono ?? "",
+          lugarTrabajo: candidate.lugar_trabajo ?? ""
+        }
+      )
+        ? candidate
+        : currentBest
+    );
+
+    return best?.id ? { id: best.id } : null;
+  }
+
   async upsertCliente(cliente: Cliente, preferredId?: string) {
     const supabase = createSupabaseServerClient();
     let existingId = preferredId;

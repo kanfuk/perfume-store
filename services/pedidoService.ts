@@ -549,6 +549,14 @@ export class PedidoService {
     const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_AGENDADO);
     const domainPedido = this.mapListItemToPedido(pedido);
     domainPedido.marcarFiado();
+    const resolvedClienteId = await this.resolveRelatedCustomerId(pedido);
+
+    if (resolvedClienteId && resolvedClienteId !== pedido.clienteId) {
+      await this.pedidoRepository.actualizarClientePedido({
+        pedidoId,
+        clienteId: resolvedClienteId
+      });
+    }
 
     await this.pedidoRepository.actualizarEstadoPedido({
       pedidoId,
@@ -561,7 +569,7 @@ export class PedidoService {
     });
     await this.pedidoRepository.upsertFiado({
       pedidoId,
-      clienteId: pedido.clienteId,
+      clienteId: resolvedClienteId ?? pedido.clienteId,
       montoPendiente: domainPedido.total,
       estado: "PENDIENTE",
       fechaFiado: domainPedido.fechaCierre?.toISOString()
@@ -718,6 +726,17 @@ export class PedidoService {
         : undefined,
       motivoCancelacion: order.motivoCancelacion
     });
+  }
+
+  private async resolveRelatedCustomerId(order: AdminOrderSummary | PedidoListItemRecord) {
+    const cliente = new Cliente({
+      id: order.clienteId,
+      nombre: order.clienteNombre,
+      telefono: order.clienteTelefono,
+      lugarTrabajo: order.clienteLugarTrabajo || "Pedido personalizado"
+    });
+    const match = await this.clienteRepository.buscarClienteRelacionado(cliente);
+    return match?.id ?? order.clienteId;
   }
 
   private async enriquecerPedidosAdmin(
