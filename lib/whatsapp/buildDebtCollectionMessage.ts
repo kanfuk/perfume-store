@@ -7,6 +7,7 @@ type DebtCollectionItem = {
 };
 
 type BuildDebtCollectionMessageInput = {
+  customerName?: string;
   amount: number;
   items: DebtCollectionItem[];
 };
@@ -16,10 +17,12 @@ export function buildDebtCollectionMessage(input: BuildDebtCollectionMessageInpu
     input.items.length > 0
       ? input.items.map((item) => `- ${item.quantity} x ${item.name}`)
       : ["- Pedido pendiente"];
+  const greetingLines = input.customerName ? [`Hola ${input.customerName},`, ""] : [];
 
   return [
     "Buenas tardes! \u2600\uFE0F",
     "",
+    ...greetingLines,
     "Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos \ud83d\udc9b",
     "Le env\u00EDo el detalle de su cuenta:",
     "",

@@ -4263,7 +4263,7 @@ function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
 
   return buildWhatsAppManualUrl(
     normalizedPhone.e164.replace(/\D/g, ""),
-    buildGroupedDebtCollectionMessage(total, detail)
+    buildGroupedDebtCollectionMessage(customer.nombre, total, detail)
   );
 
   void [
@@ -4322,6 +4322,7 @@ function getDebtCollectionAction(order: AdminOrderSummary) {
   return buildWhatsAppManualUrl(
     normalizedPhone.e164.replace(/\D/g, ""),
     buildDebtCollectionMessage({
+      customerName: order.clienteNombre,
       amount: order.saldoPendiente > 0 ? order.saldoPendiente : order.total,
       items: order.items.map((item) => ({
         name: item.productoNombre,
@@ -4331,9 +4332,11 @@ function getDebtCollectionAction(order: AdminOrderSummary) {
   );
 }
 
-function buildGroupedDebtCollectionMessage(total: string, detail: string) {
+function buildGroupedDebtCollectionMessage(name: string, total: string, detail: string) {
   return [
     "Buenas tardes! \u2600\uFE0F",
+    "",
+    `Hola ${name},`,
     "",
     "Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos \ud83d\udc9b",
     "Le env\u00EDo el detalle de su cuenta:",
