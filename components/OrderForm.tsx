@@ -64,6 +64,11 @@ type ValidationFeedback = {
   message?: string;
 };
 
+type CartCtaCopy = {
+  message: string;
+  buttonLabel: string;
+};
+
 function readRecentCustomers(): SavedCustomerProfile[] {
   if (typeof window === "undefined") {
     return [];
@@ -597,8 +602,7 @@ export function OrderForm() {
     window.setTimeout(() => nombreRef.current?.focus(), 250);
   }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  async function submitOrder() {
     setServerError("");
 
     const validationFeedback = resolveValidationFeedback();
@@ -654,6 +658,47 @@ export function OrderForm() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  const orderValidationFeedback = resolveValidationFeedback();
+  const isOrderReadyToSubmit = orderValidationFeedback.ok;
+  const cartCtaCopy: CartCtaCopy = isOrderReadyToSubmit
+    ? {
+        message: "Tu pedido está listo para enviar.",
+        buttonLabel: "Enviar a Pauli"
+      }
+    : {
+        message: "Completa tus datos para enviar el pedido.",
+        buttonLabel:
+          orderValidationFeedback.field === "nombre" ||
+          orderValidationFeedback.field === "celular" ||
+          orderValidationFeedback.field === "lugar" ||
+          orderValidationFeedback.field === "fecha"
+            ? "Completar datos"
+            : "Revisar"
+      };
+
+  function handleCartPrimaryAction() {
+    if (submitting || loadingProducts) {
+      return;
+    }
+
+    if (isOrderReadyToSubmit) {
+      void submitOrder();
+      return;
+    }
+
+    if (orderValidationFeedback.field) {
+      focusValidationTarget(orderValidationFeedback.field);
+      return;
+    }
+
+    scrollToForm();
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submitOrder();
   };
 
   return (
@@ -969,26 +1014,24 @@ export function OrderForm() {
                 {itemCount}
               </span>
               <div className="min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-white/75">
-                {itemCount} producto{itemCount === 1 ? "" : "s"} · {formatCurrency(total)}
+                <div className="text-xs font-semibold uppercase tracking-wide text-white/75">
+                  {itemCount} producto{itemCount === 1 ? "" : "s"} · {formatCurrency(total)}
+                </div>
+                <div className="truncate text-sm font-medium text-white/90">
+                  {cartCtaCopy.message}
+                </div>
               </div>
-              <div className="truncate text-sm font-medium text-white/90">
-                Tu pedido está listo para revisarlo.
-              </div>
-            </div>
             </div>
             <button
               type="button"
-              onClick={() => {
-                setToast(null);
-                setIsCartSheetOpen(true);
-              }}
-              className="inline-flex min-h-11 shrink-0 items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#1d5f3c] shadow-[0_10px_24px_rgba(0,0,0,0.12)]"
+              onClick={handleCartPrimaryAction}
+              disabled={submitting || loadingProducts}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#1d5f3c] shadow-[0_10px_24px_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-70"
             >
-                Revisar
-              </button>
-            </div>
+              {submitting ? "Enviando..." : cartCtaCopy.buttonLabel}
+            </button>
           </div>
+        </div>
       ) : null}
 
       {isCartSheetOpen ? (
@@ -1005,7 +1048,9 @@ export function OrderForm() {
               <div>
                 <h3 className="text-xl font-semibold text-[#1f3328]">Tu pedido</h3>
                 <p className="text-sm text-[#6b7c70]">
-                  Revisa cantidades, total y después completa tus datos.
+                  {isOrderReadyToSubmit
+                    ? "Tu pedido está listo. Puedes enviarlo desde aquí."
+                    : "Revisa cantidades, total y después completa tus datos."}
                 </p>
               </div>
               <button
@@ -1038,10 +1083,11 @@ export function OrderForm() {
                     </button>
                     <button
                       type="button"
-                      onClick={scrollToForm}
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white"
+                      onClick={handleCartPrimaryAction}
+                      disabled={submitting || loadingProducts}
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
                     >
-                      Completar datos
+                      {submitting ? "Enviando..." : cartCtaCopy.buttonLabel}
                     </button>
                   </div>
                 }

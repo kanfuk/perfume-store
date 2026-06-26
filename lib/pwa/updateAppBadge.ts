@@ -13,6 +13,8 @@ export async function updateAppBadge(count: number) {
       await navigator.clearAppBadge();
     }
   } catch (error) {
-    console.warn("No se pudo actualizar el badge de la app.", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("No se pudo actualizar el badge de la app.", error);
+    }
   }
 }

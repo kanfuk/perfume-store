@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -131,6 +131,8 @@ type GroupedFiadoCustomer = {
   cantidadFiados: number;
   fiados: AdminOrderSummary[];
 };
+
+const PENDING_ORDERS_REFRESH_MS = 60000;
 
 const statusOptions: Array<{ value: StatusFilter; label: string }> = [
   { value: "pendientes", label: "Pendientes" },
@@ -458,17 +460,80 @@ export function AdminDashboard({
     };
   }, [badgeDeviceId]);
 
+  const refreshOrdersEvent = useEffectEvent(async () => {
+    await loadOrders();
+  });
+
   useEffect(() => {
+    let cancelled = false;
+    let refreshPromise: Promise<void> | null = null;
+
+    const refreshOrders = () => {
+      if (cancelled) {
+        return Promise.resolve();
+      }
+
+      if (refreshPromise) {
+        return refreshPromise;
+      }
+
+      refreshPromise = refreshOrdersEvent().finally(() => {
+        refreshPromise = null;
+      });
+
+      return refreshPromise;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshOrders();
+      }
+    };
+
     const intervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") {
         return;
       }
 
-      void loadOrders();
-    }, 60000);
+      void refreshOrders();
+    }, PENDING_ORDERS_REFRESH_MS);
 
-    return () => window.clearInterval(intervalId);
-  }, []);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    void refreshOrders();
+
+    let removeRealtimeSubscription: (() => void) | null = null;
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const channel = supabase
+        .channel(`admin-pending-orders-${badgeDeviceId || "default"}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "pedidos" },
+          () => {
+            if (document.visibilityState !== "visible") {
+              return;
+            }
+
+            void refreshOrders();
+          }
+        )
+        .subscribe();
+
+      removeRealtimeSubscription = () => {
+        void supabase.removeChannel(channel);
+      };
+    } catch {
+      removeRealtimeSubscription = null;
+    }
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      removeRealtimeSubscription?.();
+    };
+  }, [badgeDeviceId]);
 
   const homeSummary = useMemo(() => {
     const agendaHoy = todayDate
@@ -4335,7 +4400,7 @@ function QuickStockAdjuster({
 
   return (
     <div className="min-w-0 space-y-2">
-      <span className="text-sm font-semibold text-emerald-900">Ajuste rÃ¡pido</span>
+      <span className="text-sm font-semibold text-emerald-900">Ajuste Rápido</span>
       <div className="grid grid-cols-4 gap-2">
         {[-1, 1, 5, 10].map((delta) => (
           <button

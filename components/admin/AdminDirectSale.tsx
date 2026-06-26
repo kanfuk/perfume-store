@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   Building2,
   CalendarClock,
-  Check,
   Home,
   NotebookPen,
   Phone,
@@ -243,11 +242,6 @@ export function AdminDirectSale({
     setSelectedCustomerId("");
   }
 
-  function selectSuggestedCustomer(customer: ExistingCustomer) {
-    setCustomerMode("existente");
-    syncExistingCustomer(customer.id);
-  }
-
   const customCustomerSearchQuery = normalizarTexto(customCustomerSearch);
   const normalizedCustomCustomerName = normalizarTexto(customForm.nombre);
   const normalizedCustomCustomerPhone = customForm.telefono.replace(/\D/g, "");
@@ -313,10 +307,6 @@ export function AdminDirectSale({
   function handleCustomCustomerSearchChange(value: string) {
     setCustomCustomerSearch(value);
     setCustomSelectedCustomerId("");
-  }
-
-  function selectSuggestedCustomCustomer(customer: ExistingCustomer) {
-    syncCustomExistingCustomer(customer.id);
   }
 
   function addProduct(productId: string) {
@@ -644,33 +634,6 @@ export function AdminDirectSale({
                     </option>
                   ))}
                 </select>
-                  {customers.length === 0 ? (
-                    <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
-                      No hay clientes registrados.
-                    </div>
-                  ) : filteredCustomers.length > 0 ? (
-                    <div className="max-h-64 overflow-y-auto rounded-[20px] border border-[#d8ebdd] bg-[#f8fdf9] p-2">
-                      {filteredCustomers.slice(0, 8).map((customer) => (
-                        <button
-                          key={customer.id}
-                          type="button"
-                          onClick={() => selectSuggestedCustomer(customer)}
-                          className="flex w-full items-start justify-between gap-3 rounded-[16px] px-3 py-3 text-left transition hover:bg-white"
-                        >
-                          <div className="min-w-0">
-                            <div className="font-semibold text-[#1f3328]">{customer.nombre}</div>
-                          </div>
-                          {selectedCustomerId === customer.id ? (
-                            <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-                  ) : customerSearchQuery ? (
-                    <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
-                      No encontramos coincidencias. Puedes seguir como cliente nuevo.
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
 
@@ -812,33 +775,6 @@ export function AdminDirectSale({
                     </option>
                   ))}
                 </select>
-                {customers.length === 0 ? (
-                  <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
-                    No hay clientes registrados.
-                  </div>
-                ) : filteredCustomCustomers.length > 0 ? (
-                  <div className="max-h-64 overflow-y-auto rounded-[20px] border border-[#d8ebdd] bg-[#f8fdf9] p-2">
-                    {filteredCustomCustomers.slice(0, 8).map((customer) => (
-                      <button
-                        key={customer.id}
-                        type="button"
-                        onClick={() => selectSuggestedCustomCustomer(customer)}
-                        className="flex w-full items-start justify-between gap-3 rounded-[16px] px-3 py-3 text-left transition hover:bg-white"
-                      >
-                        <div className="min-w-0">
-                          <div className="font-semibold text-[#1f3328]">{customer.nombre}</div>
-                        </div>
-                        {customSelectedCustomerId === customer.id ? (
-                          <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                ) : customCustomerSearchQuery ? (
-                  <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
-                    No encontramos coincidencias. Puedes seguir con cliente nuevo.
-                  </div>
-                ) : null}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
