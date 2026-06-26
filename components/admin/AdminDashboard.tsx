@@ -46,7 +46,7 @@ import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButt
 import { paymentInfo } from "@/config/paymentInfo";
 import {
   getNewAdminOrders,
-  getPendingAdminOrdersCount
+  getNewAdminOrdersCount
 } from "@/lib/admin/getPendingAdminOrders";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
@@ -606,7 +606,7 @@ export function AdminDashboard({
   }, [data, products, todayDate]);
 
   const pendingAttentionCount = useMemo(
-    () => getPendingAdminOrdersCount(data.pendientes),
+    () => getNewAdminOrdersCount(data.pendientes),
     [data.pendientes]
   );
 

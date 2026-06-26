@@ -37,7 +37,7 @@ import {
   validateCustomOrderForm,
   validateCustomerOrderForm
 } from "@/lib/validators";
-import { getPendingAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
+import { getNewAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
 import {
   canSellWithoutBreakingStock,
   getAvailableProductStock,
@@ -475,7 +475,7 @@ export class PedidoService {
     const fiadosPendientes = finalizadosEnriched.filter(
       (order) => order.estadoPago === ESTADO_PAGO_FIADO && order.saldoPendiente > 0
     );
-    const pedidosNuevos = getPendingAdminOrdersCount(pendientesEnriched);
+    const pedidosNuevos = getNewAdminOrdersCount(pendientesEnriched);
 
     return {
       pendientes: pendientesEnriched.sort(
@@ -676,6 +676,7 @@ export class PedidoService {
       fechaCancelacion: pedido.fechaCancelacion,
       motivoCancelacion: pedido.motivoCancelacion
     });
+    await this.notifyPendingOrdersBadgeChange(pedidoId);
   }
 
   private async obtenerPedidoUnico(pedidoId: string, estadoPedido: string) {
@@ -918,7 +919,7 @@ export class PedidoService {
       const pendingOrders = await this.pedidoRepository.buscarPedidosPorEstado(
         ESTADO_PEDIDO_PENDIENTE
       );
-      const pendingCount = getPendingAdminOrdersCount(pendingOrders);
+      const pendingCount = getNewAdminOrdersCount(pendingOrders);
 
       await sendPendingOrdersPushToAdmins({
         pendingCount,

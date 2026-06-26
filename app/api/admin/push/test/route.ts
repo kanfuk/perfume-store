@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedAdmin } from "@/lib/admin-auth";
-import { getPendingAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
+import { getNewAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendPendingOrdersPushToAdmins } from "@/lib/pwa/sendWebPush";
 
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       throw pendingError;
     }
 
-    const pendingCount = getPendingAdminOrdersCount(
+    const pendingCount = getNewAdminOrdersCount(
       (pendingOrders ?? []).map((order) => ({
         estadoPedido: order.estado_pedido,
         adminSeen: order.admin_seen ?? false,
