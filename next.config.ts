@@ -10,9 +10,10 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
-  "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline'",
-  "connect-src 'self' https://*.supabase.co",
+  "style-src 'self' 'unsafe-inline' https:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel.app https:",
+  "worker-src 'self' blob:",
   "upgrade-insecure-requests"
 ].join("; ");
 
@@ -42,7 +43,7 @@ const nextConfig: NextConfig = {
           {
             key: "Permissions-Policy",
             value:
-              "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+              "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), interest-cohort=()"
           }
         ]
       }

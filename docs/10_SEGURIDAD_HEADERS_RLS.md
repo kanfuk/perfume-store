@@ -43,13 +43,18 @@ Archivo `.env.example` esperado:
 ```text
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_SECRET_KEY=
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=
 HORAS_EXPIRACION_PEDIDO=72
 ```
 
 Reglas:
 
 - `SUPABASE_SECRET_KEY` nunca va al navegador.
+- `SUPABASE_SERVICE_ROLE_KEY` y `VAPID_PRIVATE_KEY` nunca van al navegador.
 - `NEXT_PUBLIC_*` si pueden vivir en cliente.
 - Vercel debe tener las mismas variables en `Production` y `Preview`.
 
@@ -70,6 +75,13 @@ X-Permitted-Cross-Domain-Policies
 Origin-Agent-Cluster
 Permissions-Policy
 ```
+
+La CSP compatible vigente en `next.config.ts` incluye ademas:
+
+- `style-src 'self' 'unsafe-inline' https:`
+- `script-src 'self' 'unsafe-inline' 'unsafe-eval' https:`
+- `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel.app https:`
+- `worker-src 'self' blob:`
 
 ## Resultado de auditorias externas
 
@@ -115,7 +127,7 @@ Es informativo. El scanner detecta Next.js, React, Vercel y componentes normales
 El punto real es que el CSP actual incluye:
 
 ```text
-script-src 'self' 'unsafe-inline'
+script-src 'self' 'unsafe-inline' 'unsafe-eval' https:
 ```
 
 Eso no es ideal, pero en Next.js App Router sobre Vercel quitarlo sin una estrategia de nonce por request puede romper hidratacion, navegacion y scripts internos del framework.
@@ -125,6 +137,22 @@ Decision actual:
 - mantenemos un CSP defensivo en el resto de directivas
 - aceptamos temporalmente `unsafe-inline` solo en `script-src`
 - dejamos esta observacion como riesgo residual controlado hasta implementar CSP con nonce
+
+## Badge y Web Push admin
+
+Desde 2026-06-26 el admin ya incorpora:
+
+- `service worker` dedicado `public/admin-sw.js`
+- suscripciones por dispositivo en `admin_push_subscriptions`
+- variables VAPID en Vercel
+- endpoint de prueba `POST /api/admin/push/test`
+- envio de push desde backend cuando cambia el contador de pedidos por atender
+
+Limite conocido:
+
+- en iPhone la PWA cerrada no puede depender de polling o timers
+- el comportamiento mas confiable depende de push visible y de que la app este instalada desde pantalla de inicio
+- aun puede variar segun version de iOS y permisos del dispositivo
 
 ## Politicas RLS esperadas
 

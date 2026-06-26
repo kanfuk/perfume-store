@@ -1,286 +1,85 @@
-# 42 - Roadmap robusto para badge PWA y Web Push en iPhone
+# 42 - Web Push PWA admin: estado implementado y siguientes pasos
 
-## Objetivo
+## Objetivo original
 
-Implementar actualizacion confiable del badge del icono y notificaciones push para admin en iPhone, sin depender de polling falso cuando la app esta cerrada o suspendida.
+Implementar una base robusta para badge del icono y Web Push admin en iPhone, evitando depender de polling falso cuando la app esta cerrada o suspendida.
 
-## Estado actual del proyecto
+## Estado implementado al 2026-06-26
 
-- Hay `manifest` PWA para cliente y admin.
-- Hay utilidades de badge:
-  - `lib/pwa/notifications.ts`
-  - `lib/pwa/updateAppBadge.ts`
-- El admin ya refresca pendientes:
-  - al abrir
-  - cada 60 segundos con la app visible
-  - al volver con `visibilitychange`
-  - con Realtime opcional sobre `pedidos`
-- No existe `service worker` registrado.
-- No existe flujo de `PushManager`.
-- No existe almacenamiento de suscripciones push.
-- No existe endpoint para disparar Web Push desde backend.
-
-## Limitacion tecnica real
-
-En iPhone, una PWA cerrada o en segundo plano no puede depender de `setInterval` o JavaScript del tab para actualizar badge o mostrar notificaciones.
-
-Para que el badge del icono se actualice sin abrir manualmente la app, se necesita:
-
-- PWA instalada desde Safari
-- permiso de notificaciones otorgado por el usuario
-- `service worker` activo
-- suscripcion `PushManager`
-- backend que envie Web Push al entrar un pedido nuevo
-- soporte de `setAppBadge` o `clearAppBadge` en el contexto disponible
-
-## Arquitectura recomendada
-
-### 1. Frontend admin
-
-Agregar una capa PWA aislada para no contaminar la UI actual:
-
-- `lib/pwa/registerServiceWorker.ts`
-- `lib/pwa/push.ts`
-- `public/sw.js` o `public/admin-sw.js`
-
-Responsabilidades:
-
-- registrar `service worker` solo en admin y solo en cliente
-- pedir permiso de notificaciones solo tras click del usuario
-- crear/renovar suscripcion push
-- persistir la suscripcion en backend
-- sincronizar `badgeEnabled`, `notificationPermission`, `runningAsPwa`
-
-### 2. Base de datos
-
-Crear una tabla nueva solo si se decide implementar push de verdad:
-
-`admin_push_subscriptions`
-
-Campos sugeridos:
-
-- `id uuid primary key default gen_random_uuid()`
-- `user_id uuid not null`
-- `device_id text not null`
-- `endpoint text not null`
-- `p256dh text not null`
-- `auth text not null`
-- `device_label text null`
-- `running_as_pwa boolean default false`
-- `notification_permission text null`
-- `is_active boolean default true`
-- `last_seen_at timestamptz null`
-- `created_at timestamptz default now()`
-- `updated_at timestamptz default now()`
-
-Indices sugeridos:
-
-- unique `(user_id, device_id, endpoint)`
-- index por `is_active`
-
-No mezclar esta tabla con `user_device_badge_settings`. Esa tabla sirve para preferencias de badge; push necesita credenciales de suscripcion.
-
-### 3. Backend Vercel
-
-Agregar endpoints separados:
-
-- `POST /api/admin/push-subscriptions`
-  - guarda o reactiva suscripcion
-- `DELETE /api/admin/push-subscriptions`
-  - desactiva suscripcion
-- `POST /api/admin/push/test`
-  - envia push de prueba al dispositivo actual
-
-Agregar una utilidad server-only:
-
-- `lib/pwa/sendWebPush.ts`
-
-Responsabilidades:
-
-- leer claves VAPID desde variables de entorno
-- construir payload corto
-- enviar a suscripciones activas
-- desactivar suscripciones invalidas al recibir `404` o `410`
-
-### 4. Disparador de push
-
-El lugar mas seguro para disparar push es backend, inmediatamente despues de crear un pedido pendiente.
-
-Punto sugerido:
-
-- `services/pedidoService.ts`
-  - despues de `crearPedido(...)`
-
-Flujo:
-
-1. se crea el pedido
-2. se confirma que cuenta como pendiente para admin
-3. se consulta el total pendiente actual
-4. se envian pushes a suscripciones activas
-5. el payload lleva:
-   - titulo
-   - cuerpo
-   - `pendingCount`
-   - `pedidoId`
-   - `url` destino, por ejemplo `/admin/pedidos`
-
-No disparar push desde frontend cliente.
-
-## Service Worker recomendado
-
-Archivo sugerido:
+Ya existe en el proyecto:
 
 - `public/admin-sw.js`
+- `lib/pwa/registerServiceWorker.ts`
+- `lib/pwa/push.ts`
+- `lib/pwa/sendWebPush.ts`
+- `components/admin/AdminPwaInitializer.tsx`
+- `app/api/admin/push-subscriptions/route.ts`
+- `app/api/admin/push/test/route.ts`
+- tabla `admin_push_subscriptions`
+- variables VAPID en Vercel
 
-Eventos a manejar:
+## Flujo vigente
 
-- `install`
-- `activate`
-- `push`
-- `notificationclick`
+1. el admin abre la PWA desde el icono
+2. activa badge y notificaciones desde el panel
+3. la app registra `service worker`
+4. se crea o reactiva una suscripcion push por dispositivo
+5. la suscripcion queda guardada en Supabase
+6. cuando cambia el contador de pedidos por atender, backend envia Web Push
+7. el `service worker` muestra notificacion y actualiza badge cuando el runtime lo permite
 
-Comportamiento en `push`:
+## Cobertura ya aplicada
 
-1. parsear payload JSON
-2. mostrar notificacion
-3. intentar actualizar badge si el runtime lo soporta
-4. si el payload trae `pendingCount`, usar ese valor
-5. si no trae `pendingCount`, dejar badge generico `1`
+### Frontend admin
 
-Comportamiento en `notificationclick`:
+- registro de `service worker` aislado al admin
+- deteccion de soporte de push
+- suscripcion por dispositivo
+- prueba manual de push
+- CTA de activacion desde el dashboard
 
-- cerrar notificacion
-- abrir o enfocar `/admin/pedidos`
+### Backend
 
-## Variables de entorno recomendadas
+- guardado y baja de suscripciones activas
+- envio con `web-push`
+- desactivacion automatica de suscripciones invalidas `404/410`
+- payload con `pendingCount` real y destino `/admin/pedidos`
 
-Agregar en Vercel:
+### Regla de conteo
 
-- `VAPID_PUBLIC_KEY`
-- `VAPID_PRIVATE_KEY`
-- `VAPID_SUBJECT`
+La emision usa la misma logica del badge visible:
 
-Reglas:
+- solo pedidos que requieren accion admin
+- no pedidos ya vistos
+- no pedidos agendados
+- no pedidos finalizados o cancelados
 
-- nunca exponer `VAPID_PRIVATE_KEY` en frontend
-- `VAPID_PUBLIC_KEY` si puede ir al cliente
-- usar `VAPID_SUBJECT` tipo `mailto:correo@dominio.com`
+## Ajuste extra aplicado para iPhone
 
-## Libreria recomendada
+La implementacion ya intenta ser compatible con escenarios mas fragiles de Safari/iPhone:
 
-Usar una libreria liviana y estandar para backend:
+- payload declarativo compatible con Web Push moderno
+- preferencia por `window.pushManager` cuando el runtime lo expone
+- fallback via `service worker` para navegadores clasicos
 
-- `web-push`
+## Lo que aun no se promete
 
-Motivo:
+- trabajo silencioso garantizado con la app cerrada en iPhone
+- autorefresh continuo del badge sin push visible
+- paridad total con una app nativa
 
-- madura
-- pequena
-- compatible con Vercel serverless
-- evita implementar el protocolo manualmente
+## Siguientes endurecimientos recomendados
 
-No agregar dependencias PWA pesadas si no son necesarias.
+1. medir en iPhone real distintas versiones de iOS y documentar matriz de soporte
+2. agregar logging operacional minimo para errores de suscripcion y envio push
+3. evaluar `Content-Security-Policy-Report-Only` para endurecer CSP sin cortar push/PWA
+4. endurecer CSP con `nonce` antes de quitar `unsafe-inline` y `unsafe-eval`
+5. revisar si algun cambio futuro del contador debe disparar push adicional
 
-## Fases recomendadas de implementacion
+## QA recomendado
 
-### Fase 1
-
-Objetivo: dejar base segura sin cambiar reglas de negocio.
-
-- registrar `service worker`
-- crear helper de registro
-- agregar CTA `Activar notificaciones`
-- pedir permiso tras click
-- crear endpoint para guardar suscripcion
-- guardar suscripcion en Supabase
-
-### Fase 2
-
-Objetivo: push de prueba.
-
-- endpoint `push/test`
-- boton `Enviar prueba`
-- validar:
-  - permiso
-  - recepcion
-  - click abre admin
-
-### Fase 3
-
-Objetivo: push automatico al crear pedido pendiente.
-
-- integrar emision en backend al cerrar `crearPedido`
-- incluir `pendingCount` real
-- actualizar badge desde service worker
-
-### Fase 4
-
-Objetivo: endurecimiento y operacion.
-
-- desactivar suscripciones invalidas
-- registrar `last_seen_at`
-- logs server-side minimos
-- reintento prudente sin loops
-- QA en iPhone real
-
-## Reglas de conteo de badge
-
-Mantener la regla actual del proyecto:
-
-- contar solo pedidos que requieren accion admin
-- hoy la app usa `getPendingAdminOrdersCount(data.pendientes)`
-
-Recomendacion:
-
-- no redefinir badge dentro del service worker
-- calcular el `pendingCount` en backend con la misma regla existente
-- enviar ese valor listo en el payload push
-
-## Riesgos a evitar
-
-- pedir permisos al cargar la pagina
-- registrar `service worker` duplicado
-- enviar push desde frontend
-- hardcodear claves VAPID
-- depender de polling para app cerrada en iPhone
-- mezclar logica de badge con logica de negocio de pedidos
-- asumir que `activo/inactivo` de producto equivale a soporte de push o badge
-
-## Checklist tecnico
-
-### Antes de empezar
-
-- confirmar dominio productivo final en Vercel
-- confirmar cuenta Safari/iPhone para pruebas
-- confirmar variables de entorno VAPID
-
-### Desarrollo
-
-- crear `service worker`
-- registrar SW solo en admin
-- agregar tabla de suscripciones
-- crear endpoint guardar/eliminar
-- crear endpoint de prueba
-- integrar envio automatico
-
-### QA
-
-- Safari iPhone con PWA instalada
-- permiso de notificaciones aceptado
-- push de prueba recibido
-- click abre admin
-- pedido nuevo dispara push
-- badge del icono cambia si el runtime lo soporta
-- si no soporta badge, la notificacion igual funciona
-
-## Recomendacion final
-
-La forma mas robusta de implementarlo despues es:
-
-1. mantener el refresh actual con app abierta
-2. sumar `service worker` + `PushManager`
-3. guardar suscripciones en Supabase
-4. enviar Web Push desde backend Vercel al crear pedido pendiente
-5. usar `pendingCount` calculado server-side para sincronizar badge
-
-Ese camino es el que mejor respeta iPhone, Vercel y Supabase gratis sin inventar comportamiento que iOS no garantiza.
+- reinstalar el acceso directo admin en iPhone cuando cambie manifest o push
+- probar `Probar notificacion` con la app cerrada
+- crear pedido nuevo desde la web publica y confirmar push visible
+- marcar pedido como visto y confirmar resincronizacion del badge
+- revisar que `/admin/pedidos` abra desde el click de la notificacion

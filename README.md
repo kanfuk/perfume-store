@@ -22,11 +22,12 @@ Hoy el proyecto ya incluye:
 - agrupacion de fiados por cliente con cobro consolidado por WhatsApp
 - contador de pedidos por atender ajustado al estado real de atencion admin
 - badge PWA/iPhone con activacion por dispositivo y chip compacto en el header admin
+- Web Push admin con `service worker`, suscripciones por dispositivo y prueba manual desde el panel
 - unificacion segura de clientes duplicados y sugerencias para evitar nuevos duplicados
 - reportes sin card de `Ticket promedio`
 - control adicional contra tabla `usuarios_admin`
 - repositorios y servicios con reglas de negocio
-- seguridad base en headers, RLS y validaciones servidor
+- seguridad base en headers, CSP compatible, RLS y validaciones servidor
 - pruebas automatizadas con Vitest
 - favicon pack completo para navegador, iOS y Android
 
@@ -64,13 +65,18 @@ Variables principales:
 ```text
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_SECRET_KEY=
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=
 HORAS_EXPIRACION_PEDIDO=72
 ```
 
 Notas:
 
 - `SUPABASE_SECRET_KEY` es solo servidor.
+- `SUPABASE_SERVICE_ROLE_KEY` y `VAPID_PRIVATE_KEY` son solo servidor.
 - si faltan variables publicas, la app puede caer en modo local segun repositorio usado
 - despues de cambiar variables en Vercel hay que redeployar
 
@@ -79,6 +85,7 @@ Notas:
 Implementado:
 
 - headers HTTP defensivos
+- CSP compatible con Next.js App Router, Supabase realtime y PWA admin
 - `security.txt`
 - RLS habilitado en tablas principales
 - insercion publica restringida a lo minimo necesario
@@ -90,13 +97,14 @@ Pendiente para una fase posterior:
 
 - CSP con nonce por request
 - automatizacion WhatsApp
-- QA funcional en Supabase real para stock unificado y cierres operativos
+- QA funcional mas amplia en iPhone/PWA para badge y push con app cerrada
+- rate limit mas fino en endpoints publicos
 
 ## Produccion actual
 
 - URL publica: `https://pauli-store-clientes.vercel.app`
-- ultimo deploy validado: `2026-06-25`
-- estado operativo resumido: [docs/40_ESTADO_ACTUAL_APP_2026_06_25.md](docs/40_ESTADO_ACTUAL_APP_2026_06_25.md)
+- ultimo deploy validado: `2026-06-26`
+- estado operativo resumido: [docs/43_ESTADO_ACTUAL_APP_2026_06_26.md](docs/43_ESTADO_ACTUAL_APP_2026_06_26.md)
 
 ## Iconografia y manifest
 
@@ -128,7 +136,8 @@ Acceso directo admin en iPhone:
 - abrir `https://tu-dominio/admin` o `https://tu-dominio/admin/login`
 - usar `Compartir -> Agregar a pantalla de inicio`
 - si ya existia un acceso directo viejo, eliminarlo y crearlo de nuevo para que tome `start_url: /admin`
-- para ver badge en el icono, abrir la PWA instalada y aceptar el permiso con `Activar badge en icono`
+- para ver badge en el icono, abrir la PWA instalada y aceptar el permiso con `Activar badge en este iPhone`
+- para push cerrado en iPhone, la PWA debe estar instalada y con notificaciones permitidas
 
 Uso rapido del badge:
 
@@ -157,6 +166,7 @@ Migraciones recientes:
 
 - `20260625232000_add_user_device_badge_settings.sql`
 - `20260625235500_merge_duplicate_customers.sql`
+- `20260626120000_add_admin_push_subscriptions.sql`
 
 ## Documentacion clave
 
@@ -165,7 +175,8 @@ Migraciones recientes:
 - [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
 - [docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md](docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md)
-- [docs/40_ESTADO_ACTUAL_APP_2026_06_25.md](docs/40_ESTADO_ACTUAL_APP_2026_06_25.md)
+- [docs/41_BADGES_PWA_LIMITACIONES.md](docs/41_BADGES_PWA_LIMITACIONES.md)
+- [docs/43_ESTADO_ACTUAL_APP_2026_06_26.md](docs/43_ESTADO_ACTUAL_APP_2026_06_26.md)
 
 ## Siguiente fase recomendada
 
@@ -173,3 +184,4 @@ Migraciones recientes:
 2. confirmar en produccion la reasociacion de pedidos manuales al cliente correcto cuando se dejan fiados
 3. ejecutar limpieza final de datos de prueba antes del lanzamiento
 4. validar flujo completo desde celular con Pauli usando datos reales
+5. endurecer CSP con `nonce` o `report-only` antes de quitar `unsafe-inline` y `unsafe-eval`

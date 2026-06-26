@@ -22,7 +22,11 @@ En `Project Settings -> Environment Variables` deben existir:
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_SECRET_KEY
+NEXT_PUBLIC_VAPID_PUBLIC_KEY
+VAPID_PRIVATE_KEY
+VAPID_SUBJECT
 HORAS_EXPIRACION_PEDIDO=72
 ```
 
@@ -113,6 +117,7 @@ Seguridad:
 - `/.well-known/security.txt` responde
 - no hay claves privadas en navegador
 - headers de seguridad presentes
+- `Content-Security-Policy` presente y compatible con Supabase/PWA
 - `/favicon.ico?v=99` responde
 - `/icons/apple-touch-icon.png?v=99` responde
 - `/icons/android-chrome-192x192.png?v=99` responde
@@ -125,13 +130,16 @@ Acceso directo admin en iPhone:
 - agregar a pantalla de inicio desde esa misma ruta
 - si el icono admin abre cliente, borrar el acceso directo anterior y crearlo de nuevo
 - la ruta admin usa `start_url: /admin` mediante `public/admin.webmanifest`
-- para ver badge en el icono, abrir la PWA instalada y aceptar el permiso de notificaciones desde el boton `Activar badge en icono`
+- para ver badge en el icono, abrir la PWA instalada y aceptar el permiso de notificaciones desde el boton `Activar badge en este iPhone`
 - confirmar en `Ajustes -> Notificaciones -> Pauli Admin` que `Insignias` este activo
+- para push real con la app cerrada, probar tambien el boton `Probar notificacion`
 
 ## Incidentes comunes
 
 - key copiada con espacios
 - `SUPABASE_SECRET_KEY` mal pegada
+- `SUPABASE_SERVICE_ROLE_KEY` ausente en produccion
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` confundida con secret key
+- claves VAPID faltantes o cargadas en entornos incompletos
 - Site URL vieja en Supabase
 - no redeploy despues de cambiar variables
