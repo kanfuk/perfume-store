@@ -105,6 +105,8 @@ type ProductModalState =
 type StockDraft = {
   stock: string;
   precioVenta: string;
+  tipoProducto: string;
+  activo: "activo" | "pausado";
 };
 type CustomerCardData = {
   clienteId: string;
@@ -274,6 +276,39 @@ export function AdminDashboard({
         .includes(normalizedProductSearch);
     });
   }, [normalizedProductSearch, products, stockFilter]);
+
+  const stockProductNameOptions = useMemo(
+    () => Array.from(new Set(products.map((product) => product.nombre.trim()).filter(Boolean))).sort(),
+    [products]
+  );
+
+  const stockTypeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(["simple", ...products.map((product) => (product.tipoProducto || "simple").trim())].filter(Boolean))
+      ).sort(),
+    [products]
+  );
+
+  const stockBadgeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => (product.badgeLabel || product.tipoProducto || "").trim())
+            .filter(Boolean)
+        )
+      ).sort(),
+    [products]
+  );
+
+  const stockPriceSuggestions = useMemo(
+    () =>
+      Array.from(new Set(products.map((product) => product.precioVenta).filter((price) => price > 0))).sort(
+        (a, b) => a - b
+      ),
+    [products]
+  );
 
   const ordersByFilter = useMemo(() => {
     function matches(order: AdminOrderSummary) {
@@ -1030,40 +1065,15 @@ export function AdminDashboard({
     }
   }
 
-  async function toggleProduct(product: AdminProductRecord) {
-    try {
-      setBusyProductId(product.id);
-      setError("");
-      const response = await fetch(`/api/admin/products/${product.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          mode: "toggle",
-          activo: !product.activo
-        })
-      });
-      const currentData = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(currentData.error ?? "No fue posible cambiar el estado.");
-      }
-
-      await loadProducts();
-    } catch (currentError) {
-      setError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No fue posible cambiar el estado."
-      );
-    } finally {
-      setBusyProductId("");
-    }
-  }
-
   async function saveStock(product: AdminProductRecord) {
     const draft = stockDrafts[product.id];
+    const normalizedStock = normalizeStockValue(
+      draft?.stock ?? getUnifiedProductStock(product)
+    );
+    const nextActive =
+      normalizedStock <= 0
+        ? false
+        : (draft?.activo ?? (product.activo ? "activo" : "pausado")) === "activo";
 
     await saveProduct({
       id: product.id,
@@ -1073,9 +1083,9 @@ export function AdminDashboard({
       imageUrl: product.imageUrl,
       badgeLabel: product.badgeLabel,
       costoUnitario: product.costoUnitario,
-      stock: normalizeStockValue(draft?.stock ?? getUnifiedProductStock(product)),
-      tipoProducto: product.tipoProducto,
-      activo: product.activo
+      stock: normalizedStock,
+      tipoProducto: draft?.tipoProducto ?? product.tipoProducto,
+      activo: nextActive
     });
   }
 
@@ -1126,6 +1136,8 @@ export function AdminDashboard({
       [productId]: {
         stock: current[productId]?.stock ?? String(getUnifiedProductStock(product)),
         precioVenta: current[productId]?.precioVenta ?? String(product.precioVenta),
+        tipoProducto: current[productId]?.tipoProducto ?? product.tipoProducto,
+        activo: current[productId]?.activo ?? (product.activo ? "activo" : "pausado"),
         [key]: value
       }
     }));
@@ -1361,7 +1373,7 @@ export function AdminDashboard({
       ) : null}
 
       {view === "home" ? (
-        <section className="space-y-5">
+        <section className="min-w-0 max-w-full overflow-x-hidden space-y-5">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <HeroMetric
               label="Pedidos por atender"
@@ -1953,22 +1965,31 @@ export function AdminDashboard({
             }
           />
 
-          <section className="rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <label className="space-y-2">
+          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft">
+            <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <label className="min-w-0 space-y-2">
                 <span className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
                   <Search className="h-4 w-4" />
                   Buscar producto
                 </span>
                 <input
+                  list="stock-product-options"
                   value={productSearch}
                   onChange={(event) => setProductSearch(event.target.value)}
                   placeholder="Nombre, descripción o tipo"
-                  className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 outline-none placeholder:text-emerald-400"
+                  className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 outline-none placeholder:text-emerald-400"
                 />
+                <datalist id="stock-product-options">
+                  {stockProductNameOptions.map((productName) => (
+                    <option key={productName} value={productName} />
+                  ))}
+                  {stockTypeOptions.map((typeOption) => (
+                    <option key={`type-${typeOption}`} value={typeOption} />
+                  ))}
+                </datalist>
               </label>
 
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <span className="text-sm font-semibold text-emerald-900">Filtro rápido</span>
                 <StableHorizontalRail className="flex gap-2 overflow-x-auto">
                   <FilterChip
@@ -2015,7 +2036,7 @@ export function AdminDashboard({
             />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
             {catalogLoading ? <EmptyState text="Cargando catálogo..." /> : null}
             {!catalogLoading && filteredProducts.length === 0 ? (
               <EmptyState text="No hay productos para esta busqueda." />
@@ -2029,11 +2050,11 @@ export function AdminDashboard({
                   product={product}
                   draft={draft}
                   busy={busyProductId === product.id}
-                  onToggle={() => void toggleProduct(product)}
                   onEdit={() => setProductModalState({ mode: "edit", product })}
                   onDelete={() => void deleteProduct(product)}
                   onChange={(key, value) => updateStockDraft(product.id, key, value, product)}
                   onSave={() => void saveStock(product)}
+                  typeOptions={stockTypeOptions}
                 />
               );
             })}
@@ -2510,6 +2531,10 @@ export function AdminDashboard({
           }
           onClose={() => setProductModalState(null)}
           onSave={saveProduct}
+          productNameOptions={stockProductNameOptions}
+          typeOptions={stockTypeOptions}
+          badgeOptions={stockBadgeOptions}
+          priceSuggestions={stockPriceSuggestions}
         />
       ) : null}
 
@@ -2742,23 +2767,26 @@ function StockProductCard({
   product,
   draft,
   busy,
-  onToggle,
   onEdit,
   onDelete,
   onChange,
-  onSave
+  onSave,
+  typeOptions
 }: {
   product: AdminProductRecord;
   draft?: StockDraft;
   busy: boolean;
-  onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onChange: (key: keyof StockDraft, value: string) => void;
   onSave: () => void;
+  typeOptions: string[];
 }) {
+  const quickStockAmount = draft?.stock ?? String(getUnifiedProductStock(product));
+  const desiredStatus = draft?.activo ?? (product.activo ? "activo" : "pausado");
+
   return (
-    <article className="max-w-full overflow-x-hidden rounded-[24px] border border-emerald-100 bg-white/90 p-4 shadow-soft">
+    <article className="min-w-0 max-w-full overflow-hidden rounded-[24px] border border-emerald-100 bg-white/90 p-4 shadow-soft">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 gap-4">
           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50">
@@ -2777,7 +2805,7 @@ function StockProductCard({
                 label={product.activo ? "ACTIVO" : "PAUSADO"}
               />
             </div>
-            <p className="text-sm leading-6 text-emerald-900/70">
+            <p className="break-words text-sm leading-6 text-emerald-900/70">
               {product.descripcion || "Sin descripción."}
             </p>
           </div>
@@ -2786,34 +2814,25 @@ function StockProductCard({
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-900"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-900 sm:w-auto"
         >
           <PencilLine className="h-4 w-4" />
           Editar
         </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={product.activo}
-          disabled={busy}
-          onClick={onToggle}
-          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-            product.activo ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"
-          }`}
+      <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2">
+        <select
+          value={desiredStatus}
+          onChange={(event) => onChange("activo", event.target.value)}
+          className="min-h-11 min-w-0 rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
         >
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${
-              product.activo ? "bg-emerald-500" : "bg-slate-500"
-            }`}
-          />
-          {busy ? "Guardando..." : product.activo ? "Catálogo activo" : "Pausado"}
-        </button>
+          <option value="activo">Activo</option>
+          <option value="pausado">Pausado</option>
+        </select>
         <StatusBadge
           tone="neutral"
-          label={product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
+          label={draft?.tipoProducto || product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
         />
         <StatusBadge
           tone={getUnifiedProductStock(product) > 0 ? "pedido" : "warning"}
@@ -2821,7 +2840,7 @@ function StockProductCard({
         />
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
         <InlineField
           label="Precio"
           value={draft?.precioVenta ?? String(product.precioVenta)}
@@ -2829,12 +2848,22 @@ function StockProductCard({
         />
         <InlineField
           label="Stock"
-          value={draft?.stock ?? String(getUnifiedProductStock(product))}
+          value={quickStockAmount}
+          onChange={(value) => onChange("stock", value)}
+        />
+        <InlineSelectField
+          label="Tipo"
+          value={draft?.tipoProducto ?? product.tipoProducto}
+          onChange={(value) => onChange("tipoProducto", value)}
+          options={typeOptions}
+        />
+        <QuickStockAdjuster
+          value={quickStockAmount}
           onChange={(value) => onChange("stock", value)}
         />
       </div>
 
-      <details className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+      <details className="mt-4 min-w-0 overflow-hidden rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
         <summary className="cursor-pointer text-sm font-semibold text-emerald-900">
           Ver detalle del producto
         </summary>
@@ -3512,7 +3541,11 @@ function ProductModal({
   state,
   busy,
   onClose,
-  onSave
+  onSave,
+  productNameOptions,
+  typeOptions,
+  badgeOptions,
+  priceSuggestions
 }: {
   state: Exclude<ProductModalState, null>;
   busy: boolean;
@@ -3529,6 +3562,10 @@ function ProductModal({
     tipoProducto: string;
     activo: boolean;
   }) => void;
+  productNameOptions: string[];
+  typeOptions: string[];
+  badgeOptions: string[];
+  priceSuggestions: number[];
 }) {
   const current = state.mode === "edit" ? state.product : null;
   const [nombre, setNombre] = useState(current?.nombre ?? "");
@@ -3574,7 +3611,7 @@ function ProductModal({
             </div>
           </div>
 
-          <div className="min-h-0 overflow-y-auto px-5 py-5 pb-[calc(128px+env(safe-area-inset-bottom))]">
+          <div className="min-h-0 overflow-x-hidden overflow-y-auto px-5 py-5 pb-[calc(128px+env(safe-area-inset-bottom))]">
             <div className="space-y-5">
             <section className="grid gap-3 sm:grid-cols-3">
               <MiniMetric
@@ -3588,37 +3625,37 @@ function ProductModal({
               />
             </section>
 
-            <label className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
+            <label className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="font-semibold text-emerald-950">Disponible para clientes</div>
                 <div className="mt-1 text-xs text-emerald-900/65">
                   Apágalo cuando no quieras vender este producto.
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setActivo((currentValue) => !currentValue)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-                  activo ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"
-                }`}
+              <select
+                value={activo ? "Activo" : "Pausado"}
+                onChange={(event) => setActivo(event.target.value === "Activo")}
+                className="min-h-11 w-full min-w-0 rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 sm:w-auto"
               >
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    activo ? "bg-emerald-500" : "bg-slate-500"
-                  }`}
-                />
-                {activo ? "Activo" : "Pausado"}
-              </button>
+                <option value="Activo">Activo</option>
+                <option value="Pausado">Pausado</option>
+              </select>
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2 sm:col-span-2">
             <span className="text-sm font-semibold text-emerald-900">Nombre</span>
             <input
+              list="stock-modal-product-names"
               value={nombre}
               onChange={(event) => setNombre(event.target.value)}
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
+            <datalist id="stock-modal-product-names">
+              {productNameOptions.map((productName) => (
+                <option key={productName} value={productName} />
+              ))}
+            </datalist>
           </label>
           <label className="space-y-2 sm:col-span-2">
             <span className="text-sm font-semibold text-emerald-900">Descripción corta</span>
@@ -3632,11 +3669,17 @@ function ProductModal({
           <label className="space-y-2 sm:col-span-2">
             <span className="text-sm font-semibold text-emerald-900">Badge visible</span>
             <input
+              list="stock-modal-badge-options"
               value={badgeLabel}
               onChange={(event) => setBadgeLabel(event.target.value)}
               placeholder="Ejemplo: DOBLADITA QUESO"
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
+            <datalist id="stock-modal-badge-options">
+              {badgeOptions.map((badgeOption) => (
+                <option key={badgeOption} value={badgeOption} />
+              ))}
+            </datalist>
           </label>
           <label className="space-y-2 sm:col-span-2">
             <span className="text-sm font-semibold text-emerald-900">Ruta pública de imagen</span>
@@ -3650,12 +3693,18 @@ function ProductModal({
           <label className="space-y-2">
             <span className="text-sm font-semibold text-emerald-900">Precio</span>
             <input
+              list="stock-modal-price-options"
               type="number"
               min={0}
               value={precioVenta}
               onChange={(event) => setPrecioVenta(event.target.value)}
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
+            <datalist id="stock-modal-price-options">
+              {priceSuggestions.map((priceSuggestion) => (
+                <option key={priceSuggestion} value={priceSuggestion} />
+              ))}
+            </datalist>
           </label>
           <label className="space-y-2">
             <span className="text-sm font-semibold text-emerald-900">Costo</span>
@@ -3674,16 +3723,22 @@ function ProductModal({
               min={0}
               value={stock}
               onChange={(event) => setStock(event.target.value)}
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
             />
           </label>
           <label className="space-y-2">
             <span className="text-sm font-semibold text-emerald-900">Tipo</span>
-            <input
+            <select
               value={tipoProducto}
               onChange={(event) => setTipoProducto(event.target.value)}
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
-            />
+              className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+            >
+              {typeOptions.map((typeOption) => (
+                <option key={typeOption} value={typeOption}>
+                  {typeOption}
+                </option>
+              ))}
+            </select>
           </label>
             </div>
             </div>
@@ -4227,16 +4282,73 @@ function InlineField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="space-y-2">
+    <label className="min-w-0 space-y-2">
       <span className="text-sm font-semibold text-emerald-900">{label}</span>
       <input
         type="number"
         min={0}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+        className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
       />
     </label>
+  );
+}
+
+function InlineSelectField({
+  label,
+  value,
+  onChange,
+  options
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}) {
+  return (
+    <label className="min-w-0 space-y-2">
+      <span className="text-sm font-semibold text-emerald-900">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function QuickStockAdjuster({
+  value,
+  onChange
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const currentValue = normalizeStockValue(value);
+
+  return (
+    <div className="min-w-0 space-y-2">
+      <span className="text-sm font-semibold text-emerald-900">Ajuste rÃ¡pido</span>
+      <div className="grid grid-cols-4 gap-2">
+        {[-1, 1, 5, 10].map((delta) => (
+          <button
+            key={delta}
+            type="button"
+            onClick={() => onChange(String(Math.max(0, currentValue + delta)))}
+            className="min-h-11 rounded-lg border border-emerald-100 bg-white px-2 text-sm font-semibold text-emerald-900"
+          >
+            {delta > 0 ? `+${delta}` : delta}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

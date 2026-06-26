@@ -145,6 +145,14 @@ Clientes y stock:
 - nombres equivalentes como `Paty`, `Yo` o `camila montes` se normalizan para evitar duplicados
 - en el formulario publico se sugieren clientes recientes por nombre, telefono o lugar de trabajo
 
+## Mejora Stock movil
+
+- se agregaron `selects`, `datalist` y ajustes rapidos para editar producto, tipo, precio, stock y estado desde celular
+- se corrigio el desborde horizontal en la vista Stock y en el modal de producto
+- se ajusto el render responsive para iPhone/PWA sin dejar el layout corrido al salir de Stock
+- se mantuvo la logica `Activo/Pausado`
+- stock `0` sigue pausando el producto automaticamente
+
 Migraciones recientes:
 
 - `20260625232000_add_user_device_badge_settings.sql`
