@@ -130,12 +130,25 @@ class ClienteRepositoryStub implements ClienteRepository {
   async upsertCliente(cliente: Cliente) {
     return { id: `cliente-${cliente.nombre}` };
   }
+
+  async buscarClienteRelacionado() {
+    return null;
+  }
 }
 
 class PedidoRepositoryStub implements PedidoRepository {
   public itemsRegistrados = 0;
+  public pedidoRegistrado:
+    | { pedido: Pedido; clienteId: string; origenPedido?: string; observacion?: string }
+    | undefined;
 
-  async insertarPedido(args: { pedido: Pedido; clienteId: string }) {
+  async insertarPedido(args: {
+    pedido: Pedido;
+    clienteId: string;
+    origenPedido?: string;
+    observacion?: string;
+  }) {
+    this.pedidoRegistrado = args;
     return { id: `pedido-${args.clienteId}` };
   }
 
@@ -165,6 +178,10 @@ class PedidoRepositoryStub implements PedidoRepository {
   }
 
   async actualizarEstadoPedido() {
+    return;
+  }
+
+  async actualizarClientePedido() {
     return;
   }
 }
@@ -224,6 +241,10 @@ describe("PedidoService", () => {
         telefonoGuardado = cliente.telefono;
         return { id: "cliente-telefono" };
       }
+
+      async buscarClienteRelacionado() {
+        return null;
+      }
     }
 
     const service = new PedidoService(
@@ -259,5 +280,30 @@ describe("PedidoService", () => {
         items: [{ productoId: "pan-amasado", cantidad: 21 }]
       })
     ).rejects.toThrow("El producto Pan amasado solo tiene 20 disponible(s).");
+  });
+
+  it("registra pedidos personalizados nuevos como pendientes cuando aun no se agendan", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      pedidoRepository
+    );
+
+    const result = await service.crearPedidoPersonalizado({
+      nombre: "Claudia",
+      telefono: "9 1234 5678",
+      lugarTrabajo: "Finanzas",
+      nombreProducto: "Queque especial",
+      descripcion: "Sin azucar",
+      cantidad: 1,
+      precioAcordado: 12000,
+      estadoInicial: "PENDIENTE"
+    });
+
+    expect(result.estadoPedido).toBe("PENDIENTE");
+    expect(result.estadoPago).toBe("SIN_PAGO");
+    expect(pedidoRepository.pedidoRegistrado?.pedido.fechaAgendado).toBeUndefined();
+    expect(pedidoRepository.pedidoRegistrado?.pedido.fechaCierre).toBeUndefined();
   });
 });

@@ -32,12 +32,8 @@ export function isScheduledAdminOrder(order: PendingAdminOrderLike) {
   );
 }
 
-export function needsAdminOrderAttention(order: PendingAdminOrderLike) {
+export function isPendingAdminOrder(order: PendingAdminOrderLike) {
   if (isClosedAdminOrder(order)) {
-    return false;
-  }
-
-  if (order.adminSeen === true) {
     return false;
   }
 
@@ -48,7 +44,23 @@ export function needsAdminOrderAttention(order: PendingAdminOrderLike) {
   return true;
 }
 
+export function needsAdminOrderAttention(order: PendingAdminOrderLike) {
+  return isPendingAdminOrder(order) && order.adminSeen !== true;
+}
+
 export function getPendingAdminOrders<T extends PendingAdminOrderLike>(orders: T[]) {
+  if (!Array.isArray(orders)) {
+    return [];
+  }
+
+  return orders.filter((order) => isPendingAdminOrder(order));
+}
+
+export function getPendingAdminOrdersCount<T extends PendingAdminOrderLike>(orders: T[]) {
+  return getPendingAdminOrders(orders).length;
+}
+
+export function getNewAdminOrders<T extends PendingAdminOrderLike>(orders: T[]) {
   if (!Array.isArray(orders)) {
     return [];
   }
@@ -56,6 +68,6 @@ export function getPendingAdminOrders<T extends PendingAdminOrderLike>(orders: T
   return orders.filter((order) => needsAdminOrderAttention(order));
 }
 
-export function getPendingAdminOrdersCount<T extends PendingAdminOrderLike>(orders: T[]) {
-  return getPendingAdminOrders(orders).length;
+export function getNewAdminOrdersCount<T extends PendingAdminOrderLike>(orders: T[]) {
+  return getNewAdminOrders(orders).length;
 }

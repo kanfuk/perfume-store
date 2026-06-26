@@ -110,6 +110,10 @@ class ClienteRepositoryStub implements ClienteRepository {
   async upsertCliente(cliente: Cliente) {
     return { id: cliente.id ?? "cliente-1" };
   }
+
+  async buscarClienteRelacionado() {
+    return null;
+  }
 }
 
 class AdminPedidoRepositoryStub implements PedidoRepository {
@@ -161,6 +165,10 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
     fechaCierre?: string;
   }) {
     this.actualizado = args;
+  }
+
+  async actualizarClientePedido() {
+    return;
   }
 
   async buscarPagosPorPedidoIds() {
@@ -417,7 +425,7 @@ describe("PedidoService admin transitions", () => {
     );
   });
 
-  it("cuenta como pendientes de atencion los pedidos sin agendar o no vistos", async () => {
+  it("cuenta como pendientes reales solo los pedidos sin agendar", async () => {
     const repository = new AdminPedidoRepositoryStub({
       PENDIENTE: [
         buildOrder("PENDIENTE"),
@@ -452,6 +460,6 @@ describe("PedidoService admin transitions", () => {
 
     const dashboard = await service.obtenerDashboardAdmin();
 
-    expect(dashboard.pedidosNuevos).toBe(3);
+    expect(dashboard.pedidosNuevos).toBe(2);
   });
 });

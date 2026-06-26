@@ -4,19 +4,14 @@ export async function updateAppBadge(count: number) {
   }
 
   try {
-    const canSetBadge = "setAppBadge" in navigator;
-    const canClearBadge = "clearAppBadge" in navigator;
-
-    if (!canSetBadge || !canClearBadge) {
-      return;
-    }
-
-    if (count > 0) {
+    if (count > 0 && "setAppBadge" in navigator) {
       await navigator.setAppBadge(count);
       return;
     }
 
-    await navigator.clearAppBadge();
+    if ("clearAppBadge" in navigator) {
+      await navigator.clearAppBadge();
+    }
   } catch (error) {
     console.warn("No se pudo actualizar el badge de la app.", error);
   }

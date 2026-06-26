@@ -318,9 +318,12 @@ export class PedidoService {
     const estadoPedido =
       input.estadoInicial === ESTADO_PEDIDO_AGENDADO
         ? ESTADO_PEDIDO_AGENDADO
-        : ESTADO_PEDIDO_FINALIZADO;
+        : input.estadoInicial === ESTADO_PEDIDO_PENDIENTE
+          ? ESTADO_PEDIDO_PENDIENTE
+          : ESTADO_PEDIDO_FINALIZADO;
     const estadoPago =
-      input.estadoInicial === ESTADO_PEDIDO_AGENDADO
+      input.estadoInicial === ESTADO_PEDIDO_AGENDADO ||
+      input.estadoInicial === ESTADO_PEDIDO_PENDIENTE
         ? ESTADO_PAGO_SIN_PAGO
         : input.estadoInicial === ESTADO_PAGO_PAGADO
           ? ESTADO_PAGO_PAGADO
@@ -449,10 +452,7 @@ export class PedidoService {
     const fiadosPendientes = finalizadosEnriched.filter(
       (order) => order.estadoPago === ESTADO_PAGO_FIADO && order.saldoPendiente > 0
     );
-    const pedidosNuevos = getPendingAdminOrdersCount([
-      ...pendientesEnriched,
-      ...agendadosEnriched
-    ]);
+    const pedidosNuevos = getPendingAdminOrdersCount(pendientesEnriched);
 
     return {
       pendientes: pendientesEnriched.sort(

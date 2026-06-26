@@ -72,7 +72,7 @@ const initialCustomForm = {
   precioAcordado: "",
   costoEstimadoTotal: "",
   fechaEntrega: "",
-  estadoInicial: "AGENDADO" as "AGENDADO" | "PAGADO" | "FIADO"
+  estadoInicial: "PENDIENTE" as "PENDIENTE" | "AGENDADO" | "PAGADO" | "FIADO"
 };
 
 const todayDate = getChileTodayInputValue();
@@ -183,7 +183,7 @@ export function AdminDirectSale({
   const normalizedCustomerPlace = normalizarTexto(customerPlace);
   const filteredCustomers = useMemo(() => {
     if (!customerSearchQuery) {
-      return [];
+      return customers;
     }
 
     return customers.filter((customer) => {
@@ -252,7 +252,7 @@ export function AdminDirectSale({
   const normalizedCustomCustomerPlace = normalizarTexto(customForm.lugarTrabajo);
   const filteredCustomCustomers = useMemo(() => {
     if (!customCustomerSearchQuery) {
-      return [];
+      return customers;
     }
 
     return customers.filter((customer) => {
@@ -626,7 +626,29 @@ export function AdminDirectSale({
                       className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
                     />
                   </label>
-                  {filteredCustomers.length > 0 ? (
+                  <select
+                    value={selectedCustomerId}
+                    onChange={(event) => syncExistingCustomer(event.target.value)}
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                  >
+                    <option value="">
+                      {customers.length === 0
+                        ? "No hay clientes registrados"
+                        : "Selecciona cliente existente"}
+                    </option>
+                    {filteredCustomers.slice(0, 50).map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.nombre}
+                        {customer.telefono ? ` - ${customer.telefono}` : ""}
+                        {customer.lugarTrabajo ? ` - ${customer.lugarTrabajo}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {customers.length === 0 ? (
+                    <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                      No hay clientes registrados.
+                    </div>
+                  ) : filteredCustomers.length > 0 ? (
                     <div className="max-h-64 overflow-y-auto rounded-[20px] border border-[#d8ebdd] bg-[#f8fdf9] p-2">
                       {filteredCustomers.slice(0, 8).map((customer) => (
                         <button
@@ -777,16 +799,20 @@ export function AdminDirectSale({
                     value={customCustomerSearch}
                     onChange={(event) => handleCustomCustomerSearchChange(event.target.value)}
                     placeholder="Busca por nombre, telefono o lugar de trabajo"
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
-                  />
-                </label>
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
+                    />
+                  </label>
                 <select
                   value={customSelectedCustomerId}
                   onChange={(event) => syncCustomExistingCustomer(event.target.value)}
                   className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
                 >
-                  <option value="">Selecciona cliente existente</option>
-                  {customers.map((customer) => (
+                  <option value="">
+                    {customers.length === 0
+                      ? "No hay clientes registrados"
+                      : "Selecciona cliente existente"}
+                  </option>
+                  {filteredCustomCustomers.slice(0, 50).map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.nombre}
                       {customer.telefono ? ` - ${customer.telefono}` : ""}
@@ -794,7 +820,11 @@ export function AdminDirectSale({
                     </option>
                   ))}
                 </select>
-                {filteredCustomCustomers.length > 0 ? (
+                {customers.length === 0 ? (
+                  <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                    No hay clientes registrados.
+                  </div>
+                ) : filteredCustomCustomers.length > 0 ? (
                   <div className="max-h-64 overflow-y-auto rounded-[20px] border border-[#d8ebdd] bg-[#f8fdf9] p-2">
                     {filteredCustomCustomers.slice(0, 8).map((customer) => (
                       <button
@@ -975,7 +1005,15 @@ export function AdminDirectSale({
 
               <div className="space-y-3">
                 <div className="text-sm font-medium text-[#1f3328]">Estado inicial del pedido</div>
-                <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
+                  <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-4">
+                  <ChoiceButton
+                    active={customForm.estadoInicial === "PENDIENTE"}
+                    title="Pendiente"
+                    text="Queda PENDIENTE / SIN_PAGO."
+                    onClick={() =>
+                      setCustomForm((current) => ({ ...current, estadoInicial: "PENDIENTE" }))
+                    }
+                  />
                   <ChoiceButton
                     active={customForm.estadoInicial === "AGENDADO"}
                     title="Agendado"
@@ -1033,7 +1071,9 @@ export function AdminDirectSale({
                 <SummaryFact
                   label="Estado"
                   value={
-                    customForm.estadoInicial === "AGENDADO"
+                    customForm.estadoInicial === "PENDIENTE"
+                      ? "PENDIENTE / SIN_PAGO"
+                      : customForm.estadoInicial === "AGENDADO"
                       ? "AGENDADO / SIN_PAGO"
                       : customForm.estadoInicial === "PAGADO"
                         ? "FINALIZADO / PAGADO"

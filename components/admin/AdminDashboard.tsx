@@ -42,16 +42,18 @@ import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { paymentInfo } from "@/config/paymentInfo";
 import {
-  getPendingAdminOrders,
+  getNewAdminOrders,
   getPendingAdminOrdersCount
 } from "@/lib/admin/getPendingAdminOrders";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
 import {
   getNotificationPermissionState,
+  isAppBadgeSupported,
   isRunningAsInstalledPwa,
-  requestNotificationPermission
+  requestBadgePermissionForCurrentDevice
 } from "@/lib/pwa/notifications";
+import { getOrCreateDeviceId } from "@/lib/pwa/device";
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
@@ -67,6 +69,7 @@ import {
 } from "@/lib/date";
 import type {
   AdminMaintenanceAction,
+  AdminBadgeDeviceSetting,
   AdminDashboardData,
   AdminOrderSummary,
   AdminOrdersAction,
@@ -217,7 +220,14 @@ export function AdminDashboard({
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
   >("unsupported");
+  const [badgeDeviceId] = useState(() => getOrCreateDeviceId());
+  const [badgeDeviceSetting, setBadgeDeviceSetting] = useState<AdminBadgeDeviceSetting | null>(
+    null
+  );
+  const [badgeCardLoading, setBadgeCardLoading] = useState(false);
+  const [badgeActionLoading, setBadgeActionLoading] = useState(false);
   const [isInstalledPwa] = useState(() => isRunningAsInstalledPwa());
+  const [badgeSupported] = useState(() => isAppBadgeSupported());
 
   const allOrders = useMemo(
     () => [
@@ -365,6 +375,54 @@ export function AdminDashboard({
   }, []);
 
   useEffect(() => {
+    if (!badgeDeviceId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadBadgeSetting() {
+      try {
+        setBadgeCardLoading(true);
+        const response = await fetch(
+          `/api/admin/badge-settings?deviceId=${encodeURIComponent(badgeDeviceId)}`,
+          { cache: "no-store" }
+        );
+        const currentData = (await response.json()) as {
+          error?: string;
+          setting?: AdminBadgeDeviceSetting | null;
+        };
+
+        if (!response.ok) {
+          throw new Error(currentData.error ?? "No fue posible cargar el badge.");
+        }
+
+        if (!cancelled) {
+          setBadgeDeviceSetting(currentData.setting ?? null);
+        }
+      } catch (currentError) {
+        if (!cancelled) {
+          setError(
+            currentError instanceof Error
+              ? currentError.message
+              : "No fue posible cargar el badge."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setBadgeCardLoading(false);
+        }
+      }
+    }
+
+    void loadBadgeSetting();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [badgeDeviceId]);
+
+  useEffect(() => {
     const intervalId = window.setInterval(() => {
       if (document.visibilityState !== "visible") {
         return;
@@ -405,24 +463,67 @@ export function AdminDashboard({
     [data.pendientes]
   );
 
-  const scheduledAttentionCount = useMemo(
-    () => getPendingAdminOrdersCount(data.agendados),
-    [data.agendados]
-  );
-
-  const attentionCount = pendingAttentionCount + scheduledAttentionCount;
+  const attentionCount = pendingAttentionCount;
 
   const pendingUnseenOrders = useMemo(
     () =>
-      getPendingAdminOrders([...data.pendientes, ...data.agendados])
+      getNewAdminOrders(data.pendientes)
         .sort((a, b) => b.fechaPedido.localeCompare(a.fechaPedido))
         .slice(0, 4),
-    [data.agendados, data.pendientes]
+    [data.pendientes]
   );
 
   useEffect(() => {
-    void updateAppBadge(attentionCount);
-  }, [attentionCount]);
+    if (!badgeDeviceSetting?.badgeEnabled) {
+      return;
+    }
+
+    async function syncBadge() {
+      await updateAppBadge(attentionCount);
+
+      if (!badgeDeviceId) {
+        return;
+      }
+
+      const lastSyncAt = new Date().toISOString();
+
+      setBadgeDeviceSetting((current) =>
+        current
+          ? {
+              ...current,
+              lastBadgeCount: attentionCount,
+              lastSyncAt
+            }
+          : current
+      );
+
+      void fetch("/api/admin/badge-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          deviceId: badgeDeviceId,
+          deviceLabel: getCurrentDeviceLabel(),
+          badgeEnabled: true,
+          badgeSupported,
+          notificationPermission,
+          runningAsPwa: isInstalledPwa,
+          lastBadgeCount: attentionCount,
+          lastSyncAt
+        })
+      });
+    }
+
+    void syncBadge();
+  }, [
+    attentionCount,
+    badgeDeviceId,
+    badgeDeviceSetting?.badgeEnabled,
+    badgeSupported,
+    isInstalledPwa,
+    notificationPermission
+  ]);
 
   const customerCards = useMemo(() => {
     const grouped = new Map<string, CustomerCardData>();
@@ -676,16 +777,14 @@ export function AdminDashboard({
   }
 
   async function enableHomeScreenBadge() {
-    const permission = await requestNotificationPermission();
-    setNotificationPermission(permission);
+    await activateBadgeForCurrentDevice();
+    return;
+    /*
+    
 
-    if (permission === "granted") {
-      await updateAppBadge(attentionCount);
-      setSuccessMessage("Badge del icono activado para esta app en iPhone.");
-      return;
-    }
+    
 
-    if (permission === "denied") {
+    
       setError(
         "iPhone no permitió las notificaciones. Actívalas en Ajustes > Notificaciones > Pauli Admin."
       );
@@ -693,6 +792,85 @@ export function AdminDashboard({
     }
 
     setError("No fue posible activar el badge del icono en este dispositivo.");
+    */
+  }
+
+  async function activateBadgeForCurrentDevice() {
+    try {
+      setBadgeActionLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const result = await requestBadgePermissionForCurrentDevice();
+      setNotificationPermission(result.notificationPermission);
+
+      const response = await fetch("/api/admin/badge-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          deviceId: badgeDeviceId,
+          deviceLabel: getCurrentDeviceLabel(),
+          badgeEnabled: result.enabled,
+          badgeSupported: result.badgeSupported,
+          notificationPermission: result.notificationPermission,
+          runningAsPwa: result.runningAsPwa,
+          lastBadgeCount: result.enabled ? attentionCount : 0,
+          lastSyncAt: new Date().toISOString()
+        })
+      });
+      const currentData = (await response.json()) as {
+        error?: string;
+        setting?: AdminBadgeDeviceSetting;
+      };
+
+      if (!response.ok) {
+        throw new Error(currentData.error ?? "No fue posible guardar el badge.");
+      }
+
+      setBadgeDeviceSetting(currentData.setting ?? null);
+
+      if (result.enabled) {
+        await updateAppBadge(attentionCount);
+        setSuccessMessage("Badge activo en este dispositivo.");
+        return;
+      }
+
+      setError(resolveBadgeActivationErrorMessage(result.error));
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No se pudo activar el badge. Revisa permisos del iPhone."
+      );
+    } finally {
+      setBadgeActionLoading(false);
+    }
+  }
+
+  async function testBadgeOnCurrentDevice() {
+    try {
+      setBadgeActionLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      if ("setAppBadge" in navigator) {
+        await navigator.setAppBadge(1);
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      await updateAppBadge(attentionCount);
+      setSuccessMessage("Badge probado y sincronizado con los pedidos pendientes.");
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible probar el badge en este dispositivo."
+      );
+    } finally {
+      setBadgeActionLoading(false);
+    }
   }
 
   async function runMaintenanceAction(action: AdminMaintenanceAction) {
@@ -1066,7 +1244,7 @@ export function AdminDashboard({
               </p>
               {isInstalledPwa &&
               attentionCount > 0 &&
-              notificationPermission !== "granted" ? (
+              !badgeDeviceSetting?.badgeEnabled ? (
                 <button
                   type="button"
                   onClick={() => void enableHomeScreenBadge()}
@@ -1275,6 +1453,90 @@ export function AdminDashboard({
                 />
               </div>
             </article>
+          </section>
+
+          <section className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-emerald-950">Badge del icono</h2>
+                <p className="mt-1 text-sm text-emerald-900/65">
+                  Activa el contador de pedidos pendientes en el icono de la app de tu iPhone.
+                </p>
+              </div>
+              {badgeDeviceSetting?.badgeEnabled ? (
+                <StatusBadge tone="pedido" label="ACTIVO" />
+              ) : (
+                <StatusBadge tone="neutral" label="POR ACTIVAR" />
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <SimpleFact
+                label="Soporte"
+                value={badgeSupported ? "Disponible" : "No compatible"}
+              />
+              <SimpleFact
+                label="Modo app"
+                value={isInstalledPwa ? "Desde icono" : "Abrir desde inicio"}
+              />
+              <SimpleFact
+                label="Permiso"
+                value={formatBadgePermission(notificationPermission)}
+              />
+              <SimpleFact
+                label="Contador actual"
+                value={String(attentionCount)}
+              />
+            </div>
+
+            <div className="mt-4 space-y-2 text-sm text-emerald-900/75">
+              {!badgeSupported ? (
+                <p>Este navegador no soporta badge en el icono.</p>
+              ) : null}
+              {!isInstalledPwa ? (
+                <p>
+                  Para ver el badge en el icono, instala Pauli Store en la pantalla de
+                  inicio y abre la app desde ese icono.
+                </p>
+              ) : null}
+              {notificationPermission === "denied" ? (
+                <p>
+                  El permiso fue denegado. Debes activarlo desde Ajustes del iPhone para
+                  esta app.
+                </p>
+              ) : null}
+              {badgeDeviceSetting?.badgeEnabled ? (
+                <p>Badge activo en este dispositivo.</p>
+              ) : (
+                <p>Activa el badge desde este dispositivo para sincronizarlo con los pedidos.</p>
+              )}
+              {badgeDeviceSetting?.lastSyncAt ? (
+                <p>
+                  Ultima sincronizacion: {formatShortDateTime(badgeDeviceSetting.lastSyncAt)}.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                disabled={badgeActionLoading || badgeCardLoading || !badgeDeviceId}
+                onClick={() => void activateBadgeForCurrentDevice()}
+                className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-200"
+              >
+                {badgeActionLoading ? "Activando..." : "Activar badge en este iPhone"}
+              </button>
+              {badgeDeviceSetting?.badgeEnabled ? (
+                <button
+                  type="button"
+                  disabled={badgeActionLoading}
+                  onClick={() => void testBadgeOnCurrentDevice()}
+                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
+                >
+                  Probar badge
+                </button>
+              ) : null}
+            </div>
           </section>
 
           <section className="grid gap-4 lg:grid-cols-3">
@@ -1564,7 +1826,7 @@ export function AdminDashboard({
           <div className="grid gap-3 md:grid-cols-3">
             <MiniHomeTab
               title="Pendientes"
-              value={`${pendingAttentionCount}/${ordersByFilter.pendientes.length}`}
+              value={String(ordersByFilter.pendientes.length)}
               active={statusFilter === "pendientes"}
               onClick={() => setStatusFilter("pendientes")}
               tone="rose"
@@ -4026,6 +4288,43 @@ function StatusBadge({
       {label}
     </span>
   );
+}
+
+function formatBadgePermission(value: NotificationPermission | "unsupported") {
+  if (value === "granted") {
+    return "Permitido";
+  }
+
+  if (value === "denied") {
+    return "Denegado";
+  }
+
+  if (value === "default") {
+    return "Pendiente";
+  }
+
+  return "Sin soporte";
+}
+
+function resolveBadgeActivationErrorMessage(error: string | null) {
+  if (error === "BADGE_NOT_SUPPORTED") {
+    return "Este navegador no soporta badge en el icono.";
+  }
+
+  if (error === "NOTIFICATION_PERMISSION_DENIED") {
+    return "El permiso fue denegado. Debes activarlo desde Ajustes del iPhone para esta app.";
+  }
+
+  return "No se pudo activar el badge. Revisa permisos de notificaciones del iPhone o vuelve a abrir la app desde el icono instalado.";
+}
+
+function getCurrentDeviceLabel() {
+  if (typeof navigator === "undefined") {
+    return "Dispositivo";
+  }
+
+  const platform = navigator.platform?.trim();
+  return platform ? `iPhone/${platform}` : "iPhone";
 }
 
 function MobileQuickHomeButton({

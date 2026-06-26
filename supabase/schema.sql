@@ -626,6 +626,24 @@ create table if not exists operaciones_admin_log (
   created_at timestamp with time zone default now()
 );
 
+create table if not exists user_device_badge_settings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  device_id text not null,
+  device_label text,
+  badge_enabled boolean not null default false,
+  badge_supported boolean not null default false,
+  notification_permission text,
+  running_as_pwa boolean,
+  last_badge_count integer not null default 0,
+  last_sync_at timestamp with time zone,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+
+create unique index if not exists user_device_badge_settings_user_device_idx
+on user_device_badge_settings(user_id, device_id);
+
 create table if not exists archivo_clientes (
   id uuid primary key default gen_random_uuid(),
   operacion_id uuid not null references operaciones_admin_log(id),
@@ -867,6 +885,13 @@ alter table archivo_pedidos enable row level security;
 alter table archivo_pedido_items enable row level security;
 alter table archivo_pagos enable row level security;
 alter table archivo_fiados enable row level security;
+alter table user_device_badge_settings enable row level security;
+
+drop trigger if exists user_device_badge_settings_set_updated_at on user_device_badge_settings;
+create trigger user_device_badge_settings_set_updated_at
+before update on user_device_badge_settings
+for each row
+execute function set_updated_at();
 
 drop policy if exists "admin_can_read_operaciones_admin_log" on operaciones_admin_log;
 create policy "admin_can_read_operaciones_admin_log"
@@ -945,6 +970,30 @@ for select
 to authenticated
 using (
   exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_manage_own_badge_settings" on user_device_badge_settings;
+create policy "admin_can_manage_own_badge_settings"
+on user_device_badge_settings
+for all
+to authenticated
+using (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+)
+with check (
+  user_id = auth.uid()
+  and exists (
     select 1
     from usuarios_admin
     where usuarios_admin.email = auth.email()

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getNewAdminOrdersCount,
   getPendingAdminOrders,
   getPendingAdminOrdersCount,
   needsAdminOrderAttention
@@ -15,14 +16,32 @@ describe("getPendingAdminOrders", () => {
     expect(getPendingAdminOrdersCount(orders)).toBe(1);
   });
 
-  it("mantiene pedidos agendados sin ver como pendientes de atencion", () => {
+  it("solo considera nuevos de atencion a pendientes no vistos", () => {
     expect(
       needsAdminOrderAttention({
-        estadoPedido: "AGENDADO",
+        estadoPedido: "PENDIENTE",
         adminSeen: false,
-        fechaEntrega: "2026-06-24"
+        fechaEntrega: undefined
       })
     ).toBe(true);
+
+    expect(
+      needsAdminOrderAttention({
+        estadoPedido: "PENDIENTE",
+        adminSeen: true
+      })
+    ).toBe(false);
+  });
+
+  it("separa el contador de pendientes reales del contador de nuevos", () => {
+    const orders = [
+      { estadoPedido: "PENDIENTE", adminSeen: false },
+      { estadoPedido: "PENDIENTE", adminSeen: true },
+      { estadoPedido: "AGENDADO", adminSeen: false, fechaEntrega: "2026-06-24" }
+    ];
+
+    expect(getPendingAdminOrdersCount(orders)).toBe(2);
+    expect(getNewAdminOrdersCount(orders)).toBe(1);
   });
 
   it("excluye pedidos cerrados del contador", () => {

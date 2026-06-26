@@ -161,7 +161,7 @@ export function validateCustomOrderForm(
     errors.costoEstimadoTotal = "El costo estimado no puede ser negativo.";
   }
 
-  if (!["AGENDADO", "PAGADO", "FIADO"].includes(data.estadoInicial)) {
+  if (!["PENDIENTE", "AGENDADO", "PAGADO", "FIADO"].includes(data.estadoInicial)) {
     errors.estadoInicial = "Selecciona el estado inicial del pedido.";
   }
 

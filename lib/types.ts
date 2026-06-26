@@ -73,7 +73,7 @@ export type CustomOrderRequest = {
   precioAcordado: number;
   costoEstimadoTotal?: number;
   fechaEntrega?: string;
-  estadoInicial: "AGENDADO" | "PAGADO" | "FIADO";
+  estadoInicial: "PENDIENTE" | "AGENDADO" | "PAGADO" | "FIADO";
 };
 
 export type CustomerOrderResponse = {
@@ -150,6 +150,21 @@ export type AdminDashboardData = {
   cancelados: AdminOrderSummary[];
   fiadosPendientes: AdminOrderSummary[];
   pedidosNuevos: number;
+};
+
+export type AdminBadgeDeviceSetting = {
+  id?: string;
+  userId: string;
+  deviceId: string;
+  deviceLabel?: string;
+  badgeEnabled: boolean;
+  badgeSupported: boolean;
+  notificationPermission?: NotificationPermission | "unsupported";
+  runningAsPwa?: boolean;
+  lastBadgeCount: number;
+  lastSyncAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type AdminOrdersAction =
