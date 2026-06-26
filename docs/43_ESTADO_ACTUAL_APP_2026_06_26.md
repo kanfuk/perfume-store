@@ -31,6 +31,13 @@ Este documento resume el estado vigente de **Pauli Store** despues de la pasada 
 - envio push al cambiar el contador de pedidos por atender
 - payload con compatibilidad declarativa para Safari/iPhone moderno
 
+### Agendamiento y WhatsApp
+
+- al agendar un pedido, el cambio de estado en backend y la actualizacion UI quedan separados de la apertura de WhatsApp
+- el boton de agendar libera `loading` antes de intentar abrir la app externa
+- si WhatsApp falla o el telefono no es valido, el pedido igual queda agendado
+- existe fallback visible para copiar el mensaje o reintentar abrir WhatsApp sin congelar la pantalla
+
 ### Regla del badge
 
 El badge visible y el push usan la misma regla:

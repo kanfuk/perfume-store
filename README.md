@@ -23,6 +23,7 @@ Hoy el proyecto ya incluye:
 - contador de pedidos por atender ajustado al estado real de atencion admin
 - badge PWA/iPhone con activacion por dispositivo y chip compacto en el header admin
 - Web Push admin con `service worker`, suscripciones por dispositivo y prueba manual desde el panel
+- agendamiento admin robustecido para que WhatsApp no congele la app y deje fallback manual
 - unificacion segura de clientes duplicados y sugerencias para evitar nuevos duplicados
 - reportes sin card de `Ticket promedio`
 - control adicional contra tabla `usuarios_admin`

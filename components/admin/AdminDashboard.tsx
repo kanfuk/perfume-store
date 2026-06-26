@@ -63,8 +63,10 @@ import {
   subscribeCurrentDeviceToPush
 } from "@/lib/pwa/push";
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
+import { normalizeChilePhone } from "@/lib/phone/normalizeChilePhone";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
+import { buildOrderConfirmationMessage } from "@/lib/whatsapp/buildOrderConfirmationMessage";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
 import { buildWhatsAppManualUrl } from "@/lib/whatsapp/buildWhatsAppManualUrl";
 import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
@@ -135,6 +137,11 @@ type GroupedFiadoCustomer = {
   totalPendiente: number;
   cantidadFiados: number;
   fiados: AdminOrderSummary[];
+};
+type WhatsAppFallbackState = {
+  message: string;
+  url?: string;
+  reason: "invalid-phone" | "open-failed";
 };
 
 const PENDING_ORDERS_REFRESH_MS = 60000;
@@ -214,6 +221,7 @@ export function AdminDashboard({
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [whatsAppFallback, setWhatsAppFallback] = useState<WhatsAppFallbackState | null>(null);
   const [busyOrderId, setBusyOrderId] = useState("");
   const [busyProductId, setBusyProductId] = useState("");
   const [busyMaintenanceAction, setBusyMaintenanceAction] = useState("");
@@ -1095,27 +1103,69 @@ export function AdminDashboard({
     order: AdminOrderSummary,
     deliveryDateValue?: string
   ) {
-    const notification = getOrderWhatsAppNotification(order, deliveryDateValue);
+    const message = buildScheduledOrderMessage(order, deliveryDateValue);
+    const openResult = openWhatsAppMessage(order.clienteTelefono, message);
 
-    if (notification.status !== "ready" || !notification.url) {
+    if (openResult.status === "invalid-phone") {
       setSuccessMessage(
-        notification.error === "Sin telefono"
-          ? "Pedido agendado, pero el cliente no tiene teléfono válido para WhatsApp."
-          : "Pedido agendado, pero el teléfono del cliente no es válido para WhatsApp."
+        openResult.error === "Sin telefono"
+          ? "Pedido agendado, pero el cliente no tiene telefono valido para WhatsApp."
+          : "Pedido agendado, pero el telefono del cliente no es valido para WhatsApp."
       );
+      setWhatsAppFallback({
+        message,
+        reason: "invalid-phone"
+      });
       return;
     }
 
-    const opened = window.open(notification.url, "_blank", "noopener,noreferrer");
+    if (openResult.status === "blocked") {
+      setSuccessMessage(
+        "Pedido agendado. Si WhatsApp no se abrio, puedes copiar o reintentar el mensaje."
+      );
+      setWhatsAppFallback({
+        message,
+        url: openResult.url,
+        reason: "open-failed"
+      });
+      return;
+    }
+
+    setWhatsAppFallback(null);
+    setSuccessMessage("Pedido agendado correctamente.");
+  }
+
+  async function copyWhatsAppFallbackMessage() {
+    if (!whatsAppFallback?.message) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(whatsAppFallback.message);
+      setSuccessMessage("Mensaje copiado. Ya puedes pegarlo manualmente en WhatsApp.");
+    } catch {
+      setError(
+        "No se pudo copiar el mensaje automaticamente. Copialo manualmente desde el recuadro."
+      );
+    }
+  }
+
+  function retryWhatsAppFallback() {
+    if (!whatsAppFallback?.url) {
+      return;
+    }
+
+    const opened = window.open(whatsAppFallback.url, "_blank", "noopener,noreferrer");
 
     if (!opened) {
       setSuccessMessage(
-        "Pedido agendado. Si WhatsApp no se abrio, usa el boton Enviar WhatsApp."
+        "Pedido agendado, pero el navegador sigue bloqueando WhatsApp. Puedes copiar el mensaje manualmente."
       );
       return;
     }
 
-    setSuccessMessage("Pedido agendado correctamente.");
+    setWhatsAppFallback(null);
+    setSuccessMessage("WhatsApp abierto con el mensaje del pedido agendado.");
   }
 
   async function runAction(
@@ -1129,10 +1179,13 @@ export function AdminDashboard({
       metodoPago?: string;
     }
     ) {
+    let scheduledOrderData: { order: AdminOrderSummary; deliveryDateValue?: string } | null = null;
+
     try {
       setBusyOrderId(pedidoId);
       setError("");
       setSuccessMessage("");
+      setWhatsAppFallback(null);
       const response = await fetch(`/api/admin/orders/${pedidoId}`, {
         method: "PATCH",
         headers: {
@@ -1154,7 +1207,10 @@ export function AdminDashboard({
       await loadOrders();
 
       if (action === "agendar" && order) {
-        handleOrderAgendaWhatsApp(order, payload?.fechaEntrega);
+        scheduledOrderData = {
+          order,
+          deliveryDateValue: payload?.fechaEntrega
+        };
       }
     } catch (currentError) {
       setError(
@@ -1162,8 +1218,16 @@ export function AdminDashboard({
           ? currentError.message
           : "No fue posible actualizar el pedido."
       );
+      return;
     } finally {
       setBusyOrderId("");
+    }
+
+    if (scheduledOrderData) {
+      handleOrderAgendaWhatsApp(
+        scheduledOrderData.order,
+        scheduledOrderData.deliveryDateValue
+      );
     }
   }
 
@@ -1519,6 +1583,48 @@ export function AdminDashboard({
       {successMessage ? (
         <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {successMessage}
+        </div>
+      ) : null}
+
+      {whatsAppFallback ? (
+        <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+          <div className="font-semibold">
+            Pedido agendado, pero WhatsApp no se pudo abrir automaticamente.
+          </div>
+          <p className="mt-2 text-amber-900/85">
+            Puedes copiar el mensaje y enviarlo manualmente. Si el navegador lo permite,
+            tambien puedes reintentar abrir WhatsApp.
+          </p>
+          <textarea
+            readOnly
+            value={whatsAppFallback.message}
+            className="mt-3 min-h-32 w-full rounded-2xl border border-amber-200 bg-white px-3 py-3 text-sm text-emerald-950"
+          />
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void copyWhatsAppFallbackMessage()}
+              className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-amber-500 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Copiar mensaje
+            </button>
+            {whatsAppFallback.url ? (
+              <button
+                type="button"
+                onClick={retryWhatsAppFallback}
+                className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-amber-300 bg-white px-4 py-3 text-sm font-semibold text-amber-950"
+              >
+                Reintentar WhatsApp
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setWhatsAppFallback(null)}
+              className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-amber-300 bg-white px-4 py-3 text-sm font-semibold text-amber-950"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -5106,6 +5212,51 @@ function getOrderWhatsAppNotification(
         ? formatDateOnly(order.fechaEntrega)
         : "Por coordinar"
   });
+}
+
+function buildScheduledOrderMessage(
+  order: AdminOrderSummary,
+  deliveryDateValue?: string
+) {
+  return buildOrderConfirmationMessage({
+    customerName: order.clienteNombre,
+    items: order.items.map((item) => ({
+      name: item.productoNombre,
+      quantity: item.cantidad
+    })),
+    total: order.total,
+    deliveryDateLabel: deliveryDateValue
+      ? formatDateOnly(deliveryDateValue)
+      : order.fechaEntrega
+        ? formatDateOnly(order.fechaEntrega)
+        : "Por coordinar"
+  });
+}
+
+function openWhatsAppMessage(phone: string, message: string) {
+  const normalizedPhone = normalizeChilePhone(phone ?? "");
+
+  if (!normalizedPhone) {
+    return {
+      status: "invalid-phone" as const,
+      error: phone?.trim() ? "Telefono invalido" : "Sin telefono"
+    };
+  }
+
+  const url = buildWhatsAppManualUrl(normalizedPhone, message);
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+
+  if (!opened) {
+    return {
+      status: "blocked" as const,
+      url
+    };
+  }
+
+  return {
+    status: "opened" as const,
+    url
+  };
 }
 
 function formatDateOnly(value: string) {

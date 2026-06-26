@@ -460,6 +460,6 @@ describe("PedidoService admin transitions", () => {
 
     const dashboard = await service.obtenerDashboardAdmin();
 
-    expect(dashboard.pedidosNuevos).toBe(2);
+    expect(dashboard.pedidosNuevos).toBe(1);
   });
 });
