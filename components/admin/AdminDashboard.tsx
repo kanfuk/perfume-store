@@ -57,6 +57,11 @@ import {
   requestBadgePermissionForCurrentDevice
 } from "@/lib/pwa/notifications";
 import { getOrCreateDeviceId } from "@/lib/pwa/device";
+import {
+  isPushNotificationsSupported,
+  sendCurrentDevicePushTest,
+  subscribeCurrentDeviceToPush
+} from "@/lib/pwa/push";
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
@@ -235,6 +240,8 @@ export function AdminDashboard({
   const [badgeActionLoading, setBadgeActionLoading] = useState(false);
   const [isInstalledPwa] = useState(() => isRunningAsInstalledPwa());
   const [badgeSupported] = useState(() => isAppBadgeSupported());
+  const [pushSupported] = useState(() => isPushNotificationsSupported());
+  const [pushSubscriptionActive, setPushSubscriptionActive] = useState(false);
 
   const allOrders = useMemo(
     () => [
@@ -454,6 +461,45 @@ export function AdminDashboard({
     }
 
     void loadBadgeSetting();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [badgeDeviceId]);
+
+  useEffect(() => {
+    if (!badgeDeviceId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPushSubscription() {
+      try {
+        const response = await fetch(
+          `/api/admin/push-subscriptions?deviceId=${encodeURIComponent(badgeDeviceId)}`,
+          { cache: "no-store" }
+        );
+        const currentData = (await response.json()) as {
+          error?: string;
+          subscription?: { isActive?: boolean } | null;
+        };
+
+        if (!response.ok) {
+          throw new Error(currentData.error ?? "No fue posible cargar las notificaciones.");
+        }
+
+        if (!cancelled) {
+          setPushSubscriptionActive(currentData.subscription?.isActive === true);
+        }
+      } catch {
+        if (!cancelled) {
+          setPushSubscriptionActive(false);
+        }
+      }
+    }
+
+    void loadPushSubscription();
 
     return () => {
       cancelled = true;
@@ -915,6 +961,26 @@ export function AdminDashboard({
 
       setBadgeDeviceSetting(currentData.setting ?? null);
 
+      if (pushSupported) {
+        const pushResult = await subscribeCurrentDeviceToPush();
+        setNotificationPermission(pushResult.notificationPermission);
+
+        if (pushResult.ok) {
+          setPushSubscriptionActive(true);
+
+          if (result.enabled) {
+            await updateAppBadge(attentionCount);
+            setSuccessMessage("Badge y notificaciones activados en este dispositivo.");
+            return;
+          }
+
+          setSuccessMessage(
+            "Las notificaciones push quedaron activas. El badge no esta disponible en este navegador."
+          );
+          return;
+        }
+      }
+
       if (result.enabled) {
         await updateAppBadge(attentionCount);
         setSuccessMessage("Badge activo en este dispositivo.");
@@ -951,6 +1017,25 @@ export function AdminDashboard({
         currentError instanceof Error
           ? currentError.message
           : "No fue posible probar el badge en este dispositivo."
+      );
+    } finally {
+      setBadgeActionLoading(false);
+    }
+  }
+
+  async function testPushOnCurrentDevice() {
+    try {
+      setBadgeActionLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const message = await sendCurrentDevicePushTest();
+      setSuccessMessage(message);
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible probar las notificaciones push."
       );
     } finally {
       setBadgeActionLoading(false);
@@ -1565,6 +1650,16 @@ export function AdminDashboard({
                 label="Contador actual"
                 value={String(attentionCount)}
               />
+              <SimpleFact
+                label="Push"
+                value={
+                  !pushSupported
+                    ? "No compatible"
+                    : pushSubscriptionActive
+                      ? "Activo"
+                      : "Pendiente"
+                }
+              />
             </div>
 
             <div className="mt-4 space-y-2 text-sm text-emerald-900/75">
@@ -1577,6 +1672,9 @@ export function AdminDashboard({
                   inicio y abre la app desde ese icono.
                 </p>
               ) : null}
+              {!pushSupported ? (
+                <p>Este navegador no soporta notificaciones push web para esta app.</p>
+              ) : null}
               {notificationPermission === "denied" ? (
                 <p>
                   El permiso fue denegado. Debes activarlo desde Ajustes del iPhone para
@@ -1588,6 +1686,9 @@ export function AdminDashboard({
               ) : (
                 <p>Activa el badge desde este dispositivo para sincronizarlo con los pedidos.</p>
               )}
+              {pushSubscriptionActive ? (
+                <p>Las notificaciones push estan activas para este dispositivo.</p>
+              ) : null}
               {badgeDeviceSetting?.lastSyncAt ? (
                 <p>
                   Ultima sincronizacion: {formatShortDateTime(badgeDeviceSetting.lastSyncAt)}.
@@ -1612,6 +1713,16 @@ export function AdminDashboard({
                   className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
                 >
                   Probar badge
+                </button>
+              ) : null}
+              {pushSupported && pushSubscriptionActive ? (
+                <button
+                  type="button"
+                  disabled={badgeActionLoading}
+                  onClick={() => void testPushOnCurrentDevice()}
+                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
+                >
+                  Probar notificación
                 </button>
               ) : null}
             </div>

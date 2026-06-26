@@ -167,6 +167,22 @@ export type AdminBadgeDeviceSetting = {
   updatedAt?: string;
 };
 
+export type AdminPushSubscriptionRecord = {
+  id?: string;
+  userId: string;
+  deviceId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  deviceLabel?: string;
+  notificationPermission?: NotificationPermission | "unsupported";
+  runningAsPwa?: boolean;
+  isActive: boolean;
+  lastSeenAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type AdminOrdersAction =
   | "agendar"
   | "cancelar"

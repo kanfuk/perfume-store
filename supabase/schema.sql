@@ -644,6 +644,28 @@ create table if not exists user_device_badge_settings (
 create unique index if not exists user_device_badge_settings_user_device_idx
 on user_device_badge_settings(user_id, device_id);
 
+create table if not exists admin_push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  device_id text not null,
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  device_label text,
+  notification_permission text,
+  running_as_pwa boolean,
+  is_active boolean not null default true,
+  last_seen_at timestamp with time zone,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now()
+);
+
+create unique index if not exists admin_push_subscriptions_user_device_endpoint_idx
+on admin_push_subscriptions(user_id, device_id, endpoint);
+
+create index if not exists admin_push_subscriptions_is_active_idx
+on admin_push_subscriptions(is_active);
+
 create table if not exists archivo_clientes (
   id uuid primary key default gen_random_uuid(),
   operacion_id uuid not null references operaciones_admin_log(id),
@@ -886,10 +908,17 @@ alter table archivo_pedido_items enable row level security;
 alter table archivo_pagos enable row level security;
 alter table archivo_fiados enable row level security;
 alter table user_device_badge_settings enable row level security;
+alter table admin_push_subscriptions enable row level security;
 
 drop trigger if exists user_device_badge_settings_set_updated_at on user_device_badge_settings;
 create trigger user_device_badge_settings_set_updated_at
 before update on user_device_badge_settings
+for each row
+execute function set_updated_at();
+
+drop trigger if exists admin_push_subscriptions_set_updated_at on admin_push_subscriptions;
+create trigger admin_push_subscriptions_set_updated_at
+before update on admin_push_subscriptions
 for each row
 execute function set_updated_at();
 
@@ -980,6 +1009,30 @@ using (
 drop policy if exists "admin_can_manage_own_badge_settings" on user_device_badge_settings;
 create policy "admin_can_manage_own_badge_settings"
 on user_device_badge_settings
+for all
+to authenticated
+using (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+)
+with check (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  )
+);
+
+drop policy if exists "admin_can_manage_own_push_subscriptions" on admin_push_subscriptions;
+create policy "admin_can_manage_own_push_subscriptions"
+on admin_push_subscriptions
 for all
 to authenticated
 using (

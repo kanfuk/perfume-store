@@ -43,6 +43,7 @@ import {
   getAvailableProductStock,
   shouldDecreaseStock
 } from "@/lib/stock";
+import { sendPendingOrdersPushToAdmins } from "@/lib/pwa/sendWebPush";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
 import type { PedidoRepository } from "@/repositories/pedidoRepository";
@@ -145,6 +146,8 @@ export class PedidoService {
           });
       })
     );
+
+    await this.notifyPendingOrdersBadgeChange(pedidoId);
 
     return {
       pedidoId,
@@ -410,6 +413,10 @@ export class PedidoService {
       });
     }
 
+    if (estadoPedido === ESTADO_PEDIDO_PENDIENTE) {
+      await this.notifyPendingOrdersBadgeChange(pedidoId);
+    }
+
     return {
       pedidoId,
       clienteId,
@@ -506,6 +513,7 @@ export class PedidoService {
       fechaEntrega: toDateOnlyString(fechaProgramada),
       fechaAgendado: domainPedido.fechaAgendado?.toISOString()
     });
+    await this.notifyPendingOrdersBadgeChange();
   }
 
   async cancelarPedido(pedidoId: string, motivoCancelacion: string) {
@@ -536,6 +544,7 @@ export class PedidoService {
 
     // Restaurar stock de agenda por cada item
     await this.restoreLinkedCatalogStock(items);
+    await this.notifyPendingOrdersBadgeChange();
   }
 
   async marcarPedidoPagado(pedidoId: string) {
@@ -901,6 +910,22 @@ export class PedidoService {
 
     if (firstRejected?.status === "rejected") {
       throw firstRejected.reason;
+    }
+  }
+
+  private async notifyPendingOrdersBadgeChange(pedidoId?: string) {
+    try {
+      const pendingOrders = await this.pedidoRepository.buscarPedidosPorEstado(
+        ESTADO_PEDIDO_PENDIENTE
+      );
+      const pendingCount = getPendingAdminOrdersCount(pendingOrders);
+
+      await sendPendingOrdersPushToAdmins({
+        pendingCount,
+        pedidoId
+      });
+    } catch {
+      // No bloquear pedidos por una falla externa de push/badge.
     }
   }
 }

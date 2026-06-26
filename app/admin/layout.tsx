@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdminPwaInitializer } from "@/components/admin/AdminPwaInitializer";
 
 export const metadata: Metadata = {
   title: "Pauli Admin",
@@ -11,5 +12,10 @@ type AdminLayoutProps = Readonly<{
 }>;
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  return children;
+  return (
+    <>
+      <AdminPwaInitializer />
+      {children}
+    </>
+  );
 }
