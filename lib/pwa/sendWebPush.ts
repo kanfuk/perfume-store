@@ -19,6 +19,25 @@ type PushSubscriptionRow = {
 
 let vapidConfigured = false;
 
+function getAdminOrdersUrl() {
+  const configuredBaseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
+    process.env.VERCEL_URL?.trim() ||
+    "";
+
+  if (!configuredBaseUrl) {
+    return "/admin/pedidos";
+  }
+
+  const normalizedBaseUrl = configuredBaseUrl.startsWith("http")
+    ? configuredBaseUrl
+    : `https://${configuredBaseUrl}`;
+
+  return new URL("/admin/pedidos", normalizedBaseUrl).toString();
+}
+
 function getVapidConfig() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
   const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
@@ -67,6 +86,39 @@ async function deactivatePushSubscription(id: string) {
     .eq("id", id);
 }
 
+function buildDeclarativePushPayload(args: SendPendingOrdersPushArgs) {
+  const pendingCount = Math.max(0, Math.trunc(args.pendingCount));
+  const title = pendingCount > 0 ? "Nuevo pedido pendiente" : "Pedidos actualizados";
+  const body =
+    pendingCount > 0
+      ? `Hay ${pendingCount} pedido(s) por revisar en Pauli Admin.`
+      : "No quedan pedidos pendientes por revisar.";
+  const navigateUrl = getAdminOrdersUrl();
+
+  return JSON.stringify({
+    web_push: 8030,
+    notification: {
+      title,
+      body,
+      navigate: navigateUrl,
+      app_badge: String(pendingCount),
+      tag: "pauli-admin-pending-orders",
+      icon: "/icons/android-chrome-192x192.png",
+      badge: "/icons/android-chrome-192x192.png",
+      data: {
+        url: navigateUrl,
+        pendingCount,
+        pedidoId: args.pedidoId
+      }
+    },
+    title,
+    body,
+    pendingCount,
+    pedidoId: args.pedidoId,
+    url: navigateUrl
+  });
+}
+
 export async function sendPendingOrdersPushToAdmins(args: SendPendingOrdersPushArgs) {
   if (!ensureVapidDetails()) {
     return {
@@ -110,16 +162,7 @@ export async function sendPendingOrdersPushToAdmins(args: SendPendingOrdersPushA
     };
   }
 
-  const payload = JSON.stringify({
-    title: args.pendingCount > 0 ? "Nuevo pedido pendiente" : "Pedidos actualizados",
-    body:
-      args.pendingCount > 0
-        ? `Hay ${args.pendingCount} pedido(s) por revisar en Pauli Admin.`
-        : "No quedan pedidos pendientes por revisar.",
-    pendingCount: Math.max(0, Math.trunc(args.pendingCount)),
-    pedidoId: args.pedidoId,
-    url: "/admin/pedidos"
-  });
+  const payload = buildDeclarativePushPayload(args);
 
   const results = await Promise.allSettled(
     filteredSubscriptions.map(async (subscriptionRow) => {

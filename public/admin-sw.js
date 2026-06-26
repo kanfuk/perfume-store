@@ -6,32 +6,86 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+function parsePushPayload(event) {
+  const rawPayload = event.data ? event.data.json() : {};
+  const declarativeNotification =
+    rawPayload && rawPayload.web_push === 8030 && rawPayload.notification
+      ? rawPayload.notification
+      : null;
+  const fallbackData =
+    declarativeNotification && typeof declarativeNotification.data === "object"
+      ? declarativeNotification.data
+      : {};
+  const title =
+    declarativeNotification && typeof declarativeNotification.title === "string"
+      ? declarativeNotification.title
+      : rawPayload.title || "Pauli Admin";
+  const body =
+    declarativeNotification && typeof declarativeNotification.body === "string"
+      ? declarativeNotification.body
+      : rawPayload.body || "Hay novedades en los pedidos.";
+  const url =
+    (typeof fallbackData.url === "string" && fallbackData.url) ||
+    (declarativeNotification && typeof declarativeNotification.navigate === "string"
+      ? declarativeNotification.navigate
+      : null) ||
+    rawPayload.url ||
+    "/admin/pedidos";
+  const pendingCount = Number(
+    (typeof fallbackData.pendingCount === "number" && fallbackData.pendingCount) ||
+      (declarativeNotification ? declarativeNotification.app_badge : 0) ||
+      rawPayload.pendingCount ||
+      0
+  );
+
+  return {
+    title,
+    body,
+    url,
+    pendingCount,
+    icon:
+      (declarativeNotification && declarativeNotification.icon) ||
+      "/icons/android-chrome-192x192.png",
+    badge:
+      (declarativeNotification && declarativeNotification.badge) ||
+      "/icons/android-chrome-192x192.png",
+    tag:
+      (declarativeNotification && declarativeNotification.tag) ||
+      "pauli-admin-pending-orders",
+    pedidoId:
+      (typeof fallbackData.pedidoId === "string" && fallbackData.pedidoId) ||
+      rawPayload.pedidoId ||
+      null
+  };
+}
+
 self.addEventListener("push", (event) => {
-  const payload = event.data ? event.data.json() : {};
-  const title = payload.title || "Pauli Admin";
-  const body = payload.body || "Hay novedades en los pedidos.";
-  const pendingCount = Number(payload.pendingCount) || 0;
-  const url = payload.url || "/admin/pedidos";
+  const payload = parsePushPayload(event);
 
   event.waitUntil(
     (async () => {
-      if (pendingCount > 0 && "setAppBadge" in navigator) {
+      if (payload.pendingCount > 0 && "setAppBadge" in navigator) {
         try {
-          await navigator.setAppBadge(pendingCount);
+          await navigator.setAppBadge(payload.pendingCount);
         } catch {}
       }
 
-      if (pendingCount <= 0 && "clearAppBadge" in navigator) {
+      if (payload.pendingCount <= 0 && "clearAppBadge" in navigator) {
         try {
           await navigator.clearAppBadge();
         } catch {}
       }
 
-      await self.registration.showNotification(title, {
-        body,
-        badge: "/icons/android-chrome-192x192.png",
-        icon: "/icons/android-chrome-192x192.png",
-        data: { url }
+      await self.registration.showNotification(payload.title, {
+        body: payload.body,
+        badge: payload.badge,
+        icon: payload.icon,
+        tag: payload.tag,
+        data: {
+          url: payload.url,
+          pendingCount: payload.pendingCount,
+          pedidoId: payload.pedidoId
+        }
       });
     })()
   );

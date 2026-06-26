@@ -6,6 +6,8 @@ import {
 } from "@/lib/pwa/notifications";
 import { registerAdminServiceWorker } from "@/lib/pwa/registerServiceWorker";
 
+type PushManagerLike = Pick<PushManager, "getSubscription" | "subscribe">;
+
 type SubscriptionJson = {
   endpoint: string;
   expirationTime: number | null;
@@ -19,12 +21,23 @@ function getPublicVapidKey() {
   return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() || "";
 }
 
+function getWindowPushManager(): PushManagerLike | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const windowWithPushManager = window as Window & {
+    pushManager?: PushManagerLike;
+  };
+
+  return windowWithPushManager.pushManager ?? null;
+}
+
 export function isPushNotificationsSupported() {
   return (
     typeof window !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
+    "Notification" in window &&
+    (Boolean(getWindowPushManager()) || ("serviceWorker" in navigator && "PushManager" in window))
   );
 }
 
@@ -41,18 +54,33 @@ function base64UrlToUint8Array(base64UrlString: string) {
   return outputArray;
 }
 
+async function getPreferredPushManager() {
+  const windowPushManager = getWindowPushManager();
+
+  if (windowPushManager) {
+    void registerAdminServiceWorker().catch(() => {
+      // El registro del service worker sigue siendo util para clicks y fallback,
+      // pero no bloquea la suscripcion declarativa en Safari/iPhone.
+    });
+    return windowPushManager;
+  }
+
+  const registration = await registerAdminServiceWorker();
+  return registration?.pushManager ?? null;
+}
+
 export async function getCurrentPushSubscription() {
   if (!isPushNotificationsSupported()) {
     return null;
   }
 
-  const registration = await registerAdminServiceWorker();
+  const pushManager = await getPreferredPushManager();
 
-  if (!registration) {
+  if (!pushManager) {
     return null;
   }
 
-  return registration.pushManager.getSubscription();
+  return pushManager.getSubscription();
 }
 
 export async function subscribeCurrentDeviceToPush() {
@@ -88,20 +116,20 @@ export async function subscribeCurrentDeviceToPush() {
     };
   }
 
-  const registration = await registerAdminServiceWorker();
+  const pushManager = await getPreferredPushManager();
 
-  if (!registration) {
+  if (!pushManager) {
     return {
       ok: false as const,
-      error: "SERVICE_WORKER_NOT_AVAILABLE",
+      error: "PUSH_MANAGER_NOT_AVAILABLE",
       notificationPermission: nextPermission
     };
   }
 
-  const existingSubscription = await registration.pushManager.getSubscription();
+  const existingSubscription = await pushManager.getSubscription();
   const subscription =
     existingSubscription ??
-    (await registration.pushManager.subscribe({
+    (await pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: base64UrlToUint8Array(publicVapidKey)
     }));
