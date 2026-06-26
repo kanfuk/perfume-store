@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { mockProducts } from "@/lib/mocks/products";
-import { validateCustomerOrderForm } from "@/lib/validators";
+import {
+  validateAdminDirectSaleForm,
+  validateCustomerOrderForm,
+  validateCustomOrderForm
+} from "@/lib/validators";
 
 const activeProductId = mockProducts[0]?.id ?? "dobladita-solo-queso";
 
@@ -113,5 +117,72 @@ describe("validateCustomerOrderForm", () => {
     expect(result.errors.telefono).toBe(
       "Ingresa un celular chileno válido. Ejemplo: +56 9 1234 5678."
     );
+  });
+});
+
+describe("validateAdminDirectSaleForm", () => {
+  it("permite vender productos inactivos si existen en el catálogo interno", () => {
+    const result = validateAdminDirectSaleForm(
+      {
+        items: [{ productoId: "producto-inactivo", cantidad: 2 }],
+        estadoPago: "PAGADO",
+        clienteModo: "ocasional"
+      },
+      [
+        {
+          id: "producto-inactivo",
+          nombre: "Producto inactivo",
+          precioVenta: 1500,
+          stockActual: 0,
+          stockAgenda: 0,
+          activo: false
+        }
+      ]
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toEqual({});
+  });
+
+  it("sigue bloqueando si el stock controlado no alcanza", () => {
+    const result = validateAdminDirectSaleForm(
+      {
+        items: [{ productoId: activeProductId, cantidad: 99 }],
+        estadoPago: "PAGADO",
+        clienteModo: "ocasional"
+      },
+      mockProducts
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.items).toContain("solo tiene");
+  });
+});
+
+describe("validateCustomOrderForm", () => {
+  it("permite vincular un producto inactivo sin stock controlado", () => {
+    const result = validateCustomOrderForm(
+      {
+        nombre: "Paola",
+        nombreProducto: "Pedido especial",
+        productoBaseId: "producto-inactivo",
+        cantidad: 4,
+        precioAcordado: 5000,
+        estadoInicial: "PAGADO"
+      },
+      [
+        {
+          id: "producto-inactivo",
+          nombre: "Producto inactivo",
+          precioVenta: 5000,
+          stockActual: 0,
+          stockAgenda: 0,
+          activo: false
+        }
+      ]
+    );
+
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toEqual({});
   });
 });

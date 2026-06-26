@@ -7,6 +7,8 @@ import type { ProductRepository } from "@/repositories/productRepository";
 import { PedidoService } from "@/services/pedidoService";
 
 class ProductRepositoryStub implements ProductRepository {
+  public stockAdjustments: Array<{ id: string; cantidad: number }> = [];
+
   async buscarProductosActivos() {
     return [
       {
@@ -24,6 +26,14 @@ class ProductRepositoryStub implements ProductRepository {
         stockActual: 10,
         stockAgenda: 10,
         activo: true
+      },
+      {
+        id: "producto-sin-stock-controlado",
+        nombre: "Producto libre",
+        precioVenta: 2000,
+        stockActual: 0,
+        stockAgenda: 0,
+        activo: false
       }
     ];
   }
@@ -51,6 +61,17 @@ class ProductRepositoryStub implements ProductRepository {
       };
     }
 
+    if (id === "producto-sin-stock-controlado") {
+      return {
+        id: "producto-sin-stock-controlado",
+        nombre: "Producto libre",
+        precioVenta: 2000,
+        stockActual: 0,
+        stockAgenda: 0,
+        activo: false
+      };
+    }
+
     return null;
   }
 
@@ -64,6 +85,8 @@ class ProductRepositoryStub implements ProductRepository {
     if (!product) {
       throw new Error("Producto no encontrado.");
     }
+
+    this.stockAdjustments.push({ id, cantidad });
 
     return {
       ...product,
@@ -305,5 +328,56 @@ describe("PedidoService", () => {
     expect(result.estadoPago).toBe("SIN_PAGO");
     expect(pedidoRepository.pedidoRegistrado?.pedido.fechaAgendado).toBeUndefined();
     expect(pedidoRepository.pedidoRegistrado?.pedido.fechaCierre).toBeUndefined();
+  });
+
+  it("permite venta directa de producto inactivo sin descontar stock", async () => {
+    const productRepository = new ProductRepositoryStub();
+    const service = new PedidoService(
+      productRepository,
+      new ClienteRepositoryStub(),
+      new PedidoRepositoryStub()
+    );
+
+    const result = await service.crearVentaDirecta({
+      items: [{ productoId: "producto-sin-stock-controlado", cantidad: 3 }],
+      estadoPago: "PAGADO",
+      clienteModo: "ocasional"
+    });
+
+    expect(result.total).toBe(6000);
+    expect(productRepository.stockAdjustments).toEqual([]);
+  });
+
+  it("descuenta stock en pedido personalizado solo si el producto base lo controla", async () => {
+    const trackedRepository = new ProductRepositoryStub();
+    const service = new PedidoService(
+      trackedRepository,
+      new ClienteRepositoryStub(),
+      new PedidoRepositoryStub()
+    );
+
+    await service.crearPedidoPersonalizado({
+      nombre: "Claudia",
+      nombreProducto: "Pan amasado especial",
+      productoBaseId: "pan-amasado",
+      cantidad: 2,
+      precioAcordado: 1500,
+      estadoInicial: "PAGADO"
+    });
+
+    expect(trackedRepository.stockAdjustments).toEqual([{ id: "pan-amasado", cantidad: -2 }]);
+
+    trackedRepository.stockAdjustments = [];
+
+    await service.crearPedidoPersonalizado({
+      nombre: "Claudia",
+      nombreProducto: "Producto libre",
+      productoBaseId: "producto-sin-stock-controlado",
+      cantidad: 2,
+      precioAcordado: 4000,
+      estadoInicial: "PAGADO"
+    });
+
+    expect(trackedRepository.stockAdjustments).toEqual([]);
   });
 });

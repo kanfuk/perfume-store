@@ -9,7 +9,10 @@
 
 import type { ProductoProps } from "@/domain/Producto";
 import { isValidChileanMobilePhone } from "@/lib/chile-phone";
-import { getAvailableProductStock } from "@/lib/stock";
+import {
+  canSellWithoutBreakingStock,
+  getAvailableProductStock
+} from "@/lib/stock";
 import type {
   AdminDirectSaleRequest,
   CustomOrderRequest,
@@ -99,8 +102,8 @@ export function validateAdminDirectSaleForm(
     for (const item of data.items) {
       const producto = products.find((product) => product.id === item.productoId);
 
-      if (!producto || producto.activo === false) {
-        errors.items = "Todos los items deben usar productos activos.";
+      if (!producto) {
+        errors.items = "Todos los items deben usar productos existentes.";
         break;
       }
 
@@ -111,7 +114,7 @@ export function validateAdminDirectSaleForm(
 
       const stockDisponible = getAvailableProductStock(producto);
 
-      if (item.cantidad > stockDisponible) {
+      if (!canSellWithoutBreakingStock(producto, item.cantidad)) {
         errors.items = `El producto ${producto.nombre} solo tiene ${stockDisponible} disponible(s).`;
         break;
       }
@@ -172,9 +175,9 @@ export function validateCustomOrderForm(
   if (data.productoBaseId) {
     const producto = products.find((product) => product.id === data.productoBaseId);
 
-    if (!producto || producto.activo === false) {
-      errors.productoBaseId = "Selecciona un producto base activo.";
-    } else if (data.cantidad > getAvailableProductStock(producto)) {
+    if (!producto) {
+      errors.productoBaseId = "Selecciona un producto base válido.";
+    } else if (!canSellWithoutBreakingStock(producto, data.cantidad)) {
       errors.productoBaseId = `El producto ${producto.nombre} solo tiene ${getAvailableProductStock(producto)} disponible(s).`;
     }
   }

@@ -38,7 +38,11 @@ import {
   validateCustomerOrderForm
 } from "@/lib/validators";
 import { getPendingAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
-import { getAvailableProductStock } from "@/lib/stock";
+import {
+  canSellWithoutBreakingStock,
+  getAvailableProductStock,
+  shouldDecreaseStock
+} from "@/lib/stock";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
 import type { PedidoRepository } from "@/repositories/pedidoRepository";
@@ -164,7 +168,7 @@ export class PedidoService {
   }
 
   async crearVentaDirecta(input: AdminDirectSaleRequest): Promise<CustomerOrderResponse> {
-    const products = await this.productRepository.buscarProductosActivos();
+    const products = await this.productRepository.buscarTodosProductos();
     const validation = validateAdminDirectSaleForm(input, products);
 
     if (!validation.isValid) {
@@ -185,8 +189,14 @@ export class PedidoService {
     const items = input.items.map((line) => {
       const productData = productMap.get(line.productoId);
 
-      if (!productData || productData.activo === false) {
-        throw new Error("El producto seleccionado no esta disponible.");
+      if (!productData) {
+        throw new Error("El producto seleccionado no existe.");
+      }
+
+      if (!canSellWithoutBreakingStock(productData, line.cantidad)) {
+        throw new Error(
+          `${productData.nombre} solo tiene ${getAvailableProductStock(productData)} disponible(s) por ahora.`
+        );
       }
 
       const producto = new Producto(productData);
@@ -232,7 +242,13 @@ export class PedidoService {
     );
 
     await Promise.all(
-      items.map((item) => this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad))
+      items.map(async (item) => {
+        if (!shouldDecreaseStock(item.producto)) {
+          return;
+        }
+
+        await this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad);
+      })
     );
 
     if (input.estadoPago === ESTADO_PAGO_PAGADO) {
@@ -276,7 +292,7 @@ export class PedidoService {
   }
 
   async crearPedidoPersonalizado(input: CustomOrderRequest): Promise<CustomerOrderResponse> {
-    const products = await this.productRepository.buscarProductosActivos();
+    const products = await this.productRepository.buscarTodosProductos();
     const validation = validateCustomOrderForm(input, products);
 
     if (!validation.isValid) {
@@ -370,7 +386,7 @@ export class PedidoService {
       productoTipo: producto.tipoProducto
     });
 
-    if (linkedProduct) {
+    if (linkedProduct && shouldDecreaseStock(linkedProduct)) {
       await this.productRepository.ajustarStockAgenda(linkedProduct.id, -item.cantidad);
     }
 

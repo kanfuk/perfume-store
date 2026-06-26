@@ -25,7 +25,11 @@ import {
 import { getChileTodayInputValue } from "@/lib/date";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
-import { getAvailableProductStock } from "@/lib/stock";
+import {
+  getAvailableProductStock,
+  normalizeStockValue,
+  shouldDecreaseStock
+} from "@/lib/stock";
 import type {
   AdminCustomerOption,
   AdminDashboardData,
@@ -74,6 +78,17 @@ const initialCustomForm = {
 };
 
 const todayDate = getChileTodayInputValue();
+const QUICK_QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] as const;
+const OTHER_QUANTITY_VALUE = "other";
+
+function getProductSelectLabel(product: AdminProductRecord) {
+  const statusLabel = product.activo ? "Activo" : "Inactivo";
+  const stockLabel = shouldDecreaseStock(product)
+    ? `Stock ${getAvailableProductStock(product)}`
+    : "Sin stock controlado";
+
+  return `${product.nombre} - ${statusLabel} - ${stockLabel}`;
+}
 
 export function AdminDirectSale({
   initialDashboard,
@@ -82,15 +97,14 @@ export function AdminDirectSale({
 }: AdminDirectSaleProps) {
   const products = useMemo(
     () =>
-      initialProducts
-        .filter((product) => product.activo)
-        .map((product) => ({
-          ...product,
-          stockActual: product.stockActual,
-          stockAgenda: product.stockAgenda
-        })),
+      initialProducts.map((product) => ({
+        ...product,
+        stockActual: product.stockActual,
+        stockAgenda: product.stockAgenda
+      })),
     [initialProducts]
   );
+  const catalogProducts = useMemo(() => products.filter((product) => product.activo), [products]);
   const customers = useMemo(() => {
     const map = new Map<string, ExistingCustomer>();
     const allOrders = [
@@ -147,6 +161,11 @@ export function AdminDirectSale({
   const [successMessage, setSuccessMessage] = useState("");
   const [stockLimitMessage, setStockLimitMessage] = useState("");
   const [productSearch, setProductSearch] = useState("");
+  const [selectedCatalogProductId, setSelectedCatalogProductId] = useState("");
+  const [catalogQuantityChoice, setCatalogQuantityChoice] = useState("1");
+  const [catalogManualQuantity, setCatalogManualQuantity] = useState("");
+  const [customQuantityChoice, setCustomQuantityChoice] = useState("1");
+  const [customManualQuantity, setCustomManualQuantity] = useState("");
 
   const cartLines = useMemo(
     () => normalizarProductoParaCarrito(saleItems, products),
@@ -161,22 +180,30 @@ export function AdminDirectSale({
     const query = productSearch.trim().toLowerCase();
 
     if (!query) {
-      return products;
+      return catalogProducts;
     }
 
-    return products.filter((product) =>
+    return catalogProducts.filter((product) =>
       [product.nombre, product.descripcion, product.tipoProducto]
         .join(" ")
         .toLowerCase()
         .includes(query)
     );
-  }, [productSearch, products]);
+  }, [catalogProducts, productSearch]);
   const customTotal =
     (Number(customForm.cantidad) || 0) * (Number(customForm.precioAcordado) || 0);
   const utilidadEstimada =
     customForm.costoEstimadoTotal.trim() && customTotal > 0
       ? customTotal - Number(customForm.costoEstimadoTotal)
       : null;
+  const selectedCatalogProduct = useMemo(
+    () => products.find((product) => product.id === selectedCatalogProductId) ?? null,
+    [products, selectedCatalogProductId]
+  );
+  const selectedCustomCatalogProduct = useMemo(
+    () => products.find((product) => product.id === customForm.productoBaseId) ?? null,
+    [customForm.productoBaseId, products]
+  );
 
   const customerSearchQuery = normalizarTexto(customerSearch);
   const normalizedCustomerName = normalizarTexto(customerName);
@@ -309,7 +336,43 @@ export function AdminDirectSale({
     setCustomSelectedCustomerId("");
   }
 
-  function addProduct(productId: string) {
+  function resolveQuantityValue(quantityChoice: string, manualQuantity: string) {
+    if (quantityChoice === OTHER_QUANTITY_VALUE) {
+      return normalizeStockValue(manualQuantity);
+    }
+
+    return normalizeStockValue(quantityChoice);
+  }
+
+  function syncCatalogQuantityChoice(value: string) {
+    setCatalogQuantityChoice(value);
+
+    if (value !== OTHER_QUANTITY_VALUE) {
+      setCatalogManualQuantity("");
+    }
+  }
+
+  function syncCustomQuantityChoice(value: string) {
+    setCustomQuantityChoice(value);
+
+    if (value !== OTHER_QUANTITY_VALUE) {
+      setCustomManualQuantity("");
+      setCustomForm((current) => ({
+        ...current,
+        cantidad: String(normalizeStockValue(value) || 1)
+      }));
+    }
+  }
+
+  function syncCustomManualQuantity(value: string) {
+    setCustomManualQuantity(value);
+    setCustomForm((current) => ({
+      ...current,
+      cantidad: String(normalizeStockValue(value))
+    }));
+  }
+
+  function addProduct(productId: string, quantityToAdd = 1) {
     setSaleItems((current) => {
       const existing = current.find((item) => item.productoId === productId);
       const product = products.find((item) => item.id === productId);
@@ -318,15 +381,29 @@ export function AdminDirectSale({
         return current;
       }
 
-      const nextQuantity = (existing?.cantidad ?? 0) + 1;
+      const normalizedQuantity = Math.max(1, normalizeStockValue(quantityToAdd));
+      const nextQuantity = (existing?.cantidad ?? 0) + normalizedQuantity;
       const availableStock = getAvailableProductStock(product);
 
-      if (nextQuantity > availableStock) {
+      if (shouldDecreaseStock(product) && nextQuantity > availableStock) {
         setStockLimitMessage(
           `Solo quedan ${availableStock} unidades disponibles para ${product.nombre}. Ajustamos la venta a ${availableStock}.`
         );
-        return current;
+
+        if ((existing?.cantidad ?? 0) >= availableStock) {
+          return current;
+        }
+
+        if (existing) {
+          return current.map((item) =>
+            item.productoId === productId ? { ...item, cantidad: availableStock } : item
+          );
+        }
+
+        return [...current, { productoId: productId, cantidad: availableStock }];
       }
+
+      setStockLimitMessage("");
 
       if (existing) {
         return current.map((item) =>
@@ -350,18 +427,52 @@ export function AdminDirectSale({
         return current;
       }
 
-      const quantity = Math.min(nextQuantity, getAvailableProductStock(product));
+      const normalizedQuantity = Math.max(1, normalizeStockValue(nextQuantity));
+      const quantity = shouldDecreaseStock(product)
+        ? Math.min(normalizedQuantity, getAvailableProductStock(product))
+        : normalizedQuantity;
 
-      if (nextQuantity > quantity) {
+      if (shouldDecreaseStock(product) && normalizedQuantity > quantity) {
         setStockLimitMessage(
           `Solo quedan ${quantity} unidades disponibles para ${product.nombre}. Ajustamos la venta a ${quantity}.`
         );
+      } else {
+        setStockLimitMessage("");
       }
 
       return current.map((item) =>
         item.productoId === productId ? { ...item, cantidad: quantity } : item
       );
     });
+  }
+
+  function addSelectedCatalogProduct() {
+    if (!selectedCatalogProductId) {
+      setServerError("Selecciona un producto del catálogo para agregarlo.");
+      return;
+    }
+
+    const quantity = resolveQuantityValue(catalogQuantityChoice, catalogManualQuantity);
+
+    if (quantity <= 0) {
+      setServerError("Selecciona una cantidad válida para agregar al resumen.");
+      return;
+    }
+
+    setServerError("");
+    addProduct(selectedCatalogProductId, quantity);
+  }
+
+  function syncCustomProduct(productId: string) {
+    const product = products.find((item) => item.id === productId);
+
+    setCustomForm((current) => ({
+      ...current,
+      productoBaseId: productId,
+      nombreProducto: product ? product.nombre : current.nombreProducto,
+      precioAcordado:
+        product && product.precioVenta > 0 ? String(product.precioVenta) : current.precioAcordado
+    }));
   }
 
   async function submitDirectSale() {
@@ -415,6 +526,9 @@ export function AdminDirectSale({
       setCustomerPhone("");
       setCustomerPlace("");
       setPaymentState("PAGADO");
+      setSelectedCatalogProductId("");
+      setCatalogQuantityChoice("1");
+      setCatalogManualQuantity("");
       setStockLimitMessage("");
       setSuccessMessage(
         `Venta directa registrada correctamente. Código interno: ${data.pedidoId ?? "OK"}.`
@@ -464,6 +578,8 @@ export function AdminDirectSale({
       setCustomForm(initialCustomForm);
       setCustomSelectedCustomerId("");
       setCustomCustomerSearch("");
+      setCustomQuantityChoice("1");
+      setCustomManualQuantity("");
       setStockLimitMessage("");
       setSuccessMessage(
         `Pedido personalizado registrado correctamente. Código interno: ${data.pedidoId ?? "OK"}.`
@@ -559,18 +675,87 @@ export function AdminDirectSale({
           <div className="space-y-6">
             <CardSection
               icon={<ShoppingBag className="h-5 w-5" />}
-              title="Catálogo activo"
-              subtitle="Usa las mismas tarjetas del cliente para vender rápido desde el celular."
+              title="Catálogo interno"
+              subtitle="Busca, selecciona o toca tarjetas activas para vender rápido desde el celular."
             >
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#1f3328]">Buscar producto</span>
-                <input
-                  value={productSearch}
-                  onChange={(event) => setProductSearch(event.target.value)}
-                  placeholder="Escribe nombre, tipo o descripción"
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
-                />
-              </label>
+              <div className="grid gap-4 md:grid-cols-[1.4fr_0.8fr]">
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[#1f3328]">Buscar producto</span>
+                  <input
+                    value={productSearch}
+                    onChange={(event) => setProductSearch(event.target.value)}
+                    placeholder="Escribe nombre, tipo o descripción"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[#1f3328]">Producto rápido</span>
+                  <select
+                    value={selectedCatalogProductId}
+                    onChange={(event) => setSelectedCatalogProductId(event.target.value)}
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                  >
+                    <option value="">Selecciona producto</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {getProductSelectLabel(product)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="grid gap-4 md:grid-cols-[0.8fr_0.8fr_auto] md:items-end">
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[#1f3328]">Cantidad</span>
+                  <select
+                    value={catalogQuantityChoice}
+                    onChange={(event) => syncCatalogQuantityChoice(event.target.value)}
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                  >
+                    {QUICK_QUANTITY_OPTIONS.map((quantity) => (
+                      <option key={quantity} value={quantity}>
+                        {quantity}
+                      </option>
+                    ))}
+                    <option value={OTHER_QUANTITY_VALUE}>Otra cantidad</option>
+                  </select>
+                </label>
+                {catalogQuantityChoice === OTHER_QUANTITY_VALUE ? (
+                  <label className="block space-y-2">
+                    <span className="text-sm font-medium text-[#1f3328]">Otra cantidad</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={catalogManualQuantity}
+                      onChange={(event) => setCatalogManualQuantity(event.target.value)}
+                      placeholder="Ejemplo: 7"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                    />
+                  </label>
+                ) : (
+                  <div className="rounded-[18px] border border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                    Elige una cantidad sugerida o cambia a &quot;Otra cantidad&quot;.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={addSelectedCatalogProduct}
+                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  Agregar al resumen
+                </button>
+              </div>
+              {selectedCatalogProduct ? (
+                <div className="rounded-[18px] border border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                  <strong className="text-[#1f3328]">{selectedCatalogProduct.nombre}</strong>
+                  {" · "}
+                  {selectedCatalogProduct.activo ? "Activo" : "Inactivo"}
+                  {" · "}
+                  {shouldDecreaseStock(selectedCatalogProduct)
+                    ? `Descuenta stock (${getAvailableProductStock(selectedCatalogProduct)} disponible(s))`
+                    : "Se puede vender sin descontar stock"}
+                </div>
+              ) : null}
               <ProductCatalog
                 products={filteredProducts}
                 quantities={quantities}
@@ -778,6 +963,63 @@ export function AdminDirectSale({
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[#1f3328]">Producto</span>
+                  <select
+                    value={customForm.productoBaseId}
+                    onChange={(event) => syncCustomProduct(event.target.value)}
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                  >
+                    <option value="">Selecciona producto del catálogo</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {getProductSelectLabel(product)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[#1f3328]">Cantidad</span>
+                  <select
+                    value={customQuantityChoice}
+                    onChange={(event) => syncCustomQuantityChoice(event.target.value)}
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                  >
+                    {QUICK_QUANTITY_OPTIONS.map((quantity) => (
+                      <option key={quantity} value={quantity}>
+                        {quantity}
+                      </option>
+                    ))}
+                    <option value={OTHER_QUANTITY_VALUE}>Otra cantidad</option>
+                  </select>
+                </label>
+              </div>
+              {customQuantityChoice === OTHER_QUANTITY_VALUE ? (
+                <label className="block space-y-2">
+                  <span className="text-sm font-medium text-[#1f3328]">Otra cantidad</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={customManualQuantity}
+                    onChange={(event) => syncCustomManualQuantity(event.target.value)}
+                    placeholder="Ejemplo: 7"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                  />
+                </label>
+              ) : null}
+              {selectedCustomCatalogProduct ? (
+                <div className="rounded-[18px] border border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                  <strong className="text-[#1f3328]">{selectedCustomCatalogProduct.nombre}</strong>
+                  {" · "}
+                  {selectedCustomCatalogProduct.activo ? "Activo" : "Inactivo"}
+                  {" · "}
+                  {shouldDecreaseStock(selectedCustomCatalogProduct)
+                    ? `Descuenta stock (${getAvailableProductStock(selectedCustomCatalogProduct)} disponible(s))`
+                    : "Se puede guardar sin descontar stock"}
+                </div>
+              ) : null}
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <TextField
                   label="Nombre cliente"
                   value={customForm.nombre}
@@ -818,29 +1060,6 @@ export function AdminDirectSale({
                   Si no coincide con un cliente existente, se registrara como cliente nuevo.
                 </div>
               ) : null}
-
-              <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#1f3328]">
-                  Vincular a producto del catálogo (opcional)
-                </span>
-                <select
-                  value={customForm.productoBaseId}
-                  onChange={(event) =>
-                    setCustomForm((current) => ({
-                      ...current,
-                      productoBaseId: event.target.value
-                    }))
-                  }
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
-                >
-                  <option value="">Personalizada libre</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.nombre} - {getAvailableProductStock(product)} disponible(s)
-                    </option>
-                  ))}
-                </select>
-              </label>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <TextField
@@ -905,9 +1124,10 @@ export function AdminDirectSale({
                 <NumberField
                   label="Cantidad"
                   value={customForm.cantidad}
-                  onChange={(value) =>
-                    setCustomForm((current) => ({ ...current, cantidad: value }))
-                  }
+                  onChange={(value) => {
+                    setCustomQuantityChoice(OTHER_QUANTITY_VALUE);
+                    syncCustomManualQuantity(value);
+                  }}
                 />
                 <NumberField
                   label="Precio acordado"
