@@ -9,6 +9,8 @@ import {
   Archive,
   ArrowRight,
   BarChart3,
+  Bell,
+  BellRing,
   Box,
   Boxes,
   CalendarClock,
@@ -26,6 +28,7 @@ import {
   PencilLine,
   Phone,
   Plus,
+  KeyRound,
   ReceiptText,
   RefreshCcw,
   Search,
@@ -1237,48 +1240,49 @@ export function AdminDashboard({
             </div>
           </div>
 
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             {view !== "home" ? (
-              <button
-                type="button"
+              <HeaderIconButton
+                label="Ir al inicio"
+                title="Ir al inicio"
                 onClick={() => navigateToView("home")}
-                className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-emerald-100 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-900 sm:px-4"
-              >
-                <Home className="h-4 w-4" />
-                <span className="hidden sm:inline">Inicio</span>
-              </button>
+                icon={<Home className="h-5 w-5" />}
+              />
             ) : null}
             <BadgeStatusChip
               badgeEnabled={badgeDeviceSetting?.badgeEnabled === true}
               badgeSupported={badgeSupported}
               notificationPermission={notificationPermission}
               isInstalledPwa={isInstalledPwa}
+              onClick={
+                badgeDeviceSetting?.badgeEnabled
+                  ? undefined
+                  : () => void enableHomeScreenBadge()
+              }
+              pendingCount={attentionCount}
             />
             {badgeDeviceSetting?.badgeEnabled ? (
-              <button
-                type="button"
-                disabled={badgeActionLoading}
+              <HeaderIconButton
+                label="Probar badge"
+                title="Probar badge"
                 onClick={() => void testBadgeOnCurrentDevice()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
-              >
-                Probar badge
-              </button>
+                disabled={badgeActionLoading}
+                icon={<BellRing className="h-5 w-5" />}
+              />
             ) : null}
-            <button
-              type="button"
+            <HeaderIconButton
+              label="Actualizar"
+              title="Actualizar"
               onClick={() => void refreshAll()}
-              className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-900"
-            >
-              <RefreshCcw className="h-4 w-4" />
-              Actualizar
-            </button>
-            <button
-              type="button"
+              icon={<RefreshCcw className="h-5 w-5" />}
+              accent="soft"
+            />
+            <HeaderIconButton
+              label="Cerrar sesion"
+              title="Cerrar sesion"
               onClick={logout}
-              className="min-h-11 rounded-[18px] border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900"
-            >
-              Cerrar sesión
-            </button>
+              icon={<KeyRound className="h-5 w-5" />}
+            />
           </div>
         </div>
       </section>
@@ -4280,12 +4284,16 @@ function BadgeStatusChip({
   badgeEnabled,
   badgeSupported,
   notificationPermission,
-  isInstalledPwa
+  isInstalledPwa,
+  onClick,
+  pendingCount
 }: {
   badgeEnabled: boolean;
   badgeSupported: boolean;
   notificationPermission: NotificationPermission | "unsupported";
   isInstalledPwa: boolean;
+  onClick?: () => void;
+  pendingCount?: number;
 }) {
   const label = badgeEnabled
     ? "Badge activo"
@@ -4301,13 +4309,83 @@ function BadgeStatusChip({
     : !badgeSupported || notificationPermission === "denied"
       ? "border-amber-200 bg-amber-50 text-amber-800"
       : "border-violet-200 bg-violet-50 text-violet-800";
+  const indicatorClassName = badgeEnabled
+    ? "bg-emerald-500"
+    : !badgeSupported || notificationPermission === "denied"
+      ? "bg-amber-500"
+      : "bg-violet-500";
+  const content = (
+    <>
+      <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white/80 p-[2px]">
+        <span className={`block h-full w-full rounded-full ${indicatorClassName}`} />
+      </span>
+      {typeof pendingCount === "number" && pendingCount > 0 ? (
+        <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+          {pendingCount > 9 ? "9+" : pendingCount}
+        </span>
+      ) : null}
+      <Bell className="h-5 w-5" />
+      <span className="sr-only">{label}</span>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        title={label}
+        aria-label={label}
+        className={`relative inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(16,24,40,0.08)] ${className}`}
+      >
+        {content}
+      </button>
+    );
+  }
 
   return (
     <span
-      className={`inline-flex min-h-11 items-center rounded-[18px] border px-4 py-2.5 text-sm font-semibold ${className}`}
+      title={label}
+      aria-label={label}
+      className={`relative inline-flex h-12 w-12 items-center justify-center rounded-[18px] border ${className}`}
     >
-      {label}
+      {content}
     </span>
+  );
+}
+
+function HeaderIconButton({
+  label,
+  title,
+  onClick,
+  icon,
+  disabled,
+  accent = "default"
+}: {
+  label: string;
+  title: string;
+  onClick: () => void;
+  icon: ReactNode;
+  disabled?: boolean;
+  accent?: "default" | "soft";
+}) {
+  const className =
+    accent === "soft"
+      ? "border-emerald-100 bg-emerald-50 text-emerald-900"
+      : "border-emerald-100 bg-white text-emerald-900";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={label}
+      className={`inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(16,24,40,0.08)] disabled:cursor-not-allowed disabled:bg-emerald-50 disabled:text-emerald-500 ${className}`}
+    >
+      {icon}
+      <span className="sr-only">{label}</span>
+    </button>
   );
 }
 
