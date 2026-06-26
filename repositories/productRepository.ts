@@ -87,6 +87,7 @@ class MockProductRepository implements ProductRepository {
 
     current.stockActual = nuevoStock;
     current.stockAgenda = nuevoStock;
+    current.activo = nuevoStock > 0 ? current.activo : false;
     return current;
   }
 }
@@ -250,7 +251,11 @@ class SupabaseProductRepository implements ProductRepository {
       throw new Error("Stock insuficiente para esta operación.");
     }
 
-    return this.actualizarProducto(id, { stockActual: nuevoStock, stockAgenda: nuevoStock });
+    return this.actualizarProducto(id, {
+      stockActual: nuevoStock,
+      stockAgenda: nuevoStock,
+      activo: nuevoStock > 0 ? product.activo : false
+    });
   }
 }
 

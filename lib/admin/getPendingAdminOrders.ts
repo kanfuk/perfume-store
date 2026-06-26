@@ -26,7 +26,6 @@ export function isScheduledAdminOrder(order: PendingAdminOrderLike) {
   const status = normalizeStatus(order.estadoPedido);
   return (
     Boolean(order.fechaAgendado) ||
-    Boolean(order.fechaEntrega) ||
     status.includes("agendado") ||
     status.includes("confirmado")
   );

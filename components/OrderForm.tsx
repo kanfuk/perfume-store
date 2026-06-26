@@ -16,6 +16,7 @@ import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { AppToast } from "@/components/shared/AppToast";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
+import { normalizeCustomerLookupValue } from "@/lib/customers/identity";
 import { getTomorrowLocalDate } from "@/lib/date";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
@@ -247,6 +248,26 @@ export function OrderForm() {
 
   const total = getCartTotal();
   const itemCount = getCartItemCount();
+  const suggestedRecentCustomers = useMemo(() => {
+    const normalizedName = normalizeCustomerLookupValue(form.nombre);
+    const normalizedPhone = form.telefono.replace(/\D/g, "");
+    const normalizedWorkplace = normalizeCustomerLookupValue(form.lugarTrabajo);
+
+    if (!normalizedName && !normalizedPhone && !normalizedWorkplace) {
+      return [];
+    }
+
+    return recentCustomers.filter((customer) => {
+      const customerPhone = customer.telefono.replace(/\D/g, "");
+      return (
+        (normalizedName &&
+          normalizeCustomerLookupValue(customer.nombre).includes(normalizedName)) ||
+        (normalizedPhone && customerPhone.includes(normalizedPhone)) ||
+        (normalizedWorkplace &&
+          normalizeCustomerLookupValue(customer.lugarTrabajo).includes(normalizedWorkplace))
+      );
+    });
+  }, [form.lugarTrabajo, form.nombre, form.telefono, recentCustomers]);
 
   function showToast(message: string, tone: ToastState["tone"]) {
     setToast({ message, tone });
@@ -778,6 +799,26 @@ export function OrderForm() {
               >
                 <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#3fa66b]" />
                 <span>{autoFillMessage}</span>
+              </div>
+            ) : null}
+
+            {suggestedRecentCustomers.length > 0 ? (
+              <div className="rounded-[22px] border border-[#d8ebdd] bg-white px-4 py-4">
+                <div className="text-sm font-semibold text-[#1f3328]">
+                  Usar cliente existente
+                </div>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {suggestedRecentCustomers.slice(0, 3).map((customer) => (
+                    <button
+                      key={`${customer.telefono}-${customer.nombre}`}
+                      type="button"
+                      onClick={() => applyRecentCustomer(customer)}
+                      className="rounded-full border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-2 text-sm font-semibold text-[#247a4d] transition hover:border-[#3fa66b]"
+                    >
+                      {customer.nombre}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
 

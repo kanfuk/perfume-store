@@ -44,6 +44,19 @@ describe("getPendingAdminOrders", () => {
     expect(getNewAdminOrdersCount(orders)).toBe(1);
   });
 
+  it("mantiene como pendiente un pedido con fecha de entrega mientras no este agendado", () => {
+    const orders = [
+      {
+        estadoPedido: "PENDIENTE",
+        adminSeen: false,
+        fechaEntrega: "2026-06-26"
+      }
+    ];
+
+    expect(getPendingAdminOrdersCount(orders)).toBe(1);
+    expect(getNewAdminOrdersCount(orders)).toBe(1);
+  });
+
   it("excluye pedidos cerrados del contador", () => {
     const orders = [
       { estadoPedido: "FINALIZADO", adminSeen: false, fechaEntrega: "2026-06-24" },

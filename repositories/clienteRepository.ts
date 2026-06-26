@@ -8,6 +8,11 @@
  */
 
 import { Cliente } from "@/domain/Cliente";
+import {
+  isWeakCustomerWorkplaceName,
+  normalizeCustomerDisplayName,
+  normalizeCustomerLookupValue
+} from "@/lib/customers/identity";
 import { isSupabaseConfigured } from "@/lib/env";
 import { localStore } from "@/lib/local-store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -17,58 +22,56 @@ export interface ClienteRepository {
   buscarClienteRelacionado(cliente: Cliente): Promise<{ id: string } | null>;
 }
 
-function isWeakCustomerWorkplace(value: string) {
-  const normalized = normalizeIdentityText(value);
-
-  return (
-    normalized === "" ||
-    normalized === "venta directa" ||
-    normalized === "venta whatsapp manual" ||
-    normalized === "pedido personalizado"
-  );
-}
-
 function hasStrongerCustomerData(
   current: { telefono: string; lugarTrabajo: string },
   candidate: { telefono: string; lugarTrabajo: string }
 ) {
   const currentScore =
     Number(Boolean(current.telefono)) * 4 +
-    Number(Boolean(current.lugarTrabajo && !isWeakCustomerWorkplace(current.lugarTrabajo))) * 2 +
+    Number(Boolean(current.lugarTrabajo && !isWeakCustomerWorkplaceName(current.lugarTrabajo))) * 2 +
     Number(Boolean(current.lugarTrabajo));
   const candidateScore =
     Number(Boolean(candidate.telefono)) * 4 +
-    Number(Boolean(candidate.lugarTrabajo && !isWeakCustomerWorkplace(candidate.lugarTrabajo))) * 2 +
+    Number(Boolean(candidate.lugarTrabajo && !isWeakCustomerWorkplaceName(candidate.lugarTrabajo))) * 2 +
     Number(Boolean(candidate.lugarTrabajo));
 
   return candidateScore > currentScore;
 }
 
 function normalizeIdentityText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
+  return normalizeCustomerLookupValue(value);
 }
 
 function matchesCustomerIdentity(
   current: { telefono: string; nombre: string; lugarTrabajo: string },
   cliente: Cliente
 ) {
+  const normalizedCustomerName = normalizeCustomerDisplayName(cliente.nombre);
+
   if (current.telefono && current.telefono === cliente.telefono) {
     return true;
   }
 
   return (
-    normalizeIdentityText(current.nombre) === normalizeIdentityText(cliente.nombre) &&
+    normalizeIdentityText(normalizeCustomerDisplayName(current.nombre)) ===
+      normalizeIdentityText(normalizedCustomerName) &&
     normalizeIdentityText(current.lugarTrabajo) ===
       normalizeIdentityText(cliente.lugarTrabajo)
   );
 }
 
+function normalizeClienteInput(cliente: Cliente) {
+  return new Cliente({
+    id: cliente.id,
+    nombre: normalizeCustomerDisplayName(cliente.nombre),
+    telefono: cliente.telefono,
+    lugarTrabajo: cliente.lugarTrabajo
+  });
+}
+
 class MemoryClienteRepository implements ClienteRepository {
   async buscarClienteRelacionado(cliente: Cliente) {
+    const normalizedCliente = normalizeClienteInput(cliente);
     const exactByPhone = cliente.telefono
       ? localStore.customers.find((item) => item.telefono === cliente.telefono)
       : null;
@@ -78,7 +81,9 @@ class MemoryClienteRepository implements ClienteRepository {
     }
 
     const candidates = localStore.customers.filter(
-      (item) => normalizeIdentityText(item.nombre) === normalizeIdentityText(cliente.nombre)
+      (item) =>
+        normalizeIdentityText(normalizeCustomerDisplayName(item.nombre)) ===
+        normalizeIdentityText(normalizedCliente.nombre)
     );
 
     if (candidates.length === 0) {
@@ -104,13 +109,14 @@ class MemoryClienteRepository implements ClienteRepository {
   }
 
   async upsertCliente(cliente: Cliente, preferredId?: string) {
+    const normalizedCliente = normalizeClienteInput(cliente);
     if (preferredId) {
       const existingById = localStore.customers.find((item) => item.id === preferredId);
 
       if (existingById) {
-        existingById.nombre = cliente.nombre;
-        existingById.telefono = cliente.telefono;
-        existingById.lugarTrabajo = cliente.lugarTrabajo;
+        existingById.nombre = normalizedCliente.nombre;
+        existingById.telefono = normalizedCliente.telefono;
+        existingById.lugarTrabajo = normalizedCliente.lugarTrabajo;
         return { id: existingById.id };
       }
     }
@@ -123,23 +129,23 @@ class MemoryClienteRepository implements ClienteRepository {
             nombre: item.nombre,
             lugarTrabajo: item.lugarTrabajo
           },
-          cliente
+          normalizedCliente
         )
     );
 
     if (existing) {
-      existing.nombre = cliente.nombre;
-      existing.telefono = cliente.telefono;
-      existing.lugarTrabajo = cliente.lugarTrabajo;
+      existing.nombre = normalizedCliente.nombre;
+      existing.telefono = normalizedCliente.telefono;
+      existing.lugarTrabajo = normalizedCliente.lugarTrabajo;
       return { id: existing.id };
     }
 
     const id = crypto.randomUUID();
     localStore.customers.push({
       id,
-      nombre: cliente.nombre,
-      telefono: cliente.telefono,
-      lugarTrabajo: cliente.lugarTrabajo,
+      nombre: normalizedCliente.nombre,
+      telefono: normalizedCliente.telefono,
+      lugarTrabajo: normalizedCliente.lugarTrabajo,
       createdAt: new Date().toISOString()
     });
 
@@ -149,6 +155,7 @@ class MemoryClienteRepository implements ClienteRepository {
 
 class SupabaseClienteRepository implements ClienteRepository {
   async buscarClienteRelacionado(cliente: Cliente) {
+    const normalizedCliente = normalizeClienteInput(cliente);
     const supabase = createSupabaseServerClient();
 
     if (cliente.telefono) {
@@ -179,8 +186,8 @@ class SupabaseClienteRepository implements ClienteRepository {
 
     const candidates = (matchesByName ?? []).filter(
       (item) =>
-        normalizeIdentityText(item.nombre ?? "") ===
-        normalizeIdentityText(cliente.nombre)
+        normalizeIdentityText(normalizeCustomerDisplayName(item.nombre ?? "")) ===
+        normalizeIdentityText(normalizedCliente.nombre)
     );
 
     if (candidates.length === 0) {
@@ -206,6 +213,7 @@ class SupabaseClienteRepository implements ClienteRepository {
   }
 
   async upsertCliente(cliente: Cliente, preferredId?: string) {
+    const normalizedCliente = normalizeClienteInput(cliente);
     const supabase = createSupabaseServerClient();
     let existingId = preferredId;
 
@@ -223,11 +231,11 @@ class SupabaseClienteRepository implements ClienteRepository {
       existingId = existingById?.[0]?.id;
     }
 
-    if (!existingId && cliente.telefono) {
+    if (!existingId && normalizedCliente.telefono) {
       const { data: existingByPhone, error: existingError } = await supabase
         .from("clientes")
         .select("id, nombre, lugar_trabajo, telefono")
-        .eq("telefono", cliente.telefono)
+        .eq("telefono", normalizedCliente.telefono)
         .limit(1);
 
       if (existingError) {
@@ -254,7 +262,7 @@ class SupabaseClienteRepository implements ClienteRepository {
             nombre: item.nombre,
             lugarTrabajo: item.lugar_trabajo ?? ""
           },
-          cliente
+          normalizedCliente
         )
       );
 
@@ -265,9 +273,9 @@ class SupabaseClienteRepository implements ClienteRepository {
       const { error } = await supabase
         .from("clientes")
         .update({
-          nombre: cliente.nombre,
-          telefono: cliente.telefono || null,
-          lugar_trabajo: cliente.lugarTrabajo
+          nombre: normalizedCliente.nombre,
+          telefono: normalizedCliente.telefono || null,
+          lugar_trabajo: normalizedCliente.lugarTrabajo
         })
         .eq("id", existingId);
 
@@ -281,9 +289,9 @@ class SupabaseClienteRepository implements ClienteRepository {
     const { data, error } = await supabase
       .from("clientes")
       .insert({
-        nombre: cliente.nombre,
-        telefono: cliente.telefono || null,
-        lugar_trabajo: cliente.lugarTrabajo
+        nombre: normalizedCliente.nombre,
+        telefono: normalizedCliente.telefono || null,
+        lugar_trabajo: normalizedCliente.lugarTrabajo
       })
       .select("id")
       .single();

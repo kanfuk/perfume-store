@@ -88,7 +88,7 @@ type StatusFilter =
   | "pendientes"
   | "agendados"
   | "historial";
-type StockFilter = "todos" | "activos" | "sin-stock" | "pausados";
+type StockFilter = "todos" | "activos" | "pausados";
 type CustomerFilter = "todos" | "con-pedidos" | "con-fiado" | "recientes";
 type OrderModalState =
   | { type: "agendar"; order: AdminOrderSummary }
@@ -250,9 +250,7 @@ export function AdminDashboard({
           ? true
           : stockFilter === "activos"
             ? product.activo
-            : stockFilter === "pausados"
-              ? !product.activo
-              : getUnifiedProductStock(product) <= 0;
+            : !product.activo;
 
       if (!stockMatches) {
         return false;
@@ -635,7 +633,6 @@ export function AdminDashboard({
 
   const reportSummary = useMemo(() => {
     const totalVentas = reportOrders.reduce((sum, order) => sum + order.totalPagado, 0);
-    const ticketPromedio = reportOrders.length > 0 ? totalVentas / reportOrders.length : 0;
 
     const ventasPorProducto = new Map<string, { nombre: string; unidades: number; total: number }>();
     const ventasPorCliente = new Map<string, { nombre: string; pedidos: number; total: number }>();
@@ -665,7 +662,6 @@ export function AdminDashboard({
 
     return {
       totalVentas,
-      ticketPromedio,
       totalPedidos: reportOrders.length,
       topProductos: Array.from(ventasPorProducto.values())
         .sort((a, b) => b.total - a.total)
@@ -778,21 +774,6 @@ export function AdminDashboard({
 
   async function enableHomeScreenBadge() {
     await activateBadgeForCurrentDevice();
-    return;
-    /*
-    
-
-    
-
-    
-      setError(
-        "iPhone no permitió las notificaciones. Actívalas en Ajustes > Notificaciones > Pauli Admin."
-      );
-      return;
-    }
-
-    setError("No fue posible activar el badge del icono en este dispositivo.");
-    */
   }
 
   async function activateBadgeForCurrentDevice() {
@@ -1267,6 +1248,22 @@ export function AdminDashboard({
                 <span className="hidden sm:inline">Inicio</span>
               </button>
             ) : null}
+            <BadgeStatusChip
+              badgeEnabled={badgeDeviceSetting?.badgeEnabled === true}
+              badgeSupported={badgeSupported}
+              notificationPermission={notificationPermission}
+              isInstalledPwa={isInstalledPwa}
+            />
+            {badgeDeviceSetting?.badgeEnabled ? (
+              <button
+                type="button"
+                disabled={badgeActionLoading}
+                onClick={() => void testBadgeOnCurrentDevice()}
+                className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
+              >
+                Probar badge
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => void refreshAll()}
@@ -1425,7 +1422,7 @@ export function AdminDashboard({
                   icon={Boxes}
                   onClick={() => {
                     navigateToView("stock");
-                    setStockFilter("sin-stock");
+                    setStockFilter("pausados");
                   }}
                 />
               </div>
@@ -1446,7 +1443,6 @@ export function AdminDashboard({
 
               <div className="mt-4 space-y-3">
                 <SimpleFact label="Ventas del rango" value={formatCurrency(reportSummary.totalVentas)} />
-                <SimpleFact label="Ticket promedio" value={formatCurrency(reportSummary.ticketPromedio)} />
                 <SimpleFact
                   label="Productos sin stock"
                   value={String(products.filter((product) => getUnifiedProductStock(product) <= 0).length)}
@@ -1455,6 +1451,7 @@ export function AdminDashboard({
             </article>
           </section>
 
+          {!badgeDeviceSetting?.badgeEnabled ? (
           <section className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -1538,6 +1535,7 @@ export function AdminDashboard({
               ) : null}
             </div>
           </section>
+          ) : null}
 
           <section className="grid gap-4 lg:grid-cols-3">
             <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft lg:col-span-3">
@@ -1975,11 +1973,6 @@ export function AdminDashboard({
                     onClick={() => setStockFilter("activos")}
                   />
                   <FilterChip
-                    label="Sin stock"
-                    active={stockFilter === "sin-stock"}
-                    onClick={() => setStockFilter("sin-stock")}
-                  />
-                  <FilterChip
                     label="Pausados"
                     active={stockFilter === "pausados"}
                     onClick={() => setStockFilter("pausados")}
@@ -2398,7 +2391,7 @@ export function AdminDashboard({
             </div>
           </section>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <HeroMetric
               label="Pedidos cerrados"
               value={String(reportSummary.totalPedidos)}
@@ -2412,13 +2405,6 @@ export function AdminDashboard({
               detail="Total vendido"
               icon={CircleDollarSign}
               tone="emerald"
-            />
-            <HeroMetric
-              label="Ticket promedio"
-              value={formatCurrency(reportSummary.ticketPromedio)}
-              detail="Promedio por pedido"
-              icon={Package2}
-              tone="violet"
             />
             <HeroMetric
               label="Fiado pendiente"
@@ -4284,6 +4270,41 @@ function StatusBadge({
   return (
     <span
       className={`inline-flex min-h-8 max-w-full items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold leading-4 ${classes}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function BadgeStatusChip({
+  badgeEnabled,
+  badgeSupported,
+  notificationPermission,
+  isInstalledPwa
+}: {
+  badgeEnabled: boolean;
+  badgeSupported: boolean;
+  notificationPermission: NotificationPermission | "unsupported";
+  isInstalledPwa: boolean;
+}) {
+  const label = badgeEnabled
+    ? "Badge activo"
+    : !badgeSupported
+      ? "No compatible"
+      : notificationPermission === "denied"
+        ? "Permiso denegado"
+        : !isInstalledPwa
+          ? "Abrir desde inicio"
+          : "Por activar";
+  const className = badgeEnabled
+    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+    : !badgeSupported || notificationPermission === "denied"
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-violet-200 bg-violet-50 text-violet-800";
+
+  return (
+    <span
+      className={`inline-flex min-h-11 items-center rounded-[18px] border px-4 py-2.5 text-sm font-semibold ${className}`}
     >
       {label}
     </span>

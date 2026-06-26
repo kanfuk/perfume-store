@@ -19,6 +19,10 @@ import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { formatChileanMobileInput } from "@/lib/chile-phone";
+import {
+  normalizeCustomerDisplayName,
+  normalizeCustomerLookupValue
+} from "@/lib/customers/identity";
 import { getChileTodayInputValue } from "@/lib/date";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
@@ -45,18 +49,13 @@ type ExistingCustomer = {
 };
 
 function normalizarTexto(value: string) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
+  return normalizeCustomerLookupValue(value);
 }
 
 function buildCustomerKey(customer: Pick<ExistingCustomer, "nombre" | "telefono" | "lugarTrabajo">) {
   return [
     customer.telefono.replace(/\D/g, ""),
-    normalizarTexto(customer.nombre),
+    normalizarTexto(normalizeCustomerDisplayName(customer.nombre)),
     normalizarTexto(customer.lugarTrabajo)
   ].join("|");
 }
@@ -103,7 +102,10 @@ export function AdminDirectSale({
     ];
 
     initialCustomers.forEach((customer) => {
-      map.set(buildCustomerKey(customer), customer);
+      map.set(buildCustomerKey(customer), {
+        ...customer,
+        nombre: normalizeCustomerDisplayName(customer.nombre)
+      });
     });
 
     allOrders.forEach((order) => {
@@ -116,7 +118,7 @@ export function AdminDirectSale({
       if (!map.has(key)) {
         map.set(key, {
           id: order.clienteId,
-          nombre: order.clienteNombre,
+          nombre: normalizeCustomerDisplayName(order.clienteNombre),
           telefono: order.clienteTelefono,
           lugarTrabajo: order.clienteLugarTrabajo
         });

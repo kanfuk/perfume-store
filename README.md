@@ -17,8 +17,13 @@ Hoy el proyecto ya incluye:
 - venta directa y pedido personalizado desde admin
 - seleccion de clientes existentes en venta directa y pedido personalizado
 - stock unificado visible en admin, sincronizado con `stock_actual` y `stock_agenda`
+- filtros de stock simplificados a `Activos`, `Pausados` y `Todos`
+- autopausa de productos cuando el stock llega a `0`
 - agrupacion de fiados por cliente con cobro consolidado por WhatsApp
 - contador de pedidos por atender ajustado al estado real de atencion admin
+- badge PWA/iPhone con activacion por dispositivo y chip compacto en el header admin
+- unificacion segura de clientes duplicados y sugerencias para evitar nuevos duplicados
+- reportes sin card de `Ticket promedio`
 - control adicional contra tabla `usuarios_admin`
 - repositorios y servicios con reglas de negocio
 - seguridad base en headers, RLS y validaciones servidor
@@ -124,6 +129,26 @@ Acceso directo admin en iPhone:
 - usar `Compartir -> Agregar a pantalla de inicio`
 - si ya existia un acceso directo viejo, eliminarlo y crearlo de nuevo para que tome `start_url: /admin`
 - para ver badge en el icono, abrir la PWA instalada y aceptar el permiso con `Activar badge en icono`
+
+Uso rapido del badge:
+
+- si el badge aun no esta activo, el panel muestra una card grande `Badge del icono`
+- al activarlo correctamente, esa card desaparece y queda un chip pequeno en el header
+- `Probar badge` muestra un `1` momentaneo y luego vuelve al contador real de pendientes
+- si iPhone muestra permiso denegado, hay que habilitarlo desde Ajustes y volver a abrir la PWA desde el icono
+
+Clientes y stock:
+
+- pedidos pendientes, dashboard y badge usan la misma logica central de pendientes
+- cuando el stock llega a `0`, el producto pasa a `Pausado` automaticamente
+- para volver a publicarlo, primero hay que reponer stock y luego activarlo manualmente
+- nombres equivalentes como `Paty`, `Yo` o `camila montes` se normalizan para evitar duplicados
+- en el formulario publico se sugieren clientes recientes por nombre, telefono o lugar de trabajo
+
+Migraciones recientes:
+
+- `20260625232000_add_user_device_badge_settings.sql`
+- `20260625235500_merge_duplicate_customers.sql`
 
 ## Documentacion clave
 

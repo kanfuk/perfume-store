@@ -94,7 +94,9 @@ export class ProductoService {
       costoUnitario: input.costoUnitario ?? 0,
       stockActual: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0),
       stockAgenda: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0),
-      activo: input.activo ?? true,
+      activo: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0) > 0
+        ? input.activo ?? true
+        : false,
       tipoProducto: input.tipoProducto ?? "simple"
     });
 
@@ -144,7 +146,10 @@ export class ProductoService {
       costoUnitario: input.costoUnitario ?? 0,
       stockActual: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual),
       stockAgenda: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual),
-      activo: input.activo ?? true,
+      activo:
+        normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual) > 0
+          ? input.activo ?? true
+          : false,
       tipoProducto: input.tipoProducto ?? "simple"
     });
 
@@ -170,6 +175,10 @@ export class ProductoService {
     }
 
     const domainProduct = new Producto(current);
+    if (activo && getUnifiedProductStock(domainProduct) <= 0) {
+      throw new Error("Repone stock antes de volver a activar este producto.");
+    }
+
     if (activo) {
       domainProduct.activar();
     } else {
