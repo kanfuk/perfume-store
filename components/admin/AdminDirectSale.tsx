@@ -82,12 +82,7 @@ const QUICK_QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] as const;
 const OTHER_QUANTITY_VALUE = "other";
 
 function getProductSelectLabel(product: AdminProductRecord) {
-  const statusLabel = product.activo ? "Activo" : "Inactivo";
-  const stockLabel = shouldDecreaseStock(product)
-    ? `Stock ${getAvailableProductStock(product)}`
-    : "Sin stock controlado";
-
-  return `${product.nombre} - ${statusLabel} - ${stockLabel}`;
+  return product.nombre;
 }
 
 export function AdminDirectSale({
