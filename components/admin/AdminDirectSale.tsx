@@ -637,13 +637,11 @@ export function AdminDirectSale({
                         : "Selecciona cliente existente"}
                     </option>
                     {filteredCustomers.slice(0, 50).map((customer) => (
-                      <option key={customer.id} value={customer.id}>
+                    <option key={customer.id} value={customer.id}>
                         {customer.nombre}
-                        {customer.telefono ? ` - ${customer.telefono}` : ""}
-                        {customer.lugarTrabajo ? ` - ${customer.lugarTrabajo}` : ""}
-                      </option>
-                    ))}
-                  </select>
+                    </option>
+                  ))}
+                </select>
                   {customers.length === 0 ? (
                     <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
                       No hay clientes registrados.
@@ -659,12 +657,6 @@ export function AdminDirectSale({
                         >
                           <div className="min-w-0">
                             <div className="font-semibold text-[#1f3328]">{customer.nombre}</div>
-                            <div className="text-sm text-[#6b7c70]">
-                              {customer.telefono || "Sin telefono"}
-                            </div>
-                            {customer.lugarTrabajo ? (
-                              <div className="text-sm text-[#6b7c70]">{customer.lugarTrabajo}</div>
-                            ) : null}
                           </div>
                           {selectedCustomerId === customer.id ? (
                             <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
@@ -815,8 +807,6 @@ export function AdminDirectSale({
                   {filteredCustomCustomers.slice(0, 50).map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.nombre}
-                      {customer.telefono ? ` - ${customer.telefono}` : ""}
-                      {customer.lugarTrabajo ? ` - ${customer.lugarTrabajo}` : ""}
                     </option>
                   ))}
                 </select>
@@ -835,12 +825,6 @@ export function AdminDirectSale({
                       >
                         <div className="min-w-0">
                           <div className="font-semibold text-[#1f3328]">{customer.nombre}</div>
-                          <div className="text-sm text-[#6b7c70]">
-                            {customer.telefono || "Sin telefono"}
-                          </div>
-                          {customer.lugarTrabajo ? (
-                            <div className="text-sm text-[#6b7c70]">{customer.lugarTrabajo}</div>
-                          ) : null}
                         </div>
                         {customSelectedCustomerId === customer.id ? (
                           <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
