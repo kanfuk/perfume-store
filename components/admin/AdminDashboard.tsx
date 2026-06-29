@@ -100,6 +100,9 @@ type StatusFilter =
   | "historial";
 type StockFilter = "todos" | "activos" | "pausados";
 type CustomerFilter = "todos" | "con-pedidos" | "con-fiado" | "recientes";
+type ReportTab = "resumen" | "rentabilidad";
+type ReportRangePreset = "today" | "week" | "month" | "last-month" | "custom";
+type ReportSalesFilter = "todos" | "pedido-cliente" | "venta-directa" | "venta-personalizada";
 type OrderModalState =
   | { type: "agendar"; order: AdminOrderSummary }
   | { type: "cancelar"; order: AdminOrderSummary }
@@ -143,6 +146,7 @@ type WhatsAppFallbackState = {
   url?: string;
   reason: "invalid-phone" | "open-failed";
 };
+type ProfitabilityCostStatus = "ok" | "estimated" | "missing";
 
 const PENDING_ORDERS_REFRESH_MS = 60000;
 
@@ -214,6 +218,8 @@ export function AdminDashboard({
   initialView = "home"
 }: AdminDashboardProps) {
   const router = useRouter();
+  const refreshOrdersInFlightRef = useRef<Promise<void> | null>(null);
+  const refreshRetryTimeoutRef = useRef<number | null>(null);
   const [data, setData] = useState<AdminDashboardData>(initialData.dashboard);
   const [products, setProducts] = useState<AdminProductRecord[]>(initialData.productos);
   const [view, setView] = useState<AdminView>(initialView);
@@ -234,8 +240,11 @@ export function AdminDashboard({
   const [orderModalState, setOrderModalState] = useState<OrderModalState>(null);
   const [productModalState, setProductModalState] = useState<ProductModalState>(null);
   const [stockDrafts, setStockDrafts] = useState<Record<string, StockDraft>>({});
-  const [reportFrom, setReportFrom] = useState("");
-  const [reportTo, setReportTo] = useState("");
+  const [reportTab, setReportTab] = useState<ReportTab>("rentabilidad");
+  const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>("month");
+  const [reportSalesFilter, setReportSalesFilter] = useState<ReportSalesFilter>("todos");
+  const [reportFrom, setReportFrom] = useState(() => getCurrentMonthRange().from);
+  const [reportTo, setReportTo] = useState(() => getCurrentMonthRange().to);
   const [todayDate, setTodayDate] = useState("");
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
@@ -514,34 +523,30 @@ export function AdminDashboard({
     };
   }, [badgeDeviceId]);
 
-  const refreshOrdersEvent = useEffectEvent(async () => {
-    await loadOrders();
-  });
-
   useEffect(() => {
     let cancelled = false;
-    let refreshPromise: Promise<void> | null = null;
+    let realtimeConnected = false;
 
-    const refreshOrders = () => {
+    const refreshOrders = (reason: string) => {
       if (cancelled) {
-        return Promise.resolve();
+        return Promise.resolve(undefined);
       }
 
-      if (refreshPromise) {
-        return refreshPromise;
-      }
-
-      refreshPromise = refreshOrdersEvent().finally(() => {
-        refreshPromise = null;
-      });
-
-      return refreshPromise;
+      return refreshPendingBadgesSafe(reason);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        void refreshOrders();
+        void refreshOrders("visible");
       }
+    };
+
+    const handleFocus = () => {
+      void refreshOrders("focus");
+    };
+
+    const handleOnline = () => {
+      void refreshOrders("online");
     };
 
     const intervalId = window.setInterval(() => {
@@ -549,11 +554,13 @@ export function AdminDashboard({
         return;
       }
 
-      void refreshOrders();
+      void refreshOrders("poll");
     }, PENDING_ORDERS_REFRESH_MS);
 
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    void refreshOrders();
+    void refreshOrders("mount");
 
     let removeRealtimeSubscription: (() => void) | null = null;
 
@@ -564,17 +571,33 @@ export function AdminDashboard({
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "pedidos" },
-          () => {
+          (payload) => {
             if (document.visibilityState !== "visible") {
               return;
             }
 
-            void refreshOrders();
+            const reason = payload.eventType === "INSERT" ? "realtime-insert" : "realtime-update";
+            void refreshOrders(reason);
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          realtimeConnected = status === "SUBSCRIBED";
+
+          if (status === "SUBSCRIBED") {
+            void refreshOrders("realtime-subscribed");
+          }
+        });
+
+      const handleRealtimeReconnect = () => {
+        if (!realtimeConnected && document.visibilityState === "visible") {
+          void refreshOrders("realtime-reconnect");
+        }
+      };
+
+      window.addEventListener("online", handleRealtimeReconnect);
 
       removeRealtimeSubscription = () => {
+        window.removeEventListener("online", handleRealtimeReconnect);
         void supabase.removeChannel(channel);
       };
     } catch {
@@ -583,7 +606,10 @@ export function AdminDashboard({
 
     return () => {
       cancelled = true;
+      clearRefreshRetryTimeout();
       window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       removeRealtimeSubscription?.();
     };
@@ -784,12 +810,27 @@ export function AdminDashboard({
         return false;
       }
 
+      if (reportSalesFilter === "pedido-cliente" && order.origenPedido !== "PUBLICO") {
+        return false;
+      }
+
+      if (reportSalesFilter === "venta-directa" && order.origenPedido !== "ADMIN_DIRECTO") {
+        return false;
+      }
+
+      if (
+        reportSalesFilter === "venta-personalizada" &&
+        order.origenPedido !== "PERSONALIZADO"
+      ) {
+        return false;
+      }
+
       return true;
     });
-  }, [data.finalizados, reportFrom, reportTo]);
+  }, [data.finalizados, reportFrom, reportSalesFilter, reportTo]);
 
   const reportSummary = useMemo(() => {
-    const totalVentas = reportOrders.reduce((sum, order) => sum + order.totalPagado, 0);
+    const totalVentas = reportOrders.reduce((sum, order) => sum + order.total, 0);
 
     const ventasPorProducto = new Map<string, { nombre: string; unidades: number; total: number }>();
     const ventasPorCliente = new Map<string, { nombre: string; pedidos: number; total: number }>();
@@ -802,7 +843,7 @@ export function AdminDashboard({
         total: 0
       };
       customer.pedidos += 1;
-      customer.total += order.totalPagado;
+      customer.total += order.total;
       ventasPorCliente.set(customerKey, customer);
 
       order.items.forEach((item) => {
@@ -825,6 +866,160 @@ export function AdminDashboard({
         .slice(0, 5),
       topClientes: Array.from(ventasPorCliente.values())
         .sort((a, b) => b.total - a.total)
+        .slice(0, 5)
+    };
+  }, [reportOrders]);
+
+  const profitabilitySummary = useMemo(() => {
+    const byProduct = new Map<
+      string,
+      {
+        id: string;
+        nombre: string;
+        unidades: number;
+        ventaTotal: number;
+        costoTotal: number;
+        utilidad: number;
+        calculable: boolean;
+        status: ProfitabilityCostStatus;
+      }
+    >();
+    const byOrigin = new Map<
+      string,
+      {
+        key: ReportSalesFilter;
+        label: string;
+        pedidos: number;
+        unidades: number;
+        ventaTotal: number;
+        costoTotal: number;
+        utilidad: number;
+        calculableVenta: number;
+        calculable: boolean;
+      }
+    >();
+    const missingCostProducts = new Map<
+      string,
+      { id: string; nombre: string; unidades: number; ventaTotal: number }
+    >();
+
+    let totalVentas = 0;
+    let totalCostos = 0;
+    let totalUtilidad = 0;
+    let totalUnidades = 0;
+    let calculableVentas = 0;
+
+    reportOrders.forEach((order) => {
+      const originKey = mapOrderOriginToReportFilter(order.origenPedido);
+      const originLabel = getSalesFilterLabel(originKey);
+      const origin =
+        byOrigin.get(originKey) ?? {
+          key: originKey,
+          label: originLabel,
+          pedidos: 0,
+          unidades: 0,
+          ventaTotal: 0,
+          costoTotal: 0,
+          utilidad: 0,
+          calculableVenta: 0,
+          calculable: true
+        };
+
+      origin.pedidos += 1;
+
+      order.items.forEach((item, index) => {
+        const status = getOrderItemProfitabilityStatus(order, item);
+        const productKey = item.productoId || `${order.id}-${index}-${item.productoNombre}`;
+        const product =
+          byProduct.get(productKey) ?? {
+            id: item.productoId || "",
+            nombre: item.productoNombre,
+            unidades: 0,
+            ventaTotal: 0,
+            costoTotal: 0,
+            utilidad: 0,
+            calculable: true,
+            status
+          };
+
+        totalVentas += item.subtotal;
+        totalUnidades += item.cantidad;
+        origin.unidades += item.cantidad;
+        origin.ventaTotal += item.subtotal;
+        product.unidades += item.cantidad;
+        product.ventaTotal += item.subtotal;
+
+        if (status === "missing") {
+          product.calculable = false;
+          product.status = "missing";
+          origin.calculable = false;
+
+          const missingProduct =
+            missingCostProducts.get(productKey) ?? {
+              id: item.productoId || "",
+              nombre: item.productoNombre,
+              unidades: 0,
+              ventaTotal: 0
+            };
+          missingProduct.unidades += item.cantidad;
+          missingProduct.ventaTotal += item.subtotal;
+          missingCostProducts.set(productKey, missingProduct);
+        } else {
+          const lineCost =
+            item.costoTotal ?? (item.costoUnitario ?? 0) * item.cantidad;
+          const lineProfit =
+            item.utilidadBruta ?? item.subtotal - lineCost;
+
+          totalCostos += lineCost;
+          totalUtilidad += lineProfit;
+          calculableVentas += item.subtotal;
+          origin.costoTotal += lineCost;
+          origin.utilidad += lineProfit;
+          origin.calculableVenta += item.subtotal;
+          product.costoTotal += lineCost;
+          product.utilidad += lineProfit;
+
+          if (status === "estimated" && product.status !== "missing") {
+            product.status = "estimated";
+          }
+        }
+
+        byProduct.set(productKey, product);
+      });
+
+      byOrigin.set(originKey, origin);
+    });
+
+    return {
+      totalVentas,
+      totalCostos,
+      totalUtilidad,
+      totalUnidades,
+      calculableVentas,
+      margenPromedio:
+        calculableVentas > 0 ? (totalUtilidad / calculableVentas) * 100 : 0,
+      totalPedidos: reportOrders.length,
+      productosSinCosto: Array.from(missingCostProducts.values()).sort(
+        (a, b) => b.ventaTotal - a.ventaTotal
+      ),
+      resumenPorTipo: Array.from(byOrigin.values())
+        .map((item) => ({
+          ...item,
+          margen: item.calculableVenta > 0 ? (item.utilidad / item.calculableVenta) * 100 : 0
+        }))
+        .sort((a, b) => b.ventaTotal - a.ventaTotal),
+      rentabilidadPorProducto: Array.from(byProduct.values())
+        .map((item) => ({
+          ...item,
+          margen: item.calculable && item.ventaTotal > 0 ? (item.utilidad / item.ventaTotal) * 100 : null
+        }))
+        .sort((a, b) => b.ventaTotal - a.ventaTotal),
+      topProductosPorUtilidad: Array.from(byProduct.values())
+        .filter((item) => item.calculable)
+        .sort((a, b) => b.utilidad - a.utilidad)
+        .slice(0, 5),
+      topProductosPorVentas: Array.from(byProduct.values())
+        .sort((a, b) => b.ventaTotal - a.ventaTotal)
         .slice(0, 5)
     };
   }, [reportOrders]);
@@ -861,6 +1056,33 @@ export function AdminDashboard({
     [ordersByFilter, statusFilter]
   );
 
+  function applyReportRangePreset(nextPreset: ReportRangePreset) {
+    setReportRangePreset(nextPreset);
+
+    if (nextPreset === "custom") {
+      return;
+    }
+
+    const range = getReportRangePresetValues(nextPreset);
+    setReportFrom(range.from);
+    setReportTo(range.to);
+  }
+
+  function handleReportFromChange(value: string) {
+    setReportRangePreset("custom");
+    setReportFrom(value);
+  }
+
+  function handleReportToChange(value: string) {
+    setReportRangePreset("custom");
+    setReportTo(value);
+  }
+
+  function openProductCostEditor(productName: string) {
+    setProductSearch(productName);
+    navigateToView("stock");
+  }
+
   const agendaDetailOrders =
     statusFilter === "pendientes"
       ? ordersByFilter.pendientes
@@ -875,10 +1097,36 @@ export function AdminDashboard({
     agendaDetailOrders[0] ??
     null;
 
-  async function loadOrders() {
+  function clearRefreshRetryTimeout() {
+    if (refreshRetryTimeoutRef.current !== null) {
+      window.clearTimeout(refreshRetryTimeoutRef.current);
+      refreshRetryTimeoutRef.current = null;
+    }
+  }
+
+  async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, ms = 10000) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), ms);
+
     try {
-      setLoading(true);
-      const response = await fetch("/api/admin/orders", { cache: "no-store" });
+      return await fetch(input, {
+        ...init,
+        signal: controller.signal
+      });
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }
+
+  async function loadOrders(options?: { silent?: boolean }) {
+    const silent = options?.silent ?? false;
+
+    try {
+      if (!silent) {
+        setLoading(true);
+      }
+
+      const response = await fetchWithTimeout("/api/admin/orders", { cache: "no-store" });
       const currentData = (await response.json()) as AdminDashboardData & {
         error?: string;
       };
@@ -890,12 +1138,16 @@ export function AdminDashboard({
       setData(currentData);
     } catch (currentError) {
       setError(
-        currentError instanceof Error
+        currentError instanceof DOMException && currentError.name === "AbortError"
+          ? "La sincronizacion de pedidos tardo demasiado. Vuelve a intentar."
+          : currentError instanceof Error
           ? currentError.message
           : "No fue posible cargar pedidos."
       );
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }
 
@@ -928,6 +1180,32 @@ export function AdminDashboard({
     setError("");
     await Promise.all([loadOrders(), loadProducts()]);
   }
+
+  const refreshPendingBadgesSafe = useEffectEvent(async (reason: string) => {
+    if (refreshOrdersInFlightRef.current) {
+      return refreshOrdersInFlightRef.current;
+    }
+
+    clearRefreshRetryTimeout();
+
+    const refreshPromise = loadOrders({ silent: true })
+      .catch(() => {
+        if (reason === "poll") {
+          return;
+        }
+
+        refreshRetryTimeoutRef.current = window.setTimeout(() => {
+          refreshRetryTimeoutRef.current = null;
+          void refreshPendingBadgesSafe("retry");
+        }, 4000);
+      })
+      .finally(() => {
+        refreshOrdersInFlightRef.current = null;
+      });
+
+    refreshOrdersInFlightRef.current = refreshPromise;
+    return refreshPromise;
+  });
 
   async function enableHomeScreenBadge() {
     await activateBadgeForCurrentDevice();
@@ -1104,7 +1382,7 @@ export function AdminDashboard({
     deliveryDateValue?: string
   ) {
     const message = buildScheduledOrderMessage(order, deliveryDateValue);
-    const openResult = openWhatsAppMessage(order.clienteTelefono, message);
+    const openResult = openWhatsAppSafe(order.clienteTelefono, message);
 
     if (openResult.status === "invalid-phone") {
       setSuccessMessage(
@@ -1133,6 +1411,13 @@ export function AdminDashboard({
 
     setWhatsAppFallback(null);
     setSuccessMessage("Pedido agendado correctamente.");
+  }
+
+  function returnToOrdersListAfterSchedule() {
+    setOrderModalState(null);
+    setSelectedOrderId("");
+    setView("agenda");
+    setStatusFilter("pendientes");
   }
 
   async function copyWhatsAppFallbackMessage() {
@@ -1207,6 +1492,7 @@ export function AdminDashboard({
       await loadOrders();
 
       if (action === "agendar" && order) {
+        returnToOrdersListAfterSchedule();
         scheduledOrderData = {
           order,
           deliveryDateValue: payload?.fechaEntrega
@@ -1224,10 +1510,14 @@ export function AdminDashboard({
     }
 
     if (scheduledOrderData) {
-      handleOrderAgendaWhatsApp(
-        scheduledOrderData.order,
-        scheduledOrderData.deliveryDateValue
-      );
+      window.requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          handleOrderAgendaWhatsApp(
+            scheduledOrderData.order,
+            scheduledOrderData.deliveryDateValue
+          );
+        }, 0);
+      });
     }
   }
 
@@ -2670,19 +2960,85 @@ export function AdminDashboard({
         <section className="space-y-5">
           <SectionIntro
             title="Reportes"
-            subtitle="Sólo los números importantes: ventas, ticket promedio y lo que mejor se vende."
+            subtitle="Resumen general y una vista de rentabilidad basada en ventas, costos y utilidad real."
             icon={CalendarRange}
-            helper="Ideal para mirar cómo cerró la semana y que producto conviene reponer."
+            helper="Ideal para revisar cómo cerró el periodo, qué deja mejor margen y qué productos siguen sin costo configurado."
           />
 
           <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft sm:p-5">
-            <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-4">
+              <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
+                <FilterChip
+                  label="Resumen general"
+                  active={reportTab === "resumen"}
+                  onClick={() => setReportTab("resumen")}
+                />
+                <FilterChip
+                  label="Rentabilidad"
+                  active={reportTab === "rentabilidad"}
+                  onClick={() => setReportTab("rentabilidad")}
+                />
+              </StableHorizontalRail>
+
+              <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
+                <FilterChip
+                  label="Hoy"
+                  active={reportRangePreset === "today"}
+                  onClick={() => applyReportRangePreset("today")}
+                />
+                <FilterChip
+                  label="Esta semana"
+                  active={reportRangePreset === "week"}
+                  onClick={() => applyReportRangePreset("week")}
+                />
+                <FilterChip
+                  label="Este mes"
+                  active={reportRangePreset === "month"}
+                  onClick={() => applyReportRangePreset("month")}
+                />
+                <FilterChip
+                  label="Mes anterior"
+                  active={reportRangePreset === "last-month"}
+                  onClick={() => applyReportRangePreset("last-month")}
+                />
+                <FilterChip
+                  label="Rango personalizado"
+                  active={reportRangePreset === "custom"}
+                  onClick={() => applyReportRangePreset("custom")}
+                />
+              </StableHorizontalRail>
+
+              <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
+                <FilterChip
+                  label="Todos"
+                  active={reportSalesFilter === "todos"}
+                  onClick={() => setReportSalesFilter("todos")}
+                />
+                <FilterChip
+                  label="Pedidos cliente"
+                  active={reportSalesFilter === "pedido-cliente"}
+                  onClick={() => setReportSalesFilter("pedido-cliente")}
+                />
+                <FilterChip
+                  label="Venta directa"
+                  active={reportSalesFilter === "venta-directa"}
+                  onClick={() => setReportSalesFilter("venta-directa")}
+                />
+                <FilterChip
+                  label="Venta personalizada"
+                  active={reportSalesFilter === "venta-personalizada"}
+                  onClick={() => setReportSalesFilter("venta-personalizada")}
+                />
+              </StableHorizontalRail>
+            </div>
+
+            <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
               <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
                 <span className="text-sm font-semibold text-emerald-900">Desde</span>
                 <input
                   type="date"
                   value={reportFrom}
-                  onChange={(event) => setReportFrom(event.target.value)}
+                  onChange={(event) => handleReportFromChange(event.target.value)}
                   className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
                 />
               </label>
@@ -2691,100 +3047,375 @@ export function AdminDashboard({
                 <input
                   type="date"
                   value={reportTo}
-                  onChange={(event) => setReportTo(event.target.value)}
+                  onChange={(event) => handleReportToChange(event.target.value)}
                   className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
                 />
               </label>
             </div>
           </section>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <HeroMetric
-              label="Pedidos cerrados"
-              value={String(reportSummary.totalPedidos)}
-              detail="Pedidos dentro del rango"
-              icon={ReceiptText}
-              tone="rose"
-            />
-            <HeroMetric
-              label="Ventas"
-              value={formatCurrency(reportSummary.totalVentas)}
-              detail="Total vendido"
-              icon={CircleDollarSign}
-              tone="emerald"
-            />
-            <HeroMetric
-              label="Fiado pendiente"
-              value={formatCurrency(
-                data.fiadosPendientes.reduce((sum, order) => sum + order.saldoPendiente, 0)
-              )}
-              detail="Saldo que sigue abierto"
-              icon={HandCoins}
-              tone="amber"
-            />
-          </div>
+          {reportTab === "resumen" ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <HeroMetric
+                  label="Pedidos cerrados"
+                  value={String(reportSummary.totalPedidos)}
+                  detail="Pedidos dentro del rango"
+                  icon={ReceiptText}
+                  tone="rose"
+                />
+                <HeroMetric
+                  label="Ventas"
+                  value={formatCurrency(reportSummary.totalVentas)}
+                  detail="Total vendido"
+                  icon={CircleDollarSign}
+                  tone="emerald"
+                />
+                <HeroMetric
+                  label="Fiado pendiente"
+                  value={formatCurrency(
+                    data.fiadosPendientes.reduce((sum, order) => sum + order.saldoPendiente, 0)
+                  )}
+                  detail="Saldo que sigue abierto"
+                  icon={HandCoins}
+                  tone="amber"
+                />
+              </div>
 
-          <div className="grid gap-5 xl:grid-cols-2">
-            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-emerald-950">
-                <Box className="h-5 w-5" />
-                <h3 className="text-lg font-bold">Top productos</h3>
-              </div>
-              <div className="mt-4 space-y-3">
-                {reportSummary.topProductos.length === 0 ? (
-                  <EmptyState text="No hay ventas en este rango." />
-                ) : null}
-                {reportSummary.topProductos.map((item) => (
-                  <article
-                    key={item.nombre}
-                    className="rounded-lg border border-emerald-100 bg-white p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="font-semibold text-emerald-950">{item.nombre}</div>
-                        <div className="text-sm text-emerald-900/65">
-                          {item.unidades} unidades
+              <div className="grid gap-5 xl:grid-cols-2">
+                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-emerald-950">
+                    <Box className="h-5 w-5" />
+                    <h3 className="text-lg font-bold">Top productos</h3>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {reportSummary.topProductos.length === 0 ? (
+                      <EmptyState text="No hay ventas en este rango." />
+                    ) : null}
+                    {reportSummary.topProductos.map((item) => (
+                      <article
+                        key={item.nombre}
+                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-emerald-950">{item.nombre}</div>
+                            <div className="text-sm text-emerald-900/65">
+                              {item.unidades} unidades
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold text-emerald-700">
+                            {formatCurrency(item.total)}
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-sm font-semibold text-emerald-700">
-                        {formatCurrency(item.total)}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
+                      </article>
+                    ))}
+                  </div>
+                </section>
 
-            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-emerald-950">
-                <UserRound className="h-5 w-5" />
-                <h3 className="text-lg font-bold">Top clientes</h3>
-              </div>
-              <div className="mt-4 space-y-3">
-                {reportSummary.topClientes.length === 0 ? (
-                  <EmptyState text="No hay clientes en este rango." />
-                ) : null}
-                {reportSummary.topClientes.map((item) => (
-                  <article
-                    key={item.nombre}
-                    className="rounded-lg border border-emerald-100 bg-white p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="font-semibold text-emerald-950">{item.nombre}</div>
-                        <div className="text-sm text-emerald-900/65">
-                          {item.pedidos} pedido(s)
+                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-emerald-950">
+                    <UserRound className="h-5 w-5" />
+                    <h3 className="text-lg font-bold">Top clientes</h3>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {reportSummary.topClientes.length === 0 ? (
+                      <EmptyState text="No hay clientes en este rango." />
+                    ) : null}
+                    {reportSummary.topClientes.map((item) => (
+                      <article
+                        key={item.nombre}
+                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-emerald-950">{item.nombre}</div>
+                            <div className="text-sm text-emerald-900/65">
+                              {item.pedidos} pedido(s)
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold text-emerald-700">
+                            {formatCurrency(item.total)}
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-sm font-semibold text-emerald-700">
-                        {formatCurrency(item.total)}
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                      </article>
+                    ))}
+                  </div>
+                </section>
               </div>
-            </section>
-          </div>
+            </>
+          ) : (
+            <>
+              <SectionIntro
+                title="Rentabilidad"
+                subtitle="Ventas, costos y utilidad real."
+                icon={BarChart3}
+                helper={
+                  profitabilitySummary.productosSinCosto.length > 0
+                    ? `Hay ${profitabilitySummary.productosSinCosto.length} producto(s) vendido(s) sin costo configurado. La utilidad se calcula solo sobre ventas con costo conocido o estimado.`
+                    : "Se usa el costo guardado por item del pedido; en personalizados libres con costo manual queda marcado como estimado."
+                }
+              />
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <HeroMetric
+                  label="Ventas totales"
+                  value={formatCurrency(profitabilitySummary.totalVentas)}
+                  detail={`${profitabilitySummary.totalPedidos} venta(s) cerrada(s)`}
+                  icon={CircleDollarSign}
+                  tone="emerald"
+                />
+                <HeroMetric
+                  label="Costos totales"
+                  value={formatCurrency(profitabilitySummary.totalCostos)}
+                  detail={
+                    profitabilitySummary.productosSinCosto.length > 0
+                      ? "Solo costos con dato conocido o estimado"
+                      : "Costeo acumulado del periodo"
+                  }
+                  icon={Boxes}
+                  tone="violet"
+                />
+                <HeroMetric
+                  label="Utilidad bruta"
+                  value={formatCurrency(profitabilitySummary.totalUtilidad)}
+                  detail={`${formatPercent(profitabilitySummary.margenPromedio)} de margen promedio`}
+                  icon={Sparkles}
+                  tone="rose"
+                />
+                <HeroMetric
+                  label="Margen promedio"
+                  value={formatPercent(profitabilitySummary.margenPromedio)}
+                  detail="Calculado sobre ventas con costo disponible"
+                  icon={BarChart3}
+                  tone="amber"
+                />
+                <HeroMetric
+                  label="Unidades vendidas"
+                  value={String(profitabilitySummary.totalUnidades)}
+                  detail="Suma de unidades cerradas"
+                  icon={ShoppingBag}
+                  tone="emerald"
+                />
+                <HeroMetric
+                  label="Sin costo"
+                  value={String(profitabilitySummary.productosSinCosto.length)}
+                  detail="Productos que requieren costo configurado"
+                  icon={AlertCircle}
+                  tone="amber"
+                />
+              </div>
+
+              <div className="grid gap-5 xl:grid-cols-2">
+                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-emerald-950">
+                    <BarChart3 className="h-5 w-5" />
+                    <h3 className="text-lg font-bold">Ventas vs costos vs utilidad</h3>
+                  </div>
+                  <div className="mt-4 space-y-4">
+                    <ProfitabilityBar
+                      label="Ventas"
+                      value={formatCurrency(profitabilitySummary.totalVentas)}
+                      amount={profitabilitySummary.totalVentas}
+                      maxAmount={profitabilitySummary.totalVentas}
+                      tone="emerald"
+                    />
+                    <ProfitabilityBar
+                      label="Costos"
+                      value={formatCurrency(profitabilitySummary.totalCostos)}
+                      amount={profitabilitySummary.totalCostos}
+                      maxAmount={profitabilitySummary.totalVentas}
+                      tone="violet"
+                    />
+                    <ProfitabilityBar
+                      label="Utilidad"
+                      value={formatCurrency(profitabilitySummary.totalUtilidad)}
+                      amount={profitabilitySummary.totalUtilidad}
+                      maxAmount={profitabilitySummary.totalVentas}
+                      tone="amber"
+                    />
+                  </div>
+                </section>
+
+                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-emerald-950">
+                    <Sparkles className="h-5 w-5" />
+                    <h3 className="text-lg font-bold">Top 5 por utilidad</h3>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {profitabilitySummary.topProductosPorUtilidad.length === 0 ? (
+                      <EmptyState text="No hay productos con costo calculable en este rango." />
+                    ) : null}
+                    {profitabilitySummary.topProductosPorUtilidad.map((item) => (
+                      <article
+                        key={`${item.id}-${item.nombre}-profit`}
+                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-emerald-950">{item.nombre}</div>
+                            <div className="text-sm text-emerald-900/65">
+                              {item.unidades} unidades · {formatPercent((item.utilidad / item.ventaTotal) * 100)}
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold text-emerald-700">
+                            {formatCurrency(item.utilidad)}
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <div className="grid gap-5 xl:grid-cols-2">
+                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-emerald-950">
+                    <ReceiptText className="h-5 w-5" />
+                    <h3 className="text-lg font-bold">Rentabilidad por tipo de venta</h3>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {profitabilitySummary.resumenPorTipo.length === 0 ? (
+                      <EmptyState text="No hay ventas cerradas en este rango." />
+                    ) : null}
+                    {profitabilitySummary.resumenPorTipo.map((item) => (
+                      <article
+                        key={item.key}
+                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-emerald-950">{item.label}</div>
+                            <div className="text-sm text-emerald-900/65">
+                              {item.pedidos} pedido(s) · {item.unidades} unidades
+                            </div>
+                          </div>
+                          <StatusBadge
+                            tone={item.calculable ? "pedido" : "warning"}
+                            label={item.calculable ? "OK" : "SIN COSTO"}
+                          />
+                        </div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                          <MiniMetric label="Ventas" value={formatCurrency(item.ventaTotal)} />
+                          <MiniMetric label="Costos" value={formatCurrency(item.costoTotal)} />
+                          <MiniMetric
+                            label="Utilidad"
+                            value={item.calculable ? formatCurrency(item.utilidad) : "Costo pendiente"}
+                          />
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-emerald-950">
+                    <AlertCircle className="h-5 w-5" />
+                    <h3 className="text-lg font-bold">Productos sin costo configurado</h3>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {profitabilitySummary.productosSinCosto.length === 0 ? (
+                      <EmptyState text="No hay productos vendidos con costo pendiente en este rango." />
+                    ) : null}
+                    {profitabilitySummary.productosSinCosto.map((item) => (
+                      <article
+                        key={`${item.id}-${item.nombre}-missing`}
+                        className="rounded-lg border border-amber-200 bg-amber-50/80 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-semibold text-amber-950">{item.nombre}</div>
+                            <div className="text-sm text-amber-900/75">
+                              {item.unidades} unidades · {formatCurrency(item.ventaTotal)}
+                            </div>
+                          </div>
+                          {item.id ? (
+                            <button
+                              type="button"
+                              onClick={() => openProductCostEditor(item.nombre)}
+                              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-950"
+                            >
+                              Configurar costo
+                            </button>
+                          ) : (
+                            <StatusBadge tone="warning" label="PERSONALIZADO" />
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+                <div className="flex items-center gap-2 text-emerald-950">
+                  <Box className="h-5 w-5" />
+                  <h3 className="text-lg font-bold">Rentabilidad por producto</h3>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {profitabilitySummary.rentabilidadPorProducto.length === 0 ? (
+                    <EmptyState text="No hay productos vendidos en este rango." />
+                  ) : null}
+                  {profitabilitySummary.rentabilidadPorProducto.map((item) => (
+                    <article
+                      key={`${item.id}-${item.nombre}`}
+                      className="rounded-lg border border-emerald-100 bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-semibold text-emerald-950">{item.nombre}</div>
+                          <div className="text-sm text-emerald-900/65">
+                            {item.unidades} unidades vendidas
+                          </div>
+                        </div>
+                        <StatusBadge
+                          tone={
+                            item.status === "missing"
+                              ? "warning"
+                              : item.status === "estimated"
+                                ? "neutral"
+                                : "pedido"
+                          }
+                          label={
+                            item.status === "missing"
+                              ? "SIN COSTO"
+                              : item.status === "estimated"
+                                ? "ESTIMADO"
+                                : "OK"
+                          }
+                        />
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                        <MiniMetric label="Ventas" value={formatCurrency(item.ventaTotal)} />
+                        <MiniMetric
+                          label="Costos"
+                          value={item.calculable ? formatCurrency(item.costoTotal) : "Sin costo"}
+                        />
+                        <MiniMetric
+                          label="Utilidad"
+                          value={item.calculable ? formatCurrency(item.utilidad) : "No calculable"}
+                        />
+                        <MiniMetric
+                          label="Margen"
+                          value={item.margen === null ? "Costo pendiente" : formatPercent(item.margen)}
+                        />
+                        <MiniMetric
+                          label="Estado costo"
+                          value={
+                            item.status === "missing"
+                              ? "Sin costo"
+                              : item.status === "estimated"
+                                ? "Estimado"
+                                : "OK"
+                          }
+                        />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </section>
       ) : null}
 
@@ -4257,6 +4888,43 @@ function SimpleFact({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ProfitabilityBar({
+  label,
+  value,
+  amount,
+  maxAmount,
+  tone
+}: {
+  label: string;
+  value: string;
+  amount: number;
+  maxAmount: number;
+  tone: "emerald" | "violet" | "amber";
+}) {
+  const width = maxAmount > 0 ? Math.max(8, Math.min(100, (amount / maxAmount) * 100)) : 0;
+  const barClassName =
+    tone === "violet"
+      ? "bg-violet-500"
+      : tone === "amber"
+        ? "bg-amber-500"
+        : "bg-emerald-500";
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-emerald-950">{label}</div>
+        <div className="text-sm font-semibold text-emerald-700">{value}</div>
+      </div>
+      <div className="h-3 overflow-hidden rounded-full bg-emerald-100">
+        <div
+          className={`h-full rounded-full ${barClassName}`}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ClientStatsCards({
   summary
 }: {
@@ -5233,7 +5901,7 @@ function buildScheduledOrderMessage(
   });
 }
 
-function openWhatsAppMessage(phone: string, message: string) {
+function openWhatsAppSafe(phone: string, message: string) {
   const normalizedPhone = normalizeChilePhone(phone ?? "");
 
   if (!normalizedPhone) {
@@ -5257,6 +5925,105 @@ function openWhatsAppMessage(phone: string, message: string) {
     status: "opened" as const,
     url
   };
+}
+
+function getCurrentMonthRange(reference = new Date()) {
+  const year = reference.getFullYear();
+  const month = reference.getMonth();
+  const from = formatLocalDateInput(new Date(year, month, 1));
+  const to = formatLocalDateInput(new Date(year, month + 1, 0));
+
+  return { from, to };
+}
+
+function getReportRangePresetValues(preset: Exclude<ReportRangePreset, "custom">) {
+  const today = new Date();
+
+  if (preset === "today") {
+    const value = getChileTodayInputValue(today);
+    return { from: value, to: value };
+  }
+
+  if (preset === "week") {
+    const current = new Date(today);
+    const day = current.getDay();
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    current.setDate(current.getDate() - diffToMonday);
+    const from = formatLocalDateInput(current);
+    const to = getChileTodayInputValue(today);
+    return { from, to };
+  }
+
+  if (preset === "last-month") {
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    return {
+      from: formatLocalDateInput(new Date(year, month - 1, 1)),
+      to: formatLocalDateInput(new Date(year, month, 0))
+    };
+  }
+
+  return getCurrentMonthRange(today);
+}
+
+function formatLocalDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatPercent(value: number) {
+  if (!Number.isFinite(value)) {
+    return "0.0%";
+  }
+
+  return `${value.toFixed(1)}%`;
+}
+
+function mapOrderOriginToReportFilter(origin?: string): ReportSalesFilter {
+  if (origin === "ADMIN_DIRECTO") {
+    return "venta-directa";
+  }
+
+  if (origin === "PERSONALIZADO") {
+    return "venta-personalizada";
+  }
+
+  return "pedido-cliente";
+}
+
+function getSalesFilterLabel(value: ReportSalesFilter) {
+  if (value === "venta-directa") {
+    return "Ventas directas";
+  }
+
+  if (value === "venta-personalizada") {
+    return "Ventas personalizadas";
+  }
+
+  if (value === "pedido-cliente") {
+    return "Pedidos cliente";
+  }
+
+  return "Todos";
+}
+
+function getOrderItemProfitabilityStatus(
+  order: AdminOrderSummary,
+  item: AdminOrderSummary["items"][number]
+): ProfitabilityCostStatus {
+  const hasCost = (item.costoTotal ?? item.costoUnitario ?? 0) > 0;
+
+  if (!hasCost) {
+    return "missing";
+  }
+
+  if (order.origenPedido === "PERSONALIZADO" && !item.productoId) {
+    return "estimated";
+  }
+
+  return "ok";
 }
 
 function formatDateOnly(value: string) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedAdmin } from "@/lib/admin-auth";
 import { getNewAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
+import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendPendingOrdersPushToAdmins } from "@/lib/pwa/sendWebPush";
 
@@ -9,6 +10,18 @@ export async function POST(request: Request) {
 
   if (!admin) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  const trustedOriginError = validateTrustedOrigin(request);
+
+  if (trustedOriginError) {
+    return trustedOriginError;
+  }
+
+  const jsonRequestError = validateJsonRequest(request);
+
+  if (jsonRequestError) {
+    return jsonRequestError;
   }
 
   try {

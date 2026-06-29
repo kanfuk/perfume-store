@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { normalizeStockValue } from "@/lib/stock";
 import { createProductoService } from "@/services/productoService";
 
@@ -34,6 +35,18 @@ export async function GET() {
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  const trustedOriginError = validateTrustedOrigin(request);
+
+  if (trustedOriginError) {
+    return trustedOriginError;
+  }
+
+  const jsonRequestError = validateJsonRequest(request);
+
+  if (jsonRequestError) {
+    return jsonRequestError;
   }
 
   try {

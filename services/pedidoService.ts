@@ -513,7 +513,6 @@ export class PedidoService {
       fechaEntrega: toDateOnlyString(fechaProgramada),
       fechaAgendado: domainPedido.fechaAgendado?.toISOString()
     });
-    await this.notifyPendingOrdersBadgeChange();
   }
 
   async cancelarPedido(pedidoId: string, motivoCancelacion: string) {
@@ -544,7 +543,6 @@ export class PedidoService {
 
     // Restaurar stock de agenda por cada item
     await this.restoreLinkedCatalogStock(items);
-    await this.notifyPendingOrdersBadgeChange();
   }
 
   async marcarPedidoPagado(pedidoId: string) {
@@ -676,7 +674,6 @@ export class PedidoService {
       fechaCancelacion: pedido.fechaCancelacion,
       motivoCancelacion: pedido.motivoCancelacion
     });
-    await this.notifyPendingOrdersBadgeChange(pedidoId);
   }
 
   private async obtenerPedidoUnico(pedidoId: string, estadoPedido: string) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { createPedidoService } from "@/services/pedidoService";
 
 export async function PATCH(
@@ -8,6 +9,18 @@ export async function PATCH(
 ) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  const trustedOriginError = validateTrustedOrigin(request);
+
+  if (trustedOriginError) {
+    return trustedOriginError;
+  }
+
+  const jsonRequestError = validateJsonRequest(request);
+
+  if (jsonRequestError) {
+    return jsonRequestError;
   }
 
   try {

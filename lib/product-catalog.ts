@@ -44,6 +44,14 @@ const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {
     imageUrl: "/images/products/quequito-choco-chip-sugar-free.png",
     badgeLabel: "SUGAR FREE"
   },
+  "quequito-red-velvet": {
+    imageUrl: "/images/products/quequito-redvelvet.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
+  "quequito-red-velbet": {
+    imageUrl: "/images/products/quequito-redvelvet.png",
+    badgeLabel: "QUEQUITO CASERO"
+  },
   "carrot-cake-nueces": {
     imageUrl: "/images/products/carrot-cake-nueces.png",
     badgeLabel: "QUEQUITO CASERO"

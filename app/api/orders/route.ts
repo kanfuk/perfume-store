@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
+import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import type { CustomerOrderRequest } from "@/lib/types";
 import { createPedidoService } from "@/services/pedidoService";
 
 export async function POST(request: Request) {
   try {
-    const contentType = request.headers.get("content-type") ?? "";
+    const trustedOriginError = validateTrustedOrigin(request);
 
-    if (!contentType.includes("application/json")) {
-      return NextResponse.json(
-        { error: "Formato de solicitud no soportado." },
-        { status: 415 }
-      );
+    if (trustedOriginError) {
+      return trustedOriginError;
+    }
+
+    const jsonRequestError = validateJsonRequest(request);
+
+    if (jsonRequestError) {
+      return jsonRequestError;
     }
 
     const body = (await request.json()) as CustomerOrderRequest;
