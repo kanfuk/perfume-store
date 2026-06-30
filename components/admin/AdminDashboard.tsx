@@ -163,6 +163,21 @@ const statusOptions: Array<{ value: StatusFilter; label: string }> = [
   { value: "historial", label: "Historial" }
 ];
 
+const reportRangeOptions: Array<{ value: ReportRangePreset; label: string }> = [
+  { value: "today", label: "Hoy" },
+  { value: "week", label: "Esta semana" },
+  { value: "month", label: "Este mes" },
+  { value: "last-month", label: "Mes anterior" },
+  { value: "custom", label: "Personalizado" }
+];
+
+const reportSalesOptions: Array<{ value: ReportSalesFilter; label: string }> = [
+  { value: "todos", label: "Todos" },
+  { value: "pedido-cliente", label: "Pedidos cliente" },
+  { value: "venta-directa", label: "Venta directa" },
+  { value: "venta-personalizada", label: "Venta personalizada" }
+];
+
 type AdminDashboardProps = {
   initialData: AdminPageData;
   initialView?: AdminView;
@@ -1023,6 +1038,9 @@ export function AdminDashboard({
       productosConCostoEstimado: Array.from(estimatedCostProducts.values()).sort(
         (a, b) => b.ventaTotal - a.ventaTotal
       ),
+      totalProductosConCostoReal: Array.from(byProduct.values()).filter(
+        (item) => item.status === "real"
+      ).length,
       productosSinData: missingItems,
       totalProductosEstimados: estimatedCostProducts.size,
       totalItemsEstimados: estimatedItems,
@@ -2978,90 +2996,52 @@ export function AdminDashboard({
         <section className="space-y-5">
           <SectionIntro
             title="Reportes"
-            subtitle="Resumen general y una vista de rentabilidad basada en ventas, costos y utilidad real."
+            subtitle="Resumen de ventas, costos y utilidad real."
             icon={CalendarRange}
-            helper="Ideal para revisar cómo cerró el periodo, qué deja mejor margen y dónde aún se usa costeo automático."
+            helper="Revisa márgenes, costos estimados y productos más rentables."
           />
 
           <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft sm:p-5">
             <div className="space-y-4">
-              <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
-                <FilterChip
-                  label="Resumen general"
-                  active={reportTab === "resumen"}
-                  onClick={() => setReportTab("resumen")}
-                />
-                <FilterChip
-                  label="Rentabilidad"
-                  active={reportTab === "rentabilidad"}
-                  onClick={() => setReportTab("rentabilidad")}
-                />
-              </StableHorizontalRail>
+              <SegmentedControl
+                value={reportTab}
+                onChange={(value) => setReportTab(value as ReportTab)}
+                options={[
+                  { value: "resumen", label: "Resumen" },
+                  { value: "rentabilidad", label: "Rentabilidad" }
+                ]}
+              />
 
-              <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
-                <FilterChip
-                  label="Hoy"
-                  active={reportRangePreset === "today"}
-                  onClick={() => applyReportRangePreset("today")}
+              <div className="grid gap-3 md:grid-cols-2">
+                <CompactSelect
+                  label="Periodo"
+                  value={reportRangePreset}
+                  onChange={(value) => applyReportRangePreset(value as ReportRangePreset)}
+                  options={reportRangeOptions}
                 />
-                <FilterChip
-                  label="Esta semana"
-                  active={reportRangePreset === "week"}
-                  onClick={() => applyReportRangePreset("week")}
+                <CompactSelect
+                  label="Canal"
+                  value={reportSalesFilter}
+                  onChange={(value) => setReportSalesFilter(value as ReportSalesFilter)}
+                  options={reportSalesOptions}
                 />
-                <FilterChip
-                  label="Este mes"
-                  active={reportRangePreset === "month"}
-                  onClick={() => applyReportRangePreset("month")}
-                />
-                <FilterChip
-                  label="Mes anterior"
-                  active={reportRangePreset === "last-month"}
-                  onClick={() => applyReportRangePreset("last-month")}
-                />
-                <FilterChip
-                  label="Rango personalizado"
-                  active={reportRangePreset === "custom"}
-                  onClick={() => applyReportRangePreset("custom")}
-                />
-              </StableHorizontalRail>
-
-              <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
-                <FilterChip
-                  label="Todos"
-                  active={reportSalesFilter === "todos"}
-                  onClick={() => setReportSalesFilter("todos")}
-                />
-                <FilterChip
-                  label="Pedidos cliente"
-                  active={reportSalesFilter === "pedido-cliente"}
-                  onClick={() => setReportSalesFilter("pedido-cliente")}
-                />
-                <FilterChip
-                  label="Venta directa"
-                  active={reportSalesFilter === "venta-directa"}
-                  onClick={() => setReportSalesFilter("venta-directa")}
-                />
-                <FilterChip
-                  label="Venta personalizada"
-                  active={reportSalesFilter === "venta-personalizada"}
-                  onClick={() => setReportSalesFilter("venta-personalizada")}
-                />
-              </StableHorizontalRail>
+              </div>
             </div>
 
-            <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-              <ReportDateField
-                label="Desde"
-                value={reportFrom}
-                onChange={handleReportFromChange}
-              />
-              <ReportDateField
-                label="Hasta"
-                value={reportTo}
-                onChange={handleReportToChange}
-              />
-            </div>
+            {reportRangePreset === "custom" ? (
+              <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+                <ReportDateField
+                  label="Desde"
+                  value={reportFrom}
+                  onChange={handleReportFromChange}
+                />
+                <ReportDateField
+                  label="Hasta"
+                  value={reportTo}
+                  onChange={handleReportToChange}
+                />
+              </div>
+            ) : null}
           </section>
 
           {reportTab === "resumen" ? (
@@ -3162,8 +3142,8 @@ export function AdminDashboard({
                 icon={BarChart3}
                 helper={
                   profitabilitySummary.totalProductosEstimados > 0
-                    ? `Incluye ${profitabilitySummary.totalProductosEstimados} producto(s) con costo estimado al 50% cuando faltó un costo real guardado.`
-                    : "Todas las ventas del rango están costeadas con costo real guardado."
+                    ? `Incluye ${profitabilitySummary.totalProductosEstimados} producto(s) con costo estimado al 50%.`
+                    : "Todas las ventas del rango tienen costo real guardado."
                 }
               />
 
@@ -3171,7 +3151,7 @@ export function AdminDashboard({
                 <HeroMetric
                   label="Ventas totales"
                   value={formatCurrency(profitabilitySummary.totalVentas)}
-                  detail={`${profitabilitySummary.totalPedidos} venta(s) cerrada(s)`}
+                  detail={`${profitabilitySummary.totalPedidos} ventas cerradas`}
                   icon={CircleDollarSign}
                   tone="emerald"
                 />
@@ -3187,28 +3167,28 @@ export function AdminDashboard({
                   tone="violet"
                 />
                 <HeroMetric
-                  label="Utilidad bruta"
+                  label="Utilidad"
                   value={formatCurrency(profitabilitySummary.totalUtilidad)}
-                  detail={`${formatPercent(profitabilitySummary.margenPromedio)} de margen promedio`}
+                  detail="Resultado bruto del período"
                   icon={Sparkles}
                   tone="rose"
                 />
                 <HeroMetric
-                  label="Margen promedio"
+                  label="Margen"
                   value={formatPercent(profitabilitySummary.margenPromedio)}
-                  detail="Calculado sobre todas las ventas del rango"
+                  detail="Promedio sobre ventas del rango"
                   icon={BarChart3}
                   tone="amber"
                 />
                 <HeroMetric
-                  label="Unidades vendidas"
-                  value={String(profitabilitySummary.totalUnidades)}
-                  detail="Suma de unidades cerradas"
-                  icon={ShoppingBag}
+                  label="Costo real"
+                  value={String(profitabilitySummary.totalProductosConCostoReal)}
+                  detail="Productos vendidos con costo real"
+                  icon={CheckCircle2}
                   tone="emerald"
                 />
                 <HeroMetric
-                  label="Costos estimados"
+                  label="Costo estimado IA"
                   value={String(profitabilitySummary.totalProductosEstimados)}
                   detail="Productos vendidos con fallback 50%"
                   icon={AlertCircle}
@@ -3651,6 +3631,66 @@ function FilterChip({
     >
       {label}
     </button>
+  );
+}
+
+function SegmentedControl({
+  value,
+  onChange,
+  options
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="inline-grid min-h-12 w-full grid-cols-2 gap-1 rounded-[20px] border border-emerald-100 bg-emerald-50 p-1">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={`min-h-10 rounded-[16px] px-4 py-2 text-sm font-semibold transition ${
+            value === option.value
+              ? "bg-white text-emerald-950 shadow-[0_10px_24px_rgba(31,51,40,0.08)]"
+              : "text-emerald-700/80"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CompactSelect({
+  label,
+  value,
+  onChange,
+  options
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <label className="min-w-0 space-y-2">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700/75">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="block min-h-12 w-full rounded-[18px] border border-emerald-100 bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-[0_8px_20px_rgba(31,51,40,0.04)] outline-none transition focus:border-emerald-300"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -4739,20 +4779,24 @@ function HeroMetric({
             };
   return (
     <article
-      className={`max-w-full overflow-x-hidden rounded-[22px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-5 shadow-soft`}
+      className={`max-w-full overflow-x-hidden rounded-[22px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-4 shadow-soft`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm text-emerald-900/65">{label}</div>
-          <div className="mt-2 break-words text-3xl font-bold text-emerald-950">{value}</div>
+          <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-emerald-900/60">
+            {label}
+          </div>
+          <div className="mt-2 break-words text-[1.8rem] font-bold leading-none text-emerald-950">
+            {value}
+          </div>
         </div>
         <span
-          className={`rounded-2xl p-3 shadow-sm ${palette.iconBgClass} ${palette.iconTextClass}`}
+          className={`rounded-2xl p-2.5 shadow-sm ${palette.iconBgClass} ${palette.iconTextClass}`}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-[18px] w-[18px]" />
         </span>
       </div>
-      <p className="mt-3 break-words text-sm text-emerald-900/65">{detail}</p>
+      <p className="mt-3 break-words text-xs leading-5 text-emerald-900/65">{detail}</p>
     </article>
   );
 }
