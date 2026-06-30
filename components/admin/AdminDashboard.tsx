@@ -146,7 +146,14 @@ type WhatsAppFallbackState = {
   url?: string;
   reason: "invalid-phone" | "open-failed";
 };
-type ProfitabilityCostStatus = "ok" | "estimated" | "missing";
+type ProfitabilityCostStatus = "real" | "estimated" | "missing";
+
+type ResolvedProfitabilityCost = {
+  status: ProfitabilityCostStatus;
+  unitCost: number;
+  totalCost: number;
+  profit: number;
+};
 
 const PENDING_ORDERS_REFRESH_MS = 60000;
 
@@ -880,7 +887,6 @@ export function AdminDashboard({
         ventaTotal: number;
         costoTotal: number;
         utilidad: number;
-        calculable: boolean;
         status: ProfitabilityCostStatus;
       }
     >();
@@ -894,20 +900,29 @@ export function AdminDashboard({
         ventaTotal: number;
         costoTotal: number;
         utilidad: number;
-        calculableVenta: number;
-        calculable: boolean;
+        estimatedItems: number;
+        missingItems: number;
+        status: ProfitabilityCostStatus;
       }
     >();
-    const missingCostProducts = new Map<
+    const estimatedCostProducts = new Map<
       string,
-      { id: string; nombre: string; unidades: number; ventaTotal: number }
+      {
+        id: string;
+        nombre: string;
+        unidades: number;
+        ventaTotal: number;
+        costoTotal: number;
+        utilidad: number;
+      }
     >();
 
     let totalVentas = 0;
     let totalCostos = 0;
     let totalUtilidad = 0;
     let totalUnidades = 0;
-    let calculableVentas = 0;
+    let estimatedItems = 0;
+    let missingItems = 0;
 
     reportOrders.forEach((order) => {
       const originKey = mapOrderOriginToReportFilter(order.origenPedido);
@@ -921,14 +936,16 @@ export function AdminDashboard({
           ventaTotal: 0,
           costoTotal: 0,
           utilidad: 0,
-          calculableVenta: 0,
-          calculable: true
+          estimatedItems: 0,
+          missingItems: 0,
+          status: "real" as ProfitabilityCostStatus
         };
 
       origin.pedidos += 1;
 
       order.items.forEach((item, index) => {
-        const status = getOrderItemProfitabilityStatus(order, item);
+        const resolvedCost = resolveOrderItemProfitabilityCost(item, products);
+        const status = resolvedCost.status;
         const productKey = item.productoId || `${order.id}-${index}-${item.productoNombre}`;
         const product =
           byProduct.get(productKey) ?? {
@@ -938,7 +955,6 @@ export function AdminDashboard({
             ventaTotal: 0,
             costoTotal: 0,
             utilidad: 0,
-            calculable: true,
             status
           };
 
@@ -950,37 +966,44 @@ export function AdminDashboard({
         product.ventaTotal += item.subtotal;
 
         if (status === "missing") {
-          product.calculable = false;
           product.status = "missing";
-          origin.calculable = false;
-
-          const missingProduct =
-            missingCostProducts.get(productKey) ?? {
-              id: item.productoId || "",
-              nombre: item.productoNombre,
-              unidades: 0,
-              ventaTotal: 0
-            };
-          missingProduct.unidades += item.cantidad;
-          missingProduct.ventaTotal += item.subtotal;
-          missingCostProducts.set(productKey, missingProduct);
+          origin.missingItems += 1;
+          origin.status = "missing";
+          missingItems += 1;
         } else {
-          const lineCost =
-            item.costoTotal ?? (item.costoUnitario ?? 0) * item.cantidad;
-          const lineProfit =
-            item.utilidadBruta ?? item.subtotal - lineCost;
+          totalCostos += resolvedCost.totalCost;
+          totalUtilidad += resolvedCost.profit;
+          origin.costoTotal += resolvedCost.totalCost;
+          origin.utilidad += resolvedCost.profit;
+          product.costoTotal += resolvedCost.totalCost;
+          product.utilidad += resolvedCost.profit;
 
-          totalCostos += lineCost;
-          totalUtilidad += lineProfit;
-          calculableVentas += item.subtotal;
-          origin.costoTotal += lineCost;
-          origin.utilidad += lineProfit;
-          origin.calculableVenta += item.subtotal;
-          product.costoTotal += lineCost;
-          product.utilidad += lineProfit;
+          if (status === "estimated") {
+            estimatedItems += 1;
+            origin.estimatedItems += 1;
+            if (origin.status !== "missing") {
+              origin.status = "estimated";
+            }
+            if (product.status !== "missing") {
+              product.status = "estimated";
+            }
 
-          if (status === "estimated" && product.status !== "missing") {
-            product.status = "estimated";
+            const estimatedProduct =
+              estimatedCostProducts.get(productKey) ?? {
+                id: item.productoId || "",
+                nombre: item.productoNombre,
+                unidades: 0,
+                ventaTotal: 0,
+                costoTotal: 0,
+                utilidad: 0
+              };
+            estimatedProduct.unidades += item.cantidad;
+            estimatedProduct.ventaTotal += item.subtotal;
+            estimatedProduct.costoTotal += resolvedCost.totalCost;
+            estimatedProduct.utilidad += resolvedCost.profit;
+            estimatedCostProducts.set(productKey, estimatedProduct);
+          } else if (product.status !== "missing") {
+            product.status = "real";
           }
         }
 
@@ -995,34 +1018,34 @@ export function AdminDashboard({
       totalCostos,
       totalUtilidad,
       totalUnidades,
-      calculableVentas,
-      margenPromedio:
-        calculableVentas > 0 ? (totalUtilidad / calculableVentas) * 100 : 0,
+      margenPromedio: totalVentas > 0 ? (totalUtilidad / totalVentas) * 100 : 0,
       totalPedidos: reportOrders.length,
-      productosSinCosto: Array.from(missingCostProducts.values()).sort(
+      productosConCostoEstimado: Array.from(estimatedCostProducts.values()).sort(
         (a, b) => b.ventaTotal - a.ventaTotal
       ),
+      productosSinData: missingItems,
+      totalProductosEstimados: estimatedCostProducts.size,
+      totalItemsEstimados: estimatedItems,
       resumenPorTipo: Array.from(byOrigin.values())
         .map((item) => ({
           ...item,
-          margen: item.calculableVenta > 0 ? (item.utilidad / item.calculableVenta) * 100 : 0
+          margen: item.ventaTotal > 0 ? (item.utilidad / item.ventaTotal) * 100 : 0
         }))
         .sort((a, b) => b.ventaTotal - a.ventaTotal),
       rentabilidadPorProducto: Array.from(byProduct.values())
         .map((item) => ({
           ...item,
-          margen: item.calculable && item.ventaTotal > 0 ? (item.utilidad / item.ventaTotal) * 100 : null
+          margen: item.ventaTotal > 0 ? (item.utilidad / item.ventaTotal) * 100 : null
         }))
         .sort((a, b) => b.ventaTotal - a.ventaTotal),
       topProductosPorUtilidad: Array.from(byProduct.values())
-        .filter((item) => item.calculable)
         .sort((a, b) => b.utilidad - a.utilidad)
         .slice(0, 5),
       topProductosPorVentas: Array.from(byProduct.values())
         .sort((a, b) => b.ventaTotal - a.ventaTotal)
         .slice(0, 5)
     };
-  }, [reportOrders]);
+  }, [products, reportOrders]);
 
   const agendaSections = useMemo(
     () => [
@@ -1076,11 +1099,6 @@ export function AdminDashboard({
   function handleReportToChange(value: string) {
     setReportRangePreset("custom");
     setReportTo(value);
-  }
-
-  function openProductCostEditor(productName: string) {
-    setProductSearch(productName);
-    navigateToView("stock");
   }
 
   const agendaDetailOrders =
@@ -2962,7 +2980,7 @@ export function AdminDashboard({
             title="Reportes"
             subtitle="Resumen general y una vista de rentabilidad basada en ventas, costos y utilidad real."
             icon={CalendarRange}
-            helper="Ideal para revisar cómo cerró el periodo, qué deja mejor margen y qué productos siguen sin costo configurado."
+            helper="Ideal para revisar cómo cerró el periodo, qué deja mejor margen y dónde aún se usa costeo automático."
           />
 
           <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft sm:p-5">
@@ -3033,24 +3051,16 @@ export function AdminDashboard({
             </div>
 
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-              <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
-                <span className="text-sm font-semibold text-emerald-900">Desde</span>
-                <input
-                  type="date"
-                  value={reportFrom}
-                  onChange={(event) => handleReportFromChange(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
-                />
-              </label>
-              <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
-                <span className="text-sm font-semibold text-emerald-900">Hasta</span>
-                <input
-                  type="date"
-                  value={reportTo}
-                  onChange={(event) => handleReportToChange(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
-                />
-              </label>
+              <ReportDateField
+                label="Desde"
+                value={reportFrom}
+                onChange={handleReportFromChange}
+              />
+              <ReportDateField
+                label="Hasta"
+                value={reportTo}
+                onChange={handleReportToChange}
+              />
             </div>
           </section>
 
@@ -3151,9 +3161,9 @@ export function AdminDashboard({
                 subtitle="Ventas, costos y utilidad real."
                 icon={BarChart3}
                 helper={
-                  profitabilitySummary.productosSinCosto.length > 0
-                    ? `Hay ${profitabilitySummary.productosSinCosto.length} producto(s) vendido(s) sin costo configurado. La utilidad se calcula solo sobre ventas con costo conocido o estimado.`
-                    : "Se usa el costo guardado por item del pedido; en personalizados libres con costo manual queda marcado como estimado."
+                  profitabilitySummary.totalProductosEstimados > 0
+                    ? `Incluye ${profitabilitySummary.totalProductosEstimados} producto(s) con costo estimado al 50% cuando faltó un costo real guardado.`
+                    : "Todas las ventas del rango están costeadas con costo real guardado."
                 }
               />
 
@@ -3169,8 +3179,8 @@ export function AdminDashboard({
                   label="Costos totales"
                   value={formatCurrency(profitabilitySummary.totalCostos)}
                   detail={
-                    profitabilitySummary.productosSinCosto.length > 0
-                      ? "Solo costos con dato conocido o estimado"
+                    profitabilitySummary.totalProductosEstimados > 0
+                      ? "Incluye costos reales y estimados"
                       : "Costeo acumulado del periodo"
                   }
                   icon={Boxes}
@@ -3186,7 +3196,7 @@ export function AdminDashboard({
                 <HeroMetric
                   label="Margen promedio"
                   value={formatPercent(profitabilitySummary.margenPromedio)}
-                  detail="Calculado sobre ventas con costo disponible"
+                  detail="Calculado sobre todas las ventas del rango"
                   icon={BarChart3}
                   tone="amber"
                 />
@@ -3198,13 +3208,19 @@ export function AdminDashboard({
                   tone="emerald"
                 />
                 <HeroMetric
-                  label="Sin costo"
-                  value={String(profitabilitySummary.productosSinCosto.length)}
-                  detail="Productos que requieren costo configurado"
+                  label="Costos estimados"
+                  value={String(profitabilitySummary.totalProductosEstimados)}
+                  detail="Productos vendidos con fallback 50%"
                   icon={AlertCircle}
                   tone="amber"
                 />
               </div>
+
+              {profitabilitySummary.totalProductosEstimados > 0 ? (
+                <div className="rounded-[20px] border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900">
+                  Incluye costos estimados al 50% en productos sin costo real.
+                </div>
+              ) : null}
 
               <div className="grid gap-5 xl:grid-cols-2">
                 <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
@@ -3244,7 +3260,7 @@ export function AdminDashboard({
                   </div>
                   <div className="mt-4 space-y-3">
                     {profitabilitySummary.topProductosPorUtilidad.length === 0 ? (
-                      <EmptyState text="No hay productos con costo calculable en este rango." />
+                      <EmptyState text="No hay productos vendidos en este rango." />
                     ) : null}
                     {profitabilitySummary.topProductosPorUtilidad.map((item) => (
                       <article
@@ -3258,8 +3274,11 @@ export function AdminDashboard({
                               {item.unidades} unidades · {formatPercent((item.utilidad / item.ventaTotal) * 100)}
                             </div>
                           </div>
-                          <div className="text-sm font-semibold text-emerald-700">
-                            {formatCurrency(item.utilidad)}
+                          <div className="flex items-center gap-2">
+                            <CostStatusBadge status={item.status} compact />
+                            <div className="text-sm font-semibold text-emerald-700">
+                              {formatCurrency(item.utilidad)}
+                            </div>
                           </div>
                         </div>
                       </article>
@@ -3290,18 +3309,12 @@ export function AdminDashboard({
                               {item.pedidos} pedido(s) · {item.unidades} unidades
                             </div>
                           </div>
-                          <StatusBadge
-                            tone={item.calculable ? "pedido" : "warning"}
-                            label={item.calculable ? "OK" : "SIN COSTO"}
-                          />
+                          <CostStatusBadge status={item.status} compact />
                         </div>
                         <div className="mt-3 grid gap-2 sm:grid-cols-3">
                           <MiniMetric label="Ventas" value={formatCurrency(item.ventaTotal)} />
                           <MiniMetric label="Costos" value={formatCurrency(item.costoTotal)} />
-                          <MiniMetric
-                            label="Utilidad"
-                            value={item.calculable ? formatCurrency(item.utilidad) : "Costo pendiente"}
-                          />
+                          <MiniMetric label="Utilidad" value={formatCurrency(item.utilidad)} />
                         </div>
                       </article>
                     ))}
@@ -3311,15 +3324,15 @@ export function AdminDashboard({
                 <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
                   <div className="flex items-center gap-2 text-emerald-950">
                     <AlertCircle className="h-5 w-5" />
-                    <h3 className="text-lg font-bold">Productos sin costo configurado</h3>
+                    <h3 className="text-lg font-bold">Productos con costo estimado</h3>
                   </div>
                   <div className="mt-4 space-y-3">
-                    {profitabilitySummary.productosSinCosto.length === 0 ? (
-                      <EmptyState text="No hay productos vendidos con costo pendiente en este rango." />
+                    {profitabilitySummary.productosConCostoEstimado.length === 0 ? (
+                      <EmptyState text="Todos los productos vendidos tienen costo real configurado." />
                     ) : null}
-                    {profitabilitySummary.productosSinCosto.map((item) => (
+                    {profitabilitySummary.productosConCostoEstimado.map((item) => (
                       <article
-                        key={`${item.id}-${item.nombre}-missing`}
+                        key={`${item.id}-${item.nombre}-estimated`}
                         className="rounded-lg border border-amber-200 bg-amber-50/80 p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -3329,17 +3342,12 @@ export function AdminDashboard({
                               {item.unidades} unidades · {formatCurrency(item.ventaTotal)}
                             </div>
                           </div>
-                          {item.id ? (
-                            <button
-                              type="button"
-                              onClick={() => openProductCostEditor(item.nombre)}
-                              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-950"
-                            >
-                              Configurar costo
-                            </button>
-                          ) : (
-                            <StatusBadge tone="warning" label="PERSONALIZADO" />
-                          )}
+                          <CostStatusBadge status="estimated" compact />
+                        </div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                          <MiniMetric label="Venta" value={formatCurrency(item.ventaTotal)} />
+                          <MiniMetric label="Costo estimado" value={formatCurrency(item.costoTotal)} />
+                          <MiniMetric label="Utilidad estimada" value={formatCurrency(item.utilidad)} />
                         </div>
                       </article>
                     ))}
@@ -3368,47 +3376,15 @@ export function AdminDashboard({
                             {item.unidades} unidades vendidas
                           </div>
                         </div>
-                        <StatusBadge
-                          tone={
-                            item.status === "missing"
-                              ? "warning"
-                              : item.status === "estimated"
-                                ? "neutral"
-                                : "pedido"
-                          }
-                          label={
-                            item.status === "missing"
-                              ? "SIN COSTO"
-                              : item.status === "estimated"
-                                ? "ESTIMADO"
-                                : "OK"
-                          }
-                        />
+                        <CostStatusBadge status={item.status} />
                       </div>
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+                        <MiniMetric label="Unidades" value={String(item.unidades)} />
                         <MiniMetric label="Ventas" value={formatCurrency(item.ventaTotal)} />
-                        <MiniMetric
-                          label="Costos"
-                          value={item.calculable ? formatCurrency(item.costoTotal) : "Sin costo"}
-                        />
-                        <MiniMetric
-                          label="Utilidad"
-                          value={item.calculable ? formatCurrency(item.utilidad) : "No calculable"}
-                        />
-                        <MiniMetric
-                          label="Margen"
-                          value={item.margen === null ? "Costo pendiente" : formatPercent(item.margen)}
-                        />
-                        <MiniMetric
-                          label="Estado costo"
-                          value={
-                            item.status === "missing"
-                              ? "Sin costo"
-                              : item.status === "estimated"
-                                ? "Estimado"
-                                : "OK"
-                          }
-                        />
+                        <MiniMetric label="Costos" value={formatCurrency(item.costoTotal)} />
+                        <MiniMetric label="Utilidad" value={formatCurrency(item.utilidad)} />
+                        <MiniMetric label="Margen" value={formatPercent(item.margen ?? 0)} />
+                        <MiniMetric label="Estado costo" value={getCostStatusLabel(item.status)} />
                       </div>
                     </article>
                   ))}
@@ -3667,12 +3643,39 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-        active ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800"
+      className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
+        active
+          ? "border-emerald-600 bg-emerald-600 text-white shadow-[0_10px_24px_rgba(36,122,77,0.18)]"
+          : "border-emerald-100 bg-emerald-50 text-emerald-800 hover:border-emerald-200 hover:bg-white"
       }`}
     >
       {label}
     </button>
+  );
+}
+
+function ReportDateField({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
+      <span className="text-sm font-semibold text-emerald-900">{label}</span>
+      <div className="flex min-h-12 items-center gap-3 rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-3 focus-within:border-emerald-300 focus-within:bg-white">
+        <CalendarRange className="h-4 w-4 shrink-0 text-emerald-700/70" />
+        <input
+          type="date"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="block w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-sm text-emerald-950 outline-none"
+        />
+      </div>
+    </label>
   );
 }
 
@@ -3751,6 +3754,7 @@ function StockProductCard({
           tone={getUnifiedProductStock(product) > 0 ? "pedido" : "warning"}
           label={`Stock ${getUnifiedProductStock(product)}`}
         />
+        <CostStatusBadge status={getProductCostStatus(product)} compact />
       </div>
 
       <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
@@ -3787,6 +3791,7 @@ function StockProductCard({
           />
           <MiniMetric label="Imagen" value={product.imageUrl ? "Configurada" : "Fallback"} />
           <MiniMetric label="Costo unitario" value={formatCurrency(product.costoUnitario)} />
+          <MiniMetric label="Estado costo" value={getCostStatusLabel(getProductCostStatus(product))} />
           <MiniMetric label="Utilidad aprox." value={formatCurrency(product.utilidadUnitaria)} />
         </div>
       </details>
@@ -5331,7 +5336,7 @@ function StatusBadge({
       ? "bg-emerald-100 text-emerald-800"
       : tone === "warning"
         ? "bg-amber-100 text-amber-800"
-        : "bg-violet-100 text-violet-800";
+        : "bg-slate-100 text-slate-700";
 
   return (
     <span
@@ -5339,6 +5344,21 @@ function StatusBadge({
     >
       {label}
     </span>
+  );
+}
+
+function CostStatusBadge({
+  status,
+  compact = false
+}: {
+  status: ProfitabilityCostStatus;
+  compact?: boolean;
+}) {
+  return (
+    <StatusBadge
+      tone={getCostStatusTone(status)}
+      label={compact ? getCostStatusCompactLabel(status) : getCostStatusLabel(status)}
+    />
   );
 }
 
@@ -6009,21 +6029,117 @@ function getSalesFilterLabel(value: ReportSalesFilter) {
   return "Todos";
 }
 
-function getOrderItemProfitabilityStatus(
-  order: AdminOrderSummary,
-  item: AdminOrderSummary["items"][number]
-): ProfitabilityCostStatus {
-  const hasCost = (item.costoTotal ?? item.costoUnitario ?? 0) > 0;
-
-  if (!hasCost) {
-    return "missing";
+function getCostStatusTone(status: ProfitabilityCostStatus) {
+  if (status === "real") {
+    return "pedido" as const;
   }
 
-  if (order.origenPedido === "PERSONALIZADO" && !item.productoId) {
+  if (status === "estimated") {
+    return "warning" as const;
+  }
+
+  return "neutral" as const;
+}
+
+function getCostStatusLabel(status: ProfitabilityCostStatus) {
+  if (status === "real") {
+    return "Costo real";
+  }
+
+  if (status === "estimated") {
+    return "Costo estimado";
+  }
+
+  return "Sin precio";
+}
+
+function getCostStatusCompactLabel(status: ProfitabilityCostStatus) {
+  if (status === "real") {
+    return "REAL";
+  }
+
+  if (status === "estimated") {
+    return "ESTIMADO";
+  }
+
+  return "SIN DATA";
+}
+
+function getProductCostStatus(product: AdminProductRecord): ProfitabilityCostStatus {
+  if (product.costoUnitario > 0) {
+    return "real";
+  }
+
+  if (product.precioVenta > 0) {
     return "estimated";
   }
 
-  return "ok";
+  return "missing";
+}
+
+function resolveOrderItemProfitabilityCost(
+  item: AdminOrderSummary["items"][number],
+  products: AdminProductRecord[]
+): ResolvedProfitabilityCost {
+  const quantity = Math.max(0, item.cantidad ?? 0);
+  const currentProduct = item.productoId
+    ? products.find((product) => product.id === item.productoId)
+    : undefined;
+  const savedTotalCost = item.costoTotal ?? 0;
+  const savedUnitCost = item.costoUnitario ?? 0;
+
+  if (savedTotalCost > 0) {
+    return {
+      status: "real",
+      unitCost: quantity > 0 ? savedTotalCost / quantity : savedUnitCost,
+      totalCost: savedTotalCost,
+      profit: item.subtotal - savedTotalCost
+    };
+  }
+
+  if (savedUnitCost > 0 && quantity > 0) {
+    const totalCost = savedUnitCost * quantity;
+    return {
+      status: "real",
+      unitCost: savedUnitCost,
+      totalCost,
+      profit: item.subtotal - totalCost
+    };
+  }
+
+  if ((currentProduct?.costoUnitario ?? 0) > 0 && quantity > 0) {
+    const totalCost = currentProduct!.costoUnitario * quantity;
+    return {
+      status: "real",
+      unitCost: currentProduct!.costoUnitario,
+      totalCost,
+      profit: item.subtotal - totalCost
+    };
+  }
+
+  const salesAmount =
+    item.subtotal > 0
+      ? item.subtotal
+      : item.precioUnitario > 0 && quantity > 0
+        ? item.precioUnitario * quantity
+        : (currentProduct?.precioVenta ?? 0) * quantity;
+
+  if (salesAmount > 0) {
+    const totalCost = salesAmount * 0.5;
+    return {
+      status: "estimated",
+      unitCost: quantity > 0 ? totalCost / quantity : totalCost,
+      totalCost,
+      profit: item.subtotal - totalCost
+    };
+  }
+
+  return {
+    status: "missing",
+    unitCost: 0,
+    totalCost: 0,
+    profit: 0
+  };
 }
 
 function formatDateOnly(value: string) {

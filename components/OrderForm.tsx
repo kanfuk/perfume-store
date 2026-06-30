@@ -1097,7 +1097,10 @@ export function OrderForm() {
         </div>
       ) : null}
 
-      <AppFooter className="pb-[calc(180px+env(safe-area-inset-bottom))] xl:pb-6" />
+      <AppFooter
+        className="pb-[calc(180px+env(safe-area-inset-bottom))] xl:pb-6"
+        showClientCta
+      />
 
       {submitted ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1f3328]/30 px-4 backdrop-blur-sm">

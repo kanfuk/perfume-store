@@ -26,3 +26,21 @@ export function getHorasExpiracionPedido() {
 
   return DEFAULT_HORAS_EXPIRACION;
 }
+
+export function getRiedmannsWhatsAppNumber() {
+  return process.env.NEXT_PUBLIC_RIEDMANNS_WHATSAPP_NUMBER?.trim() || "";
+}
+
+export function getRiedmannsWhatsAppUrl() {
+  const normalizedNumber = getRiedmannsWhatsAppNumber().replace(/\D/g, "");
+
+  if (!normalizedNumber) {
+    return "";
+  }
+
+  const message = encodeURIComponent(
+    "Hola RiedmannsApps, quiero digitalizar mi pyme"
+  );
+
+  return `https://wa.me/${normalizedNumber}?text=${message}`;
+}
