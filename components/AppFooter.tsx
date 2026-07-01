@@ -32,16 +32,16 @@ export function AppFooter({
                 Desarrollado por RiedmannsApps
               </div>
               <div className="mt-1 text-xs text-[#6f8798]">
-                Automatización, ventas y experiencia digital con presencia sutil.
+                Automatización, ventas y experiencia digital con precios accesibles.
               </div>
             </div>
-            <span className="flex shrink-0 items-center gap-2 rounded-full border border-[#d7e7f5] bg-white/90 px-2.5 py-2 shadow-[0_10px_20px_rgba(32,75,104,0.08)]">
-              <span className="relative h-7 w-7 overflow-hidden rounded-[10px]">
+            <span className="flex shrink-0 items-center gap-2 rounded-full border border-[#d7e7f5] bg-white/92 px-2.5 py-2 shadow-[0_10px_20px_rgba(32,75,104,0.08)]">
+              <span className="relative h-8 w-8 overflow-hidden rounded-[10px] shadow-[0_8px_18px_rgba(17,20,26,0.16)]">
                 <Image
-                  src="/brand/ra-logo.svg"
+                  src="/brand/ra-logo-original.png"
                   alt="RiedmannsApps"
                   fill
-                  className="object-contain"
+                  className="object-cover"
                 />
               </span>
               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#315d7a]">
@@ -53,12 +53,12 @@ export function AppFooter({
       ) : null}
 
       <div className="flex items-center justify-center gap-2 text-[#6f7f75]">
-        <span className="relative h-5 w-5 overflow-hidden rounded-[8px] opacity-75">
+        <span className="relative h-5 w-5 overflow-hidden rounded-[8px] shadow-[0_6px_14px_rgba(17,20,26,0.14)]">
           <Image
-            src="/brand/ra-logo.svg"
+            src="/brand/ra-logo-original.png"
             alt="RiedmannsApps"
             fill
-            className="object-contain"
+            className="object-cover"
           />
         </span>
         <span className="text-[12px] font-medium tracking-[0.01em]">
