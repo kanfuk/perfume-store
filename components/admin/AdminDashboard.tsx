@@ -1,7 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { type ReactNode, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -273,15 +281,31 @@ export function AdminDashboard({
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
   >("unsupported");
-  const [badgeDeviceId] = useState(() => getOrCreateDeviceId());
+  const badgeDeviceId = useSyncExternalStore(
+    subscribeToClientSnapshot,
+    getOrCreateDeviceId,
+    getEmptyClientSnapshot
+  );
   const [badgeDeviceSetting, setBadgeDeviceSetting] = useState<AdminBadgeDeviceSetting | null>(
     null
   );
   const [badgeCardLoading, setBadgeCardLoading] = useState(false);
   const [badgeActionLoading, setBadgeActionLoading] = useState(false);
-  const [isInstalledPwa] = useState(() => isRunningAsInstalledPwa());
-  const [badgeSupported] = useState(() => isAppBadgeSupported());
-  const [pushSupported] = useState(() => isPushNotificationsSupported());
+  const isInstalledPwa = useSyncExternalStore(
+    subscribeToClientSnapshot,
+    isRunningAsInstalledPwa,
+    getFalseClientSnapshot
+  );
+  const badgeSupported = useSyncExternalStore(
+    subscribeToClientSnapshot,
+    isAppBadgeSupported,
+    getFalseClientSnapshot
+  );
+  const pushSupported = useSyncExternalStore(
+    subscribeToClientSnapshot,
+    isPushNotificationsSupported,
+    getFalseClientSnapshot
+  );
   const [pushSubscriptionActive, setPushSubscriptionActive] = useState(false);
 
   const allOrders = useMemo(
@@ -6275,4 +6299,16 @@ function StableHorizontalRail({
       {children}
     </div>
   );
+}
+
+function subscribeToClientSnapshot() {
+  return () => undefined;
+}
+
+function getEmptyClientSnapshot() {
+  return "";
+}
+
+function getFalseClientSnapshot() {
+  return false;
 }

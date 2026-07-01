@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   BadgeCheck,
   Building2,
@@ -77,9 +77,16 @@ const initialCustomForm = {
   estadoInicial: "PENDIENTE" as "PENDIENTE" | "AGENDADO" | "PAGADO" | "FIADO"
 };
 
-const todayDate = getChileTodayInputValue();
 const QUICK_QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] as const;
 const OTHER_QUANTITY_VALUE = "other";
+
+function subscribeToTodaySnapshot() {
+  return () => undefined;
+}
+
+function getEmptyTodaySnapshot() {
+  return "";
+}
 
 function getProductSelectLabel(product: AdminProductRecord) {
   return product.nombre;
@@ -90,6 +97,12 @@ export function AdminDirectSale({
   initialProducts,
   initialCustomers
 }: AdminDirectSaleProps) {
+  const todayDate = useSyncExternalStore(
+    subscribeToTodaySnapshot,
+    getChileTodayInputValue,
+    getEmptyTodaySnapshot
+  );
+
   const products = useMemo(
     () =>
       initialProducts.map((product) => ({
@@ -1076,7 +1089,7 @@ export function AdminDirectSale({
                     </span>
                     <input
                       type="date"
-                      min={todayDate}
+                      min={todayDate || undefined}
                       value={customForm.fechaEntrega}
                       onChange={(event) =>
                         setCustomForm((current) => ({
@@ -1089,11 +1102,14 @@ export function AdminDirectSale({
                     <button
                       type="button"
                       onClick={() =>
-                        setCustomForm((current) => ({
-                          ...current,
-                          fechaEntrega: todayDate
-                        }))
+                        todayDate
+                          ? setCustomForm((current) => ({
+                              ...current,
+                              fechaEntrega: todayDate
+                            }))
+                          : undefined
                       }
+                      disabled={!todayDate}
                       className="shrink-0 rounded-xl border border-[#d8ebdd] bg-[#f6fcf7] px-3 py-2 text-sm font-semibold text-[#247a4d]"
                     >
                       Hoy
