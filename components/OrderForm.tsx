@@ -17,7 +17,7 @@ import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { AppToast } from "@/components/shared/AppToast";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import { normalizeCustomerLookupValue } from "@/lib/customers/identity";
-import { getTomorrowLocalDate } from "@/lib/date";
+import { getChileTodayInputValue, getChileTomorrowInputValue } from "@/lib/date";
 import { formatCurrency } from "@/lib/format";
 import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
 import { getAvailableProductStock } from "@/lib/stock";
@@ -29,7 +29,7 @@ function createInitialForm(): CustomerFormData {
     nombre: "",
     telefono: "",
     lugarTrabajo: "",
-    fechaEntrega: getTomorrowLocalDate(),
+    fechaEntrega: getChileTomorrowInputValue(),
     items: [],
     contactoOculto: ""
   };
@@ -917,7 +917,7 @@ export function OrderForm() {
                   ref={fechaRef}
                   type="date"
                   value={form.fechaEntrega}
-                  min={getTomorrowLocalDate(new Date(Date.now() - 24 * 60 * 60 * 1000))}
+                  min={getChileTodayInputValue()}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,

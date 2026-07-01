@@ -70,6 +70,43 @@ export function getTomorrowLocalDate(reference = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+export function getChileTomorrowInputValue(reference = new Date()) {
+  const today = getChileTodayInputValue(reference);
+  const date = parseDateInputAsLocalNoon(today);
+  date.setDate(date.getDate() + 1);
+  return formatDateInput(date);
+}
+
+export function getChileCurrentMonthRange(reference = new Date()) {
+  const today = getChileTodayInputValue(reference);
+  const date = parseDateInputAsLocalNoon(today);
+  const year = date.getFullYear();
+  const month = date.getMonth();
+
+  return {
+    from: formatDateInput(new Date(year, month, 1, 12, 0, 0)),
+    to: formatDateInput(new Date(year, month + 1, 0, 12, 0, 0))
+  };
+}
+
+export function parseDateInputAsLocalNoon(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return new Date(value);
+  }
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
+}
+
+export function formatDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function parseDateOnlyForChile(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 

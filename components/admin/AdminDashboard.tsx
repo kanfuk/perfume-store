@@ -73,8 +73,10 @@ import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
 import { createNotificationService } from "@/services/NotificationService";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
+  formatDateInput,
   formatChileDateOnly,
   formatChileDateTime,
+  getChileCurrentMonthRange,
   getChileTodayInputValue
 } from "@/lib/date";
 import type {
@@ -265,8 +267,8 @@ export function AdminDashboard({
   const [reportTab, setReportTab] = useState<ReportTab>("rentabilidad");
   const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>("month");
   const [reportSalesFilter, setReportSalesFilter] = useState<ReportSalesFilter>("todos");
-  const [reportFrom, setReportFrom] = useState(() => getCurrentMonthRange().from);
-  const [reportTo, setReportTo] = useState(() => getCurrentMonthRange().to);
+  const [reportFrom, setReportFrom] = useState(() => getChileCurrentMonthRange().from);
+  const [reportTo, setReportTo] = useState(() => getChileCurrentMonthRange().to);
   const [todayDate, setTodayDate] = useState("");
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | "unsupported"
@@ -3087,10 +3089,10 @@ export function AdminDashboard({
                         key={item.nombre}
                         className="rounded-lg border border-emerald-100 bg-white p-4"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-emerald-950">{item.nombre}</div>
-                            <div className="text-sm text-emerald-900/65">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 max-[380px]:grid-cols-1 max-[380px]:items-start">
+                          <div className="min-w-0">
+                            <div className="font-semibold leading-5 text-emerald-950">{item.nombre}</div>
+                            <div className="mt-1 text-sm leading-5 text-emerald-900/65">
                               {item.unidades} unidades
                             </div>
                           </div>
@@ -3117,10 +3119,10 @@ export function AdminDashboard({
                         key={item.nombre}
                         className="rounded-lg border border-emerald-100 bg-white p-4"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-emerald-950">{item.nombre}</div>
-                            <div className="text-sm text-emerald-900/65">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 max-[380px]:grid-cols-1 max-[380px]:items-start">
+                          <div className="min-w-0">
+                            <div className="font-semibold leading-5 text-emerald-950">{item.nombre}</div>
+                            <div className="mt-1 text-sm leading-5 text-emerald-900/65">
                               {item.pedidos} pedido(s)
                             </div>
                           </div>
@@ -3254,7 +3256,7 @@ export function AdminDashboard({
                               {item.unidades} unidades · {formatPercent((item.utilidad / item.ventaTotal) * 100)}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="inline-flex items-center justify-end gap-2 whitespace-nowrap max-[380px]:justify-start">
                             <CostStatusBadge status={item.status} compact />
                             <div className="text-sm font-semibold text-emerald-700">
                               {formatCurrency(item.utilidad)}
@@ -5384,7 +5386,7 @@ function StatusBadge({
 
   return (
     <span
-      className={`inline-flex min-h-8 max-w-full items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold leading-4 ${classes}`}
+      className={`inline-flex min-h-7 max-w-full items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold leading-none ${classes}`}
     >
       {label}
     </span>
@@ -5992,49 +5994,47 @@ function openWhatsAppSafe(phone: string, message: string) {
 }
 
 function getCurrentMonthRange(reference = new Date()) {
-  const year = reference.getFullYear();
-  const month = reference.getMonth();
-  const from = formatLocalDateInput(new Date(year, month, 1));
-  const to = formatLocalDateInput(new Date(year, month + 1, 0));
-
-  return { from, to };
+  return getChileCurrentMonthRange(reference);
 }
 
 function getReportRangePresetValues(preset: Exclude<ReportRangePreset, "custom">) {
-  const today = new Date();
+  const today = getChileTodayInputValue();
+  const todayDate = parseReportDateInput(today);
 
   if (preset === "today") {
-    const value = getChileTodayInputValue(today);
-    return { from: value, to: value };
+    return { from: today, to: today };
   }
 
   if (preset === "week") {
-    const current = new Date(today);
+    const current = new Date(todayDate);
     const day = current.getDay();
     const diffToMonday = day === 0 ? 6 : day - 1;
     current.setDate(current.getDate() - diffToMonday);
-    const from = formatLocalDateInput(current);
-    const to = getChileTodayInputValue(today);
+    const from = formatDateInput(current);
+    const to = today;
     return { from, to };
   }
 
   if (preset === "last-month") {
-    const year = today.getFullYear();
-    const month = today.getMonth();
+    const year = todayDate.getFullYear();
+    const month = todayDate.getMonth();
     return {
-      from: formatLocalDateInput(new Date(year, month - 1, 1)),
-      to: formatLocalDateInput(new Date(year, month, 0))
+      from: formatDateInput(new Date(year, month - 1, 1, 12, 0, 0)),
+      to: formatDateInput(new Date(year, month, 0, 12, 0, 0))
     };
   }
 
-  return getCurrentMonthRange(today);
+  return getCurrentMonthRange(todayDate);
 }
 
-function formatLocalDateInput(value: Date) {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function parseReportDateInput(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return new Date(value);
+  }
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
 }
 
 function formatPercent(value: number) {
