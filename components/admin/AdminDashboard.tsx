@@ -52,6 +52,7 @@ import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadg
 import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { paymentInfo } from "@/config/paymentInfo";
+import { useAppFeedback } from "@/hooks/useAppFeedback";
 import {
   getNewAdminOrders,
   getNewAdminOrdersCount
@@ -73,6 +74,11 @@ import {
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { normalizeChilePhone } from "@/lib/phone/normalizeChilePhone";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
+import {
+  feedbackMessages,
+  getMaintenanceConfirmationMessage,
+  getProductDeleteConfirmationDescription
+} from "@/lib/ui/feedback-messages";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
 import { buildOrderConfirmationMessage } from "@/lib/whatsapp/buildOrderConfirmationMessage";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
@@ -249,6 +255,7 @@ export function AdminDashboard({
   initialData,
   initialView = "home"
 }: AdminDashboardProps) {
+  const feedback = useAppFeedback();
   const router = useRouter();
   const refreshOrdersInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
@@ -1391,11 +1398,13 @@ export function AdminDashboard({
   }
 
   async function runMaintenanceAction(action: AdminMaintenanceAction) {
-    const confirmed = window.confirm(
-      action === "close-month"
-        ? "Esto archivará toda la operación actual y dejará pedidos, pagos, fiados y clientes en blanco. Productos y stock se conservan. ¿Continúo?"
-        : "Esto borrara la data operativa de prueba para el lanzamiento. Productos y stock se conservan. Continúo?"
-    );
+    const confirmed = await feedback.confirm({
+      title: feedbackMessages.confirmMaintenanceTitle,
+      description: getMaintenanceConfirmationMessage(action),
+      confirmLabel: action === "close-month" ? "Cerrar mes" : "Limpiar datos",
+      cancelLabel: "Cancelar",
+      tone: "danger"
+    });
 
     if (!confirmed) {
       return;
@@ -1656,9 +1665,13 @@ export function AdminDashboard({
   }
 
   async function deleteProduct(product: AdminProductRecord) {
-    const confirmed = window.confirm(
-      `¿Eliminar "${product.nombre}" del catálogo? Si ya tiene pedidos asociados, el sistema no lo dejará borrar y tendrás que dejarlo pausado.`
-    );
+    const confirmed = await feedback.confirm({
+      title: feedbackMessages.confirmDeleteProductTitle,
+      description: getProductDeleteConfirmationDescription(product.nombre),
+      confirmLabel: "Eliminar producto",
+      cancelLabel: "Mantener producto",
+      tone: "danger"
+    });
 
     if (!confirmed) {
       return;

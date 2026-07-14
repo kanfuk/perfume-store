@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope } from "next/font/google";
+import { AppFeedbackProvider } from "@/components/ui/AppFeedbackProvider";
+import { appInfo } from "@/lib/app-info";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -15,12 +17,12 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Pauli Store",
+  title: appInfo.name,
   description: "Pedidos caseros de Pauli Store",
   manifest: "/site.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Pauli Store",
+    title: appInfo.name,
     statusBarStyle: "default"
   },
   formatDetection: {
@@ -69,7 +71,9 @@ type RootLayoutProps = Readonly<{
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="es">
-      <body className={`${manrope.variable} ${fraunces.variable}`}>{children}</body>
+      <body className={`${manrope.variable} ${fraunces.variable}`}>
+        <AppFeedbackProvider>{children}</AppFeedbackProvider>
+      </body>
     </html>
   );
 }
