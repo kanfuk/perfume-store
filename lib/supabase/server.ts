@@ -1,18 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 import {
-  getSupabaseServerKey,
+  getSupabaseAdminKey,
   getSupabaseUrl
 } from "@/lib/supabase/config";
 
 export function createSupabaseServerClient() {
   const url = getSupabaseUrl();
-  const serverKey = getSupabaseServerKey();
+  const adminKey = getSupabaseAdminKey();
 
-  if (!url || !serverKey) {
-    throw new Error("Supabase no esta configurado.");
+  if (!url || !adminKey) {
+    throw new Error(
+      "Supabase administrativo no esta configurado. Define SUPABASE_SECRET_KEY o SUPABASE_SERVICE_ROLE_KEY en el servidor."
+    );
   }
 
-  return createClient(url, serverKey, {
+  return createClient(url, adminKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false

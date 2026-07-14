@@ -1,6 +1,8 @@
-# Pauli Store
+# Pauli Store v1.2.0
 
 Aplicacion web responsive para una tienda casera, con flujo publico de pedidos y panel admin conectado a Supabase.
+
+Version actual: `1.2.0`
 
 ## Estado actual
 
@@ -172,6 +174,11 @@ Migraciones recientes:
 ## Documentacion clave
 
 - [docs/06_PANEL_ADMINISTRADOR.md](docs/06_PANEL_ADMINISTRADOR.md)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/SECURITY.md](docs/SECURITY.md)
+- [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)
+- [docs/TESTING.md](docs/TESTING.md)
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - [docs/10_SEGURIDAD_HEADERS_RLS.md](docs/10_SEGURIDAD_HEADERS_RLS.md)
 - [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)

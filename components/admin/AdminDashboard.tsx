@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import {
-  type ReactNode,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -15,9 +14,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   Archive,
-  ArrowRight,
   BarChart3,
-  Bell,
   BellRing,
   Box,
   Boxes,
@@ -27,10 +24,8 @@ import {
   CheckCircle2,
   CircleDollarSign,
   ClipboardList,
-  Clock3,
   HandCoins,
   Home,
-  LayoutGrid,
   MessageCircle,
   Package2,
   PencilLine,
@@ -53,6 +48,78 @@ import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import { paymentInfo } from "@/config/paymentInfo";
 import {
+  ADMIN_VIEW_META,
+  ADMIN_VIEW_ROUTES,
+  PENDING_ORDERS_REFRESH_MS,
+  PENDING_ORDERS_SECTION_ID,
+  SCHEDULED_ORDERS_SECTION_ID,
+  reportRangeOptions,
+  reportSalesOptions,
+  statusOptions
+} from "@/components/admin/dashboard/admin-dashboard.constants";
+import type {
+  AdminDashboardProps,
+  AdminView,
+  CustomerCardData,
+  CustomerFilter,
+  GroupedFiadoCustomer,
+  OrderModalState,
+  OrderSectionProps,
+  ProductModalState,
+  ProfitabilityCostStatus,
+  ReportRangePreset,
+  ReportSalesFilter,
+  ReportTab,
+  StatusFilter,
+  StockDraft,
+  StockFilter,
+  WhatsAppFallbackState
+} from "@/components/admin/dashboard/admin-dashboard.types";
+import {
+  agruparFiadosPorCliente,
+  buildCustomerIdentityKey,
+  buttonToneClass,
+  formatDateOnly,
+  formatFiadoDate,
+  formatPercent,
+  formatShortDateTime,
+  getCostStatusLabel,
+  getCurrentDeviceLabel,
+  getLastDebtPaymentDate,
+  getProductCostStatus,
+  getReportRangePresetValues,
+  getSalesFilterLabel,
+  isRecentCustomerMovement,
+  mapOrderOriginToReportFilter,
+  mergeOrderItems,
+  renderGroupedItemLines,
+  resolveBadgeActivationErrorMessage,
+  resolveOrderItemProfitabilityCost,
+  todayDateValue
+} from "@/components/admin/dashboard/admin-dashboard.utils";
+import {
+  AdminSectionTab,
+  BadgeStatusChip,
+  CompactHistorySection,
+  CompactSelect,
+  CostStatusBadge,
+  EmptyState,
+  FilterChip,
+  HeaderIconButton,
+  HeroMetric,
+  MiniHomeTab,
+  MiniMetric,
+  MobileQuickHomeButton,
+  ProfitabilityBar,
+  ReportDateField,
+  SectionIntro,
+  SegmentedControl,
+  StableHorizontalRail,
+  StatusBadge
+} from "@/components/admin/dashboard/DashboardPresentation";
+import { DashboardHomeView } from "@/components/admin/dashboard/DashboardHomeView";
+import { useAppFeedback } from "@/hooks/useAppFeedback";
+import {
   getNewAdminOrders,
   getNewAdminOrdersCount
 } from "@/lib/admin/getPendingAdminOrders";
@@ -73,6 +140,11 @@ import {
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { normalizeChilePhone } from "@/lib/phone/normalizeChilePhone";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
+import {
+  feedbackMessages,
+  getMaintenanceConfirmationMessage,
+  getProductDeleteConfirmationDescription
+} from "@/lib/ui/feedback-messages";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
 import { buildOrderConfirmationMessage } from "@/lib/whatsapp/buildOrderConfirmationMessage";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
@@ -80,175 +152,23 @@ import { buildWhatsAppManualUrl } from "@/lib/whatsapp/buildWhatsAppManualUrl";
 import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
 import { createNotificationService } from "@/services/NotificationService";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import {
-  formatDateInput,
-  formatChileDateOnly,
-  formatChileDateTime,
-  getChileCurrentMonthRange,
-  getChileTodayInputValue
-} from "@/lib/date";
+import { getChileCurrentMonthRange } from "@/lib/date";
 import type {
   AdminMaintenanceAction,
   AdminBadgeDeviceSetting,
   AdminDashboardData,
   AdminOrderSummary,
   AdminOrdersAction,
-  AdminPageData,
   AdminProductRecord
 } from "@/lib/types";
 
-export type AdminView =
-  | "home"
-  | "agenda"
-  | "stock"
-  | "cobros"
-  | "clientes"
-  | "reportes";
-type StatusFilter =
-  | "pendientes"
-  | "agendados"
-  | "historial";
-type StockFilter = "todos" | "activos" | "pausados";
-type CustomerFilter = "todos" | "con-pedidos" | "con-fiado" | "recientes";
-type ReportTab = "resumen" | "rentabilidad";
-type ReportRangePreset = "today" | "week" | "month" | "last-month" | "custom";
-type ReportSalesFilter = "todos" | "pedido-cliente" | "venta-directa" | "venta-personalizada";
-type OrderModalState =
-  | { type: "agendar"; order: AdminOrderSummary }
-  | { type: "cancelar"; order: AdminOrderSummary }
-  | { type: "abonar"; order: AdminOrderSummary }
-  | null;
-type ProductModalState =
-  | { mode: "create" }
-  | { mode: "edit"; product: AdminProductRecord }
-  | null;
-type StockDraft = {
-  stock: string;
-  precioVenta: string;
-  tipoProducto: string;
-  activo: "activo" | "pausado";
-};
-type CustomerCardData = {
-  clienteId: string;
-  nombre: string;
-  telefono: string;
-  lugarTrabajo: string;
-  pedidos: number;
-  pendiente: number;
-  totalComprado: number;
-  ultimoMovimiento: string;
-  proximasFechas: string[];
-  pedidosActivos: number;
-  pedidosFinalizados: number;
-  isRecent: boolean;
-};
-type GroupedFiadoCustomer = {
-  clienteId: string;
-  nombre: string;
-  telefono: string;
-  lugarTrabajo: string;
-  totalPendiente: number;
-  cantidadFiados: number;
-  fiados: AdminOrderSummary[];
-};
-type WhatsAppFallbackState = {
-  message: string;
-  url?: string;
-  reason: "invalid-phone" | "open-failed";
-};
-type ProfitabilityCostStatus = "real" | "estimated" | "missing";
-
-type ResolvedProfitabilityCost = {
-  status: ProfitabilityCostStatus;
-  unitCost: number;
-  totalCost: number;
-  profit: number;
-};
-
-const PENDING_ORDERS_REFRESH_MS = 60000;
-
-const statusOptions: Array<{ value: StatusFilter; label: string }> = [
-  { value: "pendientes", label: "Pendientes" },
-  { value: "agendados", label: "Agendados" },
-  { value: "historial", label: "Historial" }
-];
-
-const reportRangeOptions: Array<{ value: ReportRangePreset; label: string }> = [
-  { value: "today", label: "Hoy" },
-  { value: "week", label: "Esta semana" },
-  { value: "month", label: "Este mes" },
-  { value: "last-month", label: "Mes anterior" },
-  { value: "custom", label: "Personalizado" }
-];
-
-const reportSalesOptions: Array<{ value: ReportSalesFilter; label: string }> = [
-  { value: "todos", label: "Todos" },
-  { value: "pedido-cliente", label: "Pedidos cliente" },
-  { value: "venta-directa", label: "Venta directa" },
-  { value: "venta-personalizada", label: "Venta personalizada" }
-];
-
-type AdminDashboardProps = {
-  initialData: AdminPageData;
-  initialView?: AdminView;
-};
-
-const ADMIN_VIEW_ROUTES: Record<AdminView, string> = {
-  home: "/admin",
-  agenda: "/admin/pedidos",
-  stock: "/admin/stock",
-  cobros: "/admin/ventas",
-  clientes: "/admin/clientes",
-  reportes: "/admin/reportes"
-};
-
 const notificationService = createNotificationService();
-const PENDING_ORDERS_SECTION_ID = "agenda-pendientes";
-const SCHEDULED_ORDERS_SECTION_ID = "agenda-agendados";
-
-const ADMIN_VIEW_META: Record<
-  AdminView,
-  {
-    title: string;
-    description: string;
-  }
-> = {
-  home: {
-    title: "Centro de control",
-    description:
-      "Resumen rápido y accesos claros para revisar pedidos, stock, ventas y clientes sin perderte."
-  },
-  agenda: {
-    title: "Pedidos",
-    description:
-      "Revisa pendientes, agenda entregas y vuelve al inicio cuando termines."
-  },
-  stock: {
-    title: "Stock",
-    description:
-      "Ajusta catálogo, stock, precios e imágenes desde una vista propia y ordenada."
-  },
-  cobros: {
-    title: "Ventas",
-    description:
-      "Cierra pedidos, revisa fiados y deja sólo las acciones relevantes del flujo real."
-  },
-  clientes: {
-    title: "Clientes",
-    description:
-      "Consulta historial reciente y vuelve al panel principal con gesto del navegador o Inicio."
-  },
-  reportes: {
-    title: "Reportes",
-    description:
-      "Mira sólo los números importantes desde una vista independiente y clara."
-  }
-};
 
 export function AdminDashboard({
   initialData,
   initialView = "home"
 }: AdminDashboardProps) {
+  const feedback = useAppFeedback();
   const router = useRouter();
   const refreshOrdersInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
@@ -1391,11 +1311,13 @@ export function AdminDashboard({
   }
 
   async function runMaintenanceAction(action: AdminMaintenanceAction) {
-    const confirmed = window.confirm(
-      action === "close-month"
-        ? "Esto archivará toda la operación actual y dejará pedidos, pagos, fiados y clientes en blanco. Productos y stock se conservan. ¿Continúo?"
-        : "Esto borrara la data operativa de prueba para el lanzamiento. Productos y stock se conservan. Continúo?"
-    );
+    const confirmed = await feedback.confirm({
+      title: feedbackMessages.confirmMaintenanceTitle,
+      description: getMaintenanceConfirmationMessage(action),
+      confirmLabel: action === "close-month" ? "Cerrar mes" : "Limpiar datos",
+      cancelLabel: "Cancelar",
+      tone: "danger"
+    });
 
     if (!confirmed) {
       return;
@@ -1656,9 +1578,13 @@ export function AdminDashboard({
   }
 
   async function deleteProduct(product: AdminProductRecord) {
-    const confirmed = window.confirm(
-      `¿Eliminar "${product.nombre}" del catálogo? Si ya tiene pedidos asociados, el sistema no lo dejará borrar y tendrás que dejarlo pausado.`
-    );
+    const confirmed = await feedback.confirm({
+      title: feedbackMessages.confirmDeleteProductTitle,
+      description: getProductDeleteConfirmationDescription(product.nombre),
+      confirmLabel: "Eliminar producto",
+      cancelLabel: "Mantener producto",
+      tone: "danger"
+    });
 
     if (!confirmed) {
       return;
@@ -1981,455 +1907,45 @@ export function AdminDashboard({
       ) : null}
 
       {view === "home" ? (
-        <section className="min-w-0 max-w-full overflow-x-hidden space-y-5">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <HeroMetric
-              label="Pedidos por atender"
-              value={String(attentionCount)}
-              detail="Sin agendar o aun no revisados"
-              icon={Clock3}
-              tone="rose"
-            />
-            <HeroMetric
-              label="Agenda de hoy"
-              value={String(homeSummary.agendaHoy)}
-              detail="Pedidos a coordinar o entregar hoy"
-              icon={CalendarClock}
-              tone="violet"
-            />
-            <HeroMetric
-              label="Por cobrar"
-              value={formatCurrency(homeSummary.saldoPorCobrar)}
-              detail="Saldo pendiente de fiados"
-              icon={HandCoins}
-              tone="amber"
-            />
-            <HeroMetric
-              label="Ventas cerradas"
-              value={formatCurrency(homeSummary.ventasCerradas)}
-              detail="Pagos y cierres acumulados"
-              icon={CircleDollarSign}
-              tone="emerald"
-            />
-          </div>
-
-          <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
-              <div className="flex items-center gap-3">
-                <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-                  <Sparkles className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="text-xl font-bold text-emerald-950">Lo de hoy</h2>
-                  <p className="text-sm text-emerald-900/65">
-                    Tres decisiones y listo.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                <QuickTaskRow
-                  title="Revisar pendientes"
-                  detail={`${attentionCount} pedido(s) por atender`}
-                  icon={Clock3}
-                  onClick={openAttentionOrders}
-                />
-                <QuickTaskRow
-                  title="Cerrar ventas"
-                  detail={`${data.agendados.length} pedido(s) listos para cobrar`}
-                  icon={WalletCards}
-                  onClick={() => navigateToView("cobros")}
-                />
-                <QuickTaskRow
-                  title="Ajustar stock"
-                  detail={`${products.filter((product) => getUnifiedProductStock(product) <= 0).length} producto(s) sin stock`}
-                  icon={Boxes}
-                  onClick={() => {
-                    navigateToView("stock");
-                    setStockFilter("pausados");
-                  }}
-                />
-              </div>
-            </article>
-
-            <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
-              <div className="flex items-center gap-3">
-                <span className="rounded-2xl bg-violet-100 p-3 text-violet-700">
-                  <BarChart3 className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="text-xl font-bold text-emerald-950">Cierre rápido</h2>
-                  <p className="text-sm text-emerald-900/65">
-                    Números puntuales del negocio.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <SimpleFact label="Ventas del rango" value={formatCurrency(reportSummary.totalVentas)} />
-                <SimpleFact
-                  label="Productos sin stock"
-                  value={String(products.filter((product) => getUnifiedProductStock(product) <= 0).length)}
-                />
-              </div>
-            </article>
-          </section>
-
-          {!badgeDeviceSetting?.badgeEnabled ? (
-          <section className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-bold text-emerald-950">Badge del icono</h2>
-                <p className="mt-1 text-sm text-emerald-900/65">
-                  Activa el contador de pedidos pendientes en el icono de la app de tu iPhone.
-                </p>
-              </div>
-              {badgeDeviceSetting?.badgeEnabled ? (
-                <StatusBadge tone="pedido" label="ACTIVO" />
-              ) : (
-                <StatusBadge tone="neutral" label="POR ACTIVAR" />
-              )}
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <SimpleFact
-                label="Soporte"
-                value={badgeSupported ? "Disponible" : "No compatible"}
-              />
-              <SimpleFact
-                label="Modo app"
-                value={isInstalledPwa ? "Desde icono" : "Abrir desde inicio"}
-              />
-              <SimpleFact
-                label="Permiso"
-                value={formatBadgePermission(notificationPermission)}
-              />
-              <SimpleFact
-                label="Contador actual"
-                value={String(attentionCount)}
-              />
-              <SimpleFact
-                label="Push"
-                value={
-                  !pushSupported
-                    ? "No compatible"
-                    : pushSubscriptionActive
-                      ? "Activo"
-                      : "Pendiente"
-                }
-              />
-            </div>
-
-            <div className="mt-4 space-y-2 text-sm text-emerald-900/75">
-              {!badgeSupported ? (
-                <p>Este navegador no soporta badge en el icono.</p>
-              ) : null}
-              {!isInstalledPwa ? (
-                <p>
-                  Para ver el badge en el icono, instala Pauli Store en la pantalla de
-                  inicio y abre la app desde ese icono.
-                </p>
-              ) : null}
-              {!pushSupported ? (
-                <p>Este navegador no soporta notificaciones push web para esta app.</p>
-              ) : null}
-              {notificationPermission === "denied" ? (
-                <p>
-                  El permiso fue denegado. Debes activarlo desde Ajustes del iPhone para
-                  esta app.
-                </p>
-              ) : null}
-              {badgeDeviceSetting?.badgeEnabled ? (
-                <p>Badge activo en este dispositivo.</p>
-              ) : (
-                <p>Activa el badge desde este dispositivo para sincronizarlo con los pedidos.</p>
-              )}
-              {pushSubscriptionActive ? (
-                <p>Las notificaciones push estan activas para este dispositivo.</p>
-              ) : null}
-              {badgeDeviceSetting?.lastSyncAt ? (
-                <p>
-                  Ultima sincronizacion: {formatShortDateTime(badgeDeviceSetting.lastSyncAt)}.
-                </p>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                disabled={badgeActionLoading || badgeCardLoading || !badgeDeviceId}
-                onClick={() => void activateBadgeForCurrentDevice()}
-                className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-200"
-              >
-                {badgeActionLoading ? "Activando..." : "Activar badge en este iPhone"}
-              </button>
-              {badgeDeviceSetting?.badgeEnabled ? (
-                <button
-                  type="button"
-                  disabled={badgeActionLoading}
-                  onClick={() => void testBadgeOnCurrentDevice()}
-                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
-                >
-                  Probar badge
-                </button>
-              ) : null}
-              {pushSupported && pushSubscriptionActive ? (
-                <button
-                  type="button"
-                  disabled={badgeActionLoading}
-                  onClick={() => void testPushOnCurrentDevice()}
-                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
-                >
-                  Probar notificación
-                </button>
-              ) : null}
-            </div>
-          </section>
-          ) : null}
-
-          <section className="grid gap-4 lg:grid-cols-3">
-            <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft lg:col-span-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-bold text-emerald-950">Pedidos por atender</h2>
-                  <p className="mt-1 text-sm text-emerald-900/65">
-                    Lo ultimo que entro y aun sigue sin agenda o sin revision final. Desde aqui puedes revisar, abrir agenda o compartir el resumen por WhatsApp.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={openAttentionOrders}
-                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
-                >
-                  Abrir pedidos
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {pendingUnseenOrders.length === 0 ? (
-                  <EmptyState text="No hay pedidos por atender ahora mismo." />
-                ) : null}
-                {pendingUnseenOrders.map((order) => (
-                  <article
-                    key={order.id}
-                    className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="text-base font-semibold text-emerald-950">
-                            {order.clienteNombre}
-                          </div>
-                          <StatusBadge tone="warning" label="NUEVO" />
-                          {order.fechaEntrega ? (
-                            <StatusBadge
-                              tone="neutral"
-                              label={`Entrega ${formatDateOnly(order.fechaEntrega)}`}
-                            />
-                          ) : null}
-                        </div>
-                        <div className="text-sm text-emerald-900/70">
-                          {order.clienteLugarTrabajo || "Sin lugar"} ·{" "}
-                          {order.clienteTelefono || "Sin teléfono"}
-                        </div>
-                        <div className="space-y-1 text-sm text-emerald-900/80">
-                          {renderGroupedItemLines(
-                            order.items.map((item) => ({
-                              name: item.productoNombre,
-                              quantity: item.cantidad
-                            })),
-                            3
-                          ).map((line) => (
-                            <div key={`${order.id}-${line}`}>{line}</div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs uppercase tracking-wide text-emerald-700/70">
-                          Total
-                        </div>
-                        <div className="mt-1 text-lg font-bold text-emerald-950">
-                          {formatCurrency(order.total)}
-                        </div>
-                        <div className="mt-1 text-xs text-emerald-900/65">
-                          {formatShortDateTime(order.fechaPedido)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          openAttentionOrders();
-                          setSelectedOrderId(order.id);
-                        }}
-                        className={`${buttonToneClass("primary")} w-full justify-center sm:w-auto`}
-                      >
-                        Ver detalle
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void runAction(order.id, "visto", order)}
-                        className={`${buttonToneClass("muted")} w-full justify-center sm:w-auto`}
-                      >
-                        Marcar visto
-                      </button>
-                      <NewOrderWhatsAppButton order={order} />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </article>
-
-            <FocusCard
-              title="Lo primero hoy"
-              text="Revisa pedidos pendientes y asígnales fecha antes de todo."
-              icon={AlertCircle}
-              tone="rose"
-            />
-            <FocusCard
-              title="Después cobra"
-              text="Los pedidos agendados se cierran como pagados o fiados desde Ventas."
-              icon={CheckCircle2}
-              tone="violet"
-            />
-            <FocusCard
-              title="Y al final repone"
-              text="Ajusta stock y pausa productos cuando no vayas a venderlos."
-              icon={Boxes}
-              tone="amber"
-            />
-          </section>
-
-          <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-emerald-950">Atajos principales</h2>
-              <p className="text-sm text-emerald-900/70">
-                Entra directo a lo que más usa Pauli en el día a día.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              <HomeActionCard
-                title="Agenda"
-                subtitle="Revisar pendientes, agendar fechas y ver pedidos del día."
-                badge={`${attentionCount} por atender`}
-                icon={ClipboardList}
-                tone="rose"
-                onClick={openAttentionOrders}
-              />
-              <HomeActionCard
-                title="Stock"
-                subtitle="Crear productos, abrir o pausar catálogo y ajustar cupos."
-                badge={`${homeSummary.productosActivos} activos`}
-                icon={Boxes}
-                tone="violet"
-                onClick={() => navigateToView("stock")}
-              />
-              <HomeActionCard
-                title="Ventas"
-                subtitle="Marcar pagado, dejar fiado y registrar abonos fácilmente."
-                badge={`${groupedFiados.length} fiados`}
-                icon={WalletCards}
-                tone="amber"
-                onClick={() => navigateToView("cobros")}
-              />
-              <HomeActionCard
-                title="Clientes"
-                subtitle="Ver quiénes compran seguido y sus fechas más recientes."
-                badge={`${customerCards.length} registros`}
-                icon={UserRound}
-                tone="emerald"
-                onClick={() => navigateToView("clientes")}
-              />
-              <HomeActionCard
-                title="Reportes"
-                subtitle="Ventas por rango de fechas, top productos y top clientes."
-                badge="Resumen rápido"
-                icon={CalendarRange}
-                tone="slate"
-                onClick={() => navigateToView("reportes")}
-              />
-            </div>
-          </section>
-
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-emerald-950">
-                <Sparkles className="h-5 w-5" />
-                <h3 className="text-lg font-bold">Agenda agrupada</h3>
-              </div>
-              <p className="mt-1 text-sm text-emerald-900/70">
-                Si una misma persona pidió varias veces para el mismo día, aquí aparece todo junto.
-              </p>
-
-              <div className="mt-4 space-y-3">
-                {agendaGroups.length === 0 ? (
-                  <EmptyState text="Todavía no hay pedidos agendados." />
-                ) : null}
-                {agendaGroups.slice(0, 4).map((group) => (
-                  <article
-                    key={group.key}
-                    className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-semibold text-emerald-950">{group.clienteNombre}</div>
-                        <div className="mt-1 text-sm text-emerald-900/65">
-                          {group.fechaEntrega === "sin-fecha"
-                            ? "Sin fecha"
-                            : formatDateOnly(group.fechaEntrega)}
-                        </div>
-                      </div>
-                      <StatusBadge tone="neutral" label={`${group.totalPedidos} pedido(s)`} />
-                    </div>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                      <MiniMetric label="Items" value={String(group.totalItems)} />
-                      <MiniMetric label="Monto" value={formatCurrency(group.totalMonto)} />
-                      <MiniMetric label="Teléfono" value={group.clienteTelefono || "-"} />
-                    </div>
-                    <div className="mt-3 space-y-2 rounded-2xl border border-emerald-100 bg-white/90 p-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
-                        Pedido
-                      </div>
-                      {renderGroupedItemLines(group.itemLines, 4).map((line) => (
-                        <div key={`${group.key}-${line}`} className="text-sm text-emerald-900/80">
-                          {line}
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-              <div className="flex items-center gap-2 text-emerald-950">
-                <Store className="h-5 w-5" />
-                <h3 className="text-lg font-bold">Resumen al grano</h3>
-              </div>
-              <div className="mt-4 space-y-3">
-                <SimpleFact
-                  label="Productos activos"
-                  value={`${homeSummary.productosActivos}`}
-                />
-                <SimpleFact
-                  label="Stock total"
-                  value={`${homeSummary.stockTotal}`}
-                />
-                <SimpleFact
-                  label="Pedidos agendados"
-                  value={`${data.agendados.length}`}
-                />
-                <SimpleFact
-                  label="Pedidos cerrados"
-                  value={`${data.finalizados.length}`}
-                />
-              </div>
-            </section>
-          </section>
-        </section>
+        <DashboardHomeView
+          agendaGroups={agendaGroups}
+          agendadosCount={data.agendados.length}
+          attentionCount={attentionCount}
+          badgeActionLoading={badgeActionLoading}
+          badgeCardLoading={badgeCardLoading}
+          badgeDeviceId={badgeDeviceId}
+          badgeDeviceSetting={badgeDeviceSetting}
+          badgeSupported={badgeSupported}
+          customerCardsCount={customerCards.length}
+          finalizadosCount={data.finalizados.length}
+          groupedFiadosCount={groupedFiados.length}
+          homeSummary={homeSummary}
+          isInstalledPwa={isInstalledPwa}
+          notificationPermission={notificationPermission}
+          pendingUnseenOrders={pendingUnseenOrders}
+          products={products}
+          pushSubscriptionActive={pushSubscriptionActive}
+          pushSupported={pushSupported}
+          reportSummaryTotalVentas={reportSummary.totalVentas}
+          renderNewOrderWhatsAppButton={(order) => <NewOrderWhatsAppButton order={order} />}
+          onActivateBadgeForCurrentDevice={() => void activateBadgeForCurrentDevice()}
+          onMarkOrderSeen={(order) => void runAction(order.id, "visto", order)}
+          onOpenAttentionOrders={openAttentionOrders}
+          onOpenClientes={() => navigateToView("clientes")}
+          onOpenCobros={() => navigateToView("cobros")}
+          onOpenPendingOrderDetail={(orderId) => {
+            openAttentionOrders();
+            setSelectedOrderId(orderId);
+          }}
+          onOpenReportes={() => navigateToView("reportes")}
+          onOpenStock={() => navigateToView("stock")}
+          onOpenStockWithoutInventory={() => {
+            navigateToView("stock");
+            setStockFilter("pausados");
+          }}
+          onTestBadgeOnCurrentDevice={() => void testBadgeOnCurrentDevice()}
+          onTestPushOnCurrentDevice={() => void testPushOnCurrentDevice()}
+        />
       ) : null}
 
       {view === "agenda" ? (
@@ -3447,304 +2963,6 @@ export function AdminDashboard({
   );
 }
 
-function SectionIntro({
-  title,
-  subtitle,
-  icon: Icon,
-  action,
-  helper
-}: {
-  title: string;
-  subtitle: string;
-  icon: typeof LayoutGrid;
-  action?: ReactNode;
-  helper?: string;
-}) {
-  return (
-    <section className="max-w-full overflow-x-hidden rounded-[24px] border border-emerald-100 bg-white/90 p-5 shadow-soft">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="rounded-[18px] bg-emerald-100 p-3 text-emerald-700">
-            <Icon className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 space-y-1">
-            <h2 className="break-words text-2xl font-bold text-emerald-950">{title}</h2>
-            <p className="copy-justified break-words text-sm text-emerald-900/70">
-              {subtitle}
-            </p>
-            {helper ? (
-              <p className="copy-justified break-words rounded-[18px] bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                {helper}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        {action ? <div className="w-full lg:w-auto">{action}</div> : null}
-      </div>
-    </section>
-  );
-}
-
-function HomeActionCard({
-  title,
-  subtitle,
-  badge,
-  icon: Icon,
-  tone,
-  onClick
-}: {
-  title: string;
-  subtitle: string;
-  badge: string;
-  icon: typeof LayoutGrid;
-  tone: "rose" | "violet" | "amber" | "emerald" | "slate";
-  onClick: () => void;
-}) {
-  const palette =
-    tone === "rose"
-      ? {
-          gradientClass: "from-emerald-50 to-white",
-          iconTextClass: "text-emerald-700",
-          iconBgClass: "bg-emerald-100"
-        }
-      : tone === "violet"
-        ? {
-            gradientClass: "from-violet-50 to-white",
-            iconTextClass: "text-violet-700",
-            iconBgClass: "bg-violet-100"
-          }
-        : tone === "amber"
-          ? {
-              gradientClass: "from-amber-50 to-white",
-              iconTextClass: "text-amber-700",
-              iconBgClass: "bg-amber-100"
-            }
-          : tone === "emerald"
-            ? {
-                gradientClass: "from-emerald-50 to-white",
-                iconTextClass: "text-emerald-700",
-                iconBgClass: "bg-emerald-100"
-              }
-            : {
-                gradientClass: "from-slate-50 to-white",
-                iconTextClass: "text-slate-700",
-                iconBgClass: "bg-slate-100"
-              };
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`max-w-full overflow-x-hidden rounded-[20px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-emerald-200`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <span
-          className={`rounded-2xl p-3 ${palette.iconBgClass} ${palette.iconTextClass}`}
-        >
-          <Icon className="h-5 w-5" />
-        </span>
-        <span className="inline-flex min-h-8 items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
-          {badge}
-        </span>
-      </div>
-      <div className="mt-4 min-w-0 space-y-2">
-        <div className="break-words text-lg font-semibold text-emerald-950">{title}</div>
-        <p className="copy-justified break-words text-sm leading-6 text-emerald-900/70">
-          {subtitle}
-        </p>
-        <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800">
-          Abrir
-          <ArrowRight className="h-4 w-4" />
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function QuickTaskRow({
-  title,
-  detail,
-  icon: Icon,
-  onClick
-}: {
-  title: string;
-  detail: string;
-  icon: typeof LayoutGrid;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-4 text-left transition hover:border-emerald-200 sm:flex-nowrap"
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="rounded-2xl bg-white p-3 text-emerald-700 shadow-sm">
-          <Icon className="h-5 w-5" />
-        </span>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-emerald-950">{title}</div>
-          <div className="copy-justified mt-1 break-words text-xs text-emerald-900/65">
-            {detail}
-          </div>
-        </div>
-      </div>
-      <ArrowRight className="h-4 w-4 shrink-0 text-emerald-500" />
-    </button>
-  );
-}
-
-function AdminSectionTab({
-  label,
-  icon: Icon,
-  badge,
-  active,
-  onClick
-}: {
-  label: string;
-  icon: typeof LayoutGrid;
-  badge: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`min-h-[88px] min-w-[132px] rounded-[20px] border px-4 py-3 text-left transition sm:min-w-[146px] ${
-        active
-          ? "border-emerald-200 bg-emerald-600 text-white"
-          : "border-emerald-100 bg-emerald-50 text-emerald-900"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <span
-          className={`rounded-[16px] p-2 ${
-            active ? "bg-white/20 text-white" : "bg-white text-emerald-700"
-          }`}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-      </div>
-      <div className="mt-3">
-        <div className="text-sm font-semibold">{label}</div>
-        <div className={`mt-1 text-xs ${active ? "text-white/80" : "text-emerald-700/80"}`}>
-          {badge}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function FilterChip({
-  label,
-  active,
-  onClick
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
-        active
-          ? "border-emerald-600 bg-emerald-600 text-white shadow-[0_10px_24px_rgba(36,122,77,0.18)]"
-          : "border-emerald-100 bg-emerald-50 text-emerald-800 hover:border-emerald-200 hover:bg-white"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function SegmentedControl({
-  value,
-  onChange,
-  options
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <div className="inline-grid min-h-12 w-full grid-cols-2 gap-1 rounded-[20px] border border-emerald-100 bg-emerald-50 p-1">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`min-h-10 rounded-[16px] px-4 py-2 text-sm font-semibold transition ${
-            value === option.value
-              ? "bg-white text-emerald-950 shadow-[0_10px_24px_rgba(31,51,40,0.08)]"
-              : "text-emerald-700/80"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function CompactSelect({
-  label,
-  value,
-  onChange,
-  options
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <label className="min-w-0 space-y-2">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700/75">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="block min-h-12 w-full rounded-[18px] border border-emerald-100 bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-[0_8px_20px_rgba(31,51,40,0.04)] outline-none transition focus:border-emerald-300"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function ReportDateField({
-  label,
-  value,
-  onChange
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
-      <span className="text-sm font-semibold text-emerald-900">{label}</span>
-      <div className="flex min-h-12 items-center gap-3 rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-3 focus-within:border-emerald-300 focus-within:bg-white">
-        <CalendarRange className="h-4 w-4 shrink-0 text-emerald-700/70" />
-        <input
-          type="date"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="block w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-sm text-emerald-950 outline-none"
-        />
-      </div>
-    </label>
-  );
-}
-
 function StockProductCard({
   product,
   draft,
@@ -3890,24 +3108,6 @@ function StockProductCard({
     </article>
   );
 }
-
-type OrderSectionProps = {
-  htmlId?: string;
-  title: string;
-  subtitle: string;
-  orders: AdminOrderSummary[];
-  loading: boolean;
-  emptyText: string;
-  busyOrderId: string;
-  selectedOrderId: string;
-  actions: Array<{
-    key: AdminOrdersAction;
-    label: string;
-    tone: "primary" | "warning" | "muted";
-  }>;
-  onSelect: (orderId: string) => void;
-  onAction: (order: AdminOrderSummary, action: AdminOrdersAction) => void;
-};
 
 function OrderSection({
   htmlId,
@@ -4766,240 +3966,6 @@ function ProductModal({
   );
 }
 
-function HeroMetric({
-  label,
-  value,
-  detail,
-  icon: Icon,
-  tone
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  icon: typeof LayoutGrid;
-  tone: "rose" | "violet" | "amber" | "emerald";
-}) {
-  const palette =
-    tone === "rose"
-      ? {
-          gradientClass: "from-white to-emerald-50",
-          iconBgClass: "bg-emerald-100",
-          iconTextClass: "text-emerald-700"
-        }
-      : tone === "violet"
-        ? {
-            gradientClass: "from-white to-violet-50",
-            iconBgClass: "bg-violet-100",
-            iconTextClass: "text-violet-700"
-          }
-        : tone === "amber"
-          ? {
-              gradientClass: "from-white to-amber-50",
-              iconBgClass: "bg-amber-100",
-              iconTextClass: "text-amber-700"
-            }
-          : {
-              gradientClass: "from-white to-emerald-50",
-              iconBgClass: "bg-emerald-100",
-              iconTextClass: "text-emerald-700"
-            };
-  return (
-    <article
-      className={`max-w-full overflow-x-hidden rounded-[22px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-4 shadow-soft`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-emerald-900/60">
-            {label}
-          </div>
-          <div className="mt-2 break-words text-[1.8rem] font-bold leading-none text-emerald-950">
-            {value}
-          </div>
-        </div>
-        <span
-          className={`rounded-2xl p-2.5 shadow-sm ${palette.iconBgClass} ${palette.iconTextClass}`}
-        >
-          <Icon className="h-[18px] w-[18px]" />
-        </span>
-      </div>
-      <p className="mt-3 break-words text-xs leading-5 text-emerald-900/65">{detail}</p>
-    </article>
-  );
-}
-
-function FocusCard({
-  title,
-  text,
-  icon: Icon,
-  tone
-}: {
-  title: string;
-  text: string;
-  icon: typeof LayoutGrid;
-  tone: "rose" | "violet" | "amber";
-}) {
-  const className =
-    tone === "rose"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-800"
-      : tone === "violet"
-        ? "border-violet-200 bg-violet-50 text-violet-800"
-        : "border-amber-200 bg-amber-50 text-amber-800";
-
-  return (
-    <article className={`max-w-full overflow-x-hidden rounded-[22px] border p-4 shadow-soft ${className}`}>
-      <div className="flex items-start gap-3">
-        <span className="rounded-2xl bg-white/80 p-3">
-          <Icon className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 space-y-1">
-          <h3 className="font-semibold">{title}</h3>
-          <p className="break-words text-sm leading-6 opacity-90">{text}</p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function MiniHomeTab({
-  title,
-  value,
-  active,
-  onClick,
-  tone
-}: {
-  title: string;
-  value: string;
-  active: boolean;
-  onClick: () => void;
-  tone: "rose" | "violet" | "amber";
-}) {
-  const palette =
-    tone === "rose"
-      ? active
-        ? "bg-emerald-600 text-white"
-        : "bg-emerald-50 text-emerald-800"
-      : tone === "violet"
-        ? active
-          ? "bg-violet-600 text-white"
-          : "bg-violet-50 text-violet-800"
-        : active
-          ? "bg-amber-500 text-white"
-          : "bg-amber-50 text-amber-800";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`min-h-[88px] min-w-0 rounded-[20px] px-4 py-4 text-left shadow-soft transition ${palette}`}
-    >
-      <div className="break-words text-sm font-medium opacity-90">{title}</div>
-      <div className="mt-2 break-words text-2xl font-bold">{value}</div>
-    </button>
-  );
-}
-
-function CompactHistorySection({
-  title,
-  subtitle,
-  orders,
-  emptyText
-}: {
-  title: string;
-  subtitle: string;
-  orders: AdminOrderSummary[];
-  emptyText: string;
-}) {
-  return (
-    <details className="max-w-full overflow-x-hidden rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <h2 className="text-xl font-bold text-emerald-950">{title}</h2>
-          <p className="break-words text-sm text-emerald-900/70">{subtitle}</p>
-        </div>
-        <StatusBadge tone="neutral" label={`${orders.length} registro(s)`} />
-      </summary>
-
-      <div className="mt-4 space-y-3">
-        {orders.length === 0 ? <EmptyState text={emptyText} /> : null}
-        {orders.map((order) => (
-          <article
-            key={order.id}
-            className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
-                <div className="mt-1 text-sm text-emerald-900/65">{order.productoNombre}</div>
-              </div>
-              <StatusBadge
-                tone={title.toLowerCase().includes("cancelados") ? "warning" : "neutral"}
-                label={title.toLowerCase().includes("cancelados") ? "CANCELADO" : "CERRADO"}
-              />
-            </div>
-
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <MiniMetric label="Total" value={formatCurrency(order.total)} />
-              <MiniMetric label="Pago" value={order.estadoPago} />
-              <MiniMetric
-                label="Fecha"
-                value={formatShortDateTime(
-                  order.fechaCierre ?? order.fechaCancelacion ?? order.fechaPedido
-                )}
-              />
-            </div>
-          </article>
-        ))}
-      </div>
-    </details>
-  );
-}
-
-function SimpleFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/60 px-4 py-3">
-      <span className="text-sm text-emerald-900/70">{label}</span>
-      <span className="text-base font-semibold text-emerald-950">{value}</span>
-    </div>
-  );
-}
-
-function ProfitabilityBar({
-  label,
-  value,
-  amount,
-  maxAmount,
-  tone
-}: {
-  label: string;
-  value: string;
-  amount: number;
-  maxAmount: number;
-  tone: "emerald" | "violet" | "amber";
-}) {
-  const width = maxAmount > 0 ? Math.max(8, Math.min(100, (amount / maxAmount) * 100)) : 0;
-  const barClassName =
-    tone === "violet"
-      ? "bg-violet-500"
-      : tone === "amber"
-        ? "bg-amber-500"
-        : "bg-emerald-500";
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-emerald-950">{label}</div>
-        <div className="text-sm font-semibold text-emerald-700">{value}</div>
-      </div>
-      <div className="h-3 overflow-hidden rounded-full bg-emerald-100">
-        <div
-          className={`h-full rounded-full ${barClassName}`}
-          style={{ width: `${width}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 function ClientStatsCards({
   summary
 }: {
@@ -5377,418 +4343,6 @@ function QuickStockAdjuster({
   );
 }
 
-function MiniMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-h-[72px] flex-col justify-center rounded-[18px] border border-emerald-100 bg-white px-3 py-3">
-      <div className="text-[11px] uppercase tracking-wide text-emerald-700/70">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-emerald-950">{value}</div>
-    </div>
-  );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="rounded-lg border border-dashed border-emerald-100 bg-emerald-50/50 p-4 text-sm text-emerald-900/60">
-      {text}
-    </div>
-  );
-}
-
-function StatusBadge({
-  tone,
-  label
-}: {
-  tone: "pedido" | "warning" | "neutral";
-  label: string;
-}) {
-  const classes =
-    tone === "pedido"
-      ? "bg-emerald-100 text-emerald-800"
-      : tone === "warning"
-        ? "bg-amber-100 text-amber-800"
-        : "bg-slate-100 text-slate-700";
-
-  return (
-    <span
-      className={`inline-flex min-h-7 max-w-full items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold leading-none ${classes}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function CostStatusBadge({
-  status,
-  compact = false
-}: {
-  status: ProfitabilityCostStatus;
-  compact?: boolean;
-}) {
-  return (
-    <StatusBadge
-      tone={getCostStatusTone(status)}
-      label={compact ? getCostStatusCompactLabel(status) : getCostStatusLabel(status)}
-    />
-  );
-}
-
-function BadgeStatusChip({
-  badgeEnabled,
-  badgeSupported,
-  notificationPermission,
-  isInstalledPwa,
-  onClick,
-  pendingCount
-}: {
-  badgeEnabled: boolean;
-  badgeSupported: boolean;
-  notificationPermission: NotificationPermission | "unsupported";
-  isInstalledPwa: boolean;
-  onClick?: () => void;
-  pendingCount?: number;
-}) {
-  const label = badgeEnabled
-    ? "Badge activo"
-    : !badgeSupported
-      ? "No compatible"
-      : notificationPermission === "denied"
-        ? "Permiso denegado"
-        : !isInstalledPwa
-          ? "Abrir desde inicio"
-          : "Por activar";
-  const className = badgeEnabled
-    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-    : !badgeSupported || notificationPermission === "denied"
-      ? "border-amber-200 bg-amber-50 text-amber-800"
-      : "border-violet-200 bg-violet-50 text-violet-800";
-  const indicatorClassName = badgeEnabled
-    ? "bg-emerald-500"
-    : !badgeSupported || notificationPermission === "denied"
-      ? "bg-amber-500"
-      : "bg-violet-500";
-  const content = (
-    <>
-      <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white/80 p-[2px]">
-        <span className={`block h-full w-full rounded-full ${indicatorClassName}`} />
-      </span>
-      {typeof pendingCount === "number" && pendingCount > 0 ? (
-        <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
-          {pendingCount > 9 ? "9+" : pendingCount}
-        </span>
-      ) : null}
-      <Bell className="h-5 w-5" />
-      <span className="sr-only">{label}</span>
-    </>
-  );
-
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        title={label}
-        aria-label={label}
-        className={`relative inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(16,24,40,0.08)] ${className}`}
-      >
-        {content}
-      </button>
-    );
-  }
-
-  return (
-    <span
-      title={label}
-      aria-label={label}
-      className={`relative inline-flex h-12 w-12 items-center justify-center rounded-[18px] border ${className}`}
-    >
-      {content}
-    </span>
-  );
-}
-
-function HeaderIconButton({
-  label,
-  title,
-  onClick,
-  icon,
-  disabled,
-  accent = "default"
-}: {
-  label: string;
-  title: string;
-  onClick: () => void;
-  icon: ReactNode;
-  disabled?: boolean;
-  accent?: "default" | "soft";
-}) {
-  const className =
-    accent === "soft"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-900"
-      : "border-emerald-100 bg-white text-emerald-900";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={label}
-      className={`inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(16,24,40,0.08)] disabled:cursor-not-allowed disabled:bg-emerald-50 disabled:text-emerald-500 ${className}`}
-    >
-      {icon}
-      <span className="sr-only">{label}</span>
-    </button>
-  );
-}
-
-function formatBadgePermission(value: NotificationPermission | "unsupported") {
-  if (value === "granted") {
-    return "Permitido";
-  }
-
-  if (value === "denied") {
-    return "Denegado";
-  }
-
-  if (value === "default") {
-    return "Pendiente";
-  }
-
-  return "Sin soporte";
-}
-
-function resolveBadgeActivationErrorMessage(error: string | null) {
-  if (error === "BADGE_NOT_SUPPORTED") {
-    return "Este navegador no soporta badge en el icono.";
-  }
-
-  if (error === "NOTIFICATION_PERMISSION_DENIED") {
-    return "El permiso fue denegado. Debes activarlo desde Ajustes del iPhone para esta app.";
-  }
-
-  return "No se pudo activar el badge. Revisa permisos de notificaciones del iPhone o vuelve a abrir la app desde el icono instalado.";
-}
-
-function getCurrentDeviceLabel() {
-  if (typeof navigator === "undefined") {
-    return "Dispositivo";
-  }
-
-  const platform = navigator.platform?.trim();
-  return platform ? `iPhone/${platform}` : "iPhone";
-}
-
-function MobileQuickHomeButton({
-  href,
-  label
-}: {
-  href: string;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-100 bg-white/95 text-emerald-900 shadow-soft backdrop-blur md:hidden"
-      aria-label={label}
-      title={label}
-    >
-      <Home className="h-4 w-4" />
-    </Link>
-  );
-}
-
-function mergeOrderItems(
-  current: Array<{ name: string; quantity: number }>,
-  incoming: Array<{ name: string; quantity: number }>
-) {
-  const grouped = new Map<string, number>();
-
-  [...current, ...incoming].forEach((item) => {
-    grouped.set(item.name, (grouped.get(item.name) ?? 0) + item.quantity);
-  });
-
-  return Array.from(grouped.entries()).map(([name, quantity]) => ({ name, quantity }));
-}
-
-function renderGroupedItemLines(
-  items: Array<{ name: string; quantity: number }>,
-  visibleLimit = 3
-) {
-  const grouped = mergeOrderItems([], items);
-  const visibleLines = grouped
-    .slice(0, visibleLimit)
-    .map((item) => `- ${item.quantity} x ${item.name}`);
-
-  if (grouped.length > visibleLimit) {
-    visibleLines.push(`+ ${grouped.length - visibleLimit} producto(s) mas`);
-  }
-
-  return visibleLines;
-}
-
-function agruparFiadosPorCliente(fiados: AdminOrderSummary[] = []) {
-  const groups = new Map<string, GroupedFiadoCustomer>();
-
-  fiados.forEach((fiado) => {
-    const clienteId = findGroupedFiadoKey(groups, fiado);
-
-    if (!clienteId) {
-      return;
-    }
-
-    const current = groups.get(clienteId) ?? {
-      clienteId,
-      nombre: fiado.clienteNombre || "Cliente sin nombre",
-      telefono: fiado.clienteTelefono || "",
-      lugarTrabajo: fiado.clienteLugarTrabajo || "",
-      totalPendiente: 0,
-      cantidadFiados: 0,
-      fiados: []
-    };
-
-    if (shouldReplaceGroupedCustomerData(current, fiado)) {
-      current.clienteId = fiado.clienteId || current.clienteId;
-      current.nombre = fiado.clienteNombre || current.nombre;
-      current.telefono = fiado.clienteTelefono || current.telefono;
-      current.lugarTrabajo = pickBetterWorkplace(current.lugarTrabajo, fiado.clienteLugarTrabajo);
-    } else if (!current.lugarTrabajo) {
-      current.lugarTrabajo = fiado.clienteLugarTrabajo || current.lugarTrabajo;
-    }
-
-    current.totalPendiente += Number(fiado.saldoPendiente || 0);
-    current.cantidadFiados += 1;
-    current.fiados.push(fiado);
-
-    groups.set(clienteId, current);
-  });
-
-  return Array.from(groups.values())
-    .map((customer) => ({
-      ...customer,
-      fiados: [...customer.fiados].sort((a, b) =>
-        getFiadoDateValue(b).localeCompare(getFiadoDateValue(a))
-      )
-    }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-}
-
-function findGroupedFiadoKey(
-  groups: Map<string, GroupedFiadoCustomer>,
-  fiado: AdminOrderSummary
-) {
-  const normalizedPhone = fiado.clienteTelefono.replace(/\D/g, "");
-  const normalizedName = normalizeIdentityValue(fiado.clienteNombre);
-  const normalizedWorkplace = normalizeIdentityValue(fiado.clienteLugarTrabajo);
-
-  if (normalizedPhone) {
-    const phoneMatch = Array.from(groups.entries()).find(([, customer]) => {
-      return customer.telefono.replace(/\D/g, "") === normalizedPhone;
-    });
-
-    if (phoneMatch) {
-      return phoneMatch[0];
-    }
-  }
-
-  const nameMatch = Array.from(groups.entries()).find(([, customer]) => {
-    const sameName = normalizeIdentityValue(customer.nombre) === normalizedName;
-
-    if (!sameName) {
-      return false;
-    }
-
-    const customerWorkplace = normalizeIdentityValue(customer.lugarTrabajo);
-    const workplacesCompatible =
-      !normalizedWorkplace ||
-      !customerWorkplace ||
-      normalizedWorkplace === customerWorkplace ||
-      isWeakCustomerWorkplace(normalizedWorkplace) ||
-      isWeakCustomerWorkplace(customerWorkplace);
-    const phoneCompatible =
-      !normalizedPhone || !customer.telefono || customer.telefono.replace(/\D/g, "") === normalizedPhone;
-
-    return workplacesCompatible && phoneCompatible;
-  });
-
-  if (nameMatch) {
-    return nameMatch[0];
-  }
-
-  return fiado.clienteId || buildCustomerIdentityKey(fiado);
-}
-
-function isWeakCustomerWorkplace(value: string) {
-  return (
-    value === "" ||
-    value === "venta directa" ||
-    value === "venta whatsapp manual" ||
-    value === "pedido personalizado"
-  );
-}
-
-function pickBetterWorkplace(currentValue: string, incomingValue: string) {
-  const current = currentValue || "";
-  const incoming = incomingValue || "";
-
-  if (!current) {
-    return incoming;
-  }
-
-  if (!incoming) {
-    return current;
-  }
-
-  const currentWeak = isWeakCustomerWorkplace(normalizeIdentityValue(current));
-  const incomingWeak = isWeakCustomerWorkplace(normalizeIdentityValue(incoming));
-
-  if (currentWeak && !incomingWeak) {
-    return incoming;
-  }
-
-  if (!currentWeak && incomingWeak) {
-    return current;
-  }
-
-  return incoming.length > current.length ? incoming : current;
-}
-
-function shouldReplaceGroupedCustomerData(
-  current: GroupedFiadoCustomer,
-  fiado: AdminOrderSummary
-) {
-  const currentScore =
-    Number(Boolean(current.telefono)) * 4 +
-    Number(!isWeakCustomerWorkplace(normalizeIdentityValue(current.lugarTrabajo || ""))) * 2 +
-    Number(Boolean(current.lugarTrabajo)) +
-    Number(Boolean(current.nombre));
-  const incomingScore =
-    Number(Boolean(fiado.clienteTelefono)) * 4 +
-    Number(
-      !isWeakCustomerWorkplace(normalizeIdentityValue(fiado.clienteLugarTrabajo || ""))
-    ) *
-      2 +
-    Number(Boolean(fiado.clienteLugarTrabajo)) +
-    Number(Boolean(fiado.clienteNombre));
-
-  return incomingScore > currentScore;
-}
-
-function getFiadoDateValue(order: AdminOrderSummary) {
-  return order.fechaFiado || order.fechaPedido || order.fechaAgendado || "";
-}
-
-function formatFiadoDate(order: AdminOrderSummary) {
-  const value = getFiadoDateValue(order);
-  return value ? formatDateOnly(value) : "Sin fecha";
-}
-
-function getLastDebtPaymentDate(orders: AdminOrderSummary[]) {
-  return orders
-    .map((order) => order.fechaUltimoPago)
-    .filter((value): value is string => Boolean(value))
-    .sort((a, b) => b.localeCompare(a))[0];
-}
-
 function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
   const normalizedPhone = parseChileanMobilePhone(customer.telefono);
 
@@ -5944,10 +4498,6 @@ function getNewOrderAdminWhatsAppUrl(order: AdminOrderSummary) {
   );
 }
 
-function formatShortDateTime(value: string) {
-  return formatChileDateTime(value);
-}
-
 function shouldShowOrderWhatsAppAction(order: AdminOrderSummary) {
   return order.estadoPedido === "AGENDADO" || order.estadoPedido === "FINALIZADO";
 }
@@ -6015,290 +4565,6 @@ function openWhatsAppSafe(phone: string, message: string) {
     status: "opened" as const,
     url
   };
-}
-
-function getCurrentMonthRange(reference = new Date()) {
-  return getChileCurrentMonthRange(reference);
-}
-
-function getReportRangePresetValues(preset: Exclude<ReportRangePreset, "custom">) {
-  const today = getChileTodayInputValue();
-  const todayDate = parseReportDateInput(today);
-
-  if (preset === "today") {
-    return { from: today, to: today };
-  }
-
-  if (preset === "week") {
-    const current = new Date(todayDate);
-    const day = current.getDay();
-    const diffToMonday = day === 0 ? 6 : day - 1;
-    current.setDate(current.getDate() - diffToMonday);
-    const from = formatDateInput(current);
-    const to = today;
-    return { from, to };
-  }
-
-  if (preset === "last-month") {
-    const year = todayDate.getFullYear();
-    const month = todayDate.getMonth();
-    return {
-      from: formatDateInput(new Date(year, month - 1, 1, 12, 0, 0)),
-      to: formatDateInput(new Date(year, month, 0, 12, 0, 0))
-    };
-  }
-
-  return getCurrentMonthRange(todayDate);
-}
-
-function parseReportDateInput(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-  if (!match) {
-    return new Date(value);
-  }
-
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
-}
-
-function formatPercent(value: number) {
-  if (!Number.isFinite(value)) {
-    return "0.0%";
-  }
-
-  return `${value.toFixed(1)}%`;
-}
-
-function mapOrderOriginToReportFilter(origin?: string): ReportSalesFilter {
-  if (origin === "ADMIN_DIRECTO") {
-    return "venta-directa";
-  }
-
-  if (origin === "PERSONALIZADO") {
-    return "venta-personalizada";
-  }
-
-  return "pedido-cliente";
-}
-
-function getSalesFilterLabel(value: ReportSalesFilter) {
-  if (value === "venta-directa") {
-    return "Ventas directas";
-  }
-
-  if (value === "venta-personalizada") {
-    return "Ventas personalizadas";
-  }
-
-  if (value === "pedido-cliente") {
-    return "Pedidos cliente";
-  }
-
-  return "Todos";
-}
-
-function getCostStatusTone(status: ProfitabilityCostStatus) {
-  if (status === "real") {
-    return "pedido" as const;
-  }
-
-  if (status === "estimated") {
-    return "warning" as const;
-  }
-
-  return "neutral" as const;
-}
-
-function getCostStatusLabel(status: ProfitabilityCostStatus) {
-  if (status === "real") {
-    return "Costo real";
-  }
-
-  if (status === "estimated") {
-    return "Costo estimado";
-  }
-
-  return "Sin precio";
-}
-
-function getCostStatusCompactLabel(status: ProfitabilityCostStatus) {
-  if (status === "real") {
-    return "REAL";
-  }
-
-  if (status === "estimated") {
-    return "ESTIMADO";
-  }
-
-  return "SIN DATA";
-}
-
-function getProductCostStatus(product: AdminProductRecord): ProfitabilityCostStatus {
-  if (product.costoUnitario > 0) {
-    return "real";
-  }
-
-  if (product.precioVenta > 0) {
-    return "estimated";
-  }
-
-  return "missing";
-}
-
-function resolveOrderItemProfitabilityCost(
-  item: AdminOrderSummary["items"][number],
-  products: AdminProductRecord[]
-): ResolvedProfitabilityCost {
-  const quantity = Math.max(0, item.cantidad ?? 0);
-  const currentProduct = item.productoId
-    ? products.find((product) => product.id === item.productoId)
-    : undefined;
-  const savedTotalCost = item.costoTotal ?? 0;
-  const savedUnitCost = item.costoUnitario ?? 0;
-
-  if (savedTotalCost > 0) {
-    return {
-      status: "real",
-      unitCost: quantity > 0 ? savedTotalCost / quantity : savedUnitCost,
-      totalCost: savedTotalCost,
-      profit: item.subtotal - savedTotalCost
-    };
-  }
-
-  if (savedUnitCost > 0 && quantity > 0) {
-    const totalCost = savedUnitCost * quantity;
-    return {
-      status: "real",
-      unitCost: savedUnitCost,
-      totalCost,
-      profit: item.subtotal - totalCost
-    };
-  }
-
-  if ((currentProduct?.costoUnitario ?? 0) > 0 && quantity > 0) {
-    const totalCost = currentProduct!.costoUnitario * quantity;
-    return {
-      status: "real",
-      unitCost: currentProduct!.costoUnitario,
-      totalCost,
-      profit: item.subtotal - totalCost
-    };
-  }
-
-  const salesAmount =
-    item.subtotal > 0
-      ? item.subtotal
-      : item.precioUnitario > 0 && quantity > 0
-        ? item.precioUnitario * quantity
-        : (currentProduct?.precioVenta ?? 0) * quantity;
-
-  if (salesAmount > 0) {
-    const totalCost = salesAmount * 0.5;
-    return {
-      status: "estimated",
-      unitCost: quantity > 0 ? totalCost / quantity : totalCost,
-      totalCost,
-      profit: item.subtotal - totalCost
-    };
-  }
-
-  return {
-    status: "missing",
-    unitCost: 0,
-    totalCost: 0,
-    profit: 0
-  };
-}
-
-function formatDateOnly(value: string) {
-  return formatChileDateOnly(value);
-}
-
-function normalizeIdentityValue(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
-function buildCustomerIdentityKey(order: {
-  clienteNombre: string;
-  clienteTelefono: string;
-  clienteLugarTrabajo: string;
-}) {
-  const normalizedPhone = order.clienteTelefono.replace(/\D/g, "");
-
-  if (normalizedPhone) {
-    return normalizedPhone;
-  }
-
-  return [
-    normalizeIdentityValue(order.clienteNombre),
-    normalizeIdentityValue(order.clienteLugarTrabajo)
-  ].join("__");
-}
-
-function isRecentCustomerMovement(value: string) {
-  const movementDate = new Date(value);
-
-  if (Number.isNaN(movementDate.getTime())) {
-    return false;
-  }
-
-  const diffInDays = (Date.now() - movementDate.getTime()) / (1000 * 60 * 60 * 24);
-  return diffInDays <= 14;
-}
-
-function todayDateValue() {
-  return getChileTodayInputValue();
-}
-
-function buttonToneClass(tone: "primary" | "warning" | "muted") {
-  if (tone === "primary") {
-    return "inline-flex min-h-11 items-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm";
-  }
-
-  if (tone === "warning") {
-    return "inline-flex min-h-11 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800";
-  }
-
-  return "inline-flex min-h-11 items-center rounded-xl border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900";
-}
-
-function StableHorizontalRail({
-  className,
-  children
-}: {
-  className?: string;
-  children: ReactNode;
-}) {
-  const railRef = useRef<HTMLDivElement | null>(null);
-  const lastScrollLeftRef = useRef(0);
-
-  useEffect(() => {
-    const rail = railRef.current;
-
-    if (!rail) {
-      return;
-    }
-
-    if (Math.abs(rail.scrollLeft - lastScrollLeftRef.current) > 1) {
-      rail.scrollLeft = lastScrollLeftRef.current;
-    }
-  });
-
-  return (
-    <div
-      ref={railRef}
-      onScroll={(event) => {
-        lastScrollLeftRef.current = event.currentTarget.scrollLeft;
-      }}
-      className={className}
-    >
-      {children}
-    </div>
-  );
 }
 
 function subscribeToClientSnapshot() {

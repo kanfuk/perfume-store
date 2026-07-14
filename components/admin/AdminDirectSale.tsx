@@ -17,6 +17,7 @@ import Link from "next/link";
 import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
+import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { formatChileanMobileInput } from "@/lib/chile-phone";
 import {
   normalizeCustomerDisplayName,
@@ -30,6 +31,10 @@ import {
   normalizeStockValue,
   shouldDecreaseStock
 } from "@/lib/stock";
+import {
+  feedbackMessages,
+  formatDirectSaleConfirmationDescription
+} from "@/lib/ui/feedback-messages";
 import type {
   AdminCustomerOption,
   AdminDashboardData,
@@ -97,6 +102,7 @@ export function AdminDirectSale({
   initialProducts,
   initialCustomers
 }: AdminDirectSaleProps) {
+  const feedback = useAppFeedback();
   const todayDate = useSyncExternalStore(
     subscribeToTodaySnapshot,
     getChileTodayInputValue,
@@ -494,7 +500,15 @@ export function AdminDirectSale({
       return;
     }
 
-    if (!window.confirm(`Se registrará una venta por ${formatCurrency(total)}. ¿Continuar?`)) {
+    const confirmed = await feedback.confirm({
+      title: feedbackMessages.confirmDirectSaleTitle,
+      description: formatDirectSaleConfirmationDescription(total),
+      confirmLabel: "Registrar venta",
+      cancelLabel: "Seguir editando",
+      tone: "default"
+    });
+
+    if (!confirmed) {
       return;
     }
 

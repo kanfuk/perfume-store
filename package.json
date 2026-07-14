@@ -1,8 +1,9 @@
 {
   "name": "pauli-store",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
+    "clean:local": "node scripts/clean-local-artifacts.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -17,25 +18,25 @@
     "supabase:status": "npx supabase status"
   },
   "dependencies": {
-    "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "latest",
+    "@supabase/ssr": "0.12.0",
+    "@supabase/supabase-js": "2.108.1",
     "lucide-react": "^1.18.0",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
+    "next": "16.2.9",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
+    "@types/node": "25.9.3",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
     "@types/web-push": "^3.6.4",
-    "autoprefixer": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "postcss": "latest",
+    "autoprefixer": "10.5.0",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.9",
+    "postcss": "8.5.15",
     "tailwindcss": "^3.4.17",
-    "typescript": "latest",
-    "vitest": "latest"
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
   }
 }

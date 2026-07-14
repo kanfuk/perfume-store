@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { MessageCircle } from "lucide-react";
+import { appInfo, getFooterLines } from "@/lib/app-info";
 import { getRiedmannsWhatsAppNumber } from "@/lib/env";
 
 type RiedmannsBrandingProps = {
@@ -15,6 +16,7 @@ export function RiedmannsBranding({
   variant = "client",
   className = ""
 }: RiedmannsBrandingProps) {
+  const [footerTitle, footerDeveloper, footerCopyright] = getFooterLines();
   const whatsappNumber = getRiedmannsWhatsAppNumber();
   const whatsappUrl = whatsappNumber
     ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
@@ -25,7 +27,7 @@ export function RiedmannsBranding({
   if (variant === "admin") {
     return (
       <div
-        className={`inline-flex w-full items-center justify-center gap-2 py-4 text-[0.78rem] text-[rgba(20,63,56,0.55)] ${className}`.trim()}
+        className={`flex w-full flex-col items-center justify-center gap-2 py-4 text-center text-[0.78rem] text-[rgba(20,63,56,0.62)] ${className}`.trim()}
       >
         <span className="relative h-[18px] w-[18px] overflow-hidden rounded-[0.35rem]">
           <Image
@@ -35,7 +37,12 @@ export function RiedmannsBranding({
             className="object-cover"
           />
         </span>
-        <span>RiedmannsApps · Todos los derechos reservados.</span>
+        <div className="space-y-1">
+          <p>{footerTitle}</p>
+          <p>{footerDeveloper}</p>
+          <p>{footerCopyright}</p>
+          <p className="text-[0.72rem] opacity-75">v{appInfo.version}</p>
+        </div>
       </div>
     );
   }
@@ -55,13 +62,13 @@ export function RiedmannsBranding({
         </div>
         <div className="min-w-0">
           <p className="m-0 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-[rgba(32,80,70,0.72)]">
-            ¿Quieres digitalizar tu PYME?
+            Quieres digitalizar tu PYME?
           </p>
           <h3 className="m-[0.15rem_0_0] text-[1.05rem] font-black text-[#143f38]">
             RiedmannsApps
           </h3>
           <p className="m-[0.2rem_0_0] text-[0.84rem] leading-[1.35] text-[rgba(20,63,56,0.72)]">
-            Automatización, ventas y experiencia digital para pequeños negocios.
+            Automatizacion, ventas y experiencia digital para pequenos negocios.
           </p>
         </div>
       </div>
@@ -80,9 +87,11 @@ export function RiedmannsBranding({
         </a>
       ) : null}
 
-      <p className="m-[0.85rem_0_0] text-center text-[0.74rem] text-[rgba(20,63,56,0.58)]">
-        RiedmannsApps · Todos los derechos reservados.
-      </p>
+      <div className="m-[0.85rem_0_0] space-y-1 text-center text-[0.74rem] text-[rgba(20,63,56,0.58)]">
+        <p>{footerTitle}</p>
+        <p>{footerDeveloper}</p>
+        <p>{footerCopyright}</p>
+      </div>
     </section>
   );
 }
