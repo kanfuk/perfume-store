@@ -1,28 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { MessageCircle } from "lucide-react";
+import { Globe } from "lucide-react";
 import { appInfo, getFooterLines } from "@/lib/app-info";
-import { getRiedmannsWhatsAppNumber } from "@/lib/env";
 
 type RiedmannsBrandingProps = {
   variant?: "client" | "admin";
   className?: string;
 };
 
-const RIEDMANNS_DISPLAY_PHONE = "+56 9 9434 8554";
+const RIEDMANN_APPS_URL = "https://riedmannapps.com";
 
 export function RiedmannsBranding({
   variant = "client",
   className = ""
 }: RiedmannsBrandingProps) {
   const [footerTitle, footerDeveloper, footerCopyright] = getFooterLines();
-  const whatsappNumber = getRiedmannsWhatsAppNumber();
-  const whatsappUrl = whatsappNumber
-    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-        "Hola, vi Pauli Store y quiero digitalizar mi PYME con RiedmannsApps."
-      )}`
-    : "";
 
   if (variant === "admin") {
     return (
@@ -32,14 +25,24 @@ export function RiedmannsBranding({
         <span className="relative h-[18px] w-[18px] overflow-hidden rounded-[0.35rem]">
           <Image
             src="/brand/ra-logo-original.png"
-            alt="RiedmannsApps"
+            alt="Riedmann Apps"
             fill
             className="object-cover"
           />
         </span>
         <div className="space-y-1">
           <p>{footerTitle}</p>
-          <p>{footerDeveloper}</p>
+          <p>
+            <a
+              href={RIEDMANN_APPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visitar el sitio web de Riedmann Apps"
+              className="underline-offset-2 transition hover:underline"
+            >
+              {footerDeveloper}
+            </a>
+          </p>
           <p>{footerCopyright}</p>
           <p className="text-[0.72rem] opacity-75">v{appInfo.version}</p>
         </div>
@@ -55,7 +58,7 @@ export function RiedmannsBranding({
         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[0.9rem] shadow-[0_8px_18px_rgba(70,30,90,0.16)]">
           <Image
             src="/brand/ra-logo-original.png"
-            alt="RiedmannsApps"
+            alt="Riedmann Apps"
             fill
             className="object-cover"
           />
@@ -65,7 +68,7 @@ export function RiedmannsBranding({
             Quieres digitalizar tu PYME?
           </p>
           <h3 className="m-[0.15rem_0_0] text-[1.05rem] font-black text-[#143f38]">
-            RiedmannsApps
+            Riedmann Apps
           </h3>
           <p className="m-[0.2rem_0_0] text-[0.84rem] leading-[1.35] text-[rgba(20,63,56,0.72)]">
             Automatizacion, ventas y experiencia digital para pequenos negocios.
@@ -73,23 +76,30 @@ export function RiedmannsBranding({
         </div>
       </div>
 
-      {whatsappUrl ? (
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={`Hablemos por WhatsApp con RiedmannsApps al ${RIEDMANNS_DISPLAY_PHONE}`}
-          className="mt-4 inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#143f38,#1aa37a)] px-4 py-3 text-[0.9rem] font-extrabold text-white shadow-[0_12px_24px_rgba(20,120,90,0.18)] transition hover:opacity-95"
-        >
-          <MessageCircle className="h-4 w-4" />
-          <span className="sm:hidden">WhatsApp</span>
-          <span className="hidden sm:inline">Hablemos por WhatsApp</span>
-        </a>
-      ) : null}
+      <a
+        href={RIEDMANN_APPS_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Visitar el sitio web de Riedmann Apps"
+        className="mt-4 inline-flex min-h-[42px] w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#143f38,#1aa37a)] px-4 py-3 text-[0.9rem] font-extrabold text-white shadow-[0_12px_24px_rgba(20,120,90,0.18)] transition hover:opacity-95"
+      >
+        <Globe className="h-4 w-4" />
+        <span>Conoce Riedmann Apps</span>
+      </a>
 
       <div className="m-[0.85rem_0_0] space-y-1 text-center text-[0.74rem] text-[rgba(20,63,56,0.58)]">
         <p>{footerTitle}</p>
-        <p>{footerDeveloper}</p>
+        <p>
+          <a
+            href={RIEDMANN_APPS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Visitar el sitio web de Riedmann Apps"
+            className="underline-offset-2 transition hover:underline"
+          >
+            {footerDeveloper}
+          </a>
+        </p>
         <p>{footerCopyright}</p>
       </div>
     </section>

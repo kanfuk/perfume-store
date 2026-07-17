@@ -1,7 +1,7 @@
 export const appInfo = {
   name: "Pauli Store",
   version: "1.2.0",
-  developer: "RiedmannsApps",
+  developer: "Riedmann Apps",
   copyright: "Todos los derechos reservados"
 } as const;
 
