@@ -114,6 +114,10 @@ class ClienteRepositoryStub implements ClienteRepository {
   async buscarClienteRelacionado() {
     return null;
   }
+
+  async actualizarCliente(cliente: Cliente) {
+    return { id: cliente.id ?? "cliente-1" };
+  }
 }
 
 class AdminPedidoRepositoryStub implements PedidoRepository {
