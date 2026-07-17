@@ -61,6 +61,7 @@ import type {
   AdminDashboardProps,
   AdminView,
   CustomerCardData,
+  CustomerEditModalState,
   CustomerFilter,
   GroupedFiadoCustomer,
   OrderModalState,
@@ -119,11 +120,11 @@ import {
 } from "@/components/admin/dashboard/DashboardPresentation";
 import { DashboardHomeView } from "@/components/admin/dashboard/DashboardHomeView";
 import { useAppFeedback } from "@/hooks/useAppFeedback";
+import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import {
   getNewAdminOrders,
   getNewAdminOrdersCount
 } from "@/lib/admin/getPendingAdminOrders";
-import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { formatCurrency } from "@/lib/format";
 import {
   getNotificationPermissionState,
@@ -154,6 +155,7 @@ import { createNotificationService } from "@/services/NotificationService";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { getChileCurrentMonthRange } from "@/lib/date";
 import type {
+  AdminCustomerOption,
   AdminMaintenanceAction,
   AdminBadgeDeviceSetting,
   AdminDashboardData,
@@ -166,7 +168,8 @@ const notificationService = createNotificationService();
 
 export function AdminDashboard({
   initialData,
-  initialView = "home"
+  initialView = "home",
+  initialCustomers = []
 }: AdminDashboardProps) {
   const feedback = useAppFeedback();
   const router = useRouter();
@@ -174,9 +177,11 @@ export function AdminDashboard({
   const refreshRetryTimeoutRef = useRef<number | null>(null);
   const [data, setData] = useState<AdminDashboardData>(initialData.dashboard);
   const [products, setProducts] = useState<AdminProductRecord[]>(initialData.productos);
+  const [customers, setCustomers] = useState<AdminCustomerOption[]>(initialCustomers);
   const [view, setView] = useState<AdminView>(initialView);
   const [loading, setLoading] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
+  const [customersLoading, setCustomersLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [whatsAppFallback, setWhatsAppFallback] = useState<WhatsAppFallbackState | null>(null);
@@ -191,6 +196,9 @@ export function AdminDashboard({
   const [selectedOrderId, setSelectedOrderId] = useState("");
   const [orderModalState, setOrderModalState] = useState<OrderModalState>(null);
   const [productModalState, setProductModalState] = useState<ProductModalState>(null);
+  const [customerEditModalState, setCustomerEditModalState] =
+    useState<CustomerEditModalState>(null);
+  const [customerSaveLoading, setCustomerSaveLoading] = useState(false);
   const [stockDrafts, setStockDrafts] = useState<Record<string, StockDraft>>({});
   const [reportTab, setReportTab] = useState<ReportTab>("rentabilidad");
   const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>("month");
@@ -675,23 +683,21 @@ export function AdminDashboard({
   ]);
 
   const customerCards = useMemo(() => {
-    const grouped = new Map<string, CustomerCardData>();
+    const metricsByCustomerId = new Map<
+      string,
+      Omit<CustomerCardData, "nombre" | "telefono" | "lugarTrabajo" | "isRecent">
+    >();
 
     allOrders.forEach((order) => {
-      const customerKey = buildCustomerIdentityKey(order);
-      const current = grouped.get(customerKey) ?? {
+      const current = metricsByCustomerId.get(order.clienteId) ?? {
         clienteId: order.clienteId,
-        nombre: order.clienteNombre,
-        telefono: order.clienteTelefono,
-        lugarTrabajo: order.clienteLugarTrabajo,
         pedidos: 0,
         pendiente: 0,
         totalComprado: 0,
         ultimoMovimiento: order.fechaPedido,
         proximasFechas: [],
         pedidosActivos: 0,
-        pedidosFinalizados: 0,
-        isRecent: false
+        pedidosFinalizados: 0
       };
 
       current.pedidos += 1;
@@ -709,17 +715,54 @@ export function AdminDashboard({
         current.proximasFechas.push(order.fechaEntrega);
       }
 
-      grouped.set(customerKey, current);
+      metricsByCustomerId.set(order.clienteId, current);
     });
 
-    return Array.from(grouped.values())
-      .map((customer) => ({
-        ...customer,
-        proximasFechas: [...customer.proximasFechas].sort((a, b) => a.localeCompare(b)),
-        isRecent: isRecentCustomerMovement(customer.ultimoMovimiento)
-      }))
-      .sort((a, b) => b.ultimoMovimiento.localeCompare(a.ultimoMovimiento));
-  }, [allOrders]);
+    const cards = customers.map((customer) => {
+      const metrics = metricsByCustomerId.get(customer.id);
+      metricsByCustomerId.delete(customer.id);
+
+      return {
+        clienteId: customer.id,
+        nombre: customer.nombre,
+        telefono: customer.telefono,
+        lugarTrabajo: customer.lugarTrabajo,
+        pedidos: metrics?.pedidos ?? 0,
+        pendiente: metrics?.pendiente ?? 0,
+        totalComprado: metrics?.totalComprado ?? 0,
+        ultimoMovimiento: metrics?.ultimoMovimiento ?? "",
+        proximasFechas: [...(metrics?.proximasFechas ?? [])].sort((a, b) => a.localeCompare(b)),
+        pedidosActivos: metrics?.pedidosActivos ?? 0,
+        pedidosFinalizados: metrics?.pedidosFinalizados ?? 0,
+        isRecent: metrics ? isRecentCustomerMovement(metrics.ultimoMovimiento) : false
+      };
+    });
+
+    metricsByCustomerId.forEach((metrics, customerId) => {
+      const fallbackOrder = allOrders.find((order) => order.clienteId === customerId);
+
+      if (!fallbackOrder) {
+        return;
+      }
+
+      cards.push({
+        clienteId: customerId,
+        nombre: fallbackOrder.clienteNombre,
+        telefono: fallbackOrder.clienteTelefono,
+        lugarTrabajo: fallbackOrder.clienteLugarTrabajo,
+        pedidos: metrics.pedidos,
+        pendiente: metrics.pendiente,
+        totalComprado: metrics.totalComprado,
+        ultimoMovimiento: metrics.ultimoMovimiento,
+        proximasFechas: [...metrics.proximasFechas].sort((a, b) => a.localeCompare(b)),
+        pedidosActivos: metrics.pedidosActivos,
+        pedidosFinalizados: metrics.pedidosFinalizados,
+        isRecent: isRecentCustomerMovement(metrics.ultimoMovimiento)
+      });
+    });
+
+    return cards.sort((a, b) => b.ultimoMovimiento.localeCompare(a.ultimoMovimiento));
+  }, [allOrders, customers]);
 
   const groupedFiados = useMemo(
     () => agruparFiadosPorCliente(data.fiadosPendientes),
@@ -1158,10 +1201,54 @@ export function AdminDashboard({
     }
   }
 
+  async function loadCustomers(options?: { silent?: boolean }) {
+    const silent = options?.silent ?? false;
+
+    try {
+      if (!silent) {
+        setCustomersLoading(true);
+      }
+
+      const response = await fetch("/api/admin/customers", { cache: "no-store" });
+      const currentData = (await response.json()) as {
+        customers?: AdminCustomerOption[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(currentData.error ?? "No fue posible cargar clientes.");
+      }
+
+      setCustomers(currentData.customers ?? []);
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible cargar clientes."
+      );
+    } finally {
+      if (!silent) {
+        setCustomersLoading(false);
+      }
+    }
+  }
+
   async function refreshAll() {
     setError("");
-    await Promise.all([loadOrders(), loadProducts()]);
+    await Promise.all([loadOrders(), loadProducts(), loadCustomers()]);
   }
+
+  useEffect(() => {
+    if (view !== "clientes" || customers.length > 0) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      void loadCustomers();
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [customers.length, view]);
 
   const refreshPendingBadgesSafe = useEffectEvent(async (reason: string) => {
     if (refreshOrdersInFlightRef.current) {
@@ -1550,6 +1637,51 @@ export function AdminDashboard({
       );
     } finally {
       setBusyProductId("");
+    }
+  }
+
+  async function saveCustomer(payload: {
+    id: string;
+    nombre: string;
+    telefono: string;
+    lugarTrabajo: string;
+  }) {
+    try {
+      setCustomerSaveLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const response = await fetch(`/api/admin/customers/${payload.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      const currentData = (await response.json()) as {
+        customer?: AdminCustomerOption;
+        error?: string;
+      };
+
+      if (!response.ok || !currentData.customer) {
+        throw new Error(currentData.error ?? "No fue posible actualizar el cliente.");
+      }
+
+      setCustomers((current) =>
+        current.map((customer) =>
+          customer.id === currentData.customer?.id ? currentData.customer : customer
+        )
+      );
+      setCustomerEditModalState(null);
+      setSuccessMessage("Cliente actualizado correctamente.");
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error
+          ? currentError.message
+          : "No fue posible actualizar el cliente."
+      );
+    } finally {
+      setCustomerSaveLoading(false);
     }
   }
 
@@ -2456,6 +2588,10 @@ export function AdminDashboard({
                 onChange={setCustomerFilter}
                 counts={customerSummary}
               />
+
+              {customersLoading ? (
+                <p className="text-sm text-[#6B7C70]">Cargando clientes...</p>
+              ) : null}
             </div>
           </section>
 
@@ -2467,6 +2603,16 @@ export function AdminDashboard({
                 <ClientCard
                   key={customer.clienteId}
                   customer={customer}
+                  onEdit={() =>
+                    setCustomerEditModalState({
+                      customer: {
+                        id: customer.clienteId,
+                        nombre: customer.nombre,
+                        telefono: customer.telefono,
+                        lugarTrabajo: customer.lugarTrabajo
+                      }
+                    })
+                  }
                   onOpenOrders={() => openCustomerOrders(customer)}
                   onOpenPayments={() => openCustomerPayments(customer)}
                 />
@@ -2949,9 +3095,19 @@ export function AdminDashboard({
         />
       ) : null}
 
+      {customerEditModalState ? (
+        <CustomerEditModal
+          key={customerEditModalState.customer.id}
+          state={customerEditModalState}
+          busy={customerSaveLoading}
+          onClose={() => setCustomerEditModalState(null)}
+          onSave={saveCustomer}
+        />
+      ) : null}
+
       <AppFooter className="pb-24 md:pb-8" />
       <WhatsAppFloatingButton
-        hidden={Boolean(productModalState || orderModalState)}
+        hidden={Boolean(productModalState || orderModalState || customerEditModalState)}
         bottomOffsetClassName={
           view === "home"
             ? "bottom-[calc(24px+env(safe-area-inset-bottom))]"
@@ -4098,14 +4254,22 @@ function ClientFilterChips({
 
 function ClientCard({
   customer,
+  onEdit,
   onOpenOrders,
   onOpenPayments
 }: {
   customer: CustomerCardData;
+  onEdit: () => void;
   onOpenOrders: () => void;
   onOpenPayments: () => void;
 }) {
   const initial = customer.nombre.trim().charAt(0).toUpperCase() || "C";
+  const lastMovementLabel = customer.ultimoMovimiento
+    ? formatDateOnly(customer.ultimoMovimiento.slice(0, 10))
+    : "Sin actividad";
+  const lastOrderLabel = customer.ultimoMovimiento
+    ? formatShortDateTime(customer.ultimoMovimiento)
+    : "Sin pedidos";
 
   return (
     <article className="overflow-hidden rounded-[28px] border border-[#D8EBDD] bg-white shadow-[0_18px_40px_rgba(31,51,40,0.08)]">
@@ -4128,7 +4292,7 @@ function ClientCard({
             </div>
           </div>
           <span className="rounded-full border border-[#D8EBDD] bg-white px-3 py-1 text-xs font-semibold text-[#247A4D]">
-            {formatDateOnly(customer.ultimoMovimiento.slice(0, 10))}
+            {lastMovementLabel}
           </span>
         </div>
       </div>
@@ -4156,7 +4320,7 @@ function ClientCard({
         <div className="grid gap-3 sm:grid-cols-3">
           <MiniMetric label="Pedidos activos" value={String(customer.pedidosActivos)} />
           <MiniMetric label="Pedidos cerrados" value={String(customer.pedidosFinalizados)} />
-          <MiniMetric label="Último pedido" value={formatShortDateTime(customer.ultimoMovimiento)} />
+          <MiniMetric label="Último pedido" value={lastOrderLabel} />
         </div>
 
         <div className="rounded-[22px] border border-[#D8EBDD] bg-[#F6FCF7] p-4">
@@ -4179,7 +4343,14 @@ function ClientCard({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-sm font-semibold text-[#247A4D]"
+          >
+            Editar cliente
+          </button>
           <button
             type="button"
             onClick={onOpenOrders}
@@ -4197,6 +4368,106 @@ function ClientCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function CustomerEditModal({
+  state,
+  busy,
+  onClose,
+  onSave
+}: {
+  state: NonNullable<CustomerEditModalState>;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (payload: {
+    id: string;
+    nombre: string;
+    telefono: string;
+    lugarTrabajo: string;
+  }) => void | Promise<void>;
+}) {
+  const [nombre, setNombre] = useState(state.customer.nombre);
+  const [telefono, setTelefono] = useState(state.customer.telefono);
+  const [lugarTrabajo, setLugarTrabajo] = useState(state.customer.lugarTrabajo);
+
+  return (
+    <div className="fixed inset-0 z-[110] bg-[#143f38]/35 p-4 backdrop-blur-[2px]">
+      <div className="mx-auto flex min-h-full w-full max-w-xl items-center justify-center">
+        <div className="w-full overflow-hidden rounded-[30px] border border-[#D8EBDD] bg-white shadow-[0_30px_60px_rgba(31,51,40,0.22)]">
+          <div className="border-b border-[#D8EBDD] bg-[linear-gradient(135deg,#F6FCF7_0%,#EAF6EC_72%,#FFFFFF_100%)] p-5">
+            <div className="space-y-2">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#D8EBDD] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#247A4D]">
+                Editar cliente
+              </span>
+              <h3 className="text-xl font-bold text-[#1F3328]">Actualiza datos sin tocar pedidos</h3>
+              <p className="text-sm leading-6 text-[#6B7C70]">
+                Este cambio solo actualiza el cliente seleccionado. Si el telefono o la identidad ya
+                existen en otro registro, bloqueamos el guardado para evitar cruces.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4 p-5">
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-[#1F3328]">Nombre</span>
+              <input
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                className="block min-h-11 w-full rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-base text-[#1F3328] outline-none"
+                placeholder="Ejemplo: Claudia"
+              />
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-[#1F3328]">Telefono</span>
+              <input
+                value={telefono}
+                onChange={(event) => setTelefono(formatChileanMobileInput(event.target.value))}
+                className="block min-h-11 w-full rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-base text-[#1F3328] outline-none"
+                placeholder="9 1234 5678"
+              />
+              <p className="text-xs text-[#6B7C70]">Puedes dejarlo vacio si no corresponde.</p>
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-[#1F3328]">Unidad o lugar de trabajo</span>
+              <input
+                value={lugarTrabajo}
+                onChange={(event) => setLugarTrabajo(event.target.value)}
+                className="block min-h-11 w-full rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-base text-[#1F3328] outline-none"
+                placeholder="Ejemplo: Finanzas"
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-[#D8EBDD] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-11 rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-sm font-semibold text-[#247A4D]"
+            >
+              Cerrar
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void onSave({
+                  id: state.customer.id,
+                  nombre,
+                  telefono,
+                  lugarTrabajo
+                })
+              }
+              className="min-h-11 rounded-[18px] bg-[#3FA66B] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(63,166,107,0.2)] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {busy ? "Guardando..." : "Guardar cliente"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

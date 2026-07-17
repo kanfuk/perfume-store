@@ -20,6 +20,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export interface ClienteRepository {
   upsertCliente(cliente: Cliente, preferredId?: string): Promise<{ id: string }>;
   buscarClienteRelacionado(cliente: Cliente): Promise<{ id: string } | null>;
+  actualizarCliente(cliente: Cliente): Promise<{ id: string }>;
 }
 
 function hasStrongerCustomerData(
@@ -150,6 +151,48 @@ class MemoryClienteRepository implements ClienteRepository {
     });
 
     return { id };
+  }
+
+  async actualizarCliente(cliente: Cliente) {
+    if (!cliente.id) {
+      throw new Error("El cliente a editar no es valido.");
+    }
+
+    const normalizedCliente = normalizeClienteInput(cliente);
+    const existing = localStore.customers.find((item) => item.id === normalizedCliente.id);
+
+    if (!existing) {
+      throw new Error("Cliente no encontrado.");
+    }
+
+    const phoneConflict =
+      normalizedCliente.telefono &&
+      localStore.customers.some(
+        (item) => item.id !== normalizedCliente.id && item.telefono === normalizedCliente.telefono
+      );
+
+    if (phoneConflict) {
+      throw new Error("Ya existe otro cliente con ese telefono.");
+    }
+
+    const identityConflict = localStore.customers.some(
+      (item) =>
+        item.id !== normalizedCliente.id &&
+        normalizeIdentityText(normalizeCustomerDisplayName(item.nombre)) ===
+          normalizeIdentityText(normalizedCliente.nombre) &&
+        normalizeIdentityText(item.lugarTrabajo) ===
+          normalizeIdentityText(normalizedCliente.lugarTrabajo)
+    );
+
+    if (identityConflict) {
+      throw new Error("Ya existe otro cliente con ese nombre y lugar de trabajo.");
+    }
+
+    existing.nombre = normalizedCliente.nombre;
+    existing.telefono = normalizedCliente.telefono;
+    existing.lugarTrabajo = normalizedCliente.lugarTrabajo;
+
+    return { id: existing.id };
   }
 }
 
@@ -301,6 +344,85 @@ class SupabaseClienteRepository implements ClienteRepository {
     }
 
     return { id: data.id };
+  }
+
+  async actualizarCliente(cliente: Cliente) {
+    if (!cliente.id) {
+      throw new Error("El cliente a editar no es valido.");
+    }
+
+    const customerId = cliente.id;
+    const normalizedCliente = normalizeClienteInput(cliente);
+    const supabase = createSupabaseServerClient();
+
+    const { data: existingById, error: existingByIdError } = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("id", customerId)
+      .limit(1);
+
+    if (existingByIdError) {
+      throw new Error("No fue posible consultar el cliente.");
+    }
+
+    if (!existingById?.[0]?.id) {
+      throw new Error("Cliente no encontrado.");
+    }
+
+    if (normalizedCliente.telefono) {
+      const { data: existingByPhone, error: phoneError } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("telefono", normalizedCliente.telefono)
+        .neq("id", customerId)
+        .limit(1);
+
+      if (phoneError) {
+        throw new Error("No fue posible consultar el cliente.");
+      }
+
+      if (existingByPhone?.[0]?.id) {
+        throw new Error("Ya existe otro cliente con ese telefono.");
+      }
+    }
+
+    const { data: matchesByName, error: nameError } = await supabase
+      .from("clientes")
+      .select("id, nombre, lugar_trabajo")
+      .ilike("nombre", normalizedCliente.nombre)
+      .limit(20);
+
+    if (nameError) {
+      throw new Error("No fue posible consultar el cliente.");
+    }
+
+    const identityConflict = (matchesByName ?? []).some(
+      (item) =>
+        item.id !== customerId &&
+        normalizeIdentityText(normalizeCustomerDisplayName(item.nombre ?? "")) ===
+          normalizeIdentityText(normalizedCliente.nombre) &&
+        normalizeIdentityText(item.lugar_trabajo ?? "") ===
+          normalizeIdentityText(normalizedCliente.lugarTrabajo)
+    );
+
+    if (identityConflict) {
+      throw new Error("Ya existe otro cliente con ese nombre y lugar de trabajo.");
+    }
+
+    const { error } = await supabase
+      .from("clientes")
+      .update({
+        nombre: normalizedCliente.nombre,
+        telefono: normalizedCliente.telefono || null,
+        lugar_trabajo: normalizedCliente.lugarTrabajo
+      })
+      .eq("id", customerId);
+
+    if (error) {
+      throw new Error("No fue posible actualizar el cliente.");
+    }
+
+    return { id: customerId };
   }
 }
 

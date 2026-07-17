@@ -1,4 +1,10 @@
-import type { AdminOrderSummary, AdminOrdersAction, AdminPageData, AdminProductRecord } from "@/lib/types";
+import type {
+  AdminCustomerOption,
+  AdminOrderSummary,
+  AdminOrdersAction,
+  AdminPageData,
+  AdminProductRecord
+} from "@/lib/types";
 
 export type AdminView =
   | "home"
@@ -52,6 +58,12 @@ export type CustomerCardData = {
   isRecent: boolean;
 };
 
+export type CustomerEditModalState =
+  | {
+      customer: AdminCustomerOption;
+    }
+  | null;
+
 export type GroupedFiadoCustomer = {
   clienteId: string;
   nombre: string;
@@ -80,6 +92,7 @@ export type ResolvedProfitabilityCost = {
 export type AdminDashboardProps = {
   initialData: AdminPageData;
   initialView?: AdminView;
+  initialCustomers?: AdminCustomerOption[];
 };
 
 export type OrderSectionProps = {

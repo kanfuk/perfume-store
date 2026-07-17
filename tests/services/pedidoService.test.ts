@@ -157,6 +157,10 @@ class ClienteRepositoryStub implements ClienteRepository {
   async buscarClienteRelacionado() {
     return null;
   }
+
+  async actualizarCliente(cliente: Cliente) {
+    return { id: cliente.id ?? `cliente-${cliente.nombre}` };
+  }
 }
 
 class PedidoRepositoryStub implements PedidoRepository {
@@ -267,6 +271,11 @@ describe("PedidoService", () => {
 
       async buscarClienteRelacionado() {
         return null;
+      }
+
+      async actualizarCliente(cliente: Cliente) {
+        telefonoGuardado = cliente.telefono;
+        return { id: cliente.id ?? "cliente-telefono" };
       }
     }
 

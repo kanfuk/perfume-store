@@ -14,6 +14,18 @@ Este documento resume el estado vigente de **Pauli Store** despues de la pasada 
 
 ## Cambios vigentes al 2026-06-26
 
+### Clientes admin
+
+- `/admin/clientes` permite editar nombre, telefono y lugar de trabajo del cliente real
+- la edicion se hace sobre `cliente_id` y no reescribe pedidos manualmente
+- si el telefono o la identidad ya existen en otro cliente, el guardado se bloquea
+
+### CTA corporativo Riedmann Apps
+
+- el footer promocional ya no usa el WhatsApp corporativo como CTA principal
+- el boton principal ahora abre `https://riedmannapps.com`
+- el credito `Desarrollado por Riedmann Apps` tambien enlaza a esa landing
+
 ### Seguridad HTTP
 
 - headers de seguridad servidos desde `next.config.ts`

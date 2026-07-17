@@ -16,8 +16,10 @@ Hoy el proyecto ya incluye:
 - modal de confirmacion al agendar pedido
 - panel admin con login real usando Supabase Auth
 - branding visible de Pauli Store en cliente y admin
+- CTA corporativo de Riedmann Apps enlazado a `https://riedmannapps.com`
 - venta directa y pedido personalizado desde admin
 - seleccion de clientes existentes en venta directa y pedido personalizado
+- edicion segura de clientes desde `/admin/clientes`
 - stock unificado visible en admin, sincronizado con `stock_actual` y `stock_agenda`
 - filtros de stock simplificados a `Activos`, `Pausados` y `Todos`
 - autopausa de productos cuando el stock llega a `0`
@@ -152,6 +154,8 @@ Uso rapido del badge:
 Clientes y stock:
 
 - pedidos pendientes, dashboard y badge usan la misma logica central de pendientes
+- `/admin/clientes` permite editar nombre, telefono y unidad del cliente real por `id`
+- la edicion de clientes bloquea colisiones evidentes por telefono o identidad repetida
 - cuando el stock llega a `0`, el producto pasa a `Pausado` automaticamente
 - para volver a publicarlo, primero hay que reponer stock y luego activarlo manualmente
 - nombres equivalentes como `Paty`, `Yo` o `camila montes` se normalizan para evitar duplicados

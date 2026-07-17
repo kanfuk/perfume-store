@@ -14,6 +14,15 @@ Permitir que Pauli administre pedidos, ventas, stock y clientes sin enredarse de
 - `/admin/clientes`
 - `/admin/venta-directa`
 
+## Clientes
+
+La vista `/admin/clientes` permite:
+
+- buscar y filtrar clientes
+- revisar actividad derivada del historial de pedidos
+- editar de forma segura nombre, telefono y unidad del cliente real
+- bloquear guardados cuando el telefono o la identidad ya pertenecen a otro cliente
+
 ## Venta directa
 
 La nueva vista `/admin/venta-directa` incorpora:
