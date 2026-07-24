@@ -1,16 +1,13 @@
 -- Perfume Store
--- Esquema consolidado para Supabase PostgreSQL.
+-- Migracion consolidada de fundacion, pensada para ejecutarse una sola vez
+-- sobre un proyecto Supabase Postgres completamente vacio.
 --
--- Este archivo es el espejo logico de la migracion canonica
--- supabase/migrations/20260724000000_perfume_store_foundation.sql y debe
--- representar exactamente el mismo estado. Si se modifica el esquema,
--- actualizar ambos archivos juntos (ver docs/PERFUME_STORE_DATABASE_FOUNDATION.md,
--- seccion "Fuente canonica").
---
--- Historial: el schema.sql heredado de Pauli Store quedo corrupto (mezcla
--- de Markdown y SQL, sin las sentencias CREATE TABLE base) desde el commit
--- 2b3ce249 de ese repositorio, segun documento docs/PERFUME_STORE_FOUNDATION_AUDIT.md.
--- Este archivo lo reemplaza por completo; no es un merge del contenido anterior.
+-- Fuente canonica: este archivo (y su espejo logico en supabase/schema.sql)
+-- reemplazan cualquier historial de migraciones previo como punto de partida.
+-- Las migraciones heredadas en supabase/migrations/ anteriores a esta fecha
+-- se conservan solo por trazabilidad historica de Pauli Store; no deben
+-- ejecutarse contra el proyecto Supabase nuevo. Ver
+-- docs/PERFUME_STORE_DATABASE_FOUNDATION.md para el detalle completo.
 --
 -- No contiene datos reales de clientes, pedidos, productos ni credenciales.
 
