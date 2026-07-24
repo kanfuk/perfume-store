@@ -488,7 +488,7 @@ export function CompactHistorySection({
               <MiniMetric
                 label="Fecha"
                 value={formatShortDateTime(
-                  order.fechaCierre ?? order.fechaCancelacion ?? order.fechaPedido
+                  order.fechaEntrega ?? order.fechaPago ?? order.fechaCancelacion ?? order.fechaPedido
                 )}
               />
             </div>

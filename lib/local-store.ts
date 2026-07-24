@@ -3,34 +3,51 @@ import { mockProducts } from "@/lib/mocks/products";
 export type LocalCustomerRecord = {
   id: string;
   nombre: string;
+  rut?: string;
+  email?: string;
   telefono: string;
+  region?: string;
+  comuna?: string;
+  direccion?: string;
+  referenciaDireccion?: string;
+  /** Legado de Pauli Store, compatibilidad temporal. */
   lugarTrabajo: string;
   createdAt: string;
 };
 
 export type LocalOrderRecord = {
   id: string;
+  codigo?: string;
   clienteId: string;
   estadoPedido: string;
   estadoPago: string;
-  adminSeen?: boolean;
-  adminSeenAt?: string;
   origenPedido?: string;
+  subtotal: number;
+  metodoDespacho?: string;
+  costoDespacho: number;
   total: number;
   observacion?: string;
-  fechaPedido: string;
-  fechaEntrega?: string;
-  fechaAgendado?: string;
-  fechaCierre?: string;
-  fechaCancelacion?: string;
   motivoCancelacion?: string;
+  stockRepuesto?: boolean;
+  adminSeen?: boolean;
+  adminSeenAt?: string;
+  fechaPedido: string;
+  fechaAgendado?: string;
+  fechaPago?: string;
+  fechaPreparacion?: string;
+  fechaDespacho?: string;
+  fechaEntrega?: string;
+  fechaCancelacion?: string;
 };
 
 export type LocalOrderItemRecord = {
   id: string;
   pedidoId: string;
-  productoId?: string;
+  productoId?: string | null;
+  productoSku?: string;
   productoNombre?: string;
+  productoMarca?: string;
+  productoContenido?: string;
   productoDescripcion?: string;
   productoImageUrl?: string;
   productoTipo?: string;

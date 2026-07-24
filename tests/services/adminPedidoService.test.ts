@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Cliente } from "@/domain/Cliente";
 import { Pedido } from "@/domain/Pedido";
+import { METODO_DESPACHO_STARKEN_POR_PAGAR } from "@/lib/constants";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import type {
   PedidoListItemRecord,
@@ -13,8 +14,8 @@ class ProductRepositoryStub implements ProductRepository {
   async buscarProductosActivos() {
     return [
       {
-        id: "pan-amasado",
-        nombre: "Pan amasado",
+        id: "perfume-1",
+        nombre: "Perfume floral",
         precioVenta: 500,
         stockActual: 10,
         stockAgenda: 10,
@@ -25,8 +26,8 @@ class ProductRepositoryStub implements ProductRepository {
 
   async buscarProductoPorId() {
     return {
-      id: "pan-amasado",
-      nombre: "Pan amasado",
+      id: "perfume-1",
+      nombre: "Perfume floral",
       precioVenta: 500,
       stockActual: 10,
       stockAgenda: 10,
@@ -128,9 +129,13 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
         estadoPago?: string;
         adminSeen?: boolean;
         adminSeenAt?: string;
-        fechaEntrega?: string;
         fechaAgendado?: string;
-        fechaCierre?: string;
+        fechaPago?: string;
+        fechaPreparacion?: string;
+        fechaDespacho?: string;
+        fechaEntrega?: string;
+        fechaCancelacion?: string;
+        stockRepuesto?: boolean;
       }
     | undefined;
   public pagosRegistrados: Array<{
@@ -164,9 +169,15 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
     pedidoId: string;
     estadoPedido: string;
     estadoPago?: string;
-    fechaEntrega?: string;
+    adminSeen?: boolean;
+    adminSeenAt?: string;
     fechaAgendado?: string;
-    fechaCierre?: string;
+    fechaPago?: string;
+    fechaPreparacion?: string;
+    fechaDespacho?: string;
+    fechaEntrega?: string;
+    fechaCancelacion?: string;
+    stockRepuesto?: boolean;
   }) {
     this.actualizado = args;
   }
@@ -232,22 +243,22 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
   }
 }
 
-function buildOrder(estadoPedido: string): PedidoListItemRecord {
+function buildOrder(estadoPedido: string, overrides: Partial<PedidoListItemRecord> = {}): PedidoListItemRecord {
   return {
     id: "pedido-1",
     clienteId: "cliente-1",
     clienteNombre: "Rodrigo",
     clienteTelefono: "+56999999999",
-    clienteLugarTrabajo: "Finanzas",
-    productoId: "pan-amasado",
-    productoNombre: "Pan amasado",
+    clienteLugarTrabajo: "",
+    productoId: "perfume-1",
+    productoNombre: "Perfume floral",
     cantidad: 2,
     precioUnitario: 500,
     subtotal: 1000,
     items: [
       {
-        productoId: "pan-amasado",
-        productoNombre: "Pan amasado",
+        productoId: "perfume-1",
+        productoNombre: "Perfume floral",
         cantidad: 2,
         precioUnitario: 500,
         costoUnitario: 0,
@@ -258,16 +269,19 @@ function buildOrder(estadoPedido: string): PedidoListItemRecord {
     ],
     estadoPedido,
     estadoPago: "SIN_PAGO",
+    metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
+    costoDespacho: 0,
     adminSeen: false,
     total: 1000,
-    fechaPedido: new Date("2026-06-12T10:00:00.000Z").toISOString()
+    fechaPedido: new Date("2026-06-12T10:00:00.000Z").toISOString(),
+    ...overrides
   };
 }
 
 describe("PedidoService admin transitions", () => {
-  it("agenda un pedido pendiente", async () => {
+  it("agenda un pedido nuevo", async () => {
     const repository = new AdminPedidoRepositoryStub({
-      PENDIENTE: [buildOrder("PENDIENTE")]
+      NUEVO: [buildOrder("NUEVO")]
     });
     const service = new PedidoService(
       new ProductRepositoryStub(),
@@ -275,33 +289,26 @@ describe("PedidoService admin transitions", () => {
       repository
     );
 
-    await service.agendarPedido("pedido-1", "2026-06-13");
+    await service.agendarPedido("pedido-1");
 
     expect(repository.actualizado?.pedidoId).toBe("pedido-1");
     expect(repository.actualizado?.estadoPedido).toBe("AGENDADO");
     expect(repository.actualizado?.estadoPago).toBe("SIN_PAGO");
     expect(repository.actualizado?.adminSeen).toBe(true);
-    expect(repository.actualizado?.fechaEntrega).toBe("2026-06-13");
+    expect(repository.actualizado?.fechaAgendado).toBeDefined();
   });
 
   it("permite agendar si el pedido ya habia reservado su stock", async () => {
     const repository = new AdminPedidoRepositoryStub({
-      PENDIENTE: [buildOrder("PENDIENTE")],
-      AGENDADO: [
-        {
-          ...buildOrder("AGENDADO"),
-          id: "pedido-2",
-          fechaEntrega: "2026-06-13"
-        }
-      ]
+      NUEVO: [buildOrder("NUEVO")]
     });
 
     class ProductRepositorySinStockStub extends ProductRepositoryStub {
       override async buscarProductosActivos() {
         return [
           {
-            id: "pan-amasado",
-            nombre: "Pan amasado",
+            id: "perfume-1",
+            nombre: "Perfume floral",
             precioVenta: 500,
             stockActual: 2,
             stockAgenda: 2,
@@ -312,8 +319,8 @@ describe("PedidoService admin transitions", () => {
 
       override async buscarProductoPorId() {
         return {
-          id: "pan-amasado",
-          nombre: "Pan amasado",
+          id: "perfume-1",
+          nombre: "Perfume floral",
           precioVenta: 500,
           stockActual: 2,
           stockAgenda: 2,
@@ -328,12 +335,12 @@ describe("PedidoService admin transitions", () => {
       repository
     );
 
-    await service.agendarPedido("pedido-1", "2026-06-13");
+    await service.agendarPedido("pedido-1");
 
     expect(repository.actualizado?.estadoPedido).toBe("AGENDADO");
   });
 
-  it("marca pagado un pedido agendado", async () => {
+  it("marca pagado un pedido agendado (no salta directo a entregado)", async () => {
     const repository = new AdminPedidoRepositoryStub({
       AGENDADO: [buildOrder("AGENDADO")]
     });
@@ -345,32 +352,49 @@ describe("PedidoService admin transitions", () => {
 
     await service.marcarPedidoPagado("pedido-1");
 
-    expect(repository.actualizado?.estadoPedido).toBe("FINALIZADO");
+    expect(repository.actualizado?.estadoPedido).toBe("PAGADO");
     expect(repository.actualizado?.estadoPago).toBe("PAGADO");
     expect(repository.pagosRegistrados[0]?.monto).toBe(1000);
   });
 
-  it("marca fiado un pedido agendado y registra saldo pendiente", async () => {
-    const repository = new AdminPedidoRepositoryStub({
-      AGENDADO: [buildOrder("AGENDADO")]
+  it("recorre preparando -> despachado -> entregado", async () => {
+    const repositoryPreparando = new AdminPedidoRepositoryStub({
+      PAGADO: [buildOrder("PAGADO", { estadoPago: "PAGADO" })]
     });
-    const service = new PedidoService(
+    const servicePreparando = new PedidoService(
       new ProductRepositoryStub(),
       new ClienteRepositoryStub(),
-      repository
+      repositoryPreparando
     );
+    await servicePreparando.iniciarPreparacionPedido("pedido-1");
+    expect(repositoryPreparando.actualizado?.estadoPedido).toBe("PREPARANDO");
 
-    await service.marcarPedidoFiado("pedido-1");
+    const repositoryDespachado = new AdminPedidoRepositoryStub({
+      PREPARANDO: [buildOrder("PREPARANDO", { estadoPago: "PAGADO" })]
+    });
+    const serviceDespachado = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      repositoryDespachado
+    );
+    await serviceDespachado.despacharPedido("pedido-1");
+    expect(repositoryDespachado.actualizado?.estadoPedido).toBe("DESPACHADO");
 
-    expect(repository.actualizado?.estadoPedido).toBe("FINALIZADO");
-    expect(repository.actualizado?.estadoPago).toBe("FIADO");
-    expect(repository.fiadosActualizados[0]?.montoPendiente).toBe(1000);
-    expect(repository.fiadosActualizados[0]?.estado).toBe("PENDIENTE");
+    const repositoryEntregado = new AdminPedidoRepositoryStub({
+      DESPACHADO: [buildOrder("DESPACHADO", { estadoPago: "PAGADO" })]
+    });
+    const serviceEntregado = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      repositoryEntregado
+    );
+    await serviceEntregado.entregarPedido("pedido-1");
+    expect(repositoryEntregado.actualizado?.estadoPedido).toBe("ENTREGADO");
   });
 
-  it("registra un abono parcial sobre un pedido fiado", async () => {
+  it("registra un abono parcial sobre un pedido entregado sin pago (fiado de venta directa)", async () => {
     const repository = new AdminPedidoRepositoryStub({
-      FINALIZADO: [{ ...buildOrder("FINALIZADO"), estadoPago: "FIADO" }]
+      ENTREGADO: [{ ...buildOrder("ENTREGADO"), estadoPago: "SIN_PAGO" }]
     });
     repository.fiadosActualizados.push({
       pedidoId: "pedido-1",
@@ -393,7 +417,7 @@ describe("PedidoService admin transitions", () => {
 
   it("cierra un fiado cuando el abono cubre todo el saldo", async () => {
     const repository = new AdminPedidoRepositoryStub({
-      FINALIZADO: [{ ...buildOrder("FINALIZADO"), estadoPago: "FIADO" }]
+      ENTREGADO: [{ ...buildOrder("ENTREGADO"), estadoPago: "SIN_PAGO" }]
     });
     repository.fiadosActualizados.push({
       pedidoId: "pedido-1",
@@ -414,6 +438,95 @@ describe("PedidoService admin transitions", () => {
     expect(repository.actualizado?.estadoPago).toBe("PAGADO");
   });
 
+  it("cancela un pedido agendado, repone stock y deja estadoPago CANCELADO", async () => {
+    const repository = new AdminPedidoRepositoryStub({
+      AGENDADO: [buildOrder("AGENDADO")]
+    });
+    const productRepository = new ProductRepositoryStub();
+    const service = new PedidoService(
+      productRepository,
+      new ClienteRepositoryStub(),
+      repository
+    );
+
+    await service.cancelarPedido("pedido-1", "Cliente no confirma");
+
+    expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
+    expect(repository.actualizado?.estadoPago).toBe("CANCELADO");
+    expect(repository.actualizado?.stockRepuesto).toBe(true);
+  });
+
+  it("no repone stock dos veces si el pedido ya tenia stockRepuesto true", async () => {
+    const repository = new AdminPedidoRepositoryStub({
+      AGENDADO: [buildOrder("AGENDADO", { stockRepuesto: true })]
+    });
+    const productRepository = new ProductRepositoryStub();
+    const ajustesSpy: Array<{ id: string; cantidad: number }> = [];
+    const originalAjustar = productRepository.ajustarStockAgenda.bind(productRepository);
+    productRepository.ajustarStockAgenda = async (id, cantidad) => {
+      ajustesSpy.push({ id, cantidad });
+      return originalAjustar(id, cantidad);
+    };
+    const service = new PedidoService(
+      productRepository,
+      new ClienteRepositoryStub(),
+      repository
+    );
+
+    await service.cancelarPedido("pedido-1", "Cliente no confirma");
+
+    expect(ajustesSpy).toEqual([]);
+  });
+
+  it("exige confirmacion explicita para cancelar un pedido ya pagado", async () => {
+    const repository = new AdminPedidoRepositoryStub({
+      PAGADO: [buildOrder("PAGADO", { estadoPago: "PAGADO" })]
+    });
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      repository
+    );
+
+    await expect(service.cancelarPedido("pedido-1", "Se arrepintio")).rejects.toThrow(
+      "Este pedido ya fue pagado. Confirma explicitamente para cancelarlo."
+    );
+
+    await service.cancelarPedido("pedido-1", "Se arrepintio", {
+      confirmarPagoPerdido: true
+    });
+    expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
+  });
+
+  it("impide cancelar dos veces el mismo pedido (ya no aparece entre los estados abiertos)", async () => {
+    const repository = new AdminPedidoRepositoryStub({
+      AGENDADO: [buildOrder("AGENDADO")]
+    });
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      repository
+    );
+
+    await service.cancelarPedido("pedido-1", "Cliente no confirma");
+    expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
+
+    // El repositorio stub no mueve el pedido de bucket automaticamente al
+    // cancelarlo (a diferencia de Supabase real), asi que simulamos ese
+    // efecto quitandolo de AGENDADO para probar que el servicio ya no lo
+    // encuentra entre los estados abiertos.
+    const repositorySinPedido = new AdminPedidoRepositoryStub({ AGENDADO: [] });
+    const serviceSinPedido = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      repositorySinPedido
+    );
+
+    await expect(
+      serviceSinPedido.cancelarPedido("pedido-1", "Cliente no confirma")
+    ).rejects.toThrow("Pedido no encontrado o ya no admite cancelacion.");
+  });
+
   it("no permite marcar pagado si el pedido no existe en agendados", async () => {
     const repository = new AdminPedidoRepositoryStub({
       AGENDADO: []
@@ -429,12 +542,12 @@ describe("PedidoService admin transitions", () => {
     );
   });
 
-  it("cuenta como pendientes reales solo los pedidos sin agendar", async () => {
+  it("cuenta como pendientes reales solo los pedidos nuevos sin agendar", async () => {
     const repository = new AdminPedidoRepositoryStub({
-      PENDIENTE: [
-        buildOrder("PENDIENTE"),
+      NUEVO: [
+        buildOrder("NUEVO"),
         {
-          ...buildOrder("PENDIENTE"),
+          ...buildOrder("NUEVO"),
           id: "pedido-2",
           adminSeen: true
         }
@@ -443,17 +556,18 @@ describe("PedidoService admin transitions", () => {
         {
           ...buildOrder("AGENDADO"),
           id: "pedido-3",
-          fechaEntrega: "2026-06-13",
           adminSeen: false
         },
         {
           ...buildOrder("AGENDADO"),
           id: "pedido-4",
-          fechaEntrega: "2026-06-14",
           adminSeen: true
         }
       ],
-      FINALIZADO: [],
+      PAGADO: [],
+      PREPARANDO: [],
+      DESPACHADO: [],
+      ENTREGADO: [],
       CANCELADO: []
     });
     const service = new PedidoService(
@@ -465,5 +579,7 @@ describe("PedidoService admin transitions", () => {
     const dashboard = await service.obtenerDashboardAdmin();
 
     expect(dashboard.pedidosNuevos).toBe(1);
+    expect(dashboard.pendientes).toHaveLength(2);
+    expect(dashboard.agendados).toHaveLength(2);
   });
 });

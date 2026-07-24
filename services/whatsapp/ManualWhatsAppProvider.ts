@@ -13,9 +13,13 @@ import type {
 function buildMessageInput(data: OrderNotificationData): BuildOrderConfirmationMessageInput {
   return {
     customerName: data.customerName,
+    codigo: data.codigo,
     items: data.items,
+    subtotal: data.subtotal,
+    costoDespacho: data.costoDespacho,
     total: data.total,
-    deliveryDateLabel: data.deliveryDateLabel
+    metodoDespacho: data.metodoDespacho,
+    direccion: data.direccion
   };
 }
 

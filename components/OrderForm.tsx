@@ -4,10 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
   Building2,
-  Clock3,
+  Home,
+  Mail,
+  MapPin,
   Phone,
   ShieldCheck,
   ShoppingBag,
+  Truck,
   UserRound,
   X
 } from "lucide-react";
@@ -16,10 +19,15 @@ import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
 import { AppToast } from "@/components/shared/AppToast";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
+import {
+  calcularCostoDespacho,
+  METODO_DESPACHO_DOMICILIO_SEMANAL,
+  METODO_DESPACHO_LABELS,
+  METODO_DESPACHO_STARKEN_POR_PAGAR
+} from "@/lib/constants";
 import { normalizeCustomerLookupValue } from "@/lib/customers/identity";
-import { getChileTodayInputValue, getChileTomorrowInputValue } from "@/lib/date";
 import { formatCurrency } from "@/lib/format";
-import { calcularTotalPedido, normalizarProductoParaCarrito } from "@/lib/order-helpers";
+import { normalizarProductoParaCarrito } from "@/lib/order-helpers";
 import { getAvailableProductStock } from "@/lib/stock";
 import type { CustomerOrderResponse, ProductRecord } from "@/lib/types";
 import { type CustomerFormData, validateCustomerOrderForm } from "@/lib/validators";
@@ -27,20 +35,30 @@ import { type CustomerFormData, validateCustomerOrderForm } from "@/lib/validato
 function createInitialForm(): CustomerFormData {
   return {
     nombre: "",
+    rut: "",
+    email: "",
     telefono: "",
-    lugarTrabajo: "",
-    fechaEntrega: getChileTomorrowInputValue(),
+    region: "",
+    comuna: "",
+    direccion: "",
+    referenciaDireccion: "",
+    metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
+    observacion: "",
     items: [],
     contactoOculto: ""
   };
 }
 
-const RECENT_CUSTOMERS_STORAGE_KEY = "pauli-store-recent-customers";
+const RECENT_CUSTOMERS_STORAGE_KEY = "perfume-store-recent-customers";
 
 type SavedCustomerProfile = {
   nombre: string;
   telefono: string;
-  lugarTrabajo: string;
+  rut: string;
+  email: string;
+  region: string;
+  comuna: string;
+  direccion: string;
   lastUsedAt: string;
 };
 
@@ -52,9 +70,13 @@ type ToastState = {
 type ValidationTarget =
   | "cart"
   | "nombre"
+  | "rut"
+  | "email"
   | "celular"
-  | "lugar"
-  | "fecha"
+  | "region"
+  | "comuna"
+  | "direccion"
+  | "despacho"
   | "stock"
   | "general";
 
@@ -88,10 +110,7 @@ function readRecentCustomers(): SavedCustomerProfile[] {
     }
 
     return parsed.filter(
-      (item) =>
-        typeof item?.nombre === "string" &&
-        typeof item?.telefono === "string" &&
-        typeof item?.lugarTrabajo === "string"
+      (item) => typeof item?.nombre === "string" && typeof item?.telefono === "string"
     );
   } catch {
     return [];
@@ -122,7 +141,11 @@ function mergeRecentCustomer(
   const nextRecord: SavedCustomerProfile = {
     nombre: form.nombre.trim(),
     telefono: phone.e164,
-    lugarTrabajo: form.lugarTrabajo.trim(),
+    rut: form.rut.trim(),
+    email: form.email.trim(),
+    region: form.region.trim(),
+    comuna: form.comuna.trim(),
+    direccion: form.direccion.trim(),
     lastUsedAt: new Date().toISOString()
   };
 
@@ -150,9 +173,12 @@ export function OrderForm() {
   const formRef = useRef<HTMLDivElement | null>(null);
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const nombreRef = useRef<HTMLInputElement | null>(null);
+  const rutRef = useRef<HTMLInputElement | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
   const telefonoRef = useRef<HTMLInputElement | null>(null);
-  const lugarRef = useRef<HTMLInputElement | null>(null);
-  const fechaRef = useRef<HTMLInputElement | null>(null);
+  const regionRef = useRef<HTMLInputElement | null>(null);
+  const comunaRef = useRef<HTMLInputElement | null>(null);
+  const direccionRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -238,27 +264,19 @@ export function OrderForm() {
     [form.items, products]
   );
 
-  const quantitiesByProduct = useMemo(
-    () => Object.fromEntries(form.items.map((item) => [item.productoId, item.cantidad])),
-    [form.items]
-  );
-
-  function getCartTotal() {
-    return calcularTotalPedido(cartLines);
-  }
-
   function getCartItemCount() {
     return form.items.reduce((sum, item) => sum + item.cantidad, 0);
   }
 
-  const total = getCartTotal();
+  const subtotal = cartLines.reduce((sum, line) => sum + line.subtotal, 0);
+  const costoDespacho = calcularCostoDespacho(form.metodoDespacho);
+  const total = subtotal + costoDespacho;
   const itemCount = getCartItemCount();
   const suggestedRecentCustomers = useMemo(() => {
     const normalizedName = normalizeCustomerLookupValue(form.nombre);
     const normalizedPhone = form.telefono.replace(/\D/g, "");
-    const normalizedWorkplace = normalizeCustomerLookupValue(form.lugarTrabajo);
 
-    if (!normalizedName && !normalizedPhone && !normalizedWorkplace) {
+    if (!normalizedName && !normalizedPhone) {
       return [];
     }
 
@@ -267,12 +285,10 @@ export function OrderForm() {
       return (
         (normalizedName &&
           normalizeCustomerLookupValue(customer.nombre).includes(normalizedName)) ||
-        (normalizedPhone && customerPhone.includes(normalizedPhone)) ||
-        (normalizedWorkplace &&
-          normalizeCustomerLookupValue(customer.lugarTrabajo).includes(normalizedWorkplace))
+        (normalizedPhone && customerPhone.includes(normalizedPhone))
       );
     });
-  }, [form.lugarTrabajo, form.nombre, form.telefono, recentCustomers]);
+  }, [form.nombre, form.telefono, recentCustomers]);
 
   function showToast(message: string, tone: ToastState["tone"]) {
     setToast({ message, tone });
@@ -361,11 +377,6 @@ export function OrderForm() {
       return;
     }
 
-    if (currentItem.cantidad + 1 > getAvailableProductStock(product)) {
-      setItemQuantity(productId, currentItem.cantidad + 1);
-      return;
-    }
-
     setItemQuantity(productId, currentItem.cantidad + 1);
     showToast("Cantidad actualizada.", "success");
   }
@@ -419,7 +430,11 @@ export function OrderForm() {
       ...current,
       nombre: customer.nombre,
       telefono: parsedPhone ? formatChileanMobileInput(parsedPhone.national) : current.telefono,
-      lugarTrabajo: customer.lugarTrabajo
+      rut: customer.rut || current.rut,
+      email: customer.email || current.email,
+      region: customer.region || current.region,
+      comuna: customer.comuna || current.comuna,
+      direccion: customer.direccion || current.direccion
     }));
     setAutoFillMessage(`Cargamos los datos de ${customer.nombre}.`);
     setLastAutoFilledPhone(customer.telefono);
@@ -453,54 +468,15 @@ export function OrderForm() {
       return;
     }
 
-    setForm((current) => ({
-      ...current,
-      telefono: formattedPhone,
-      nombre: current.nombre.trim() || matchedCustomer.nombre,
-      lugarTrabajo: current.lugarTrabajo.trim() || matchedCustomer.lugarTrabajo
-    }));
-    setLastAutoFilledPhone(matchedCustomer.telefono);
-    setAutoFillMessage(`Reconocimos a ${matchedCustomer.nombre}. Completamos tus datos.`);
+    applyRecentCustomer(matchedCustomer);
   }
 
   function resolveValidationFeedback(): ValidationFeedback {
-    if (form.items.length === 0 || total <= 0) {
+    if (form.items.length === 0 || subtotal <= 0) {
       return {
         ok: false,
         field: "cart",
         message: "Primero agrega al menos un producto al pedido."
-      };
-    }
-
-    if (!form.nombre.trim()) {
-      return {
-        ok: false,
-        field: "nombre",
-        message: "Falta tu nombre para registrar el pedido."
-      };
-    }
-
-    if (!form.telefono.trim()) {
-      return {
-        ok: false,
-        field: "celular",
-        message: "Falta tu celular para que Pauli pueda confirmar el pedido."
-      };
-    }
-
-    if (!form.lugarTrabajo.trim()) {
-      return {
-        ok: false,
-        field: "lugar",
-        message: "Falta tu lugar de trabajo o entrega."
-      };
-    }
-
-    if (!form.fechaEntrega.trim()) {
-      return {
-        ok: false,
-        field: "fecha",
-        message: "Falta la fecha estimada de entrega."
       };
     }
 
@@ -518,44 +494,22 @@ export function OrderForm() {
     }
 
     if (!validation.isValid) {
-      if (validation.errors.telefono) {
-        return {
-          ok: false,
-          field: "celular",
-          message: validation.errors.telefono
-        };
-      }
+      const fieldOrder: Array<[keyof typeof validation.errors, ValidationTarget]> = [
+        ["nombre", "nombre"],
+        ["rut", "rut"],
+        ["email", "email"],
+        ["telefono", "celular"],
+        ["region", "region"],
+        ["comuna", "comuna"],
+        ["direccion", "direccion"],
+        ["metodoDespacho", "despacho"],
+        ["items", "cart"]
+      ];
 
-      if (validation.errors.nombre) {
-        return {
-          ok: false,
-          field: "nombre",
-          message: validation.errors.nombre
-        };
-      }
-
-      if (validation.errors.lugarTrabajo) {
-        return {
-          ok: false,
-          field: "lugar",
-          message: validation.errors.lugarTrabajo
-        };
-      }
-
-      if (validation.errors.fechaEntrega) {
-        return {
-          ok: false,
-          field: "fecha",
-          message: validation.errors.fechaEntrega
-        };
-      }
-
-      if (validation.errors.items) {
-        return {
-          ok: false,
-          field: "cart",
-          message: validation.errors.items
-        };
+      for (const [errorKey, field] of fieldOrder) {
+        if (validation.errors[errorKey]) {
+          return { ok: false, field, message: validation.errors[errorKey] };
+        }
       }
 
       return {
@@ -579,19 +533,25 @@ export function OrderForm() {
 
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    const target =
+    const targetRef =
       field === "nombre"
-        ? nombreRef.current
-        : field === "celular"
-          ? telefonoRef.current
-        : field === "lugar"
-            ? lugarRef.current
-            : field === "fecha"
-              ? fechaRef.current
-              : null;
+        ? nombreRef
+        : field === "rut"
+          ? rutRef
+          : field === "email"
+            ? emailRef
+            : field === "celular"
+              ? telefonoRef
+              : field === "region"
+                ? regionRef
+                : field === "comuna"
+                  ? comunaRef
+                  : field === "direccion"
+                    ? direccionRef
+                    : null;
 
-    if (target) {
-      window.setTimeout(() => target.focus(), 250);
+    if (targetRef?.current) {
+      window.setTimeout(() => targetRef.current?.focus(), 250);
     }
   }
 
@@ -642,11 +602,14 @@ export function OrderForm() {
       setRecentCustomers(nextCustomers);
       persistRecentCustomers(nextCustomers);
       setSubmitted(data);
-      setAutoFillMessage("Guardamos tus datos en este dispositivo para tu próximo pedido.");
+      setAutoFillMessage("Guardamos tus datos en este dispositivo para tu próxima reserva.");
       setLastAutoFilledPhone("");
       setForm(createInitialForm());
       setIsCartSheetOpen(false);
-      showToast("Pedido registrado. Pauli confirmará disponibilidad por WhatsApp.", "success");
+      showToast(
+        "Reserva registrada. Te contactaremos por WhatsApp para confirmar y coordinar el pago.",
+        "success"
+      );
     } catch (error) {
       setSubmitted(null);
       const message =
@@ -664,16 +627,13 @@ export function OrderForm() {
   const isOrderReadyToSubmit = orderValidationFeedback.ok;
   const cartCtaCopy: CartCtaCopy = isOrderReadyToSubmit
     ? {
-        message: "Tu pedido está listo para enviar.",
-        buttonLabel: "Enviar a Pauli"
+        message: "Tu reserva está lista para enviar.",
+        buttonLabel: "Enviar reserva"
       }
     : {
-        message: "Completa tus datos para enviar el pedido.",
+        message: "Completa tus datos para enviar la reserva.",
         buttonLabel:
-          orderValidationFeedback.field === "nombre" ||
-          orderValidationFeedback.field === "celular" ||
-          orderValidationFeedback.field === "lugar" ||
-          orderValidationFeedback.field === "fecha"
+          orderValidationFeedback.field && orderValidationFeedback.field !== "cart" && orderValidationFeedback.field !== "stock"
             ? "Completar datos"
             : "Revisar"
       };
@@ -724,14 +684,16 @@ export function OrderForm() {
           <div className="rounded-[26px] border border-[#d8ebdd] bg-[linear-gradient(135deg,#f8fdf9_0%,#eef8f0_100%)] p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
               <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
-                Pedido guiado
+                Reserva guiada
               </div>
-              <p className="text-sm text-[#6b7c70]">Elige, completa tus datos y envía en menos de un minuto.</p>
+              <p className="text-sm text-[#6b7c70]">
+                Elige tus perfumes, completa tus datos de despacho y envía en minutos.
+              </p>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <StepChip step="1" title="Elige productos" text="Suma tus favoritos del día." />
-              <StepChip step="2" title="Completa tus datos" text="Así Pauli te ubica rápido." />
-              <StepChip step="3" title="Envía tu pedido" text="La confirmación llega por WhatsApp." />
+              <StepChip step="1" title="Elige productos" text="Suma tus perfumes favoritos." />
+              <StepChip step="2" title="Datos y despacho" text="Asi coordinamos tu entrega." />
+              <StepChip step="3" title="Envía tu reserva" text="Coordinamos pago por WhatsApp." />
             </div>
           </div>
 
@@ -739,7 +701,7 @@ export function OrderForm() {
             <div className="rounded-[26px] border border-[#d8ebdd] bg-[#f6fcf7] p-4 sm:p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
-                  <Clock3 className="h-5 w-5" />
+                  <BadgeCheck className="h-5 w-5" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-[#1f3328]">Clientes frecuentes</h3>
@@ -757,7 +719,7 @@ export function OrderForm() {
                     className="max-w-full rounded-full border border-[#d8ebdd] bg-white px-4 py-3 text-left transition hover:border-[#3fa66b] hover:shadow-sm"
                   >
                     <div className="text-sm font-semibold text-[#1f3328]">{customer.nombre}</div>
-                    <div className="text-xs text-[#6b7c70]">{customer.lugarTrabajo}</div>
+                    <div className="text-xs text-[#6b7c70]">{customer.comuna || customer.telefono}</div>
                   </button>
                 ))}
               </div>
@@ -782,9 +744,9 @@ export function OrderForm() {
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
                     Paso 1
                   </div>
-                  <h3 className="text-lg font-semibold text-[#1f3328]">Catálogo del día</h3>
+                  <h3 className="text-lg font-semibold text-[#1f3328]">Catálogo</h3>
                   <p className="text-sm text-[#6b7c70]">
-                    Elige tus favoritos del catálogo y suma lo que necesites.
+                    Elige tus perfumes favoritos y suma lo que necesites.
                   </p>
                 </div>
               </div>
@@ -792,7 +754,7 @@ export function OrderForm() {
             </div>
             <ProductCatalog
               products={products}
-              quantities={quantitiesByProduct}
+              quantities={Object.fromEntries(form.items.map((item) => [item.productoId, item.cantidad]))}
               onAdd={(productId) => {
                 const product = products.find((item) => item.id === productId);
                 const existing = form.items.find((item) => item.productoId === productId);
@@ -815,9 +777,7 @@ export function OrderForm() {
             ref={formRef}
             id="pedido-form"
             className={`space-y-4 rounded-[26px] border p-4 sm:p-5 ${
-              highlightedArea === "nombre" ||
-              highlightedArea === "celular" ||
-              highlightedArea === "lugar"
+              highlightedArea && highlightedArea !== "cart" && highlightedArea !== "stock"
                 ? "border-[#3fa66b] bg-[#f3faf4] ring-4 ring-[#ddf4e5]"
                 : "border-[#d8ebdd] bg-[#f6fcf7]"
             }`}
@@ -832,7 +792,7 @@ export function OrderForm() {
                   </div>
                   <h3 className="text-lg font-semibold text-[#1f3328]">Tus datos</h3>
                   <p className="text-sm text-[#6b7c70]">
-                    Completa esto y Pauli te confirma disponibilidad por WhatsApp.
+                    Los necesitamos para confirmar tu reserva y coordinar el despacho por WhatsApp.
                   </p>
                 </div>
             </div>
@@ -871,7 +831,7 @@ export function OrderForm() {
               <TextField
                 id="input-nombre"
                 inputRef={nombreRef}
-                label="Nombre del cliente"
+                label="Nombre completo"
                 value={form.nombre}
                 onChange={(value) => setForm((current) => ({ ...current, nombre: value }))}
                 error={validation.errors.nombre}
@@ -880,61 +840,135 @@ export function OrderForm() {
                 icon={<UserRound className="h-4 w-4" />}
                 highlighted={highlightedArea === "nombre"}
               />
+              <TextField
+                id="input-rut"
+                inputRef={rutRef}
+                label="RUT"
+                value={form.rut}
+                onChange={(value) => setForm((current) => ({ ...current, rut: value }))}
+                error={validation.errors.rut}
+                placeholder="12.345.678-5"
+                autoComplete="off"
+                icon={<BadgeCheck className="h-4 w-4" />}
+                highlighted={highlightedArea === "rut"}
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                id="input-email"
+                inputRef={emailRef}
+                label="Correo electrónico"
+                value={form.email}
+                onChange={(value) => setForm((current) => ({ ...current, email: value }))}
+                error={validation.errors.email}
+                placeholder="tucorreo@ejemplo.com"
+                autoComplete="email"
+                type="email"
+                icon={<Mail className="h-4 w-4" />}
+                highlighted={highlightedArea === "email"}
+              />
               <PhoneField
                 id="input-celular"
                 inputRef={telefonoRef}
-                label="Celular de contacto"
+                label="Celular o WhatsApp"
                 value={form.telefono}
                 onChange={handlePhoneChange}
                 error={validation.errors.telefono}
                 highlighted={highlightedArea === "celular"}
               />
             </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                id="input-region"
+                inputRef={regionRef}
+                label="Región"
+                value={form.region}
+                onChange={(value) => setForm((current) => ({ ...current, region: value }))}
+                error={validation.errors.region}
+                placeholder="Ejemplo: Región Metropolitana"
+                autoComplete="address-level1"
+                icon={<MapPin className="h-4 w-4" />}
+                highlighted={highlightedArea === "region"}
+              />
+              <TextField
+                id="input-comuna"
+                inputRef={comunaRef}
+                label="Comuna"
+                value={form.comuna}
+                onChange={(value) => setForm((current) => ({ ...current, comuna: value }))}
+                error={validation.errors.comuna}
+                placeholder="Ejemplo: Providencia"
+                autoComplete="address-level2"
+                icon={<Building2 className="h-4 w-4" />}
+                highlighted={highlightedArea === "comuna"}
+              />
+            </div>
             <TextField
-              id="input-lugar"
-              inputRef={lugarRef}
-              label="Lugar de trabajo"
-              value={form.lugarTrabajo}
-              onChange={(value) => setForm((current) => ({ ...current, lugarTrabajo: value }))}
-              error={validation.errors.lugarTrabajo}
-              placeholder="Ejemplo: Finanzas, recepción o piso 3"
-              autoComplete="organization"
-              icon={<Building2 className="h-4 w-4" />}
-              highlighted={highlightedArea === "lugar"}
+              id="input-direccion"
+              inputRef={direccionRef}
+              label="Dirección de despacho"
+              value={form.direccion}
+              onChange={(value) => setForm((current) => ({ ...current, direccion: value }))}
+              error={validation.errors.direccion}
+              placeholder="Calle, número, depto/casa"
+              autoComplete="street-address"
+              icon={<Home className="h-4 w-4" />}
+              highlighted={highlightedArea === "direccion"}
             />
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#1f3328]">Fecha de entrega</span>
-              <div
-                className={`flex items-center gap-3 rounded-[18px] border bg-white px-4 py-3 transition ${
-                  highlightedArea === "fecha"
-                    ? "border-[#3fa66b] ring-4 ring-[#ddf4e5]"
-                    : "border-[#d8ebdd] focus-within:border-[#3fa66b]"
-                }`}
-              >
-                <Clock3 className="h-4 w-4 text-[#6b7c70]" />
-                <input
-                  id="input-fecha-entrega"
-                  ref={fechaRef}
-                  type="date"
-                  value={form.fechaEntrega}
-                  min={getChileTodayInputValue()}
-                  onChange={(event) =>
+            <TextField
+              id="input-referencia"
+              label="Referencia de dirección (opcional)"
+              value={form.referenciaDireccion ?? ""}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, referenciaDireccion: value }))
+              }
+              placeholder="Ejemplo: portón negro, entre calles..."
+              autoComplete="off"
+            />
+
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-[#1f3328]">Método de despacho</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DespachoOption
+                  icon={<Truck className="h-4 w-4" />}
+                  label={METODO_DESPACHO_LABELS[METODO_DESPACHO_STARKEN_POR_PAGAR]}
+                  helper="Envío por pagar en destino. Coordinamos la sucursal por WhatsApp."
+                  active={form.metodoDespacho === METODO_DESPACHO_STARKEN_POR_PAGAR}
+                  highlighted={highlightedArea === "despacho"}
+                  onSelect={() =>
                     setForm((current) => ({
                       ...current,
-                      fechaEntrega: event.target.value
+                      metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR
                     }))
                   }
-                  className="w-full border-0 bg-transparent p-0 text-base text-[#1f3328] outline-none"
+                />
+                <DespachoOption
+                  icon={<Home className="h-4 w-4" />}
+                  label={METODO_DESPACHO_LABELS[METODO_DESPACHO_DOMICILIO_SEMANAL]}
+                  helper={`Reparto semanal a domicilio. Costo único: ${formatCurrency(
+                    calcularCostoDespacho(METODO_DESPACHO_DOMICILIO_SEMANAL)
+                  )}. Coordinamos el día por WhatsApp.`}
+                  active={form.metodoDespacho === METODO_DESPACHO_DOMICILIO_SEMANAL}
+                  highlighted={highlightedArea === "despacho"}
+                  onSelect={() =>
+                    setForm((current) => ({
+                      ...current,
+                      metodoDespacho: METODO_DESPACHO_DOMICILIO_SEMANAL
+                    }))
+                  }
                 />
               </div>
-              {validation.errors.fechaEntrega ? (
-                <span className="text-sm text-danger">{validation.errors.fechaEntrega}</span>
-              ) : (
-                <span className="text-xs text-[#6b7c70]">
-                  Sugerimos mañana por defecto, pero puedes cambiarla.
-                </span>
-              )}
-            </label>
+            </div>
+
+            <TextField
+              id="input-observacion"
+              label="Observación del pedido (opcional)"
+              value={form.observacion ?? ""}
+              onChange={(value) => setForm((current) => ({ ...current, observacion: value }))}
+              placeholder="Ejemplo: horario preferido para recibir"
+              autoComplete="off"
+            />
+
             <input
               tabIndex={-1}
               autoComplete="off"
@@ -959,9 +993,10 @@ export function OrderForm() {
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
                   Paso 3
                 </div>
-                <h3 className="text-lg font-semibold text-[#1f3328]">Envía tu pedido</h3>
+                <h3 className="text-lg font-semibold text-[#1f3328]">Envía tu reserva</h3>
                 <p className="text-sm leading-6 text-[#6b7c70]">
-                  Tu pedido queda pendiente hasta que Pauli confirme stock, horario y entrega por WhatsApp.
+                  Esto es una solicitud de reserva de stock. Te contactaremos por WhatsApp para
+                  confirmar disponibilidad y coordinar la transferencia bancaria.
                 </p>
               </div>
             </div>
@@ -971,7 +1006,7 @@ export function OrderForm() {
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-[#3fa66b] px-4 py-4 text-base font-semibold text-white shadow-[0_16px_30px_rgba(63,166,107,0.2)] transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
             >
               <ShoppingBag className="h-5 w-5" />
-              {submitting ? "Enviando pedido..." : "Enviar pedido a Pauli"}
+              {submitting ? "Enviando reserva..." : "Enviar reserva"}
             </button>
           </div>
           {serverError ? <p className="text-sm text-danger">{serverError}</p> : null}
@@ -987,6 +1022,13 @@ export function OrderForm() {
               onIncrease={updateItemFromSummary}
               onRemove={removeItem}
               emptyText="Tu resumen aparecerá apenas elijas algo del catálogo."
+              footer={
+                <OrderTotalsSummary
+                  subtotal={subtotal}
+                  costoDespacho={costoDespacho}
+                  total={total}
+                />
+              }
             />
           </div>
 
@@ -996,9 +1038,10 @@ export function OrderForm() {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-[#1f3328]">Pedido simple</h3>
+                <h3 className="text-lg font-semibold text-[#1f3328]">Reserva de stock</h3>
                 <p className="text-sm text-[#6b7c70]">
-                  Tu pedido queda pendiente de confirmación. Pauli revisa stock y luego te escribe.
+                  Tu reserva queda pendiente de confirmación. Revisamos disponibilidad y luego te
+                  escribimos por WhatsApp.
                 </p>
               </div>
             </div>
@@ -1046,10 +1089,10 @@ export function OrderForm() {
             <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#d8ebdd]" />
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-xl font-semibold text-[#1f3328]">Tu pedido</h3>
+                <h3 className="text-xl font-semibold text-[#1f3328]">Tu reserva</h3>
                 <p className="text-sm text-[#6b7c70]">
                   {isOrderReadyToSubmit
-                    ? "Tu pedido está listo. Puedes enviarlo desde aquí."
+                    ? "Tu reserva está lista. Puedes enviarla desde aquí."
                     : "Revisa cantidades, total y después completa tus datos."}
                 </p>
               </div>
@@ -1073,22 +1116,29 @@ export function OrderForm() {
                 onRemove={removeItem}
                 emptyText="Tu resumen aparecerá apenas elijas algo del catálogo."
                 footer={
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsCartSheetOpen(false)}
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#d8ebdd] bg-white px-4 py-3 text-sm font-semibold text-[#1f3328]"
-                    >
-                      Seguir agregando
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCartPrimaryAction}
-                      disabled={submitting || loadingProducts}
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
-                    >
-                      {submitting ? "Enviando..." : cartCtaCopy.buttonLabel}
-                    </button>
+                  <div className="space-y-3">
+                    <OrderTotalsSummary
+                      subtotal={subtotal}
+                      costoDespacho={costoDespacho}
+                      total={total}
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsCartSheetOpen(false)}
+                        className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#d8ebdd] bg-white px-4 py-3 text-sm font-semibold text-[#1f3328]"
+                      >
+                        Seguir agregando
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCartPrimaryAction}
+                        disabled={submitting || loadingProducts}
+                        className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#3fa66b] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+                      >
+                        {submitting ? "Enviando..." : cartCtaCopy.buttonLabel}
+                      </button>
+                    </div>
                   </div>
                 }
               />
@@ -1111,10 +1161,11 @@ export function OrderForm() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-[#1f3328]">
-                  Pedido registrado correctamente
+                  Reserva registrada correctamente
                 </h3>
                 <p className="text-sm leading-6 text-[#6b7c70]">
-                  Tu pedido quedó pendiente de confirmación. Pauli revisará disponibilidad y te avisará por WhatsApp.
+                  Tu reserva quedó pendiente de confirmación. Revisaremos disponibilidad y te
+                  avisaremos por WhatsApp para coordinar el pago.
                 </p>
               </div>
             </div>
@@ -1122,7 +1173,21 @@ export function OrderForm() {
             <div className="mt-5 rounded-[22px] border border-[#d8ebdd] bg-[#f6fcf7] p-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[#6b7c70]">Código</span>
-                <span className="font-medium text-[#1f3328]">{submitted.pedidoId}</span>
+                <span className="font-medium text-[#1f3328]">
+                  {submitted.codigo ?? submitted.pedidoId}
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-sm">
+                <span className="text-[#6b7c70]">Subtotal</span>
+                <span className="text-[#1f3328]">{formatCurrency(submitted.subtotal)}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-[#6b7c70]">Despacho</span>
+                <span className="text-[#1f3328]">
+                  {submitted.metodoDespacho === METODO_DESPACHO_STARKEN_POR_PAGAR
+                    ? "Por pagar"
+                    : formatCurrency(submitted.costoDespacho)}
+                </span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
                 <span className="text-[#6b7c70]">Total</span>
@@ -1162,6 +1227,64 @@ function StepChip({ step, title, text }: { step: string; title: string; text: st
   );
 }
 
+function OrderTotalsSummary({
+  subtotal,
+  costoDespacho,
+  total
+}: {
+  subtotal: number;
+  costoDespacho: number;
+  total: number;
+}) {
+  return (
+    <div className="space-y-1 rounded-[18px] border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-3 text-sm">
+      <div className="flex items-center justify-between text-[#1f3328]">
+        <span>Subtotal</span>
+        <span>{formatCurrency(subtotal)}</span>
+      </div>
+      <div className="flex items-center justify-between text-[#1f3328]">
+        <span>Despacho</span>
+        <span>{costoDespacho > 0 ? formatCurrency(costoDespacho) : "Por pagar"}</span>
+      </div>
+      <div className="flex items-center justify-between border-t border-[#d8ebdd] pt-2 font-semibold text-[#247a4d]">
+        <span>Total estimado</span>
+        <span>{formatCurrency(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+type DespachoOptionProps = {
+  icon: React.ReactNode;
+  label: string;
+  helper: string;
+  active: boolean;
+  highlighted?: boolean;
+  onSelect: () => void;
+};
+
+function DespachoOption({ icon, label, helper, active, highlighted, onSelect }: DespachoOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex flex-col gap-2 rounded-[18px] border p-4 text-left transition ${
+        active
+          ? "border-[#3fa66b] bg-[#eef8f0] ring-2 ring-[#3fa66b]"
+          : highlighted
+            ? "border-[#3fa66b] ring-4 ring-[#ddf4e5]"
+            : "border-[#d8ebdd] bg-white hover:border-[#3fa66b]"
+      }`}
+    >
+      <span className="flex items-center gap-2 text-sm font-semibold text-[#1f3328]">
+        {icon}
+        {label}
+      </span>
+      <span className="text-xs leading-5 text-[#6b7c70]">{helper}</span>
+    </button>
+  );
+}
+
 type TextFieldProps = {
   id: string;
   label: string;
@@ -1169,6 +1292,7 @@ type TextFieldProps = {
   error?: string;
   placeholder?: string;
   autoComplete?: string;
+  type?: string;
   icon?: React.ReactNode;
   highlighted?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
@@ -1182,6 +1306,7 @@ function TextField({
   error,
   placeholder,
   autoComplete,
+  type = "text",
   icon,
   highlighted = false,
   inputRef,
@@ -1199,6 +1324,7 @@ function TextField({
         <input
           id={id}
           ref={inputRef}
+          type={type}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}

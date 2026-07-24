@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
+import type { AdminOrdersAction } from "@/lib/types";
 import { createPedidoService } from "@/services/pedidoService";
 
 export async function PATCH(
@@ -25,9 +26,9 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as {
-      action?: "agendar" | "cancelar" | "pagado" | "fiado" | "abonar" | "visto";
-      fechaEntrega?: string;
+      action?: AdminOrdersAction;
       motivoCancelacion?: string;
+      confirmarPagoPerdido?: boolean;
       monto?: number;
       metodoPago?: string;
     };
@@ -36,19 +37,26 @@ export async function PATCH(
 
     switch (body.action) {
       case "agendar":
-        await pedidoService.agendarPedido(pedidoId, body.fechaEntrega ?? "");
+        await pedidoService.agendarPedido(pedidoId);
         break;
       case "cancelar":
         await pedidoService.cancelarPedido(
           pedidoId,
-          body.motivoCancelacion || "Cancelado por administrador"
+          body.motivoCancelacion || "Cancelado por administrador",
+          { confirmarPagoPerdido: body.confirmarPagoPerdido }
         );
         break;
       case "pagado":
         await pedidoService.marcarPedidoPagado(pedidoId);
         break;
-      case "fiado":
-        await pedidoService.marcarPedidoFiado(pedidoId);
+      case "preparando":
+        await pedidoService.iniciarPreparacionPedido(pedidoId);
+        break;
+      case "despachado":
+        await pedidoService.despacharPedido(pedidoId);
+        break;
+      case "entregado":
+        await pedidoService.entregarPedido(pedidoId);
         break;
       case "abonar":
         await pedidoService.registrarAbonoFiado(

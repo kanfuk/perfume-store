@@ -1,30 +1,53 @@
+import type { EstadoPago, EstadoPedido, MetodoDespacho } from "@/lib/constants";
+
 export type OrderOrigin = "PUBLICO" | "ADMIN_DIRECTO" | "PERSONALIZADO";
 
 export type ProductRecord = {
   id: string;
+  sku?: string;
   nombre: string;
+  marca?: string;
+  contenido?: string;
   descripcion?: string;
   precioVenta: number;
+  precioAnterior?: number;
   imageUrl?: string;
+  imageStoragePath?: string;
   badgeLabel?: string;
   costoUnitario?: number;
   stockActual?: number;
+  /** Legado de Pauli Store, mantenido en sincronia con stockActual. */
   stockAgenda?: number;
+  stockReservado?: number;
+  stockMinimo?: number;
   activo?: boolean;
+  esTop?: boolean;
+  esOfertaSemana?: boolean;
+  ordenDestacado?: number;
   tipoProducto?: string;
 };
 
 export type AdminProductRecord = {
   id: string;
+  sku?: string;
   nombre: string;
+  marca?: string;
+  contenido?: string;
   descripcion: string;
   precioVenta: number;
+  precioAnterior?: number;
   imageUrl?: string;
+  imageStoragePath?: string;
   badgeLabel?: string;
   costoUnitario: number;
   stockActual: number;
   stockAgenda: number;
+  stockReservado: number;
+  stockMinimo: number;
   activo: boolean;
+  esTop: boolean;
+  esOfertaSemana: boolean;
+  ordenDestacado?: number;
   tipoProducto: string;
   utilidadUnitaria: number;
 };
@@ -34,11 +57,22 @@ export type CustomerOrderLineInput = {
   cantidad: number;
 };
 
+/**
+ * Datos de despacho que hoy exige el negocio de perfumes. lugarTrabajo NO se
+ * usa como direccion: es un campo legado que solo aparece en flujos admin
+ * heredados (venta directa, pedido personalizado).
+ */
 export type CustomerOrderRequest = {
   nombre: string;
+  rut: string;
+  email: string;
   telefono: string;
-  lugarTrabajo: string;
-  fechaEntrega: string;
+  region: string;
+  comuna: string;
+  direccion: string;
+  referenciaDireccion?: string;
+  metodoDespacho: MetodoDespacho;
+  observacion?: string;
   items: CustomerOrderLineInput[];
   contactoOculto?: string;
 };
@@ -57,7 +91,14 @@ export type AdminDirectSaleRequest = {
 export type AdminCustomerOption = {
   id: string;
   nombre: string;
+  rut?: string;
+  email?: string;
   telefono: string;
+  region?: string;
+  comuna?: string;
+  direccion?: string;
+  referenciaDireccion?: string;
+  /** Legado de Pauli Store, compatibilidad temporal. */
   lugarTrabajo: string;
 };
 
@@ -72,20 +113,22 @@ export type CustomOrderRequest = {
   cantidad: number;
   precioAcordado: number;
   costoEstimadoTotal?: number;
-  fechaEntrega?: string;
-  estadoInicial: "PENDIENTE" | "AGENDADO" | "PAGADO" | "FIADO";
+  estadoInicial: "NUEVO" | "AGENDADO" | "PAGADO";
 };
 
 export type CustomerOrderResponse = {
   pedidoId: string;
+  codigo?: string;
   clienteId: string;
+  subtotal: number;
+  costoDespacho: number;
   total: number;
   estadoPedido: string;
   estadoPago: string;
-  fechaEntrega?: string;
+  metodoDespacho?: MetodoDespacho;
   origenPedido?: OrderOrigin;
   items: Array<{
-    productoId: string;
+    productoId: string | null;
     nombre: string;
     cantidad: number;
     precioUnitario: number;
@@ -97,7 +140,7 @@ export type CustomerOrderResponse = {
 };
 
 export type AdminOrderItemSummary = {
-  productoId: string;
+  productoId: string | null;
   productoNombre: string;
   cantidad: number;
   precioUnitario: number;
@@ -109,25 +152,35 @@ export type AdminOrderItemSummary = {
 
 export type AdminOrderSummary = {
   id: string;
+  codigo?: string;
   clienteId: string;
   clienteNombre: string;
   clienteTelefono: string;
   clienteLugarTrabajo: string;
+  clienteRut?: string;
+  clienteEmail?: string;
+  clienteRegion?: string;
+  clienteComuna?: string;
+  clienteDireccion?: string;
   productoId: string;
   productoNombre: string;
   cantidad: number;
   precioUnitario: number;
   subtotal: number;
   items: AdminOrderItemSummary[];
-  estadoPedido: string;
-  estadoPago: string;
+  estadoPedido: EstadoPedido | string;
+  estadoPago: EstadoPago | string;
+  metodoDespacho?: MetodoDespacho | string;
+  costoDespacho?: number;
   total: number;
   totalCost: number;
   grossProfit: number;
   fechaPedido: string;
-  fechaEntrega?: string;
   fechaAgendado?: string;
-  fechaCierre?: string;
+  fechaPago?: string;
+  fechaPreparacion?: string;
+  fechaDespacho?: string;
+  fechaEntrega?: string;
   fechaCancelacion?: string;
   motivoCancelacion?: string;
   totalPagado: number;
@@ -141,12 +194,17 @@ export type AdminOrderSummary = {
   adminSeenAt?: string;
   origenPedido?: OrderOrigin;
   observacion?: string;
+  stockRepuesto?: boolean;
 };
 
 export type AdminDashboardData = {
+  /** Pedidos en estado NUEVO (no confirmados aun). */
   pendientes: AdminOrderSummary[];
+  /** Pedidos en estado AGENDADO. */
   agendados: AdminOrderSummary[];
+  /** Pedidos en estado ENTREGADO (cierre exitoso del ciclo). */
   finalizados: AdminOrderSummary[];
+  /** Pedidos en estado CANCELADO. */
   cancelados: AdminOrderSummary[];
   fiadosPendientes: AdminOrderSummary[];
   pedidosNuevos: number;
@@ -185,9 +243,11 @@ export type AdminPushSubscriptionRecord = {
 
 export type AdminOrdersAction =
   | "agendar"
-  | "cancelar"
   | "pagado"
-  | "fiado"
+  | "preparando"
+  | "despachado"
+  | "entregado"
+  | "cancelar"
   | "abonar"
   | "visto";
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Cliente } from "@/domain/Cliente";
 import { Pedido } from "@/domain/Pedido";
+import { METODO_DESPACHO_DOMICILIO_SEMANAL, METODO_DESPACHO_STARKEN_POR_PAGAR } from "@/lib/constants";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import type { PedidoRepository } from "@/repositories/pedidoRepository";
 import type { ProductRepository } from "@/repositories/productRepository";
@@ -12,16 +13,16 @@ class ProductRepositoryStub implements ProductRepository {
   async buscarProductosActivos() {
     return [
       {
-        id: "pan-amasado",
-        nombre: "Pan amasado",
+        id: "perfume-1",
+        nombre: "Perfume floral",
         precioVenta: 500,
         stockActual: 20,
         stockAgenda: 20,
         activo: true
       },
       {
-        id: "queque",
-        nombre: "Queque",
+        id: "perfume-2",
+        nombre: "Perfume amaderado",
         precioVenta: 4500,
         stockActual: 10,
         stockAgenda: 10,
@@ -39,10 +40,10 @@ class ProductRepositoryStub implements ProductRepository {
   }
 
   async buscarProductoPorId(id: string) {
-    if (id === "pan-amasado") {
+    if (id === "perfume-1") {
       return {
-        id: "pan-amasado",
-        nombre: "Pan amasado",
+        id: "perfume-1",
+        nombre: "Perfume floral",
         precioVenta: 500,
         stockActual: 20,
         stockAgenda: 20,
@@ -50,10 +51,10 @@ class ProductRepositoryStub implements ProductRepository {
       };
     }
 
-    if (id === "queque") {
+    if (id === "perfume-2") {
       return {
-        id: "queque",
-        nombre: "Queque",
+        id: "perfume-2",
+        nombre: "Perfume amaderado",
         precioVenta: 4500,
         stockActual: 10,
         stockAgenda: 10,
@@ -176,7 +177,7 @@ class PedidoRepositoryStub implements PedidoRepository {
     observacion?: string;
   }) {
     this.pedidoRegistrado = args;
-    return { id: `pedido-${args.clienteId}` };
+    return { id: `pedido-${args.clienteId}`, codigo: "PS-TEST" };
   }
 
   async insertarPedidoItem() {
@@ -213,8 +214,25 @@ class PedidoRepositoryStub implements PedidoRepository {
   }
 }
 
+function baseCustomerOrderInput(
+  overrides: Partial<Parameters<PedidoService["crearPedido"]>[0]> = {}
+): Parameters<PedidoService["crearPedido"]>[0] {
+  return {
+    nombre: "Rodrigo",
+    rut: "11.111.111-1",
+    email: "rodrigo@example.com",
+    telefono: "999999999",
+    region: "Metropolitana",
+    comuna: "Providencia",
+    direccion: "Calle Falsa 123",
+    metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
+    items: [{ productoId: "perfume-1", cantidad: 2 }],
+    ...overrides
+  };
+}
+
 describe("PedidoService", () => {
-  it("recalcula y registra un pedido valido", async () => {
+  it("recalcula y registra un pedido valido en estado NUEVO/SIN_PAGO", async () => {
     const pedidoRepository = new PedidoRepositoryStub();
     const service = new PedidoService(
       new ProductRepositoryStub(),
@@ -222,24 +240,69 @@ describe("PedidoService", () => {
       pedidoRepository
     );
 
-    const result = await service.crearPedido({
-      nombre: "Rodrigo",
-      telefono: "999999999",
-      lugarTrabajo: "Finanzas",
-      fechaEntrega: "2026-06-13",
-      items: [
-        { productoId: "pan-amasado", cantidad: 2 },
-        { productoId: "queque", cantidad: 1 }
-      ]
-    });
+    const result = await service.crearPedido(
+      baseCustomerOrderInput({
+        items: [
+          { productoId: "perfume-1", cantidad: 2 },
+          { productoId: "perfume-2", cantidad: 1 }
+        ]
+      })
+    );
 
+    expect(result.subtotal).toBe(5500);
+    expect(result.costoDespacho).toBe(0);
     expect(result.total).toBe(5500);
-    expect(result.estadoPedido).toBe("PENDIENTE");
+    expect(result.estadoPedido).toBe("NUEVO");
     expect(result.estadoPago).toBe("SIN_PAGO");
     expect(result.items).toHaveLength(2);
     expect(result.items[0]?.precioUnitario).toBe(500);
     expect(pedidoRepository.itemsRegistrados).toBe(2);
     expect(result.clienteId).toBe("cliente-Rodrigo");
+  });
+
+  it("suma el costo de despacho a domicilio semanal una sola vez, no por producto", async () => {
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      new PedidoRepositoryStub()
+    );
+
+    const result = await service.crearPedido(
+      baseCustomerOrderInput({
+        metodoDespacho: METODO_DESPACHO_DOMICILIO_SEMANAL,
+        items: [
+          { productoId: "perfume-1", cantidad: 2 },
+          { productoId: "perfume-2", cantidad: 1 }
+        ]
+      })
+    );
+
+    expect(result.subtotal).toBe(5500);
+    expect(result.costoDespacho).toBe(4000);
+    expect(result.total).toBe(9500);
+  });
+
+  it("ignora cualquier precio o total enviado desde el navegador: usa el del repositorio", async () => {
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      new PedidoRepositoryStub()
+    );
+
+    const maliciousInput = {
+      ...baseCustomerOrderInput({ items: [{ productoId: "perfume-1", cantidad: 1 }] }),
+      // Campos que un cliente malicioso podria intentar inyectar; el tipo
+      // CustomerOrderRequest ni siquiera los declara, pero se envian igual
+      // para confirmar que el servicio no los usa en ningun calculo.
+      total: 1,
+      subtotal: 1,
+      precioVenta: 1
+    } as Parameters<PedidoService["crearPedido"]>[0];
+
+    const result = await service.crearPedido(maliciousInput);
+
+    expect(result.subtotal).toBe(500);
+    expect(result.total).toBe(500);
   });
 
   it("rechaza un producto inexistente o inactivo", async () => {
@@ -250,14 +313,22 @@ describe("PedidoService", () => {
     );
 
     await expect(
-      service.crearPedido({
-        nombre: "Rodrigo",
-        telefono: "999999999",
-        lugarTrabajo: "Finanzas",
-        fechaEntrega: "2026-06-13",
-        items: [{ productoId: "otro", cantidad: 1 }]
-      })
+      service.crearPedido(
+        baseCustomerOrderInput({ items: [{ productoId: "otro", cantidad: 1 }] })
+      )
     ).rejects.toThrow("Todos los items deben usar productos activos.");
+  });
+
+  it("rechaza un RUT invalido", async () => {
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      new PedidoRepositoryStub()
+    );
+
+    await expect(
+      service.crearPedido(baseCustomerOrderInput({ rut: "11.111.111-9" }))
+    ).rejects.toThrow();
   });
 
   it("normaliza el celular chileno antes de guardar", async () => {
@@ -285,13 +356,12 @@ describe("PedidoService", () => {
       new PedidoRepositoryStub()
     );
 
-    await service.crearPedido({
-      nombre: "Rodrigo",
-      telefono: "9 1234 5678",
-      lugarTrabajo: "Finanzas",
-      fechaEntrega: "2026-06-13",
-      items: [{ productoId: "pan-amasado", cantidad: 1 }]
-    });
+    await service.crearPedido(
+      baseCustomerOrderInput({
+        telefono: "9 1234 5678",
+        items: [{ productoId: "perfume-1", cantidad: 1 }]
+      })
+    );
 
     expect(telefonoGuardado).toBe("+56912345678");
   });
@@ -304,17 +374,13 @@ describe("PedidoService", () => {
     );
 
     await expect(
-      service.crearPedido({
-        nombre: "Rodrigo",
-        telefono: "999999999",
-        lugarTrabajo: "Finanzas",
-        fechaEntrega: "2026-06-13",
-        items: [{ productoId: "pan-amasado", cantidad: 21 }]
-      })
-    ).rejects.toThrow("El producto Pan amasado solo tiene 20 disponible(s).");
+      service.crearPedido(
+        baseCustomerOrderInput({ items: [{ productoId: "perfume-1", cantidad: 21 }] })
+      )
+    ).rejects.toThrow("Perfume floral solo tiene 20 disponible(s).");
   });
 
-  it("registra pedidos personalizados nuevos como pendientes cuando aun no se agendan", async () => {
+  it("registra pedidos personalizados nuevos como NUEVO cuando aun no se agendan", async () => {
     const pedidoRepository = new PedidoRepositoryStub();
     const service = new PedidoService(
       new ProductRepositoryStub(),
@@ -325,21 +391,20 @@ describe("PedidoService", () => {
     const result = await service.crearPedidoPersonalizado({
       nombre: "Claudia",
       telefono: "9 1234 5678",
-      lugarTrabajo: "Finanzas",
-      nombreProducto: "Queque especial",
-      descripcion: "Sin azucar",
+      nombreProducto: "Perfume especial",
+      descripcion: "Sin alcohol",
       cantidad: 1,
       precioAcordado: 12000,
-      estadoInicial: "PENDIENTE"
+      estadoInicial: "NUEVO"
     });
 
-    expect(result.estadoPedido).toBe("PENDIENTE");
+    expect(result.estadoPedido).toBe("NUEVO");
     expect(result.estadoPago).toBe("SIN_PAGO");
     expect(pedidoRepository.pedidoRegistrado?.pedido.fechaAgendado).toBeUndefined();
-    expect(pedidoRepository.pedidoRegistrado?.pedido.fechaCierre).toBeUndefined();
+    expect(pedidoRepository.pedidoRegistrado?.pedido.fechaPago).toBeUndefined();
   });
 
-  it("permite venta directa de producto inactivo sin descontar stock", async () => {
+  it("permite venta directa de producto inactivo sin descontar stock, entregada en el acto", async () => {
     const productRepository = new ProductRepositoryStub();
     const service = new PedidoService(
       productRepository,
@@ -354,7 +419,28 @@ describe("PedidoService", () => {
     });
 
     expect(result.total).toBe(6000);
+    expect(result.estadoPedido).toBe("ENTREGADO");
+    expect(result.estadoPago).toBe("PAGADO");
     expect(productRepository.stockAdjustments).toEqual([]);
+  });
+
+  it("venta directa fiada queda SIN_PAGO (no existe FIADO como estadoPago de pedidos)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      pedidoRepository
+    );
+
+    const result = await service.crearVentaDirecta({
+      nombre: "Cliente fiado",
+      items: [{ productoId: "perfume-1", cantidad: 1 }],
+      estadoPago: "FIADO",
+      clienteModo: "ocasional"
+    });
+
+    expect(result.estadoPedido).toBe("ENTREGADO");
+    expect(result.estadoPago).toBe("SIN_PAGO");
   });
 
   it("descuenta stock en pedido personalizado solo si el producto base lo controla", async () => {
@@ -367,14 +453,14 @@ describe("PedidoService", () => {
 
     await service.crearPedidoPersonalizado({
       nombre: "Claudia",
-      nombreProducto: "Pan amasado especial",
-      productoBaseId: "pan-amasado",
+      nombreProducto: "Perfume especial",
+      productoBaseId: "perfume-1",
       cantidad: 2,
       precioAcordado: 1500,
       estadoInicial: "PAGADO"
     });
 
-    expect(trackedRepository.stockAdjustments).toEqual([{ id: "pan-amasado", cantidad: -2 }]);
+    expect(trackedRepository.stockAdjustments).toEqual([{ id: "perfume-1", cantidad: -2 }]);
 
     trackedRepository.stockAdjustments = [];
 

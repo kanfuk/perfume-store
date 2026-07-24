@@ -3,81 +3,23 @@ type ProductVisualMeta = {
   badgeLabel: string;
 };
 
-const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {
-  "dobladita-solo-queso": {
-    imageUrl: "/images/products/dobladita-solo-queso.jpeg",
-    badgeLabel: "DOBLADITA QUESO"
-  },
-  "dobladita-jamon-pavo-queso": {
-    imageUrl: "/images/products/dobladita-jamon-pavo-queso.jpeg",
-    badgeLabel: "JAMON PAVO / QUESO"
-  },
-  "dobladita-jamon-de-pavo-acaramelado-queso": {
-    imageUrl: "/images/products/dobladita-jamon-pavo-queso.jpeg",
-    badgeLabel: "JAMON PAVO / QUESO"
-  },
-  "dobladita-napolitana": {
-    imageUrl: "/images/products/dobladita-napolitana.png",
-    badgeLabel: "Napolitana"
-  },
-  "dobladita-huevo": {
-    imageUrl: "/images/products/dobladita-huevo.jpeg",
-    badgeLabel: "DOBLADITA HUEVO"
-  },
-  "dobladita-ave-mayo": {
-    imageUrl: "/images/products/dobladita-ave-mayo.png",
-    badgeLabel: "AVE MAYO"
-  },
-  "dobladita-ave-pimenton": {
-    imageUrl: "/images/products/dobladita-ave-pimenton.jpeg",
-    badgeLabel: "PRECIO PENDIENTE"
-  },
-  "quequito-marmoleado": {
-    imageUrl: "/images/products/quequito-marmoleado.png",
-    badgeLabel: "QUEQUITO CASERO"
-  },
-  "quequito-banana-bread": {
-    imageUrl: "/images/products/quequito-banana-bread.png",
-    badgeLabel: "QUEQUITO CASERO"
-  },
-  "quequito-choco-chip-sugar-free": {
-    imageUrl: "/images/products/quequito-choco-chip-sugar-free.png",
-    badgeLabel: "SUGAR FREE"
-  },
-  "quequito-red-velvet": {
-    imageUrl: "/images/products/quequito-redvelvet.png",
-    badgeLabel: "QUEQUITO CASERO"
-  },
-  "quequito-red-velbet": {
-    imageUrl: "/images/products/quequito-redvelvet.png",
-    badgeLabel: "QUEQUITO CASERO"
-  },
-  "carrot-cake-nueces": {
-    imageUrl: "/images/products/carrot-cake-nueces.png",
-    badgeLabel: "QUEQUITO CASERO"
-  },
-  "queque-platano": {
-    imageUrl: "/images/products/queque-platano.png",
-    badgeLabel: "PRECIO PENDIENTE"
-  },
-  "queque-marmoleado": {
-    imageUrl: "/images/products/queque-marmoleado.png",
-    badgeLabel: "PRECIO PENDIENTE"
-  },
-  "pedido-personalizado": {
-    imageUrl: "/images/products/pedido-personalizado.png",
-    badgeLabel: "A PEDIDO"
-  },
-  "dobladita-reserva-ave-pimenton": {
-    imageUrl: "/images/products/dobladita-reserva-ave-pimenton.jpeg",
-    badgeLabel: "PRODUCTO CASERO"
-  }
+const DEFAULT_VISUAL: ProductVisualMeta = {
+  imageUrl: "",
+  badgeLabel: "PERFUME"
 };
+
+/**
+ * Punto de extension para asociar imagenes/etiquetas fijas a productos por id
+ * o nombre cuando el producto no trae su propio imageUrl/badgeLabel. Vacio a
+ * proposito: el mapa heredado de Pauli Store (fotos de dobladitas/quequitos)
+ * no aplica a un catalogo de perfumes y se elimino en la Fase 1B.
+ */
+const PRODUCT_VISUALS: Record<string, ProductVisualMeta> = {};
 
 function normalizeProductKey(value: string) {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -97,8 +39,5 @@ export function getProductVisualMeta(product: { id?: string; nombre?: string }) 
     }
   }
 
-  return {
-    imageUrl: "/images/products/pedido-personalizado.png",
-    badgeLabel: "PRODUCTO CASERO"
-  };
+  return DEFAULT_VISUAL;
 }

@@ -1,14 +1,15 @@
 /**
- * Proyecto: Pauli Store
+ * Proyecto: Perfume Store
  * Módulo: Validadores
  * Descripción: Validaciones de formulario y reglas básicas compartidas del negocio.
- * Autor: Equipo Pauli Store
  * Buenas prácticas: Código modular, validado y orientado a mantenibilidad.
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
  */
 
 import type { ProductoProps } from "@/domain/Producto";
 import { isValidChileanMobilePhone } from "@/lib/chile-phone";
+import { isMetodoDespacho, type MetodoDespacho } from "@/lib/constants";
+import { isValidChileanRut } from "@/lib/rut";
 import {
   canSellWithoutBreakingStock,
   getAvailableProductStock
@@ -19,11 +20,26 @@ import type {
   CustomerOrderLineInput
 } from "@/lib/types";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NOMBRE_MIN_LENGTH = 3;
+const NOMBRE_MAX_LENGTH = 120;
+const DIRECCION_MAX_LENGTH = 200;
+
+export function isValidEmail(value: string) {
+  return EMAIL_PATTERN.test(value.trim());
+}
+
 export type CustomerFormData = {
   nombre: string;
+  rut: string;
+  email: string;
   telefono: string;
-  lugarTrabajo: string;
-  fechaEntrega: string;
+  region: string;
+  comuna: string;
+  direccion: string;
+  referenciaDireccion?: string;
+  metodoDespacho: MetodoDespacho;
+  observacion?: string;
   items: CustomerOrderLineInput[];
   contactoOculto?: string;
 };
@@ -35,9 +51,26 @@ export function validateCustomerOrderForm(
   products: ProductoProps[]
 ) {
   const errors: CustomerFormErrors = {};
+  const nombre = data.nombre.trim();
 
-  if (!data.nombre.trim()) {
-    errors.nombre = "Ingresa tu nombre.";
+  if (!nombre) {
+    errors.nombre = "Ingresa tu nombre completo.";
+  } else if (nombre.length < NOMBRE_MIN_LENGTH) {
+    errors.nombre = "Ingresa tu nombre completo.";
+  } else if (nombre.length > NOMBRE_MAX_LENGTH) {
+    errors.nombre = "El nombre es demasiado largo.";
+  }
+
+  if (!data.rut.trim()) {
+    errors.rut = "Ingresa tu RUT.";
+  } else if (!isValidChileanRut(data.rut)) {
+    errors.rut = "Ingresa un RUT chileno válido. Ejemplo: 12.345.678-5.";
+  }
+
+  if (!data.email.trim()) {
+    errors.email = "Ingresa tu correo electrónico.";
+  } else if (!isValidEmail(data.email)) {
+    errors.email = "Ingresa un correo electrónico válido.";
   }
 
   if (!data.telefono.trim()) {
@@ -46,12 +79,22 @@ export function validateCustomerOrderForm(
     errors.telefono = "Ingresa un celular chileno válido. Ejemplo: +56 9 1234 5678.";
   }
 
-  if (!data.lugarTrabajo.trim()) {
-    errors.lugarTrabajo = "Ingresa tu lugar de trabajo.";
+  if (!data.region.trim()) {
+    errors.region = "Selecciona tu región.";
   }
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data.fechaEntrega)) {
-    errors.fechaEntrega = "Selecciona una fecha de entrega válida.";
+  if (!data.comuna.trim()) {
+    errors.comuna = "Selecciona tu comuna.";
+  }
+
+  if (!data.direccion.trim()) {
+    errors.direccion = "Ingresa tu dirección de despacho.";
+  } else if (data.direccion.trim().length > DIRECCION_MAX_LENGTH) {
+    errors.direccion = "La dirección es demasiado larga.";
+  }
+
+  if (!data.metodoDespacho || !isMetodoDespacho(data.metodoDespacho)) {
+    errors.metodoDespacho = "Selecciona un método de despacho.";
   }
 
   if (!Array.isArray(data.items) || data.items.length === 0) {
@@ -164,12 +207,8 @@ export function validateCustomOrderForm(
     errors.costoEstimadoTotal = "El costo estimado no puede ser negativo.";
   }
 
-  if (!["PENDIENTE", "AGENDADO", "PAGADO", "FIADO"].includes(data.estadoInicial)) {
+  if (!["NUEVO", "AGENDADO", "PAGADO"].includes(data.estadoInicial)) {
     errors.estadoInicial = "Selecciona el estado inicial del pedido.";
-  }
-
-  if (data.estadoInicial === "FIADO" && !data.nombre.trim()) {
-    errors.nombre = "Para registrar fiado, indica al menos el nombre del cliente.";
   }
 
   if (data.productoBaseId) {

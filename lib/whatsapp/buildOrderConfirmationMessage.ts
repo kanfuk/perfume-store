@@ -1,3 +1,5 @@
+import { METODO_DESPACHO_LABELS, type MetodoDespacho } from "@/lib/constants";
+
 export type OrderConfirmationMessageItem = {
   name: string;
   quantity: number;
@@ -5,9 +7,13 @@ export type OrderConfirmationMessageItem = {
 
 export type BuildOrderConfirmationMessageInput = {
   customerName?: string;
+  codigo?: string;
   items: OrderConfirmationMessageItem[];
+  subtotal?: number;
+  costoDespacho?: number;
   total?: number;
-  deliveryDateLabel?: string;
+  metodoDespacho?: MetodoDespacho;
+  direccion?: string;
 };
 
 function formatCurrencyValue(value: number) {
@@ -30,16 +36,33 @@ export function buildOrderConfirmationMessage(
   const lines = [
     header,
     "",
-    "Tu pedido en Pauli Store fue confirmado:",
+    input.codigo ? `Tu pedido ${input.codigo} fue confirmado:` : "Tu pedido fue confirmado:",
     "",
     ...itemLines
   ];
 
-  if (typeof input.total === "number" && Number.isFinite(input.total)) {
-    lines.push("", `Total: ${formatCurrencyValue(input.total)}`);
+  if (typeof input.subtotal === "number" && Number.isFinite(input.subtotal)) {
+    lines.push("", `Subtotal: ${formatCurrencyValue(input.subtotal)}`);
   }
 
-  lines.push(`Retiro/entrega: ${input.deliveryDateLabel?.trim() || "Por coordinar"}`);
+  if (input.metodoDespacho) {
+    const despachoLabel = METODO_DESPACHO_LABELS[input.metodoDespacho];
+    const despachoCosto =
+      typeof input.costoDespacho === "number" && input.costoDespacho > 0
+        ? formatCurrencyValue(input.costoDespacho)
+        : "Por pagar";
+    lines.push(`Despacho: ${despachoLabel} (${despachoCosto})`);
+  }
+
+  if (typeof input.total === "number" && Number.isFinite(input.total)) {
+    lines.push(`Total: ${formatCurrencyValue(input.total)}`);
+  }
+
+  if (input.direccion?.trim()) {
+    lines.push(`Direccion: ${input.direccion.trim()}`);
+  }
+
+  lines.push("", "Coordinaremos el pago por transferencia y el despacho por este medio.");
   lines.push("", "Gracias por tu compra.");
 
   return lines.join("\n");

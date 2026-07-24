@@ -30,7 +30,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { customerId } = await context.params;
     const body = (await request.json()) as {
       nombre?: string;
+      rut?: string;
+      email?: string;
       telefono?: string;
+      region?: string;
+      comuna?: string;
+      direccion?: string;
+      referenciaDireccion?: string;
       lugarTrabajo?: string;
     };
 
@@ -38,7 +44,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     const customer = await service.actualizarCliente({
       id: customerId,
       nombre: body.nombre ?? "",
+      rut: body.rut,
+      email: body.email,
       telefono: body.telefono ?? "",
+      region: body.region,
+      comuna: body.comuna,
+      direccion: body.direccion,
+      referenciaDireccion: body.referenciaDireccion,
       lugarTrabajo: body.lugarTrabajo ?? ""
     });
 

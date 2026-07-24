@@ -51,16 +51,25 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json()) as {
+      sku?: string;
       nombre: string;
+      marca?: string;
+      contenido?: string;
       descripcion?: string;
       precioVenta: number;
+      precioAnterior?: number;
       imageUrl?: string;
+      imageStoragePath?: string;
       badgeLabel?: string;
       costoUnitario?: number;
       stockActual?: number;
       stockAgenda?: number;
       stock?: number;
+      stockMinimo?: number;
       activo?: boolean;
+      esTop?: boolean;
+      esOfertaSemana?: boolean;
+      ordenDestacado?: number;
       tipoProducto?: string;
     };
     const normalizedStock = normalizeStockValue(body.stock ?? body.stockActual ?? body.stockAgenda ?? 0);

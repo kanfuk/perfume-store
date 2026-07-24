@@ -1,8 +1,7 @@
 /**
- * Proyecto: Pauli Store
+ * Proyecto: Perfume Store
  * Modulo: Gestion de Productos
  * Descripcion: Servicio encargado de exponer productos activos para el formulario cliente.
- * Autor: Equipo Pauli Store
  * Buenas practicas: Separacion de responsabilidades y validacion de estados.
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
  */
@@ -13,6 +12,28 @@ import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import type { AdminProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
+
+export type ProductoAdminInput = {
+  sku?: string;
+  nombre: string;
+  marca?: string;
+  contenido?: string;
+  descripcion?: string;
+  precioVenta: number;
+  precioAnterior?: number;
+  imageUrl?: string;
+  imageStoragePath?: string;
+  badgeLabel?: string;
+  costoUnitario?: number;
+  stockActual?: number;
+  stockAgenda?: number;
+  stockMinimo?: number;
+  activo?: boolean;
+  esTop?: boolean;
+  esOfertaSemana?: boolean;
+  ordenDestacado?: number;
+  tipoProducto?: string;
+};
 
 export class ProductoService {
   constructor(private readonly productRepository: ProductRepository) {}
@@ -28,17 +49,26 @@ export class ProductoService {
 
         return {
           id: product.id,
+          sku: product.sku,
           nombre: product.nombre,
+          marca: product.marca,
+          contenido: product.contenido,
           descripcion: product.descripcion,
           precioVenta: product.precioVenta,
+          precioAnterior: product.precioAnterior,
           imageUrl: product.imageUrl || visual.imageUrl,
           badgeLabel:
             product.badgeLabel ||
             visual.badgeLabel ||
             product.tipoProducto ||
-            "PRODUCTO CASERO",
+            "PERFUME",
           stockActual: getUnifiedProductStock(product),
           stockAgenda: getUnifiedProductStock(product),
+          stockReservado: product.stockReservado,
+          stockMinimo: product.stockMinimo,
+          esTop: product.esTop,
+          esOfertaSemana: product.esOfertaSemana,
+          ordenDestacado: product.ordenDestacado,
           tipoProducto: product.tipoProducto
         };
       });
@@ -53,116 +83,136 @@ export class ProductoService {
 
       return {
         id: domainProduct.id,
+        sku: domainProduct.sku,
         nombre: domainProduct.nombre,
+        marca: domainProduct.marca,
+        contenido: domainProduct.contenido,
         descripcion: domainProduct.descripcion,
         precioVenta: domainProduct.precioVenta,
+        precioAnterior: domainProduct.precioAnterior,
         imageUrl: domainProduct.imageUrl || visual.imageUrl,
+        imageStoragePath: domainProduct.imageStoragePath,
         badgeLabel:
           domainProduct.badgeLabel ||
           visual.badgeLabel ||
           domainProduct.tipoProducto ||
-          "PRODUCTO CASERO",
+          "PERFUME",
         costoUnitario: domainProduct.costoUnitario,
         stockActual: getUnifiedProductStock(domainProduct),
         stockAgenda: getUnifiedProductStock(domainProduct),
+        stockReservado: domainProduct.stockReservado,
+        stockMinimo: domainProduct.stockMinimo,
         activo: domainProduct.activo,
+        esTop: domainProduct.esTop,
+        esOfertaSemana: domainProduct.esOfertaSemana,
+        ordenDestacado: domainProduct.ordenDestacado,
         tipoProducto: domainProduct.tipoProducto,
         utilidadUnitaria: domainProduct.calcularUtilidadUnitaria()
       };
     });
   }
 
-  async crearProductoAdmin(input: {
-    nombre: string;
-    descripcion?: string;
-    precioVenta: number;
-    imageUrl?: string;
-    badgeLabel?: string;
-    costoUnitario?: number;
-    stockActual?: number;
-    stockAgenda?: number;
-    activo?: boolean;
-    tipoProducto?: string;
-  }) {
+  async crearProductoAdmin(input: ProductoAdminInput) {
+    const stock = normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0);
     const product = new Producto({
       id: crypto.randomUUID(),
+      sku: input.sku,
       nombre: input.nombre,
+      marca: input.marca,
+      contenido: input.contenido,
       descripcion: input.descripcion,
       precioVenta: input.precioVenta,
+      precioAnterior: input.precioAnterior,
       imageUrl: input.imageUrl,
+      imageStoragePath: input.imageStoragePath,
       badgeLabel: input.badgeLabel,
       costoUnitario: input.costoUnitario ?? 0,
-      stockActual: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0),
-      stockAgenda: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0),
-      activo: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? 0) > 0
-        ? input.activo ?? true
-        : false,
+      stockActual: stock,
+      stockAgenda: stock,
+      stockMinimo: input.stockMinimo ?? 0,
+      activo: stock > 0 ? input.activo ?? true : false,
+      esTop: input.esTop ?? false,
+      esOfertaSemana: input.esOfertaSemana ?? false,
+      ordenDestacado: input.ordenDestacado,
       tipoProducto: input.tipoProducto ?? "simple"
     });
 
     await this.productRepository.crearProducto({
       id: product.id,
+      sku: product.sku,
       nombre: product.nombre,
+      marca: product.marca,
+      contenido: product.contenido,
       descripcion: product.descripcion,
       precioVenta: product.precioVenta,
+      precioAnterior: product.precioAnterior,
       imageUrl: product.imageUrl,
+      imageStoragePath: product.imageStoragePath,
       badgeLabel: product.badgeLabel,
       costoUnitario: product.costoUnitario,
       stockActual: product.stockActual,
       stockAgenda: product.stockAgenda,
+      stockMinimo: product.stockMinimo,
       activo: product.activo,
+      esTop: product.esTop,
+      esOfertaSemana: product.esOfertaSemana,
+      ordenDestacado: product.ordenDestacado,
       tipoProducto: product.tipoProducto
     });
   }
 
-  async actualizarProductoAdmin(
-    id: string,
-    input: {
-      nombre: string;
-      descripcion?: string;
-      precioVenta: number;
-      imageUrl?: string;
-      badgeLabel?: string;
-      costoUnitario?: number;
-      stockActual?: number;
-      stockAgenda?: number;
-      activo?: boolean;
-      tipoProducto?: string;
-    }
-  ) {
+  async actualizarProductoAdmin(id: string, input: ProductoAdminInput) {
     const current = await this.productRepository.buscarProductoPorId(id);
 
     if (!current) {
       throw new Error("Producto no encontrado.");
     }
 
+    const stock = normalizeStockValue(
+      input.stockActual ?? input.stockAgenda ?? current.stockActual
+    );
     const domainProduct = new Producto({
       ...current,
+      sku: input.sku,
       nombre: input.nombre,
+      marca: input.marca,
+      contenido: input.contenido,
       descripcion: input.descripcion,
       precioVenta: input.precioVenta,
+      precioAnterior: input.precioAnterior,
       imageUrl: input.imageUrl,
+      imageStoragePath: input.imageStoragePath,
       badgeLabel: input.badgeLabel,
       costoUnitario: input.costoUnitario ?? 0,
-      stockActual: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual),
-      stockAgenda: normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual),
-      activo:
-        normalizeStockValue(input.stockActual ?? input.stockAgenda ?? current.stockActual) > 0
-          ? input.activo ?? true
-          : false,
+      stockActual: stock,
+      stockAgenda: stock,
+      stockMinimo: input.stockMinimo ?? current.stockMinimo ?? 0,
+      activo: stock > 0 ? input.activo ?? true : false,
+      esTop: input.esTop ?? current.esTop ?? false,
+      esOfertaSemana: input.esOfertaSemana ?? current.esOfertaSemana ?? false,
+      ordenDestacado: input.ordenDestacado,
       tipoProducto: input.tipoProducto ?? "simple"
     });
 
     await this.productRepository.actualizarProducto(id, {
+      sku: domainProduct.sku,
       nombre: domainProduct.nombre,
+      marca: domainProduct.marca,
+      contenido: domainProduct.contenido,
       descripcion: domainProduct.descripcion,
       precioVenta: domainProduct.precioVenta,
+      precioAnterior: domainProduct.precioAnterior,
       imageUrl: domainProduct.imageUrl,
+      imageStoragePath: domainProduct.imageStoragePath,
       badgeLabel: domainProduct.badgeLabel,
       costoUnitario: domainProduct.costoUnitario,
       stockActual: domainProduct.stockActual,
       stockAgenda: domainProduct.stockAgenda,
+      stockMinimo: domainProduct.stockMinimo,
       activo: domainProduct.activo,
+      esTop: domainProduct.esTop,
+      esOfertaSemana: domainProduct.esOfertaSemana,
+      ordenDestacado: domainProduct.ordenDestacado,
       tipoProducto: domainProduct.tipoProducto
     });
   }

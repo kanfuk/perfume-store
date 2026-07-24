@@ -125,6 +125,14 @@ import {
   getNewAdminOrders,
   getNewAdminOrdersCount
 } from "@/lib/admin/getPendingAdminOrders";
+import {
+  ESTADO_PAGO_LABELS,
+  ESTADO_PEDIDO_LABELS,
+  METODO_DESPACHO_LABELS,
+  type EstadoPago,
+  type EstadoPedido,
+  type MetodoDespacho
+} from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import {
   getNotificationPermissionState,
@@ -704,8 +712,14 @@ export function AdminDashboard({
       current.pendiente += order.saldoPendiente;
       current.totalComprado += order.total;
       current.pedidosActivos +=
-        order.estadoPedido === "PENDIENTE" || order.estadoPedido === "AGENDADO" ? 1 : 0;
-      current.pedidosFinalizados += order.estadoPedido === "FINALIZADO" ? 1 : 0;
+        order.estadoPedido === "NUEVO" || order.estadoPedido === "AGENDADO" ? 1 : 0;
+      current.pedidosFinalizados +=
+        order.estadoPedido === "PAGADO" ||
+        order.estadoPedido === "PREPARANDO" ||
+        order.estadoPedido === "DESPACHADO" ||
+        order.estadoPedido === "ENTREGADO"
+          ? 1
+          : 0;
       current.ultimoMovimiento =
         current.ultimoMovimiento > order.fechaPedido
           ? current.ultimoMovimiento
@@ -810,7 +824,7 @@ export function AdminDashboard({
 
   const reportOrders = useMemo(() => {
     return data.finalizados.filter((order) => {
-      const baseDate = order.fechaCierre ?? order.fechaEntrega ?? order.fechaPedido;
+      const baseDate = order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido;
       const dateOnly = baseDate.slice(0, 10);
 
       if (reportFrom && dateOnly < reportFrom) {
@@ -858,14 +872,15 @@ export function AdminDashboard({
       ventasPorCliente.set(customerKey, customer);
 
       order.items.forEach((item) => {
-        const product = ventasPorProducto.get(item.productoId) ?? {
+        const productKey = item.productoId ?? `sin-producto:${item.productoNombre}`;
+        const product = ventasPorProducto.get(productKey) ?? {
           nombre: item.productoNombre,
           unidades: 0,
           total: 0
         };
         product.unidades += item.cantidad;
         product.total += item.subtotal;
-        ventasPorProducto.set(item.productoId, product);
+        ventasPorProducto.set(productKey, product);
       });
     });
 
@@ -1077,8 +1092,7 @@ export function AdminDashboard({
         visible: statusFilter === "agendados",
         emptyText: "No hay pedidos agendados.",
         actions: [
-          { key: "pagado" as const, label: "Pagado", tone: "primary" as const },
-          { key: "fiado" as const, label: "Fiado", tone: "warning" as const },
+          { key: "pagado" as const, label: "Marcar pagado", tone: "primary" as const },
           { key: "cancelar" as const, label: "Cancelar", tone: "muted" as const }
         ]
       },
@@ -1448,11 +1462,8 @@ export function AdminDashboard({
     }
   }
 
-  function handleOrderAgendaWhatsApp(
-    order: AdminOrderSummary,
-    deliveryDateValue?: string
-  ) {
-    const message = buildScheduledOrderMessage(order, deliveryDateValue);
+  function handleOrderAgendaWhatsApp(order: AdminOrderSummary) {
+    const message = buildScheduledOrderMessage(order);
     const openResult = openWhatsAppSafe(order.clienteTelefono, message);
 
     if (openResult.status === "invalid-phone") {
@@ -1529,13 +1540,12 @@ export function AdminDashboard({
     action: AdminOrdersAction,
     order?: AdminOrderSummary,
     payload?: {
-      fechaEntrega?: string;
       motivoCancelacion?: string;
       monto?: number;
       metodoPago?: string;
     }
     ) {
-    let scheduledOrderData: { order: AdminOrderSummary; deliveryDateValue?: string } | null = null;
+    let scheduledOrderData: { order: AdminOrderSummary } | null = null;
 
     try {
       setBusyOrderId(pedidoId);
@@ -1564,10 +1574,7 @@ export function AdminDashboard({
 
       if (action === "agendar" && order) {
         returnToOrdersListAfterSchedule();
-        scheduledOrderData = {
-          order,
-          deliveryDateValue: payload?.fechaEntrega
-        };
+        scheduledOrderData = { order };
       }
     } catch (currentError) {
       setError(
@@ -1583,10 +1590,7 @@ export function AdminDashboard({
     if (scheduledOrderData) {
       window.requestAnimationFrame(() => {
         window.setTimeout(() => {
-          handleOrderAgendaWhatsApp(
-            scheduledOrderData.order,
-            scheduledOrderData.deliveryDateValue
-          );
+          handleOrderAgendaWhatsApp(scheduledOrderData.order);
         }, 0);
       });
     }
@@ -2398,7 +2402,6 @@ export function AdminDashboard({
                     order={order}
                     busy={busyOrderId === order.id}
                     onPaid={() => void runAction(order.id, "pagado")}
-                    onFiado={() => void runAction(order.id, "fiado")}
                   />
                 ))}
               </div>
@@ -3337,10 +3340,13 @@ function OrderSection({
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
-                  <StatusBadge tone="pedido" label={order.estadoPedido} />
                   <StatusBadge
-                    tone={order.estadoPago === "FIADO" ? "warning" : "neutral"}
-                    label={order.estadoPago}
+                    tone="pedido"
+                    label={ESTADO_PEDIDO_LABELS[order.estadoPedido as EstadoPedido] ?? order.estadoPedido}
+                  />
+                  <StatusBadge
+                    tone={order.estadoPago === "SIN_PAGO" && order.saldoPendiente > 0 ? "warning" : "neutral"}
+                    label={ESTADO_PAGO_LABELS[order.estadoPago as EstadoPago] ?? order.estadoPago}
                   />
                 </div>
               </div>
@@ -3448,15 +3454,35 @@ function OrderDetailPanel({
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-bold text-emerald-950">{order.clienteNombre}</h2>
-          <StatusBadge tone="pedido" label={order.estadoPedido} />
           <StatusBadge
-            tone={order.estadoPago === "FIADO" ? "warning" : "neutral"}
-            label={order.estadoPago}
+            tone="pedido"
+            label={ESTADO_PEDIDO_LABELS[order.estadoPedido as EstadoPedido] ?? order.estadoPedido}
           />
-          {order.adminSeen === false ? <StatusBadge tone="warning" label="NUEVO" /> : null}
+          <StatusBadge
+            tone={order.estadoPago === "SIN_PAGO" && order.saldoPendiente > 0 ? "warning" : "neutral"}
+            label={ESTADO_PAGO_LABELS[order.estadoPago as EstadoPago] ?? order.estadoPago}
+          />
+          {order.adminSeen === false ? <StatusBadge tone="warning" label="SIN VER" /> : null}
         </div>
-        <div className="text-sm text-emerald-900/70">
-          {order.clienteLugarTrabajo || "Sin lugar de entrega"}
+        <div className="grid gap-1 text-sm text-emerald-900/70 sm:grid-cols-2">
+          {order.clienteRut ? <div>RUT: {order.clienteRut}</div> : null}
+          {order.clienteEmail ? <div>{order.clienteEmail}</div> : null}
+          {order.clienteDireccion ? (
+            <div className="sm:col-span-2">
+              {order.clienteDireccion}
+              {order.clienteComuna ? `, ${order.clienteComuna}` : ""}
+              {order.clienteRegion ? `, ${order.clienteRegion}` : ""}
+            </div>
+          ) : (
+            <div className="sm:col-span-2">{order.clienteLugarTrabajo || "Sin direccion registrada"}</div>
+          )}
+          {order.metodoDespacho ? (
+            <div>
+              Despacho: {METODO_DESPACHO_LABELS[order.metodoDespacho as MetodoDespacho] ?? order.metodoDespacho}
+              {" · "}
+              {order.costoDespacho ? formatCurrency(order.costoDespacho) : "Por pagar"}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -3676,13 +3702,11 @@ function GroupedDebtCollectionButton({
 function PaymentOrderCard({
   order,
   busy,
-  onPaid,
-  onFiado
+  onPaid
 }: {
   order: AdminOrderSummary;
   busy: boolean;
   onPaid: () => void;
-  onFiado: () => void;
 }) {
   return (
     <article className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
@@ -3704,7 +3728,7 @@ function PaymentOrderCard({
           </div>
           <StatusBadge
             tone="neutral"
-            label={order.fechaEntrega ? formatDateOnly(order.fechaEntrega) : "Sin fecha"}
+            label={order.fechaAgendado ? formatShortDateTime(order.fechaAgendado) : "Sin agendar"}
           />
         </div>
 
@@ -3713,22 +3737,14 @@ function PaymentOrderCard({
           <MiniMetric label="Teléfono" value={order.clienteTelefono || "-"} />
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-1">
           <button
             type="button"
             disabled={busy}
             onClick={onPaid}
             className={`${buttonToneClass("primary")} w-full justify-center`}
           >
-            {busy ? "Procesando..." : "Marcar pagado"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onFiado}
-            className={`${buttonToneClass("warning")} w-full justify-center`}
-          >
-            {busy ? "Procesando..." : "Dejar fiado"}
+            {busy ? "Procesando..." : "Marcar transferencia pagada"}
           </button>
         </div>
         <DebtCollectionButton order={order} />
@@ -3747,7 +3763,6 @@ function AdminActionModal({
   busy: boolean;
   onClose: () => void;
   onConfirm: (payload: {
-    fechaEntrega?: string;
     motivoCancelacion?: string;
     monto?: number;
     metodoPago?: string;
@@ -3760,9 +3775,6 @@ function AdminActionModal({
     state.type === "abonar" ? String(state.order.saldoPendiente) : ""
   );
   const [method, setMethod] = useState("EFECTIVO");
-  const [deliveryDate, setDeliveryDate] = useState(
-    state.type === "agendar" ? todayDateValue() : ""
-  );
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-emerald-950/20 px-4 py-4">
@@ -3789,15 +3801,10 @@ function AdminActionModal({
 
         <div className="mt-4 space-y-4">
           {state.type === "agendar" ? (
-            <label className="block min-w-0 max-w-full space-y-2 overflow-hidden">
-              <span className="text-sm font-semibold text-emerald-900">Fecha de entrega</span>
-              <input
-                type="date"
-                value={deliveryDate}
-                onChange={(event) => setDeliveryDate(event.target.value)}
-                className="block min-h-11 w-full min-w-0 max-w-full appearance-none rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-3 text-[16px] text-emerald-950"
-              />
-            </label>
+            <p className="text-sm text-emerald-900/70">
+              El pedido pasa a AGENDADO. La fecha y sucursal de despacho se coordinan por
+              WhatsApp, no se elige aqui.
+            </p>
           ) : null}
 
           {state.type === "cancelar" ? (
@@ -3854,17 +3861,17 @@ function AdminActionModal({
             disabled={busy}
             onClick={() =>
               onConfirm(
-                state.type === "agendar"
-                  ? { fechaEntrega: deliveryDate }
-                  : state.type === "cancelar"
+                state.type === "cancelar"
+                  ? {
+                      motivoCancelacion:
+                        reason.trim() || "Cancelado por administrador"
+                    }
+                  : state.type === "abonar"
                     ? {
-                        motivoCancelacion:
-                          reason.trim() || "Cancelado por administrador"
-                      }
-                    : {
                         monto: Number(amount),
                         metodoPago: method
                       }
+                    : {}
               )
             }
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
@@ -4667,11 +4674,7 @@ function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
 }
 
 function getDebtCollectionAction(order: AdminOrderSummary) {
-  if (
-    order.saldoPendiente <= 0 &&
-    order.estadoPago !== "FIADO" &&
-    order.estadoPago !== "SIN_PAGO"
-  ) {
+  if (order.saldoPendiente <= 0 && order.estadoPago !== "SIN_PAGO") {
     return null;
   }
 
@@ -4757,10 +4760,10 @@ function getNewOrderAdminWhatsAppUrl(order: AdminOrderSummary) {
   return buildWhatsAppShareUrl(
     buildAdminOrderAlertMessage({
       customerName: order.clienteNombre,
-      deliveryDateLabel: order.fechaEntrega
-        ? formatDateOnly(order.fechaEntrega)
-        : "Por coordinar",
+      codigo: order.codigo,
       total: order.total,
+      metodoDespacho: order.metodoDespacho as MetodoDespacho | undefined,
+      costoDespacho: order.costoDespacho,
       items: order.items.map((item) => ({
         name: item.productoNombre,
         quantity: item.cantidad
@@ -4770,45 +4773,39 @@ function getNewOrderAdminWhatsAppUrl(order: AdminOrderSummary) {
 }
 
 function shouldShowOrderWhatsAppAction(order: AdminOrderSummary) {
-  return order.estadoPedido === "AGENDADO" || order.estadoPedido === "FINALIZADO";
+  return order.estadoPedido !== "NUEVO" && order.estadoPedido !== "CANCELADO";
 }
 
-function getOrderWhatsAppNotification(
-  order: AdminOrderSummary,
-  deliveryDateValue?: string
-) {
+function getOrderWhatsAppNotification(order: AdminOrderSummary) {
   return notificationService.prepareOrderConfirmationNotification({
     customerName: order.clienteNombre,
     customerPhone: order.clienteTelefono,
+    codigo: order.codigo,
     items: order.items.map((item) => ({
       name: item.productoNombre,
       quantity: item.cantidad
     })),
+    subtotal: order.total - (order.costoDespacho ?? 0),
+    costoDespacho: order.costoDespacho,
     total: order.total,
-    deliveryDateLabel: deliveryDateValue
-      ? formatDateOnly(deliveryDateValue)
-      : order.fechaEntrega
-        ? formatDateOnly(order.fechaEntrega)
-        : "Por coordinar"
+    metodoDespacho: order.metodoDespacho as MetodoDespacho | undefined,
+    direccion: order.clienteDireccion
   });
 }
 
-function buildScheduledOrderMessage(
-  order: AdminOrderSummary,
-  deliveryDateValue?: string
-) {
+function buildScheduledOrderMessage(order: AdminOrderSummary) {
   return buildOrderConfirmationMessage({
     customerName: order.clienteNombre,
+    codigo: order.codigo,
     items: order.items.map((item) => ({
       name: item.productoNombre,
       quantity: item.cantidad
     })),
+    subtotal: order.total - (order.costoDespacho ?? 0),
+    costoDespacho: order.costoDespacho,
     total: order.total,
-    deliveryDateLabel: deliveryDateValue
-      ? formatDateOnly(deliveryDateValue)
-      : order.fechaEntrega
-        ? formatDateOnly(order.fechaEntrega)
-        : "Por coordinar"
+    metodoDespacho: order.metodoDespacho as MetodoDespacho | undefined,
+    direccion: order.clienteDireccion
   });
 }
 

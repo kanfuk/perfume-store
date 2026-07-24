@@ -72,14 +72,13 @@ export class AdminMaintenanceService {
   }
 
   private closeLocalMonth(admin: MaintenanceAdmin): AdminMaintenanceResult {
-    const hasPendingWork = localStore.orders.some(
-      (order) =>
-        order.estadoPedido === "PENDIENTE" || order.estadoPedido === "AGENDADO"
+    const hasOpenWork = localStore.orders.some(
+      (order) => order.estadoPedido !== "ENTREGADO" && order.estadoPedido !== "CANCELADO"
     );
 
-    if (hasPendingWork) {
+    if (hasOpenWork) {
       throw new Error(
-        "No se puede cerrar el mes mientras existan pedidos pendientes o agendados."
+        "No se puede cerrar el mes mientras existan pedidos abiertos (no entregados ni cancelados)."
       );
     }
 

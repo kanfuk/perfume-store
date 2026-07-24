@@ -79,7 +79,7 @@ const initialCustomForm = {
   precioAcordado: "",
   costoEstimadoTotal: "",
   fechaEntrega: "",
-  estadoInicial: "PENDIENTE" as "PENDIENTE" | "AGENDADO" | "PAGADO" | "FIADO"
+  estadoInicial: "NUEVO" as "NUEVO" | "AGENDADO" | "PAGADO"
 };
 
 const QUICK_QUANTITY_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20] as const;
@@ -582,13 +582,19 @@ export function AdminDirectSale({
           lugarTrabajo: customForm.lugarTrabajo,
           nombreProducto: customForm.nombreProducto,
           productoBaseId: customForm.productoBaseId || undefined,
-          descripcion: customForm.descripcion,
+          descripcion: [
+            customForm.descripcion.trim(),
+            customForm.fechaEntrega
+              ? `Fecha de entrega solicitada: ${customForm.fechaEntrega}`
+              : undefined
+          ]
+            .filter(Boolean)
+            .join(" | "),
           cantidad: Number(customForm.cantidad),
           precioAcordado: Number(customForm.precioAcordado),
           costoEstimadoTotal: customForm.costoEstimadoTotal.trim()
             ? Number(customForm.costoEstimadoTotal)
             : undefined,
-          fechaEntrega: customForm.fechaEntrega || undefined,
           estadoInicial: customForm.estadoInicial
         })
       });
@@ -1172,13 +1178,13 @@ export function AdminDirectSale({
 
               <div className="space-y-3">
                 <div className="text-sm font-medium text-[#1f3328]">Estado inicial del pedido</div>
-                  <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-4">
+                  <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
                   <ChoiceButton
-                    active={customForm.estadoInicial === "PENDIENTE"}
-                    title="Pendiente"
-                    text="Queda PENDIENTE / SIN_PAGO."
+                    active={customForm.estadoInicial === "NUEVO"}
+                    title="Nuevo"
+                    text="Queda NUEVO / SIN_PAGO."
                     onClick={() =>
-                      setCustomForm((current) => ({ ...current, estadoInicial: "PENDIENTE" }))
+                      setCustomForm((current) => ({ ...current, estadoInicial: "NUEVO" }))
                     }
                   />
                   <ChoiceButton
@@ -1192,17 +1198,9 @@ export function AdminDirectSale({
                   <ChoiceButton
                     active={customForm.estadoInicial === "PAGADO"}
                     title="Pagado"
-                    text="Queda FINALIZADO / PAGADO."
+                    text="Queda PAGADO / PAGADO."
                     onClick={() =>
                       setCustomForm((current) => ({ ...current, estadoInicial: "PAGADO" }))
-                    }
-                  />
-                  <ChoiceButton
-                    active={customForm.estadoInicial === "FIADO"}
-                    title="Fiado"
-                    text="Queda FINALIZADO / FIADO."
-                    onClick={() =>
-                      setCustomForm((current) => ({ ...current, estadoInicial: "FIADO" }))
                     }
                   />
                 </div>
@@ -1238,13 +1236,11 @@ export function AdminDirectSale({
                 <SummaryFact
                   label="Estado"
                   value={
-                    customForm.estadoInicial === "PENDIENTE"
-                      ? "PENDIENTE / SIN_PAGO"
+                    customForm.estadoInicial === "NUEVO"
+                      ? "NUEVO / SIN_PAGO"
                       : customForm.estadoInicial === "AGENDADO"
                       ? "AGENDADO / SIN_PAGO"
-                      : customForm.estadoInicial === "PAGADO"
-                        ? "FINALIZADO / PAGADO"
-                        : "FINALIZADO / FIADO"
+                      : "PAGADO / PAGADO"
                   }
                 />
                 <SummaryFact

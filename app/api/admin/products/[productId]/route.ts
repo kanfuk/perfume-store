@@ -27,16 +27,25 @@ export async function PATCH(
   try {
     const body = (await request.json()) as {
       mode?: "update" | "toggle";
+      sku?: string;
       nombre?: string;
+      marca?: string;
+      contenido?: string;
       descripcion?: string;
       precioVenta?: number;
+      precioAnterior?: number;
       imageUrl?: string;
+      imageStoragePath?: string;
       badgeLabel?: string;
       costoUnitario?: number;
       stockActual?: number;
       stockAgenda?: number;
       stock?: number;
+      stockMinimo?: number;
       activo?: boolean;
+      esTop?: boolean;
+      esOfertaSemana?: boolean;
+      ordenDestacado?: number;
       tipoProducto?: string;
     };
     const { productId } = await context.params;
@@ -49,15 +58,24 @@ export async function PATCH(
         body.stock ?? body.stockActual ?? body.stockAgenda ?? 0
       );
       await productoService.actualizarProductoAdmin(productId, {
+        sku: body.sku,
         nombre: body.nombre ?? "",
+        marca: body.marca,
+        contenido: body.contenido,
         descripcion: body.descripcion ?? "",
         precioVenta: body.precioVenta ?? 0,
+        precioAnterior: body.precioAnterior,
         imageUrl: body.imageUrl ?? "",
+        imageStoragePath: body.imageStoragePath,
         badgeLabel: body.badgeLabel ?? "",
         costoUnitario: body.costoUnitario ?? 0,
         stockActual: normalizedStock,
         stockAgenda: normalizedStock,
+        stockMinimo: body.stockMinimo,
         activo: body.activo ?? true,
+        esTop: body.esTop,
+        esOfertaSemana: body.esOfertaSemana,
+        ordenDestacado: body.ordenDestacado,
         tipoProducto: body.tipoProducto ?? "simple"
       });
     }

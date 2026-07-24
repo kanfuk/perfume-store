@@ -1,36 +1,42 @@
+/**
+ * Proyecto: Perfume Store
+ * Modulo: Identidad de clientes
+ * Descripcion: Normalizacion generica para detectar clientes duplicados.
+ *
+ * Estrategia (en orden de confianza):
+ *   1. telefono normalizado
+ *   2. RUT normalizado (cuando exista)
+ *   3. correo normalizado (cuando exista)
+ *   4. nombre normalizado, solo como apoyo, nunca como identidad suficiente por si sola
+ *
+ * No contiene nombres reales de clientes. La implementacion heredada contenia
+ * alias especificos del negocio anterior. Esta version utiliza identificadores
+ * normalizados y genericos.
+ */
+
 export function normalizeCustomerLookupValue(value: string) {
   return String(value || "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
 }
 
 export function normalizeCustomerDisplayName(value: string) {
-  const normalized = normalizeCustomerLookupValue(value);
-
-  if (normalized === "paty" || normalized === "patricia diaz") {
-    return "Patricia Diaz";
-  }
-
-  if (normalized === "loreto looez" || normalized === "loreto lopez") {
-    return "Loreto Lopez";
-  }
-
-  if (
-    normalized === "yo" ||
-    normalized === "cliente ocasional" ||
-    normalized === "pauli"
-  ) {
-    return "Pauli";
-  }
-
-  if (normalized === "camila montes") {
-    return "Camila Montes";
-  }
-
   return value.trim();
+}
+
+export function normalizeCustomerPhoneKey(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+export function normalizeCustomerRutKey(value: string) {
+  return value.replace(/[^0-9kK]/g, "").toUpperCase();
+}
+
+export function normalizeCustomerEmailKey(value: string) {
+  return value.trim().toLowerCase();
 }
 
 export function isWeakCustomerWorkplaceName(value: string) {
@@ -43,4 +49,3 @@ export function isWeakCustomerWorkplaceName(value: string) {
     normalized === "pedido personalizado"
   );
 }
-

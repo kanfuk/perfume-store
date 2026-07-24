@@ -1,8 +1,7 @@
 /**
- * Proyecto: Pauli Store
+ * Proyecto: Perfume Store
  * Modulo: Repositorio de Pedidos
  * Descripcion: Persistencia de pedidos e items en memoria local o Supabase.
- * Autor: Equipo Pauli Store
  * Buenas practicas: Codigo modular, validado y orientado a mantenibilidad.
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
  */
@@ -16,10 +15,16 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PedidoListItemRecord = {
   id: string;
+  codigo?: string;
   clienteId: string;
   clienteNombre: string;
   clienteTelefono: string;
   clienteLugarTrabajo: string;
+  clienteRut?: string;
+  clienteEmail?: string;
+  clienteRegion?: string;
+  clienteComuna?: string;
+  clienteDireccion?: string;
   productoId: string;
   productoNombre: string;
   cantidad: number;
@@ -28,17 +33,22 @@ export type PedidoListItemRecord = {
   items: AdminOrderItemSummary[];
   estadoPedido: string;
   estadoPago: string;
+  metodoDespacho?: string;
+  costoDespacho?: number;
   adminSeen?: boolean;
   adminSeenAt?: string;
   origenPedido?: string;
   total: number;
   observacion?: string;
   fechaPedido: string;
-  fechaEntrega?: string;
   fechaAgendado?: string;
-  fechaCierre?: string;
+  fechaPago?: string;
+  fechaPreparacion?: string;
+  fechaDespacho?: string;
+  fechaEntrega?: string;
   fechaCancelacion?: string;
   motivoCancelacion?: string;
+  stockRepuesto?: boolean;
 };
 
 export type PedidoPagoRecord = {
@@ -66,15 +76,11 @@ export interface PedidoRepository {
     clienteId: string;
     origenPedido?: string;
     observacion?: string;
-  }): Promise<{ id: string }>;
+  }): Promise<{ id: string; codigo?: string }>;
   insertarPedidoItem(args: {
     pedidoId: string;
     item: DetallePedido;
-    productoId?: string;
-    productoNombre?: string;
-    productoDescripcion?: string;
-    productoImageUrl?: string;
-    productoTipo?: string;
+    productoId?: string | null;
   }): Promise<{ id: string }>;
   buscarPedidosPorEstado(estadoPedido: string): Promise<PedidoListItemRecord[]>;
   actualizarEstadoPedido(args: {
@@ -83,11 +89,14 @@ export interface PedidoRepository {
     estadoPago?: string;
     adminSeen?: boolean;
     adminSeenAt?: string;
-    fechaEntrega?: string;
     fechaAgendado?: string;
-    fechaCierre?: string;
+    fechaPago?: string;
+    fechaPreparacion?: string;
+    fechaDespacho?: string;
+    fechaEntrega?: string;
     fechaCancelacion?: string;
     motivoCancelacion?: string;
+    stockRepuesto?: boolean;
   }): Promise<void>;
   actualizarClientePedido(args: { pedidoId: string; clienteId: string }): Promise<void>;
   buscarPagosPorPedidoIds(pedidoIds: string[]): Promise<PedidoPagoRecord[]>;
@@ -122,41 +131,53 @@ class MemoryPedidoRepository implements PedidoRepository {
     observacion?: string;
   }) {
     const id = crypto.randomUUID();
+    const codigo = pedido.codigo ?? `PS-${id.slice(0, 8).toUpperCase()}`;
+
     localStore.orders.push({
       id,
+      codigo,
       clienteId,
       estadoPedido: pedido.estadoPedido,
       estadoPago: pedido.estadoPago,
-      adminSeen: false,
-      adminSeenAt: undefined,
       origenPedido,
+      subtotal: pedido.subtotal,
+      metodoDespacho: pedido.metodoDespacho,
+      costoDespacho: pedido.costoDespacho,
       total: pedido.total,
       observacion,
+      motivoCancelacion: pedido.motivoCancelacion,
+      stockRepuesto: pedido.stockRepuesto,
+      adminSeen: false,
+      adminSeenAt: undefined,
       fechaPedido: pedido.fechaPedido.toISOString(),
-      fechaEntrega: pedido.fechaEntrega?.toISOString().slice(0, 10)
+      fechaAgendado: pedido.fechaAgendado?.toISOString(),
+      fechaPago: pedido.fechaPago?.toISOString(),
+      fechaPreparacion: pedido.fechaPreparacion?.toISOString(),
+      fechaDespacho: pedido.fechaDespacho?.toISOString(),
+      fechaEntrega: pedido.fechaEntrega?.toISOString(),
+      fechaCancelacion: pedido.fechaCancelacion?.toISOString()
     });
 
-    return { id };
+    return { id, codigo };
   }
 
   async insertarPedidoItem(args: {
     pedidoId: string;
     item: DetallePedido;
-    productoId?: string;
-    productoNombre?: string;
-    productoDescripcion?: string;
-    productoImageUrl?: string;
-    productoTipo?: string;
+    productoId?: string | null;
   }) {
     const id = crypto.randomUUID();
     localStore.orderItems.push({
       id,
       pedidoId: args.pedidoId,
-      productoId: args.productoId,
-      productoNombre: args.productoNombre,
-      productoDescripcion: args.productoDescripcion,
-      productoImageUrl: args.productoImageUrl,
-      productoTipo: args.productoTipo,
+      productoId: args.productoId ?? args.item.producto.id ?? null,
+      productoSku: args.item.producto.sku,
+      productoNombre: args.item.producto.nombre,
+      productoMarca: args.item.producto.marca,
+      productoContenido: args.item.producto.contenido,
+      productoDescripcion: args.item.producto.descripcion,
+      productoImageUrl: args.item.producto.imageUrl,
+      productoTipo: args.item.producto.tipoProducto,
       cantidad: args.item.cantidad,
       precioUnitario: args.item.precioUnitario,
       costoUnitario: args.item.producto.costoUnitario,
@@ -177,28 +198,18 @@ class MemoryPedidoRepository implements PedidoRepository {
           (item) => item.id === order.clienteId
         );
         const orderItems = localStore.orderItems.filter((item) => item.pedidoId === order.id);
-        const normalizedItems = orderItems.map((orderItem) => {
-          const product = orderItem.productoId
-            ? localStore.products.find((item) => item.id === orderItem.productoId)
-            : null;
-
-          return {
-            productoId: orderItem.productoId ?? `custom-${orderItem.id}`,
-            productoNombre: orderItem.productoNombre ?? product?.nombre ?? "Producto",
-            cantidad: orderItem.cantidad,
-            precioUnitario: orderItem.precioUnitario,
-            costoUnitario: orderItem.costoUnitario ?? product?.costoUnitario ?? 0,
-            costoTotal:
-              orderItem.costoTotal ??
-              (orderItem.costoUnitario ?? product?.costoUnitario ?? 0) * orderItem.cantidad,
-            utilidadBruta:
-              orderItem.utilidadBruta ??
-              orderItem.subtotal -
-                (orderItem.costoTotal ??
-                  (orderItem.costoUnitario ?? product?.costoUnitario ?? 0) * orderItem.cantidad),
-            subtotal: orderItem.subtotal
-          };
-        });
+        const normalizedItems: AdminOrderItemSummary[] = orderItems.map((orderItem) => ({
+          productoId: orderItem.productoId ?? null,
+          productoNombre: orderItem.productoNombre ?? "Producto",
+          cantidad: orderItem.cantidad,
+          precioUnitario: orderItem.precioUnitario,
+          costoUnitario: orderItem.costoUnitario ?? 0,
+          costoTotal: orderItem.costoTotal ?? orderItem.costoUnitario * orderItem.cantidad,
+          utilidadBruta:
+            orderItem.utilidadBruta ??
+            orderItem.subtotal - orderItem.costoUnitario * orderItem.cantidad,
+          subtotal: orderItem.subtotal
+        }));
         const firstItem = normalizedItems[0];
 
         if (!customer || normalizedItems.length === 0) {
@@ -207,10 +218,16 @@ class MemoryPedidoRepository implements PedidoRepository {
 
         return {
           id: order.id,
+          codigo: order.codigo,
           clienteId: order.clienteId,
           clienteNombre: customer.nombre,
           clienteTelefono: customer.telefono,
           clienteLugarTrabajo: customer.lugarTrabajo,
+          clienteRut: customer.rut,
+          clienteEmail: customer.email,
+          clienteRegion: customer.region,
+          clienteComuna: customer.comuna,
+          clienteDireccion: customer.direccion,
           productoId: firstItem?.productoId ?? "",
           productoNombre:
             normalizedItems.length > 1
@@ -222,17 +239,22 @@ class MemoryPedidoRepository implements PedidoRepository {
           items: normalizedItems,
           estadoPedido: order.estadoPedido,
           estadoPago: order.estadoPago,
+          metodoDespacho: order.metodoDespacho,
+          costoDespacho: order.costoDespacho,
           adminSeen: order.adminSeen ?? false,
           adminSeenAt: order.adminSeenAt,
           origenPedido: order.origenPedido,
           total: order.total,
           observacion: order.observacion,
           fechaPedido: order.fechaPedido,
-          fechaEntrega: order.fechaEntrega,
           fechaAgendado: order.fechaAgendado,
-          fechaCierre: order.fechaCierre,
+          fechaPago: order.fechaPago,
+          fechaPreparacion: order.fechaPreparacion,
+          fechaDespacho: order.fechaDespacho,
+          fechaEntrega: order.fechaEntrega,
           fechaCancelacion: order.fechaCancelacion,
-          motivoCancelacion: order.motivoCancelacion
+          motivoCancelacion: order.motivoCancelacion,
+          stockRepuesto: order.stockRepuesto
         };
       })
       .sort((a, b) => a.fechaPedido.localeCompare(b.fechaPedido));
@@ -244,11 +266,14 @@ class MemoryPedidoRepository implements PedidoRepository {
     estadoPago?: string;
     adminSeen?: boolean;
     adminSeenAt?: string;
-    fechaEntrega?: string;
     fechaAgendado?: string;
-    fechaCierre?: string;
+    fechaPago?: string;
+    fechaPreparacion?: string;
+    fechaDespacho?: string;
+    fechaEntrega?: string;
     fechaCancelacion?: string;
     motivoCancelacion?: string;
+    stockRepuesto?: boolean;
   }) {
     const order = localStore.orders.find((item) => item.id === args.pedidoId);
 
@@ -266,11 +291,16 @@ class MemoryPedidoRepository implements PedidoRepository {
     if (args.adminSeenAt !== undefined) {
       order.adminSeenAt = args.adminSeenAt;
     }
-    order.fechaEntrega = args.fechaEntrega;
-    order.fechaAgendado = args.fechaAgendado;
-    order.fechaCierre = args.fechaCierre;
-    order.fechaCancelacion = args.fechaCancelacion;
-    order.motivoCancelacion = args.motivoCancelacion;
+    if (args.stockRepuesto !== undefined) {
+      order.stockRepuesto = args.stockRepuesto;
+    }
+    order.fechaAgendado = args.fechaAgendado ?? order.fechaAgendado;
+    order.fechaPago = args.fechaPago ?? order.fechaPago;
+    order.fechaPreparacion = args.fechaPreparacion ?? order.fechaPreparacion;
+    order.fechaDespacho = args.fechaDespacho ?? order.fechaDespacho;
+    order.fechaEntrega = args.fechaEntrega ?? order.fechaEntrega;
+    order.fechaCancelacion = args.fechaCancelacion ?? order.fechaCancelacion;
+    order.motivoCancelacion = args.motivoCancelacion ?? order.motivoCancelacion;
   }
 
   async actualizarClientePedido(args: { pedidoId: string; clienteId: string }) {
@@ -381,69 +411,58 @@ class SupabasePedidoRepository implements PedidoRepository {
     observacion?: string;
   }) {
     const supabase = createSupabaseServerClient();
-    let response = await supabase
-      .from("pedidos")
-      .insert({
-        cliente_id: clienteId,
-        estado_pedido: pedido.estadoPedido,
-        estado_pago: pedido.estadoPago,
-        admin_seen: false,
-        admin_seen_at: null,
-        total: pedido.total,
-        observacion: observacion ?? null,
-        origen_pedido: origenPedido ?? null,
-        fecha_pedido: pedido.fechaPedido.toISOString(),
-        fecha_entrega: pedido.fechaEntrega?.toISOString().slice(0, 10) ?? null,
-        fecha_agendado: pedido.fechaAgendado?.toISOString() ?? null,
-        fecha_cierre: pedido.fechaCierre?.toISOString() ?? null
-      })
-      .select("id")
-      .single();
+    const payload: Record<string, unknown> = {
+      cliente_id: clienteId,
+      estado_pedido: pedido.estadoPedido,
+      estado_pago: pedido.estadoPago,
+      origen_pedido: origenPedido ?? "PUBLICO",
+      subtotal: pedido.subtotal,
+      metodo_despacho: pedido.metodoDespacho,
+      costo_despacho: pedido.costoDespacho,
+      total: pedido.total,
+      observacion: observacion ?? null,
+      stock_repuesto: pedido.stockRepuesto,
+      fecha_pedido: pedido.fechaPedido.toISOString(),
+      fecha_agendado: pedido.fechaAgendado?.toISOString() ?? null,
+      fecha_pago: pedido.fechaPago?.toISOString() ?? null,
+      fecha_preparacion: pedido.fechaPreparacion?.toISOString() ?? null,
+      fecha_despacho: pedido.fechaDespacho?.toISOString() ?? null,
+      fecha_entrega: pedido.fechaEntrega?.toISOString() ?? null
+    };
 
-    if (hasMissingOrdersColumnError(response.error)) {
-      response = await supabase
-        .from("pedidos")
-        .insert({
-          cliente_id: clienteId,
-          estado_pedido: pedido.estadoPedido,
-          estado_pago: pedido.estadoPago,
-          total: pedido.total,
-          observacion: observacion ?? null,
-          fecha_pedido: pedido.fechaPedido.toISOString(),
-          fecha_entrega: pedido.fechaEntrega?.toISOString().slice(0, 10) ?? null,
-          fecha_agendado: pedido.fechaAgendado?.toISOString() ?? null,
-          fecha_cierre: pedido.fechaCierre?.toISOString() ?? null
-        })
-        .select("id")
-        .single();
+    if (pedido.codigo) {
+      payload.codigo = pedido.codigo;
     }
+
+    const response = await supabase.from("pedidos").insert(payload).select("id, codigo").single();
 
     if (response.error || !response.data) {
-      throw new Error("No fue posible registrar el pedido.");
+      throw new Error(
+        `No fue posible registrar el pedido. ${response.error?.message ?? ""}`.trim()
+      );
     }
 
-    return { id: response.data.id };
+    return { id: response.data.id, codigo: response.data.codigo ?? undefined };
   }
 
   async insertarPedidoItem(args: {
     pedidoId: string;
     item: DetallePedido;
-    productoId?: string;
-    productoNombre?: string;
-    productoDescripcion?: string;
-    productoImageUrl?: string;
-    productoTipo?: string;
+    productoId?: string | null;
   }) {
     const supabase = createSupabaseServerClient();
-    let response = await supabase
+    const response = await supabase
       .from("pedido_items")
       .insert({
         pedido_id: args.pedidoId,
-        producto_id: args.productoId ?? null,
-        producto_nombre: args.productoNombre ?? args.item.producto.nombre,
-        producto_descripcion: args.productoDescripcion ?? args.item.producto.descripcion,
-        producto_image_url: args.productoImageUrl ?? args.item.producto.imageUrl,
-        producto_tipo: args.productoTipo ?? args.item.producto.tipoProducto,
+        producto_id: args.productoId ?? args.item.producto.id ?? null,
+        producto_sku: args.item.producto.sku || null,
+        producto_nombre: args.item.producto.nombre,
+        producto_marca: args.item.producto.marca || null,
+        producto_contenido: args.item.producto.contenido || null,
+        producto_descripcion: args.item.producto.descripcion,
+        producto_image_url: args.item.producto.imageUrl,
+        producto_tipo: args.item.producto.tipoProducto,
         cantidad: args.item.cantidad,
         precio_unitario: args.item.precioUnitario,
         costo_unitario: args.item.producto.costoUnitario,
@@ -455,20 +474,6 @@ class SupabasePedidoRepository implements PedidoRepository {
       .select("id")
       .single();
 
-    if (hasMissingOrderItemsColumnError(response.error)) {
-      response = await supabase
-        .from("pedido_items")
-        .insert({
-          pedido_id: args.pedidoId,
-          producto_id: args.productoId ?? args.item.producto.id,
-          cantidad: args.item.cantidad,
-          precio_unitario: args.item.precioUnitario,
-          subtotal: args.item.subtotal
-        })
-        .select("id")
-        .single();
-    }
-
     if (response.error || !response.data) {
       throw new Error("No fue posible registrar el item del pedido.");
     }
@@ -478,26 +483,33 @@ class SupabasePedidoRepository implements PedidoRepository {
 
   async buscarPedidosPorEstado(estadoPedido: string) {
     const supabase = createSupabaseServerClient();
-    const extendedResponse = await supabase
+    const response = await supabase
       .from("pedidos")
       .select(
         `
         id,
+        codigo,
         cliente_id,
         estado_pedido,
         estado_pago,
+        metodo_despacho,
+        costo_despacho,
         admin_seen,
         admin_seen_at,
         total,
+        subtotal,
         fecha_pedido,
         origen_pedido,
         observacion,
-        fecha_entrega,
         fecha_agendado,
-        fecha_cierre,
+        fecha_pago,
+        fecha_preparacion,
+        fecha_despacho,
+        fecha_entrega,
         fecha_cancelacion,
         motivo_cancelacion,
-        clientes:cliente_id (nombre, telefono, lugar_trabajo),
+        stock_repuesto,
+        clientes:cliente_id (nombre, telefono, lugar_trabajo, rut, email, region, comuna, direccion),
         pedido_items (
           cantidad,
           precio_unitario,
@@ -506,40 +518,12 @@ class SupabasePedidoRepository implements PedidoRepository {
           producto_nombre,
           costo_unitario,
           total_costo,
-          utilidad_bruta,
-          productos:producto_id (nombre)
+          utilidad_bruta
         )
       `
       )
       .eq("estado_pedido", estadoPedido)
       .order("fecha_pedido", { ascending: true });
-
-    const response =
-      hasMissingOrdersColumnError(extendedResponse.error) ||
-      hasMissingOrderItemsColumnError(extendedResponse.error)
-        ? await supabase
-        .from("pedidos")
-        .select(
-          `
-          id,
-          cliente_id,
-          estado_pedido,
-          estado_pago,
-          total,
-          observacion,
-          fecha_pedido,
-          fecha_entrega,
-          fecha_agendado,
-          fecha_cierre,
-          fecha_cancelacion,
-          motivo_cancelacion,
-          clientes:cliente_id (nombre, telefono, lugar_trabajo),
-          pedido_items (cantidad, precio_unitario, subtotal, producto_id, productos:producto_id (nombre))
-        `
-        )
-        .eq("estado_pedido", estadoPedido)
-        .order("fecha_pedido", { ascending: true })
-        : extendedResponse;
 
     if (response.error) {
       throw new Error("No fue posible obtener los pedidos.");
@@ -552,34 +536,21 @@ class SupabasePedidoRepository implements PedidoRepository {
         : order.pedido_items
           ? [order.pedido_items]
           : [];
-      const normalizedItems = items.map((currentItem) => {
-        const product = Array.isArray(currentItem?.productos)
-          ? currentItem.productos[0]
-          : currentItem?.productos;
-        const currentItemWithOverrides = currentItem as {
-          producto_nombre?: string | null;
-          costo_unitario?: number | null;
-          total_costo?: number | null;
-          utilidad_bruta?: number | null;
-        };
-
-        return {
-          productoId: currentItem?.producto_id ?? "",
-          productoNombre:
-            currentItemWithOverrides.producto_nombre ?? product?.nombre ?? "Producto",
-          cantidad: currentItem?.cantidad ?? 0,
-          precioUnitario: currentItem?.precio_unitario ?? 0,
-          costoUnitario: currentItemWithOverrides.costo_unitario ?? 0,
-          costoTotal:
-            currentItemWithOverrides.total_costo ??
-            (currentItemWithOverrides.costo_unitario ?? 0) * (currentItem?.cantidad ?? 0),
-          utilidadBruta:
-            currentItemWithOverrides.utilidad_bruta ??
-            (currentItem?.subtotal ?? 0) -
-              (currentItemWithOverrides.costo_unitario ?? 0) * (currentItem?.cantidad ?? 0),
-          subtotal: currentItem?.subtotal ?? 0
-        };
-      });
+      const normalizedItems: AdminOrderItemSummary[] = items.map((currentItem) => ({
+        productoId: currentItem?.producto_id ?? null,
+        productoNombre: currentItem?.producto_nombre ?? "Producto",
+        cantidad: currentItem?.cantidad ?? 0,
+        precioUnitario: currentItem?.precio_unitario ?? 0,
+        costoUnitario: currentItem?.costo_unitario ?? 0,
+        costoTotal:
+          currentItem?.total_costo ??
+          (currentItem?.costo_unitario ?? 0) * (currentItem?.cantidad ?? 0),
+        utilidadBruta:
+          currentItem?.utilidad_bruta ??
+          (currentItem?.subtotal ?? 0) -
+            (currentItem?.costo_unitario ?? 0) * (currentItem?.cantidad ?? 0),
+        subtotal: currentItem?.subtotal ?? 0
+      }));
       const firstItem = normalizedItems[0];
       const totalCantidad = normalizedItems.reduce(
         (sum, currentItem) => sum + currentItem.cantidad,
@@ -592,10 +563,16 @@ class SupabasePedidoRepository implements PedidoRepository {
 
       return {
         id: order.id,
+        codigo: order.codigo ?? undefined,
         clienteId: order.cliente_id,
         clienteNombre: customer?.nombre ?? "Sin nombre",
         clienteTelefono: customer?.telefono ?? "",
         clienteLugarTrabajo: customer?.lugar_trabajo ?? "",
+        clienteRut: customer?.rut ?? undefined,
+        clienteEmail: customer?.email ?? undefined,
+        clienteRegion: customer?.region ?? undefined,
+        clienteComuna: customer?.comuna ?? undefined,
+        clienteDireccion: customer?.direccion ?? undefined,
         productoId: firstItem?.productoId ?? "",
         productoNombre: summaryProductName,
         cantidad: totalCantidad,
@@ -604,17 +581,22 @@ class SupabasePedidoRepository implements PedidoRepository {
         items: normalizedItems,
         estadoPedido: order.estado_pedido,
         estadoPago: order.estado_pago,
-        adminSeen: (order as { admin_seen?: boolean | null }).admin_seen ?? false,
-        adminSeenAt: (order as { admin_seen_at?: string | null }).admin_seen_at ?? undefined,
-        origenPedido: (order as { origen_pedido?: string | null }).origen_pedido ?? undefined,
+        metodoDespacho: order.metodo_despacho ?? undefined,
+        costoDespacho: order.costo_despacho ?? undefined,
+        adminSeen: order.admin_seen ?? false,
+        adminSeenAt: order.admin_seen_at ?? undefined,
+        origenPedido: order.origen_pedido ?? undefined,
         total: order.total,
         observacion: order.observacion ?? undefined,
         fechaPedido: order.fecha_pedido,
-        fechaEntrega: order.fecha_entrega ?? undefined,
         fechaAgendado: order.fecha_agendado ?? undefined,
-        fechaCierre: order.fecha_cierre ?? undefined,
+        fechaPago: order.fecha_pago ?? undefined,
+        fechaPreparacion: order.fecha_preparacion ?? undefined,
+        fechaDespacho: order.fecha_despacho ?? undefined,
+        fechaEntrega: order.fecha_entrega ?? undefined,
         fechaCancelacion: order.fecha_cancelacion ?? undefined,
-        motivoCancelacion: order.motivo_cancelacion ?? undefined
+        motivoCancelacion: order.motivo_cancelacion ?? undefined,
+        stockRepuesto: order.stock_repuesto ?? false
       };
     });
   }
@@ -625,42 +607,33 @@ class SupabasePedidoRepository implements PedidoRepository {
     estadoPago?: string;
     adminSeen?: boolean;
     adminSeenAt?: string;
-    fechaEntrega?: string;
     fechaAgendado?: string;
-    fechaCierre?: string;
+    fechaPago?: string;
+    fechaPreparacion?: string;
+    fechaDespacho?: string;
+    fechaEntrega?: string;
     fechaCancelacion?: string;
     motivoCancelacion?: string;
+    stockRepuesto?: boolean;
   }) {
     const supabase = createSupabaseServerClient();
-    let { error } = await supabase
-      .from("pedidos")
-      .update({
-        estado_pedido: args.estadoPedido,
-        estado_pago: args.estadoPago,
-        admin_seen: args.adminSeen,
-        admin_seen_at: args.adminSeenAt ?? null,
-        fecha_entrega: args.fechaEntrega ?? null,
-        fecha_agendado: args.fechaAgendado ?? null,
-        fecha_cierre: args.fechaCierre ?? null,
-        fecha_cancelacion: args.fechaCancelacion ?? null,
-        motivo_cancelacion: args.motivoCancelacion ?? null
-      })
-      .eq("id", args.pedidoId);
+    const payload: Record<string, unknown> = {
+      estado_pedido: args.estadoPedido
+    };
 
-    if (hasMissingOrdersColumnError(error)) {
-      ({ error } = await supabase
-        .from("pedidos")
-        .update({
-          estado_pedido: args.estadoPedido,
-          estado_pago: args.estadoPago,
-          fecha_entrega: args.fechaEntrega ?? null,
-          fecha_agendado: args.fechaAgendado ?? null,
-          fecha_cierre: args.fechaCierre ?? null,
-          fecha_cancelacion: args.fechaCancelacion ?? null,
-          motivo_cancelacion: args.motivoCancelacion ?? null
-        })
-        .eq("id", args.pedidoId));
-    }
+    if (args.estadoPago !== undefined) payload.estado_pago = args.estadoPago;
+    if (args.adminSeen !== undefined) payload.admin_seen = args.adminSeen;
+    if (args.adminSeenAt !== undefined) payload.admin_seen_at = args.adminSeenAt;
+    if (args.fechaAgendado !== undefined) payload.fecha_agendado = args.fechaAgendado;
+    if (args.fechaPago !== undefined) payload.fecha_pago = args.fechaPago;
+    if (args.fechaPreparacion !== undefined) payload.fecha_preparacion = args.fechaPreparacion;
+    if (args.fechaDespacho !== undefined) payload.fecha_despacho = args.fechaDespacho;
+    if (args.fechaEntrega !== undefined) payload.fecha_entrega = args.fechaEntrega;
+    if (args.fechaCancelacion !== undefined) payload.fecha_cancelacion = args.fechaCancelacion;
+    if (args.motivoCancelacion !== undefined) payload.motivo_cancelacion = args.motivoCancelacion;
+    if (args.stockRepuesto !== undefined) payload.stock_repuesto = args.stockRepuesto;
+
+    const { error } = await supabase.from("pedidos").update(payload).eq("id", args.pedidoId);
 
     if (error) {
       throw new Error("No fue posible actualizar el pedido.");
@@ -801,25 +774,6 @@ class SupabasePedidoRepository implements PedidoRepository {
       throw new Error("No fue posible actualizar el fiado.");
     }
   }
-}
-
-function hasMissingOrdersColumnError(error: { message?: string; code?: string } | null) {
-  return (
-    error?.code === "PGRST204" ||
-    error?.message?.includes("origen_pedido") === true ||
-    error?.message?.includes("admin_seen") === true
-  );
-}
-
-function hasMissingOrderItemsColumnError(error: { message?: string; code?: string } | null) {
-  return (
-    error?.code === "PGRST204" ||
-    error?.message?.includes("producto_nombre") === true ||
-    error?.message?.includes("producto_id") === true ||
-    error?.message?.includes("costo_unitario") === true ||
-    error?.message?.includes("total_costo") === true ||
-    error?.message?.includes("utilidad_bruta") === true
-  );
 }
 
 export function getPedidoRepository(): PedidoRepository {

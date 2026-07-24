@@ -1,15 +1,20 @@
+import type { MetodoDespacho } from "@/lib/constants";
 import { ManualWhatsAppProvider } from "@/services/whatsapp/ManualWhatsAppProvider";
 import { WhatsAppApiProvider } from "@/services/whatsapp/WhatsAppApiProvider";
 
 export interface OrderNotificationData {
   customerName?: string;
   customerPhone?: string;
+  codigo?: string;
   items: Array<{
     name: string;
     quantity: number;
   }>;
+  subtotal?: number;
+  costoDespacho?: number;
   total?: number;
-  deliveryDateLabel?: string;
+  metodoDespacho?: MetodoDespacho;
+  direccion?: string;
 }
 
 export interface WhatsAppNotificationResult {

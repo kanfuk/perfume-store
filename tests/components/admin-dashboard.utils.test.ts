@@ -8,7 +8,7 @@ import type { AdminProductRecord, AdminOrderSummary } from "@/lib/types";
 function createProduct(overrides: Partial<AdminProductRecord> = {}): AdminProductRecord {
   return {
     id: "prod-1",
-    nombre: "Dobladita",
+    nombre: "Perfume floral",
     descripcion: "",
     precioVenta: 2000,
     imageUrl: "",
@@ -16,7 +16,11 @@ function createProduct(overrides: Partial<AdminProductRecord> = {}): AdminProduc
     costoUnitario: 0,
     stockActual: 10,
     stockAgenda: 10,
+    stockReservado: 0,
+    stockMinimo: 0,
     activo: true,
+    esTop: false,
+    esOfertaSemana: false,
     tipoProducto: "simple",
     utilidadUnitaria: 0,
     ...overrides

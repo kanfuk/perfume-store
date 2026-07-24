@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const { data: pendingOrders, error: pendingError } = await supabase
       .from("pedidos")
       .select("estado_pedido, admin_seen, fecha_entrega, fecha_agendado")
-      .eq("estado_pedido", "PENDIENTE");
+      .eq("estado_pedido", "NUEVO");
 
     if (pendingError) {
       throw pendingError;
