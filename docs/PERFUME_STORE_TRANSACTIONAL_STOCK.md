@@ -199,6 +199,8 @@ Nuevos (Fase 1D-A, ver sección 24):
 
 **Fecha**: 2026-07-26. **Alcance**: vinculación y `db push` de las dos migraciones originales contra el Supabase remoto nuevo (proyecto `perfume-store`, ref sanitizado), únicamente desde un workspace temporal fuera del repositorio; hallazgo de `db lint` y corrección local mediante una tercera migración aditiva.
 
+> El cierre completo de esta subfase (aplicación de la migración correctiva al remoto, validación posterior con `migration list`/`db lint`, intento de pgTAP y la suite SQL plana equivalente, y el checklist final) queda documentado en detalle en [`PERFUME_STORE_REMOTE_DATABASE_DEPLOYMENT.md`](PERFUME_STORE_REMOTE_DATABASE_DEPLOYMENT.md).
+
 **Qué se hizo contra el remoto:**
 1. Se creó un workspace temporal (`supabase init --force`) fuera del repositorio, con únicamente las dos migraciones originales copiadas (hashes SHA-256 verificados idénticos a los del repositorio).
 2. Se vinculó ese workspace temporal (nunca el repositorio real) al proyecto remoto vacío mediante `supabase link --project-ref <ref>`, con la contraseña ingresada de forma interactiva por el usuario.
