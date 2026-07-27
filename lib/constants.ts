@@ -109,10 +109,13 @@ export const METODO_DESPACHO_LABELS: Record<MetodoDespacho, string> = {
 /**
  * Costo de referencia del despacho a domicilio semanal.
  * FALLBACK TEMPORAL: la fuente definitiva sera business_settings.costo_despacho_semanal
- * (tabla creada en supabase/migrations/20260724000000_perfume_store_foundation.sql), que
- * todavia no tiene un repositorio/servicio TypeScript en esta fase. Mientras esa integracion
- * no exista, este es el UNICO lugar del codigo que debe definir el monto de $4.000: no lo
- * repitas en componentes ni servicios.
+ * (tabla creada en supabase/migrations/20260724000000_perfume_store_foundation.sql). Desde la
+ * Fase 1C, la RPC create_perfume_order_v1 (supabase/migrations/
+ * 20260724010000_perfume_store_transactional_stock.sql) YA lee ese valor directamente de
+ * business_settings para calcular costo_despacho en pedidos publicos creados via RPC: este
+ * fallback ya no se usa en ese camino. Sigue siendo el UNICO valor en TypeScript para los flujos
+ * que todavia no pasan por la RPC (venta directa admin, pedido personalizado, implementacion en
+ * memoria sin Supabase): no lo repitas en componentes ni servicios.
  */
 export const DOMICILIO_SEMANAL_COSTO_FALLBACK = 4000;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
+import { httpStatusForPerfumeOrderError } from "@/lib/perfumeOrderErrors";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 import type { CustomerOrderRequest } from "@/lib/types";
 import { createPedidoService } from "@/services/pedidoService";
@@ -80,6 +81,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
+    // Los errores de la RPC create_perfume_order_v1 ya llegan aqui
+    // traducidos a espanol y sin detalles internos de PostgreSQL (ver
+    // repositories/pedidoRepository.ts + lib/perfumeOrderErrors.ts).
     return NextResponse.json(
       {
         error:
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
             ? error.message
             : "No fue posible registrar el pedido."
       },
-      { status: 400 }
+      { status: httpStatusForPerfumeOrderError(error) }
     );
   }
 }

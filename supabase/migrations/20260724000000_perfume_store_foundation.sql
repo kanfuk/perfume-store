@@ -28,21 +28,6 @@ begin
 end;
 $$;
 
-create or replace function public.is_active_admin()
-returns boolean
-language sql
-stable
-security invoker
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.usuarios_admin
-    where usuarios_admin.email = auth.email()
-      and usuarios_admin.activo = true
-  );
-$$;
-
 -- ============================================================
 -- Tabla: usuarios_admin
 -- Lista blanca de administradores autorizados. La autenticacion la resuelve
@@ -59,6 +44,26 @@ create table if not exists public.usuarios_admin (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- is_active_admin() debe definirse DESPUES de crear usuarios_admin: al ser
+-- "language sql" (no plpgsql), Postgres analiza su cuerpo contra el catalogo
+-- en el momento de CREATE FUNCTION, no en la primera llamada. Si la tabla
+-- todavia no existe, la migracion falla con "relation does not exist" sobre
+-- una base de datos realmente vacia.
+create or replace function public.is_active_admin()
+returns boolean
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.usuarios_admin
+    where usuarios_admin.email = auth.email()
+      and usuarios_admin.activo = true
+  );
+$$;
 
 -- ============================================================
 -- Tabla: clientes

@@ -5,14 +5,19 @@
  * Buenas practicas: Separacion de responsabilidades y validacion de estados.
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
  *
- * IMPORTANTE (stock): la reserva/descuento de stock en este archivo sigue el
- * mecanismo heredado de Pauli Store (varias escrituras independientes al
- * repositorio de productos). NO es atomico ni transaccional: dos compras
- * simultaneas del mismo producto pueden pisarse. Esto se documenta a
- * proposito en docs/PERFUME_STORE_APPLICATION_CONTRACT.md; la Fase 1C debe
- * reemplazarlo por una funcion PostgreSQL transaccional. No afirmar en
- * ninguna parte de este archivo ni de sus consumidores que la sobreventa
- * esta resuelta.
+ * IMPORTANTE (stock): la creacion de pedidos publicos (crearPedido) y las
+ * transiciones de pago/cancelacion/avance de estado usan las RPC
+ * transaccionales de Postgres (create_perfume_order_v1,
+ * mark_perfume_order_paid_v1, cancel_perfume_order_v1,
+ * advance_perfume_order_status_v1 - ver
+ * supabase/migrations/20260724010000_perfume_store_transactional_stock.sql).
+ * La reserva/liberacion/descuento real de stock ocurre atomicamente dentro
+ * de esas funciones; este servicio ya no hace escrituras de stock propias
+ * para ese flujo. crearVentaDirecta y crearPedidoPersonalizado siguen
+ * usando el mecanismo heredado (fuera del alcance de esta fase); si un
+ * pedido creado por esos flujos llega a marcarPedidoPagado, la RPC lo
+ * rechaza con PF015 en lugar de corromper el stock, ver
+ * docs/PERFUME_STORE_TRANSACTIONAL_STOCK.md.
  */
 
 import { Cliente } from "@/domain/Cliente";
@@ -83,6 +88,8 @@ export class PedidoService {
   ) {}
 
   async crearPedido(input: CustomerOrderRequest): Promise<CustomerOrderResponse> {
+    // Pre-validacion de formato/UX: la autoridad final sobre disponibilidad
+    // de stock y precios es la RPC create_perfume_order_v1, no este bloque.
     const products = await this.productRepository.buscarProductosActivos();
     const validation = validateCustomerOrderForm(
       {
@@ -124,81 +131,54 @@ export class PedidoService {
       throw new Error("Selecciona un metodo de despacho valido.");
     }
 
-    const cliente = new Cliente({
-      nombre: input.nombre.trim(),
-      rut: normalizedRut.normalized,
-      email: input.email.trim().toLowerCase(),
-      telefono: normalizedPhone.e164,
-      region: input.region.trim(),
-      comuna: input.comuna.trim(),
-      direccion: input.direccion.trim(),
-      referenciaDireccion: input.referenciaDireccion?.trim()
+    // Un unico llamado atomico: crea cliente, pedido, items y reserva stock
+    // (create_perfume_order_v1). Nunca se envian precio/subtotal/total ni
+    // estado calculados en el navegador: la RPC los recalcula desde
+    // productos y rechaza cantidades que superen el stock disponible.
+    const resultado = await this.pedidoRepository.crearPedidoTransaccional({
+      cliente: {
+        nombre: input.nombre.trim(),
+        rut: normalizedRut.normalized,
+        email: input.email.trim().toLowerCase(),
+        telefono: normalizedPhone.e164,
+        region: input.region.trim(),
+        comuna: input.comuna.trim(),
+        direccion: input.direccion.trim(),
+        referenciaDireccion: input.referenciaDireccion?.trim() || undefined
+      },
+      items: input.items.map((line) => ({
+        productoId: line.productoId,
+        cantidad: line.cantidad
+      })),
+      metodoDespacho: input.metodoDespacho,
+      observacion: input.observacion?.trim() || undefined,
+      origenPedido: ORIGEN_PEDIDO_PUBLICO
     });
 
-    // Nunca se confia en precio, subtotal o total enviados por el navegador:
-    // el precio siempre se toma del repositorio (productData.precioVenta).
-    const productMap = new Map(products.map((product) => [product.id, product]));
-    const items = input.items.map((line) => {
-      const productData = productMap.get(line.productoId);
+    await this.notifyPendingOrdersBadgeChange(resultado.pedidoId);
 
-      if (!productData || productData.activo === false) {
-        throw new Error("El producto seleccionado no esta disponible.");
-      }
-
-      if (!Number.isInteger(line.cantidad) || line.cantidad < 1) {
-        throw new Error("Cada item debe tener cantidad minima de 1.");
-      }
-
-      const stockActual = getAvailableProductStock(productData);
-
-      if (line.cantidad > stockActual) {
-        throw new Error(
-          `${productData.nombre} solo tiene ${stockActual} disponible(s) por ahora.`
-        );
-      }
-
-      const producto = new Producto(productData);
-      return new DetallePedido({
-        producto,
-        cantidad: line.cantidad,
-        precioUnitario: producto.precioVenta
-      });
-    });
-
-    const pedido = new Pedido({
-      cliente,
-      items,
-      metodoDespacho: input.metodoDespacho
-    });
-
-    const { id: clienteId } = await this.clienteRepository.upsertCliente(cliente);
-    const { id: pedidoId, codigo } = await this.pedidoRepository.insertarPedido({
-      pedido,
-      clienteId,
-      origenPedido: ORIGEN_PEDIDO_PUBLICO,
-      observacion: input.observacion?.trim() || undefined
-    });
-
-    await Promise.all(
-      items.map((item) =>
-        this.pedidoRepository.insertarPedidoItem({
-          pedidoId,
-          item,
-          productoId: item.producto.id
-        })
-      )
-    );
-
-    // Descuenta stock de forma NO ATOMICA (ver comentario de cabecera del archivo).
-    await Promise.all(
-      items.map((item) =>
-        this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad)
-      )
-    );
-
-    await this.notifyPendingOrdersBadgeChange(pedidoId);
-
-    return this.buildCustomerOrderResponse(pedido, pedidoId, codigo, clienteId, items, ORIGEN_PEDIDO_PUBLICO);
+    return {
+      pedidoId: resultado.pedidoId,
+      codigo: resultado.codigo,
+      clienteId: resultado.clienteId,
+      subtotal: resultado.subtotal,
+      costoDespacho: resultado.costoDespacho,
+      total: resultado.total,
+      estadoPedido: resultado.estadoPedido,
+      estadoPago: resultado.estadoPago,
+      metodoDespacho: resultado.metodoDespacho as MetodoDespacho,
+      origenPedido: resultado.origenPedido as CustomerOrderResponse["origenPedido"],
+      items: resultado.items.map((item) => ({
+        productoId: item.productoId,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        costoUnitario: item.costoUnitario,
+        costoTotal: item.costoTotal,
+        utilidadBruta: item.utilidadBruta,
+        subtotal: item.subtotal
+      }))
+    };
   }
 
   async crearVentaDirecta(input: AdminDirectSaleRequest): Promise<CustomerOrderResponse> {
@@ -511,102 +491,64 @@ export class PedidoService {
     });
   }
 
-  async marcarPedidoPagado(pedidoId: string) {
-    const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_AGENDADO);
-    const domainPedido = this.mapListItemToPedido(pedido);
-    domainPedido.marcarPagado();
+  /**
+   * Marca un pedido como pagado usando mark_perfume_order_paid_v1: la RPC
+   * valida el estado, convierte la reserva de stock en descuento fisico
+   * (stock_actual y stock_reservado) y registra el pago, todo en una sola
+   * transaccion. Este metodo ya no hace escrituras de stock ni de pagos por
+   * su cuenta.
+   */
+  async marcarPedidoPagado(pedidoId: string, metodoPago = "TRANSFERENCIA") {
+    const resultado = await this.pedidoRepository.marcarPedidoPagadoTransaccional(
+      pedidoId,
+      metodoPago
+    );
 
+    // Segunda escritura, solo de metadata admin (admin_seen); el estado y
+    // el pago ya quedaron fijados atomicamente por la RPC, aqui unicamente
+    // se reflejan los valores que ella devolvio.
     await this.pedidoRepository.actualizarEstadoPedido({
       pedidoId,
-      estadoPedido: domainPedido.estadoPedido,
-      estadoPago: domainPedido.estadoPago,
+      estadoPedido: resultado.estadoPedido,
+      estadoPago: resultado.estadoPago,
       adminSeen: true,
-      adminSeenAt: new Date().toISOString(),
-      fechaPago: domainPedido.fechaPago?.toISOString()
-    });
-    await this.pedidoRepository.insertarPago({
-      pedidoId,
-      monto: domainPedido.total,
-      metodoPago: "TRANSFERENCIA",
-      estadoPago: ESTADO_PAGO_PAGADO,
-      fechaPago: domainPedido.fechaPago?.toISOString()
+      adminSeenAt: new Date().toISOString()
     });
   }
 
+  /** Transicion de estado (sin efecto en stock) via advance_perfume_order_status_v1. */
   async iniciarPreparacionPedido(pedidoId: string) {
-    const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_PAGADO);
-    const domainPedido = this.mapListItemToPedido(pedido);
-    domainPedido.iniciarPreparacion();
-
-    await this.pedidoRepository.actualizarEstadoPedido({
-      pedidoId,
-      estadoPedido: domainPedido.estadoPedido,
-      fechaPreparacion: domainPedido.fechaPreparacion?.toISOString()
-    });
+    await this.pedidoRepository.avanzarEstadoPedidoTransaccional(pedidoId, "PREPARANDO");
   }
 
+  /** Transicion de estado (sin efecto en stock) via advance_perfume_order_status_v1. */
   async despacharPedido(pedidoId: string) {
-    const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_PREPARANDO);
-    const domainPedido = this.mapListItemToPedido(pedido);
-    domainPedido.despachar();
-
-    await this.pedidoRepository.actualizarEstadoPedido({
-      pedidoId,
-      estadoPedido: domainPedido.estadoPedido,
-      fechaDespacho: domainPedido.fechaDespacho?.toISOString()
-    });
+    await this.pedidoRepository.avanzarEstadoPedidoTransaccional(pedidoId, "DESPACHADO");
   }
 
+  /** Transicion de estado (sin efecto en stock) via advance_perfume_order_status_v1. */
   async entregarPedido(pedidoId: string) {
-    const pedido = await this.obtenerPedidoUnico(pedidoId, ESTADO_PEDIDO_DESPACHADO);
-    const domainPedido = this.mapListItemToPedido(pedido);
-    domainPedido.entregar();
-
-    await this.pedidoRepository.actualizarEstadoPedido({
-      pedidoId,
-      estadoPedido: domainPedido.estadoPedido,
-      fechaEntrega: domainPedido.fechaEntrega?.toISOString()
-    });
+    await this.pedidoRepository.avanzarEstadoPedidoTransaccional(pedidoId, "ENTREGADO");
   }
 
+  /**
+   * Cancela un pedido usando cancel_perfume_order_v1. `confirmarPagoPerdido`
+   * NO tiene valor por defecto implicito: solo cuando el llamador lo pasa
+   * explicitamente en `true` la RPC repone stock_actual de un pedido ya
+   * pagado; cualquier otro valor (undefined, false) se envia como `false` y
+   * la RPC rechaza la cancelacion de un pedido pagado sin confirmacion
+   * (PF013).
+   */
   async cancelarPedido(
     pedidoId: string,
     motivoCancelacion: string,
     options: { confirmarPagoPerdido?: boolean } = {}
   ) {
-    const abiertos = await Promise.all(
-      [
-        ESTADO_PEDIDO_NUEVO,
-        ESTADO_PEDIDO_AGENDADO,
-        ESTADO_PEDIDO_PAGADO,
-        ESTADO_PEDIDO_PREPARANDO,
-        ESTADO_PEDIDO_DESPACHADO
-      ].map((estado) => this.pedidoRepository.buscarPedidosPorEstado(estado))
-    );
-    const pedido = abiertos.flat().find((item) => item.id === pedidoId);
-
-    if (!pedido) {
-      throw new Error("Pedido no encontrado o ya no admite cancelacion.");
-    }
-
-    const domainPedido = this.mapListItemToPedido(pedido);
-    domainPedido.cancelar(motivoCancelacion, {
-      confirmarPagoPerdido: options.confirmarPagoPerdido
-    });
-
-    await this.pedidoRepository.actualizarEstadoPedido({
+    await this.pedidoRepository.cancelarPedidoTransaccional(
       pedidoId,
-      estadoPedido: domainPedido.estadoPedido,
-      estadoPago: domainPedido.estadoPago,
-      fechaCancelacion: domainPedido.fechaCancelacion?.toISOString(),
-      motivoCancelacion: domainPedido.motivoCancelacion,
-      stockRepuesto: true
-    });
-
-    // No reponer dos veces: solo se repone si el pedido no lo habia hecho ya.
-    if (!pedido.stockRepuesto) {
-      await this.restoreLinkedCatalogStock(pedido.items);
-    }
+      motivoCancelacion,
+      options.confirmarPagoPerdido === true
+    );
   }
 
   async registrarAbonoFiado(
@@ -896,32 +838,6 @@ export class PedidoService {
           )}.`
         );
       }
-    }
-  }
-
-  private async restoreLinkedCatalogStock(
-    items: Array<{ productoId: string | null; cantidad: number }>
-  ) {
-    const settled = await Promise.allSettled(
-      items.map(async (item) => {
-        if (!item.productoId) {
-          return;
-        }
-
-        const linkedProduct = await this.productRepository.buscarProductoPorId(item.productoId);
-
-        if (!linkedProduct) {
-          return;
-        }
-
-        await this.productRepository.ajustarStockAgenda(item.productoId, item.cantidad);
-      })
-    );
-
-    const firstRejected = settled.find((result) => result.status === "rejected");
-
-    if (firstRejected?.status === "rejected") {
-      throw firstRejected.reason;
     }
   }
 

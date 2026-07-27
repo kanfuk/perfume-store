@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 import { Cliente } from "@/domain/Cliente";
 import { Pedido } from "@/domain/Pedido";
 import { METODO_DESPACHO_STARKEN_POR_PAGAR } from "@/lib/constants";
+import { PerfumeOrderError } from "@/lib/perfumeOrderErrors";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import type {
+  PedidoEstadoTransaccionalResult,
   PedidoListItemRecord,
-  PedidoRepository
+  PedidoRepository,
+  PedidoTransaccionalResult
 } from "@/repositories/pedidoRepository";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { PedidoService } from "@/services/pedidoService";
 
 class ProductRepositoryStub implements ProductRepository {
+  public stockAdjustments: Array<{ id: string; cantidad: number }> = [];
+
   async buscarProductosActivos() {
     return [
       {
@@ -45,6 +50,8 @@ class ProductRepositoryStub implements ProductRepository {
     if (!product) {
       throw new Error("Producto no encontrado.");
     }
+
+    this.stockAdjustments.push({ id, cantidad });
 
     return {
       ...product,
@@ -121,6 +128,14 @@ class ClienteRepositoryStub implements ClienteRepository {
   }
 }
 
+/**
+ * Simula, del lado TypeScript, el comportamiento observable de
+ * mark_perfume_order_paid_v1 / cancel_perfume_order_v1 /
+ * advance_perfume_order_status_v1 (validacion de estado, PFxxx) para poder
+ * probar PedidoService sin una base de datos real. El comportamiento real
+ * transaccional solo se valida contra Postgres en
+ * supabase/tests/perfume_store_transactional_stock.sql.
+ */
 class AdminPedidoRepositoryStub implements PedidoRepository {
   public actualizado:
     | {
@@ -150,8 +165,22 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
     montoPendiente: number;
     estado: string;
   }> = [];
+  public marcarPagadoCalls: Array<{ pedidoId: string; metodoPago?: string }> = [];
+  public cancelarCalls: Array<{ pedidoId: string; motivo: string; confirmar: boolean }> = [];
+  public avanzarCalls: Array<{ pedidoId: string; nuevoEstado: string }> = [];
 
-  constructor(private readonly ordersByState: Record<string, PedidoListItemRecord[]>) {}
+  private readonly pedidos = new Map<string, { estadoPedido: string; estadoPago: string }>();
+
+  constructor(private readonly ordersByState: Record<string, PedidoListItemRecord[]>) {
+    for (const orders of Object.values(ordersByState)) {
+      for (const order of orders) {
+        this.pedidos.set(order.id, {
+          estadoPedido: order.estadoPedido,
+          estadoPago: order.estadoPago
+        });
+      }
+    }
+  }
 
   async insertarPedido(args: { pedido: Pedido; clienteId: string }) {
     return { id: `pedido-${args.clienteId}` };
@@ -240,6 +269,102 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
     }
 
     this.fiadosActualizados.push(args);
+  }
+
+  async crearPedidoTransaccional(): Promise<PedidoTransaccionalResult> {
+    throw new Error("No usado en estas pruebas administrativas.");
+  }
+
+  async marcarPedidoPagadoTransaccional(
+    pedidoId: string,
+    metodoPago?: string
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    this.marcarPagadoCalls.push({ pedidoId, metodoPago });
+
+    const pedido = this.pedidos.get(pedidoId);
+
+    if (!pedido) {
+      throw new PerfumeOrderError("PF009", "Pedido no encontrado.");
+    }
+
+    if (pedido.estadoPedido !== "NUEVO" && pedido.estadoPedido !== "AGENDADO") {
+      throw new PerfumeOrderError(
+        "PF012",
+        "Este pedido no admite marcar pagado en su estado actual."
+      );
+    }
+
+    pedido.estadoPedido = "PAGADO";
+    pedido.estadoPago = "PAGADO";
+    this.pagosRegistrados.push({
+      pedidoId,
+      monto: 1000,
+      metodoPago,
+      estadoPago: "PAGADO"
+    });
+
+    return { pedidoId, estadoPedido: "PAGADO", estadoPago: "PAGADO" };
+  }
+
+  async cancelarPedidoTransaccional(
+    pedidoId: string,
+    motivo: string,
+    confirmarReposicionPagado: boolean
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    this.cancelarCalls.push({ pedidoId, motivo, confirmar: confirmarReposicionPagado });
+
+    const pedido = this.pedidos.get(pedidoId);
+
+    if (!pedido) {
+      throw new PerfumeOrderError("PF009", "Pedido no encontrado.");
+    }
+
+    if (pedido.estadoPedido === "CANCELADO") {
+      throw new PerfumeOrderError("PF011", "Este pedido ya fue cancelado.");
+    }
+
+    if (pedido.estadoPedido === "ENTREGADO") {
+      throw new PerfumeOrderError(
+        "PF012",
+        "Un pedido entregado no se puede cancelar por este flujo."
+      );
+    }
+
+    if (pedido.estadoPago === "PAGADO" && !confirmarReposicionPagado) {
+      throw new PerfumeOrderError(
+        "PF013",
+        "Este pedido ya fue pagado. Confirma explicitamente para cancelarlo."
+      );
+    }
+
+    const estadoPagoFinal = pedido.estadoPago === "PAGADO" ? "PAGADO" : "CANCELADO";
+    pedido.estadoPedido = "CANCELADO";
+    pedido.estadoPago = estadoPagoFinal;
+    this.actualizado = {
+      pedidoId,
+      estadoPedido: "CANCELADO",
+      estadoPago: estadoPagoFinal,
+      stockRepuesto: true
+    };
+
+    return { pedidoId, estadoPedido: "CANCELADO", estadoPago: estadoPagoFinal };
+  }
+
+  async avanzarEstadoPedidoTransaccional(
+    pedidoId: string,
+    nuevoEstado: "PREPARANDO" | "DESPACHADO" | "ENTREGADO"
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    this.avanzarCalls.push({ pedidoId, nuevoEstado });
+
+    const pedido = this.pedidos.get(pedidoId);
+
+    if (!pedido) {
+      throw new PerfumeOrderError("PF009", "Pedido no encontrado.");
+    }
+
+    pedido.estadoPedido = nuevoEstado;
+
+    return { pedidoId, estadoPedido: nuevoEstado };
   }
 }
 
@@ -340,7 +465,7 @@ describe("PedidoService admin transitions", () => {
     expect(repository.actualizado?.estadoPedido).toBe("AGENDADO");
   });
 
-  it("marca pagado un pedido agendado (no salta directo a entregado)", async () => {
+  it("marca pagado un pedido agendado via mark_perfume_order_paid_v1 (no salta directo a entregado)", async () => {
     const repository = new AdminPedidoRepositoryStub({
       AGENDADO: [buildOrder("AGENDADO")]
     });
@@ -352,12 +477,16 @@ describe("PedidoService admin transitions", () => {
 
     await service.marcarPedidoPagado("pedido-1");
 
+    expect(repository.marcarPagadoCalls).toEqual([
+      { pedidoId: "pedido-1", metodoPago: "TRANSFERENCIA" }
+    ]);
     expect(repository.actualizado?.estadoPedido).toBe("PAGADO");
     expect(repository.actualizado?.estadoPago).toBe("PAGADO");
+    expect(repository.actualizado?.adminSeen).toBe(true);
     expect(repository.pagosRegistrados[0]?.monto).toBe(1000);
   });
 
-  it("recorre preparando -> despachado -> entregado", async () => {
+  it("recorre preparando -> despachado -> entregado via advance_perfume_order_status_v1", async () => {
     const repositoryPreparando = new AdminPedidoRepositoryStub({
       PAGADO: [buildOrder("PAGADO", { estadoPago: "PAGADO" })]
     });
@@ -367,7 +496,9 @@ describe("PedidoService admin transitions", () => {
       repositoryPreparando
     );
     await servicePreparando.iniciarPreparacionPedido("pedido-1");
-    expect(repositoryPreparando.actualizado?.estadoPedido).toBe("PREPARANDO");
+    expect(repositoryPreparando.avanzarCalls).toEqual([
+      { pedidoId: "pedido-1", nuevoEstado: "PREPARANDO" }
+    ]);
 
     const repositoryDespachado = new AdminPedidoRepositoryStub({
       PREPARANDO: [buildOrder("PREPARANDO", { estadoPago: "PAGADO" })]
@@ -378,7 +509,9 @@ describe("PedidoService admin transitions", () => {
       repositoryDespachado
     );
     await serviceDespachado.despacharPedido("pedido-1");
-    expect(repositoryDespachado.actualizado?.estadoPedido).toBe("DESPACHADO");
+    expect(repositoryDespachado.avanzarCalls).toEqual([
+      { pedidoId: "pedido-1", nuevoEstado: "DESPACHADO" }
+    ]);
 
     const repositoryEntregado = new AdminPedidoRepositoryStub({
       DESPACHADO: [buildOrder("DESPACHADO", { estadoPago: "PAGADO" })]
@@ -389,7 +522,9 @@ describe("PedidoService admin transitions", () => {
       repositoryEntregado
     );
     await serviceEntregado.entregarPedido("pedido-1");
-    expect(repositoryEntregado.actualizado?.estadoPedido).toBe("ENTREGADO");
+    expect(repositoryEntregado.avanzarCalls).toEqual([
+      { pedidoId: "pedido-1", nuevoEstado: "ENTREGADO" }
+    ]);
   });
 
   it("registra un abono parcial sobre un pedido entregado sin pago (fiado de venta directa)", async () => {
@@ -438,7 +573,7 @@ describe("PedidoService admin transitions", () => {
     expect(repository.actualizado?.estadoPago).toBe("PAGADO");
   });
 
-  it("cancela un pedido agendado, repone stock y deja estadoPago CANCELADO", async () => {
+  it("cancela un pedido agendado via cancel_perfume_order_v1 sin exigir confirmacion (no estaba pagado)", async () => {
     const repository = new AdminPedidoRepositoryStub({
       AGENDADO: [buildOrder("AGENDADO")]
     });
@@ -451,22 +586,19 @@ describe("PedidoService admin transitions", () => {
 
     await service.cancelarPedido("pedido-1", "Cliente no confirma");
 
+    expect(repository.cancelarCalls).toEqual([
+      { pedidoId: "pedido-1", motivo: "Cliente no confirma", confirmar: false }
+    ]);
     expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
     expect(repository.actualizado?.estadoPago).toBe("CANCELADO");
     expect(repository.actualizado?.stockRepuesto).toBe(true);
   });
 
-  it("no repone stock dos veces si el pedido ya tenia stockRepuesto true", async () => {
+  it("cancelarPedido delega enteramente en la RPC: no reimplementa reposicion de stock en TypeScript", async () => {
     const repository = new AdminPedidoRepositoryStub({
-      AGENDADO: [buildOrder("AGENDADO", { stockRepuesto: true })]
+      AGENDADO: [buildOrder("AGENDADO")]
     });
     const productRepository = new ProductRepositoryStub();
-    const ajustesSpy: Array<{ id: string; cantidad: number }> = [];
-    const originalAjustar = productRepository.ajustarStockAgenda.bind(productRepository);
-    productRepository.ajustarStockAgenda = async (id, cantidad) => {
-      ajustesSpy.push({ id, cantidad });
-      return originalAjustar(id, cantidad);
-    };
     const service = new PedidoService(
       productRepository,
       new ClienteRepositoryStub(),
@@ -475,10 +607,11 @@ describe("PedidoService admin transitions", () => {
 
     await service.cancelarPedido("pedido-1", "Cliente no confirma");
 
-    expect(ajustesSpy).toEqual([]);
+    expect(repository.cancelarCalls).toHaveLength(1);
+    expect(productRepository.stockAdjustments).toEqual([]);
   });
 
-  it("exige confirmacion explicita para cancelar un pedido ya pagado", async () => {
+  it("exige confirmacion explicita para cancelar un pedido ya pagado (sin valor por defecto implicito)", async () => {
     const repository = new AdminPedidoRepositoryStub({
       PAGADO: [buildOrder("PAGADO", { estadoPago: "PAGADO" })]
     });
@@ -491,14 +624,24 @@ describe("PedidoService admin transitions", () => {
     await expect(service.cancelarPedido("pedido-1", "Se arrepintio")).rejects.toThrow(
       "Este pedido ya fue pagado. Confirma explicitamente para cancelarlo."
     );
+    expect(repository.cancelarCalls[0]).toEqual({
+      pedidoId: "pedido-1",
+      motivo: "Se arrepintio",
+      confirmar: false
+    });
 
     await service.cancelarPedido("pedido-1", "Se arrepintio", {
       confirmarPagoPerdido: true
     });
+    expect(repository.cancelarCalls[1]).toEqual({
+      pedidoId: "pedido-1",
+      motivo: "Se arrepintio",
+      confirmar: true
+    });
     expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
   });
 
-  it("impide cancelar dos veces el mismo pedido (ya no aparece entre los estados abiertos)", async () => {
+  it("impide cancelar dos veces el mismo pedido (la RPC rechaza con PF011)", async () => {
     const repository = new AdminPedidoRepositoryStub({
       AGENDADO: [buildOrder("AGENDADO")]
     });
@@ -511,23 +654,12 @@ describe("PedidoService admin transitions", () => {
     await service.cancelarPedido("pedido-1", "Cliente no confirma");
     expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
 
-    // El repositorio stub no mueve el pedido de bucket automaticamente al
-    // cancelarlo (a diferencia de Supabase real), asi que simulamos ese
-    // efecto quitandolo de AGENDADO para probar que el servicio ya no lo
-    // encuentra entre los estados abiertos.
-    const repositorySinPedido = new AdminPedidoRepositoryStub({ AGENDADO: [] });
-    const serviceSinPedido = new PedidoService(
-      new ProductRepositoryStub(),
-      new ClienteRepositoryStub(),
-      repositorySinPedido
-    );
-
     await expect(
-      serviceSinPedido.cancelarPedido("pedido-1", "Cliente no confirma")
-    ).rejects.toThrow("Pedido no encontrado o ya no admite cancelacion.");
+      service.cancelarPedido("pedido-1", "Cliente no confirma")
+    ).rejects.toThrow("Este pedido ya fue cancelado.");
   });
 
-  it("no permite marcar pagado si el pedido no existe en agendados", async () => {
+  it("no permite marcar pagado si el pedido no existe (la RPC rechaza con PF009)", async () => {
     const repository = new AdminPedidoRepositoryStub({
       AGENDADO: []
     });

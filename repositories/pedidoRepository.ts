@@ -4,13 +4,27 @@
  * Descripcion: Persistencia de pedidos e items en memoria local o Supabase.
  * Buenas practicas: Codigo modular, validado y orientado a mantenibilidad.
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
+ *
+ * FASE 1C: la creacion de pedidos publicos y las transiciones de pago/
+ * cancelacion/avance de estado ya no descuentan stock con multiples
+ * llamadas independientes desde TypeScript. Se delegan por completo a las
+ * RPC transaccionales de Postgres (supabase/migrations/
+ * 20260724010000_perfume_store_transactional_stock.sql) cuando Supabase
+ * esta configurado. La implementacion en memoria (sin Supabase, usada en
+ * desarrollo local y en las pruebas) replica la misma logica de forma
+ * sincrona sobre localStore: en un runtime de un solo hilo sin I/O real
+ * eso es equivalente a atomico para ese caso de uso, pero NO es la
+ * proteccion real contra sobreventa concurrente; esa unicamente la da la
+ * RPC de Postgres. Ver docs/PERFUME_STORE_TRANSACTIONAL_STOCK.md.
  */
 
 import { DetallePedido } from "@/domain/DetallePedido";
 import { Pedido } from "@/domain/Pedido";
 import type { AdminOrderItemSummary } from "@/lib/types";
+import { DOMICILIO_SEMANAL_COSTO_FALLBACK, isMetodoDespacho } from "@/lib/constants";
 import { isSupabaseConfigured } from "@/lib/env";
 import { localStore } from "@/lib/local-store";
+import { PerfumeOrderError, mapPerfumeOrderRpcError } from "@/lib/perfumeOrderErrors";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PedidoListItemRecord = {
@@ -70,6 +84,56 @@ export type PedidoFiadoRecord = {
   fechaPagoFiado?: string;
 };
 
+export type CrearPedidoTransaccionalCliente = {
+  nombre: string;
+  rut?: string;
+  email?: string;
+  telefono?: string;
+  region?: string;
+  comuna?: string;
+  direccion?: string;
+  referenciaDireccion?: string;
+};
+
+export type CrearPedidoTransaccionalInput = {
+  cliente: CrearPedidoTransaccionalCliente;
+  items: Array<{ productoId: string; cantidad: number }>;
+  metodoDespacho: string;
+  observacion?: string;
+  origenPedido?: string;
+};
+
+export type PedidoTransaccionalItem = {
+  productoId: string | null;
+  nombre: string;
+  cantidad: number;
+  precioUnitario: number;
+  costoUnitario: number;
+  costoTotal: number;
+  utilidadBruta: number;
+  subtotal: number;
+};
+
+export type PedidoTransaccionalResult = {
+  pedidoId: string;
+  codigo: string;
+  clienteId: string;
+  subtotal: number;
+  costoDespacho: number;
+  total: number;
+  estadoPedido: string;
+  estadoPago: string;
+  metodoDespacho: string;
+  origenPedido: string;
+  items: PedidoTransaccionalItem[];
+};
+
+export type PedidoEstadoTransaccionalResult = {
+  pedidoId: string;
+  estadoPedido: string;
+  estadoPago?: string;
+};
+
 export interface PedidoRepository {
   insertarPedido(args: {
     pedido: Pedido;
@@ -116,6 +180,37 @@ export interface PedidoRepository {
     fechaFiado?: string;
     fechaPagoFiado?: string;
   }): Promise<void>;
+  /**
+   * Crea cliente, pedido e items y reserva stock en una sola operacion
+   * atomica (RPC create_perfume_order_v1 en Supabase). Reemplaza el
+   * mecanismo heredado de insertarPedido + insertarPedidoItem + ajustes de
+   * stock independientes para el flujo publico de creacion de pedidos.
+   */
+  crearPedidoTransaccional(input: CrearPedidoTransaccionalInput): Promise<PedidoTransaccionalResult>;
+  /** RPC mark_perfume_order_paid_v1: reduce stock_actual y stock_reservado. */
+  marcarPedidoPagadoTransaccional(
+    pedidoId: string,
+    metodoPago?: string
+  ): Promise<PedidoEstadoTransaccionalResult>;
+  /** RPC cancel_perfume_order_v1. */
+  cancelarPedidoTransaccional(
+    pedidoId: string,
+    motivo: string,
+    confirmarReposicionPagado: boolean
+  ): Promise<PedidoEstadoTransaccionalResult>;
+  /** RPC advance_perfume_order_status_v1 (PAGADO->PREPARANDO->DESPACHADO->ENTREGADO). */
+  avanzarEstadoPedidoTransaccional(
+    pedidoId: string,
+    nuevoEstado: "PREPARANDO" | "DESPACHADO" | "ENTREGADO"
+  ): Promise<PedidoEstadoTransaccionalResult>;
+}
+
+function generateInMemoryOrderCode() {
+  const year = new Date().getFullYear();
+  const random = Math.floor(Math.random() * 1_000_000)
+    .toString()
+    .padStart(6, "0");
+  return `PERF-${year}-${random}`;
 }
 
 class MemoryPedidoRepository implements PedidoRepository {
@@ -395,6 +490,373 @@ class MemoryPedidoRepository implements PedidoRepository {
       fechaFiado: args.fechaFiado ?? new Date().toISOString(),
       fechaPagoFiado: args.fechaPagoFiado
     });
+  }
+
+  async crearPedidoTransaccional(
+    input: CrearPedidoTransaccionalInput
+  ): Promise<PedidoTransaccionalResult> {
+    if (!input.items || input.items.length === 0) {
+      throw new PerfumeOrderError("PF001", "El pedido debe tener al menos un producto.");
+    }
+
+    const aggregated = new Map<string, number>();
+
+    for (const item of input.items) {
+      if (!item.productoId || !Number.isInteger(item.cantidad) || item.cantidad < 1) {
+        throw new PerfumeOrderError(
+          "PF004",
+          "Cada item debe tener producto y cantidad minima de 1."
+        );
+      }
+      aggregated.set(item.productoId, (aggregated.get(item.productoId) ?? 0) + item.cantidad);
+    }
+
+    if (!isMetodoDespacho(input.metodoDespacho)) {
+      throw new PerfumeOrderError("PF006", "Metodo de despacho invalido.");
+    }
+
+    if (!input.cliente.nombre?.trim()) {
+      throw new PerfumeOrderError("PF007", "El nombre del cliente es obligatorio.");
+    }
+
+    // Orden deterministico por id, en paralelo al bloqueo determinista de
+    // la RPC (aqui no protege contra concurrencia real: solo documenta la
+    // misma intencion sobre un almacen en memoria de un solo hilo).
+    const sortedIds = Array.from(aggregated.keys()).sort();
+    const lines: Array<{ product: (typeof localStore.products)[number]; cantidad: number }> = [];
+    let subtotal = 0;
+
+    for (const productoId of sortedIds) {
+      const product = localStore.products.find((item) => item.id === productoId);
+
+      if (!product) {
+        throw new PerfumeOrderError("PF002", "Uno o mas productos del pedido no existen.");
+      }
+
+      if (product.activo === false) {
+        throw new PerfumeOrderError("PF003", `El producto ${product.nombre} no esta disponible.`);
+      }
+
+      const cantidad = aggregated.get(productoId) as number;
+      const stockActual = product.stockActual ?? 0;
+      const stockReservado = product.stockReservado ?? 0;
+
+      if (stockActual - stockReservado < cantidad) {
+        throw new PerfumeOrderError("PF005", `Stock insuficiente para ${product.nombre}.`);
+      }
+
+      lines.push({ product, cantidad });
+      subtotal += product.precioVenta * cantidad;
+    }
+
+    const costoDespacho =
+      input.metodoDespacho === "STARKEN_POR_PAGAR" ? 0 : DOMICILIO_SEMANAL_COSTO_FALLBACK;
+    const total = subtotal + costoDespacho;
+
+    let cliente = input.cliente.telefono
+      ? localStore.customers.find((item) => item.telefono === input.cliente.telefono)
+      : undefined;
+
+    if (!cliente && input.cliente.rut) {
+      cliente = localStore.customers.find((item) => item.rut === input.cliente.rut);
+    }
+
+    if (!cliente && input.cliente.email) {
+      cliente = localStore.customers.find((item) => item.email === input.cliente.email);
+    }
+
+    let clienteId: string;
+
+    if (cliente) {
+      cliente.nombre = input.cliente.nombre;
+      cliente.rut = input.cliente.rut ?? cliente.rut;
+      cliente.email = input.cliente.email ?? cliente.email;
+      cliente.telefono = input.cliente.telefono ?? cliente.telefono;
+      cliente.region = input.cliente.region ?? cliente.region;
+      cliente.comuna = input.cliente.comuna ?? cliente.comuna;
+      cliente.direccion = input.cliente.direccion ?? cliente.direccion;
+      cliente.referenciaDireccion = input.cliente.referenciaDireccion ?? cliente.referenciaDireccion;
+      clienteId = cliente.id;
+    } else {
+      clienteId = crypto.randomUUID();
+      localStore.customers.push({
+        id: clienteId,
+        nombre: input.cliente.nombre,
+        rut: input.cliente.rut,
+        email: input.cliente.email,
+        telefono: input.cliente.telefono ?? "",
+        region: input.cliente.region,
+        comuna: input.cliente.comuna,
+        direccion: input.cliente.direccion,
+        referenciaDireccion: input.cliente.referenciaDireccion,
+        lugarTrabajo: "",
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    const pedidoId = crypto.randomUUID();
+    const codigo = generateInMemoryOrderCode();
+
+    localStore.orders.push({
+      id: pedidoId,
+      codigo,
+      clienteId,
+      estadoPedido: "NUEVO",
+      estadoPago: "SIN_PAGO",
+      origenPedido: input.origenPedido ?? "PUBLICO",
+      subtotal,
+      metodoDespacho: input.metodoDespacho,
+      costoDespacho,
+      total,
+      observacion: input.observacion,
+      stockRepuesto: false,
+      adminSeen: false,
+      fechaPedido: new Date().toISOString()
+    });
+
+    const responseItems: PedidoTransaccionalItem[] = [];
+
+    for (const line of lines) {
+      const itemId = crypto.randomUUID();
+      const costoUnitario = line.product.costoUnitario ?? 0;
+      const costoTotal = costoUnitario * line.cantidad;
+      const itemSubtotal = line.product.precioVenta * line.cantidad;
+
+      localStore.orderItems.push({
+        id: itemId,
+        pedidoId,
+        productoId: line.product.id,
+        productoSku: line.product.sku,
+        productoNombre: line.product.nombre,
+        productoMarca: line.product.marca,
+        productoContenido: line.product.contenido,
+        productoDescripcion: line.product.descripcion,
+        productoImageUrl: line.product.imageUrl,
+        productoTipo: line.product.tipoProducto,
+        cantidad: line.cantidad,
+        precioUnitario: line.product.precioVenta,
+        costoUnitario,
+        costoTotal,
+        utilidadBruta: itemSubtotal - costoTotal,
+        subtotal: itemSubtotal
+      });
+
+      // Reserva stock: incrementa stockReservado, no toca stockActual.
+      // Paralelo directo de create_perfume_order_v1.
+      line.product.stockReservado = (line.product.stockReservado ?? 0) + line.cantidad;
+
+      responseItems.push({
+        productoId: line.product.id,
+        nombre: line.product.nombre,
+        cantidad: line.cantidad,
+        precioUnitario: line.product.precioVenta,
+        costoUnitario,
+        costoTotal,
+        utilidadBruta: itemSubtotal - costoTotal,
+        subtotal: itemSubtotal
+      });
+    }
+
+    return {
+      pedidoId,
+      codigo,
+      clienteId,
+      subtotal,
+      costoDespacho,
+      total,
+      estadoPedido: "NUEVO",
+      estadoPago: "SIN_PAGO",
+      metodoDespacho: input.metodoDespacho,
+      origenPedido: input.origenPedido ?? "PUBLICO",
+      items: responseItems
+    };
+  }
+
+  async marcarPedidoPagadoTransaccional(
+    pedidoId: string,
+    metodoPago = "TRANSFERENCIA"
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    const order = localStore.orders.find((item) => item.id === pedidoId);
+
+    if (!order) {
+      throw new PerfumeOrderError("PF009", "Pedido no encontrado.");
+    }
+
+    if (order.estadoPedido !== "NUEVO" && order.estadoPedido !== "AGENDADO") {
+      throw new PerfumeOrderError(
+        "PF012",
+        "Este pedido no admite marcar pagado en su estado actual."
+      );
+    }
+
+    if (order.estadoPago !== "SIN_PAGO") {
+      throw new PerfumeOrderError("PF010", "Este pedido ya fue pagado.");
+    }
+
+    const items = localStore.orderItems.filter((item) => item.pedidoId === pedidoId);
+
+    for (const item of items) {
+      if (!item.productoId) {
+        continue;
+      }
+
+      const product = localStore.products.find((current) => current.id === item.productoId);
+
+      if (!product) {
+        throw new PerfumeOrderError("PF002", "Uno de los productos del pedido ya no existe.");
+      }
+
+      const stockReservado = product.stockReservado ?? 0;
+
+      if (stockReservado < item.cantidad) {
+        throw new PerfumeOrderError(
+          "PF015",
+          "La reserva de stock de este pedido ya no es valida."
+        );
+      }
+    }
+
+    for (const item of items) {
+      if (!item.productoId) {
+        continue;
+      }
+
+      const product = localStore.products.find((current) => current.id === item.productoId);
+
+      if (!product) {
+        continue;
+      }
+
+      product.stockActual = (product.stockActual ?? 0) - item.cantidad;
+      product.stockReservado = (product.stockReservado ?? 0) - item.cantidad;
+    }
+
+    const fechaPago = new Date().toISOString();
+    order.estadoPedido = "PAGADO";
+    order.estadoPago = "PAGADO";
+    order.fechaPago = fechaPago;
+
+    localStore.payments.push({
+      id: crypto.randomUUID(),
+      pedidoId,
+      monto: order.total,
+      metodoPago,
+      estadoPago: "PAGADO",
+      fechaPago
+    });
+
+    return { pedidoId, estadoPedido: "PAGADO", estadoPago: "PAGADO" };
+  }
+
+  async cancelarPedidoTransaccional(
+    pedidoId: string,
+    motivo: string,
+    confirmarReposicionPagado: boolean
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    const motivoLimpio = motivo?.trim();
+
+    if (!motivoLimpio) {
+      throw new PerfumeOrderError("PF004", "Debes indicar un motivo de cancelacion.");
+    }
+
+    const order = localStore.orders.find((item) => item.id === pedidoId);
+
+    if (!order) {
+      throw new PerfumeOrderError("PF009", "Pedido no encontrado.");
+    }
+
+    if (order.estadoPedido === "CANCELADO") {
+      throw new PerfumeOrderError("PF011", "Este pedido ya fue cancelado.");
+    }
+
+    if (order.estadoPedido === "ENTREGADO") {
+      throw new PerfumeOrderError(
+        "PF012",
+        "Un pedido entregado no se puede cancelar por este flujo."
+      );
+    }
+
+    const items = localStore.orderItems.filter(
+      (item) => item.pedidoId === pedidoId && item.productoId
+    );
+    let estadoPagoFinal: string;
+
+    if (order.estadoPago === "PAGADO") {
+      if (!confirmarReposicionPagado) {
+        throw new PerfumeOrderError(
+          "PF013",
+          "Este pedido ya fue pagado. Confirma explicitamente para cancelarlo."
+        );
+      }
+
+      if (!order.stockRepuesto) {
+        for (const item of items) {
+          const product = localStore.products.find((current) => current.id === item.productoId);
+
+          if (product) {
+            product.stockActual = (product.stockActual ?? 0) + item.cantidad;
+          }
+        }
+      }
+
+      estadoPagoFinal = order.estadoPago;
+    } else {
+      if (!order.stockRepuesto) {
+        for (const item of items) {
+          const product = localStore.products.find((current) => current.id === item.productoId);
+
+          if (product) {
+            product.stockReservado = Math.max(0, (product.stockReservado ?? 0) - item.cantidad);
+          }
+        }
+      }
+
+      estadoPagoFinal = "CANCELADO";
+    }
+
+    order.estadoPedido = "CANCELADO";
+    order.estadoPago = estadoPagoFinal;
+    order.fechaCancelacion = new Date().toISOString();
+    order.motivoCancelacion = motivoLimpio;
+    order.stockRepuesto = true;
+
+    return { pedidoId, estadoPedido: "CANCELADO", estadoPago: estadoPagoFinal };
+  }
+
+  async avanzarEstadoPedidoTransaccional(
+    pedidoId: string,
+    nuevoEstado: "PREPARANDO" | "DESPACHADO" | "ENTREGADO"
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    const order = localStore.orders.find((item) => item.id === pedidoId);
+
+    if (!order) {
+      throw new PerfumeOrderError("PF009", "Pedido no encontrado.");
+    }
+
+    const validTransition =
+      (order.estadoPedido === "PAGADO" && nuevoEstado === "PREPARANDO") ||
+      (order.estadoPedido === "PREPARANDO" && nuevoEstado === "DESPACHADO") ||
+      (order.estadoPedido === "DESPACHADO" && nuevoEstado === "ENTREGADO");
+
+    if (!validTransition) {
+      throw new PerfumeOrderError(
+        "PF012",
+        `Transicion invalida desde ${order.estadoPedido} hacia ${nuevoEstado}.`
+      );
+    }
+
+    const now = new Date().toISOString();
+    order.estadoPedido = nuevoEstado;
+
+    if (nuevoEstado === "PREPARANDO") {
+      order.fechaPreparacion = now;
+    } else if (nuevoEstado === "DESPACHADO") {
+      order.fechaDespacho = now;
+    } else {
+      order.fechaEntrega = now;
+    }
+
+    return { pedidoId, estadoPedido: nuevoEstado };
   }
 }
 
@@ -773,6 +1235,90 @@ class SupabasePedidoRepository implements PedidoRepository {
     if (error) {
       throw new Error("No fue posible actualizar el fiado.");
     }
+  }
+
+  async crearPedidoTransaccional(
+    input: CrearPedidoTransaccionalInput
+  ): Promise<PedidoTransaccionalResult> {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("create_perfume_order_v1", {
+      p_cliente: {
+        nombre: input.cliente.nombre,
+        rut: input.cliente.rut ?? null,
+        email: input.cliente.email ?? null,
+        telefono: input.cliente.telefono ?? null,
+        region: input.cliente.region ?? null,
+        comuna: input.cliente.comuna ?? null,
+        direccion: input.cliente.direccion ?? null,
+        referencia_direccion: input.cliente.referenciaDireccion ?? null
+      },
+      p_items: input.items.map((item) => ({
+        producto_id: item.productoId,
+        cantidad: item.cantidad
+      })),
+      p_metodo_despacho: input.metodoDespacho,
+      p_observacion: input.observacion ?? null,
+      p_origen_pedido: input.origenPedido ?? "PUBLICO"
+    });
+
+    if (error) {
+      throw mapPerfumeOrderRpcError(error);
+    }
+
+    return data as PedidoTransaccionalResult;
+  }
+
+  async marcarPedidoPagadoTransaccional(
+    pedidoId: string,
+    metodoPago = "TRANSFERENCIA"
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("mark_perfume_order_paid_v1", {
+      p_pedido_id: pedidoId,
+      p_metodo_pago: metodoPago
+    });
+
+    if (error) {
+      throw mapPerfumeOrderRpcError(error);
+    }
+
+    return data as PedidoEstadoTransaccionalResult;
+  }
+
+  async cancelarPedidoTransaccional(
+    pedidoId: string,
+    motivo: string,
+    confirmarReposicionPagado: boolean
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("cancel_perfume_order_v1", {
+      p_pedido_id: pedidoId,
+      p_motivo: motivo,
+      p_confirmar_reposicion_pagado: confirmarReposicionPagado
+    });
+
+    if (error) {
+      throw mapPerfumeOrderRpcError(error);
+    }
+
+    return data as PedidoEstadoTransaccionalResult;
+  }
+
+  async avanzarEstadoPedidoTransaccional(
+    pedidoId: string,
+    nuevoEstado: "PREPARANDO" | "DESPACHADO" | "ENTREGADO"
+  ): Promise<PedidoEstadoTransaccionalResult> {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("advance_perfume_order_status_v1", {
+      p_pedido_id: pedidoId,
+      p_nuevo_estado: nuevoEstado
+    });
+
+    if (error) {
+      throw mapPerfumeOrderRpcError(error);
+    }
+
+    return data as PedidoEstadoTransaccionalResult;
   }
 }
 

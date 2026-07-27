@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
+import { httpStatusForPerfumeOrderError } from "@/lib/perfumeOrderErrors";
 import type { AdminOrdersAction } from "@/lib/types";
 import { createPedidoService } from "@/services/pedidoService";
 
@@ -47,7 +48,7 @@ export async function PATCH(
         );
         break;
       case "pagado":
-        await pedidoService.marcarPedidoPagado(pedidoId);
+        await pedidoService.marcarPedidoPagado(pedidoId, body.metodoPago || "TRANSFERENCIA");
         break;
       case "preparando":
         await pedidoService.iniciarPreparacionPedido(pedidoId);
@@ -77,6 +78,10 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true });
   } catch (error) {
+    // Los errores de mark_perfume_order_paid_v1 / cancel_perfume_order_v1 /
+    // advance_perfume_order_status_v1 ya llegan aqui traducidos a espanol y
+    // sin detalles internos de PostgreSQL (ver
+    // repositories/pedidoRepository.ts + lib/perfumeOrderErrors.ts).
     return NextResponse.json(
       {
         error:
@@ -84,7 +89,7 @@ export async function PATCH(
             ? error.message
             : "No fue posible actualizar el pedido."
       },
-      { status: 400 }
+      { status: httpStatusForPerfumeOrderError(error) }
     );
   }
 }
