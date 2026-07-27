@@ -1,9 +1,10 @@
-# Stock transaccional y RPC de pedidos — Fase 1C
+# Stock transaccional y RPC de pedidos — Fase 1C (+ ajuste 1D-A)
 
 - Fecha: 2026-07-26
 - Rama: `feature/perfume-store-foundation`
 - Fase anterior: Fase 1A (fundación SQL), commit `8cb08c0`, documento [`PERFUME_STORE_DATABASE_FOUNDATION.md`](PERFUME_STORE_DATABASE_FOUNDATION.md); Fase 1B (contrato de dominio), commit `fc0091c`, documento [`PERFUME_STORE_APPLICATION_CONTRACT.md`](PERFUME_STORE_APPLICATION_CONTRACT.md)
 - Alcance de esta fase: SQL (migración aditiva + espejo en `schema.sql`), integración TypeScript de repositorio/servicio/rutas ya delegando a las RPC, pruebas SQL y TypeScript, documentación. **No se tocó Supabase remoto, Vercel, `.env`, `package-lock.json` ni datos comerciales reales.**
+- Ajuste 1D-A (mismo documento, ver sección 24): durante el despliegue controlado al Supabase remoto nuevo, `supabase db lint --linked --fail-on error` detectó un falso positivo de análisis estático sobre las tablas temporales de `create_perfume_order_v1`. Se agregó la migración aditiva `20260726000000_perfume_store_create_order_no_temp_tables.sql`, que reemplaza esa función por una versión equivalente sin tablas temporales (misma firma, misma respuesta JSON, mismos códigos `PF`, misma seguridad y lógica transaccional).
 
 ## 1. Objetivo
 
@@ -19,12 +20,12 @@ Ambas columnas ya existían desde la Fase 1A (sin lógica asociada). Esta fase n
 
 ## 3. RPC implementadas
 
-Todas viven en `supabase/migrations/20260724010000_perfume_store_transactional_stock.sql` (aditiva, no reemplaza la migración de Fase 1A) y su espejo en `supabase/schema.sql`:
+Viven en `supabase/migrations/20260724010000_perfume_store_transactional_stock.sql` (aditiva, no reemplaza la migración de Fase 1A); `create_perfume_order_v1` fue reemplazada por `20260726000000_perfume_store_create_order_no_temp_tables.sql` (Fase 1D-A, ver sección 24). Ambas migraciones y `supabase/schema.sql` se mantienen en sincronía lógica:
 
 | Función | Rol |
 |---|---|
 | `next_perfume_order_code()` | Código correlativo `PERF-YYYY-000001`, atómico vía `nextval()` sobre `perfume_order_code_seq` |
-| `create_perfume_order_v1(p_cliente, p_items, p_metodo_despacho, p_observacion, p_origen_pedido)` | Crea/reutiliza cliente, crea pedido + items, reserva stock |
+| `create_perfume_order_v1(p_cliente, p_items, p_metodo_despacho, p_observacion, p_origen_pedido)` | Crea/reutiliza cliente, crea pedido + items, reserva stock. Reescrita en Fase 1D-A sin tablas temporales (ver sección 24) |
 | `mark_perfume_order_paid_v1(p_pedido_id, p_metodo_pago)` | Convierte la reserva en descuento físico, registra el pago |
 | `cancel_perfume_order_v1(p_pedido_id, p_motivo, p_confirmar_reposicion_pagado)` | Libera reserva (sin pago) o repone stock físico (pagado, con confirmación explícita) |
 | `advance_perfume_order_status_v1(p_pedido_id, p_nuevo_estado)` | `PAGADO→PREPARANDO→DESPACHADO→ENTREGADO`, sin efecto en stock |
@@ -170,21 +171,57 @@ Nuevos:
 - `tests/repositories/pedidoRepositoryTransaccional.test.ts`
 - `docs/PERFUME_STORE_TRANSACTIONAL_STOCK.md` (este documento)
 
+Nuevos (Fase 1D-A, ver sección 24):
+- `supabase/migrations/20260726000000_perfume_store_create_order_no_temp_tables.sql`
+
 ## 22. Orden futuro de despliegue
 
-1. Vincular el proyecto Supabase remoto nuevo (`supabase link`) — todavía no se ha hecho.
-2. Aplicar `supabase db push` (o ejecutar ambas migraciones manualmente) contra ese proyecto remoto, en el mismo orden: `20260724000000_perfume_store_foundation.sql` primero, luego `20260724010000_perfume_store_transactional_stock.sql`.
+1. ~~Vincular el proyecto Supabase remoto nuevo (`supabase link`)~~ — hecho en Fase 1D-A, únicamente desde un workspace temporal fuera del repositorio (ver sección 24). El repositorio real nunca se vinculó.
+2. ~~Aplicar `supabase db push`~~ — hecho en Fase 1D-A para las dos migraciones originales (`20260724000000`, `20260724010000`). La tercera migración (`20260726000000`, sin tablas temporales) todavía no se ha aplicado al remoto; queda para una subfase posterior tras validarse localmente.
 3. Configurar Vercel (variables de entorno de Supabase, dominio) — todavía no se ha hecho.
 4. Configurar `business_settings` con los datos comerciales reales (costo de despacho, textos) antes de recibir pedidos reales — la migración solo aplica un valor genérico de `costo_despacho_semanal = 4000` si detecta el default de fundación (`0`).
-5. Repetir el smoke test de esta fase contra el proyecto remoto recién creado, antes de exponerlo a tráfico real, para confirmar que el comportamiento observado en local se sostiene.
+5. Repetir el smoke test de esta fase contra el proyecto remoto, antes de exponerlo a tráfico real, para confirmar que el comportamiento observado en local se sostiene (pendiente: la suite pgTAP remota de Fase 1D-A quedó sin ejecutar, ver sección 24).
 
 ## 23. Checklist antes de vincular Supabase remoto
 
-- [ ] Confirmar que no existe ningún dato de producción en el proyecto remoto nuevo (proyecto recién creado, vacío).
-- [ ] Aplicar `20260724000000_perfume_store_foundation.sql` y verificar que no haya errores.
-- [ ] Aplicar `20260724010000_perfume_store_transactional_stock.sql` y verificar que no haya errores.
+- [x] Confirmar que no existe ningún dato de producción en el proyecto remoto nuevo (proyecto recién creado, vacío).
+- [x] Aplicar `20260724000000_perfume_store_foundation.sql` y verificar que no haya errores.
+- [x] Aplicar `20260724010000_perfume_store_transactional_stock.sql` y verificar que no haya errores.
+- [ ] Aplicar `20260726000000_perfume_store_create_order_no_temp_tables.sql` contra el remoto (pendiente, tras validación local).
 - [ ] Ejecutar `supabase/tests/perfume_store_transactional_stock.sql` contra el proyecto remoto (con una conexión de solo prueba, nunca con datos reales) y confirmar que los 18 escenarios pasan.
-- [ ] Confirmar permisos: `anon`/`authenticated` sin acceso a las 4 RPC, `service_role` con acceso.
+- [ ] Ejecutar la suite pgTAP remota (pendiente, ver sección 24).
+- [x] Confirmar permisos: `anon`/`authenticated` sin acceso a las RPC operativas, `service_role` con acceso (verificado localmente en Fase 1C; verificación remota quedó pendiente al detenerse la subfase 1D-A antes de pgTAP).
 - [ ] Configurar `business_settings` con los valores reales del negocio (no el valor genérico de la migración).
 - [ ] Configurar las variables de entorno de Supabase en Vercel (URL, claves) sin exponer la clave de servicio al cliente.
 - [ ] Repetir `npm run lint`, `npm run typecheck`, `npm run test:run` y `npm run build` contra el estado final de la rama antes de desplegar.
+
+## 24. Fase 1D-A: despliegue controlado al remoto y eliminación de tablas temporales
+
+**Fecha**: 2026-07-26. **Alcance**: vinculación y `db push` de las dos migraciones originales contra el Supabase remoto nuevo (proyecto `perfume-store`, ref sanitizado), únicamente desde un workspace temporal fuera del repositorio; hallazgo de `db lint` y corrección local mediante una tercera migración aditiva.
+
+**Qué se hizo contra el remoto:**
+1. Se creó un workspace temporal (`supabase init --force`) fuera del repositorio, con únicamente las dos migraciones originales copiadas (hashes SHA-256 verificados idénticos a los del repositorio).
+2. Se vinculó ese workspace temporal (nunca el repositorio real) al proyecto remoto vacío mediante `supabase link --project-ref <ref>`, con la contraseña ingresada de forma interactiva por el usuario.
+3. `supabase migration list --linked` confirmó ambas migraciones sin aplicar en remoto.
+4. `supabase db push --linked --dry-run` propuso exactamente `20260724000000` y `20260724010000`, sin seed y sin ninguna migración inesperada. Autorización explícita del usuario antes de continuar.
+5. `supabase db push --linked` (real, sin `--include-all/--include-seed/--include-roles`) aplicó ambas migraciones. Se observó un *warning* no fatal de un subsistema interno de la CLI (`pg-delta`, error de certificado al cachear el catálogo de migraciones para diffing) — no impidió la aplicación del SQL; `supabase migration list --linked` posterior confirmó ambas migraciones con `remote` igual a `local`.
+
+**Hallazgo de `db lint`:** `supabase db lint --linked --fail-on error` (código de salida `1`) marcó un error estático real y distinto del warning anterior:
+
+```json
+{"function":"public.create_perfume_order_v1","issues":[{"level":"error",
+  "message":"relation \"tmp_perfume_order_qty\" does not exist","sqlState":"42P01", ...}]}
+```
+
+Este es un falso positivo de análisis estático: la función fue validada exhaustivamente en ejecución real durante la Fase 1C (18/18 escenarios del smoke test, incluyendo llamadas repetidas a `create_perfume_order_v1` dentro de una misma transacción, más la prueba de concurrencia con dos conexiones). El linter estático no puede probar, en todas sus rutas de análisis, que `create temporary table if not exists ...` deja la tabla disponible antes del `INSERT` siguiente, y la reporta como inexistente aunque en tiempo de ejecución sí existe.
+
+**Decisión**: no ocultar el hallazgo con SQL dinámico ni ignorarlo. Se detuvo la subfase antes de ejecutar la suite pgTAP remota y se creó la migración aditiva `supabase/migrations/20260726000000_perfume_store_create_order_no_temp_tables.sql`, que reemplaza `create_perfume_order_v1` (mismo firma, misma respuesta JSON, mismos códigos `PF`, misma seguridad `SECURITY DEFINER`/`search_path`/permisos, misma lógica transaccional) eliminando toda tabla temporal:
+
+- `tmp_perfume_order_qty` → dos arrays PL/pgSQL (`v_producto_ids uuid[]`, `v_cantidades integer[]`), construidos una sola vez por agregación de líneas duplicadas y usados para el `for update` determinista por `id` (`where id = any(array) order by id for update`, sin join a ninguna relación creada dinámicamente).
+- `tmp_perfume_order_lines` → un valor `jsonb` acumulado en una variable PL/pgSQL (`v_lines_json`), releído después con `jsonb_to_recordset(...)` para el `INSERT` en `pedido_items`, el `UPDATE` de `stock_reservado` y la construcción de la respuesta.
+
+**No se modificaron** las dos migraciones ya aplicadas remotamente (`20260724000000`, `20260724010000`): la nueva migración solo hace `CREATE OR REPLACE FUNCTION` sobre la misma firma. `supabase/schema.sql` se actualizó para reflejar exactamente el mismo cuerpo de función (verificado con diff línea a línea contra la nueva migración: idénticos).
+
+**Pendiente al cierre de esta sub-subfase** (antes de continuar con el resto de 1D-A): validar la migración `20260726000000` desde cero en local (tres migraciones), confirmar `supabase db lint` local en código `0`, repetir smoke test y concurrencia, `npm run lint/typecheck/test:run/build`. Solo después de esa validación local se aplicará la tercera migración al remoto y se ejecutará la suite pgTAP remota — ninguna de esas dos cosas se hizo todavía contra el Supabase remoto en este punto.
+
+**Supabase remoto al cierre de este punto**: contiene únicamente las dos migraciones originales aplicadas (base + stock transaccional con la versión de `create_perfume_order_v1` que usa tablas temporales — funcionalmente correcta en ejecución, solo con el hallazgo de lint estático pendiente de corregir remotamente). Sin datos de prueba, sin seed, sin migraciones heredadas de Pauli Store.

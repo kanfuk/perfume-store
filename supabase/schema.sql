@@ -1,11 +1,12 @@
 -- Perfume Store
 -- Esquema consolidado para Supabase PostgreSQL.
 --
--- Este archivo es el espejo logico de dos migraciones canonicas, en orden:
+-- Este archivo es el espejo logico de tres migraciones canonicas, en orden:
 --   1. supabase/migrations/20260724000000_perfume_store_foundation.sql
 --   2. supabase/migrations/20260724010000_perfume_store_transactional_stock.sql
--- y debe representar exactamente el mismo estado que ambas aplicadas en
--- secuencia. Si se modifica el esquema, actualizar los tres archivos juntos
+--   3. supabase/migrations/20260726000000_perfume_store_create_order_no_temp_tables.sql
+-- y debe representar exactamente el mismo estado que las tres aplicadas en
+-- secuencia. Si se modifica el esquema, actualizar los archivos correspondientes
 -- (ver docs/PERFUME_STORE_DATABASE_FOUNDATION.md y
 -- docs/PERFUME_STORE_TRANSACTIONAL_STOCK.md, seccion "Fuente canonica").
 --
@@ -896,6 +897,12 @@ set
 where id = '00000000-0000-0000-0000-000000000001'::uuid
   and costo_despacho_semanal = 0;
 
+-- Fase 1D-A: create_perfume_order_v1 sin tablas temporales (reemplaza la
+-- version anterior, ver 20260726000000_perfume_store_create_order_no_temp_tables.sql
+-- para la explicacion completa: el analizador estatico de "supabase db
+-- lint" marcaba un falso positivo -- relation "tmp_perfume_order_qty" does
+-- not exist -- sobre el patron "create temporary table if not exists" que
+-- si funcionaba correctamente en ejecucion real, validado en Fase 1C).
 create or replace function public.create_perfume_order_v1(
   p_cliente jsonb,
   p_items jsonb,
@@ -918,6 +925,10 @@ declare
   v_direccion text := nullif(btrim(coalesce(p_cliente->>'direccion', '')), '');
   v_referencia text := nullif(btrim(coalesce(p_cliente->>'referencia_direccion', '')), '');
   v_cliente_id uuid;
+  v_producto_ids uuid[];
+  v_cantidades integer[];
+  v_idx integer;
+  v_qty integer;
   v_producto_row record;
   v_pedido_id uuid;
   v_codigo text;
@@ -926,6 +937,7 @@ declare
   v_total integer := 0;
   v_items_count integer := 0;
   v_matched_count integer := 0;
+  v_lines_json jsonb := '[]'::jsonb;
   v_items_json jsonb := '[]'::jsonb;
 begin
   if p_metodo_despacho not in ('STARKEN_POR_PAGAR', 'DOMICILIO_SEMANAL') then
@@ -949,83 +961,70 @@ begin
     raise exception 'Cada item debe tener producto y cantidad minima de 1.' using errcode = 'PF004';
   end if;
 
-  -- Agrega lineas duplicadas del mismo producto.
-  -- "if not exists" + limpieza explicita (en vez de solo "on commit drop"):
-  -- ON COMMIT DROP libera la tabla recien al terminar la transaccion de
-  -- quien llama, no al terminar esta funcion. Si esta RPC se invoca mas de
-  -- una vez dentro de la misma transaccion (por ejemplo, un pooler en modo
-  -- sesion, o varias llamadas explicitas agrupadas), la segunda llamada
-  -- encontraria la tabla temporal ya creada por la primera y fallaria con
-  -- "relation already exists". Reutilizar la tabla y vaciarla al inicio es
-  -- seguro porque es "temporary" (aislada por sesion) y de un solo uso por
-  -- llamada.
-  create temporary table if not exists tmp_perfume_order_qty (
-    producto_id uuid primary key,
-    cantidad integer not null
-  ) on commit drop;
-  truncate table tmp_perfume_order_qty;
+  -- Agrega lineas duplicadas del mismo producto en dos arrays alineados por
+  -- indice (mismo ORDER BY en ambos array_agg sobre el mismo conjunto
+  -- agrupado por producto_id, que es unico por fila): reemplaza a
+  -- tmp_perfume_order_qty sin crear ninguna relacion.
+  select array_agg(producto_id order by producto_id), array_agg(cantidad order by producto_id)
+  into v_producto_ids, v_cantidades
+  from (
+    select (elem->>'producto_id')::uuid as producto_id, sum((elem->>'cantidad')::int) as cantidad
+    from jsonb_array_elements(p_items) as elem
+    group by (elem->>'producto_id')::uuid
+  ) agg;
 
-  insert into tmp_perfume_order_qty (producto_id, cantidad)
-  select (elem->>'producto_id')::uuid, sum((elem->>'cantidad')::int)
-  from jsonb_array_elements(p_items) as elem
-  group by (elem->>'producto_id')::uuid;
-
-  select count(*) into v_items_count from tmp_perfume_order_qty;
+  v_items_count := coalesce(array_length(v_producto_ids, 1), 0);
 
   select count(*) into v_matched_count
   from public.productos p
-  join tmp_perfume_order_qty q on q.producto_id = p.id;
+  where p.id = any(v_producto_ids);
 
   if v_matched_count <> v_items_count then
     raise exception 'Uno o mas productos del pedido no existen.' using errcode = 'PF002';
   end if;
 
-  create temporary table if not exists tmp_perfume_order_lines (
-    producto_id uuid,
-    cantidad integer,
-    sku text,
-    nombre text,
-    marca text,
-    contenido text,
-    descripcion text,
-    image_url text,
-    tipo_producto text,
-    precio_unitario integer,
-    costo_unitario integer
-  ) on commit drop;
-  truncate table tmp_perfume_order_lines;
-
   -- Bloqueo determinista en orden de id para reducir riesgo de deadlock
   -- frente a otra transaccion concurrente que reserve un subconjunto
-  -- solapado de productos.
+  -- solapado de productos. Mismo orden y misma clausula FOR UPDATE que la
+  -- version anterior; unico cambio es que el filtro es "id = any(array)" en
+  -- vez de un join a una tabla temporal.
   for v_producto_row in
-    select p.*, q.cantidad as qty
+    select p.*
     from public.productos p
-    join tmp_perfume_order_qty q on q.producto_id = p.id
+    where p.id = any(v_producto_ids)
     order by p.id
     for update
   loop
+    v_idx := array_position(v_producto_ids, v_producto_row.id);
+    v_qty := v_cantidades[v_idx];
+
     if v_producto_row.activo is not true then
       raise exception 'El producto % no esta disponible.', v_producto_row.nombre
         using errcode = 'PF003';
     end if;
 
-    if (v_producto_row.stock_actual - v_producto_row.stock_reservado) < v_producto_row.qty then
+    if (v_producto_row.stock_actual - v_producto_row.stock_reservado) < v_qty then
       raise exception 'Stock insuficiente para %.', v_producto_row.nombre
         using errcode = 'PF005';
     end if;
 
-    insert into tmp_perfume_order_lines (
-      producto_id, cantidad, sku, nombre, marca, contenido, descripcion,
-      image_url, tipo_producto, precio_unitario, costo_unitario
-    ) values (
-      v_producto_row.id, v_producto_row.qty, v_producto_row.sku, v_producto_row.nombre,
-      v_producto_row.marca, v_producto_row.contenido, v_producto_row.descripcion,
-      v_producto_row.image_url, v_producto_row.tipo_producto, v_producto_row.precio_venta,
-      v_producto_row.costo_unitario
-    );
+    v_subtotal := v_subtotal + (v_producto_row.precio_venta * v_qty);
 
-    v_subtotal := v_subtotal + (v_producto_row.precio_venta * v_producto_row.qty);
+    -- Acumula el snapshot de esta linea en un valor jsonb (reemplaza a
+    -- tmp_perfume_order_lines). Se relee mas abajo con jsonb_to_recordset.
+    v_lines_json := v_lines_json || jsonb_build_array(jsonb_build_object(
+      'producto_id', v_producto_row.id,
+      'cantidad', v_qty,
+      'sku', v_producto_row.sku,
+      'nombre', v_producto_row.nombre,
+      'marca', v_producto_row.marca,
+      'contenido', v_producto_row.contenido,
+      'descripcion', v_producto_row.descripcion,
+      'image_url', v_producto_row.image_url,
+      'tipo_producto', v_producto_row.tipo_producto,
+      'precio_unitario', v_producto_row.precio_venta,
+      'costo_unitario', v_producto_row.costo_unitario
+    ));
   end loop;
 
   if p_metodo_despacho = 'STARKEN_POR_PAGAR' then
@@ -1097,11 +1096,19 @@ begin
     l.costo_unitario * l.cantidad,
     (l.precio_unitario - l.costo_unitario) * l.cantidad,
     l.precio_unitario * l.cantidad
-  from tmp_perfume_order_lines l;
+  from jsonb_to_recordset(v_lines_json) as l(
+    producto_id uuid, cantidad integer, sku text, nombre text, marca text,
+    contenido text, descripcion text, image_url text, tipo_producto text,
+    precio_unitario integer, costo_unitario integer
+  );
 
   update public.productos p
   set stock_reservado = p.stock_reservado + l.cantidad
-  from tmp_perfume_order_lines l
+  from jsonb_to_recordset(v_lines_json) as l(
+    producto_id uuid, cantidad integer, sku text, nombre text, marca text,
+    contenido text, descripcion text, image_url text, tipo_producto text,
+    precio_unitario integer, costo_unitario integer
+  )
   where p.id = l.producto_id;
 
   select jsonb_agg(
@@ -1116,7 +1123,11 @@ begin
       'subtotal', l.precio_unitario * l.cantidad
     )
   ) into v_items_json
-  from tmp_perfume_order_lines l;
+  from jsonb_to_recordset(v_lines_json) as l(
+    producto_id uuid, cantidad integer, sku text, nombre text, marca text,
+    contenido text, descripcion text, image_url text, tipo_producto text,
+    precio_unitario integer, costo_unitario integer
+  );
 
   return jsonb_build_object(
     'pedidoId', v_pedido_id,
