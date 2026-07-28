@@ -29,6 +29,24 @@ export function isValidEmail(value: string) {
   return EMAIL_PATTERN.test(value.trim());
 }
 
+export function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export const ADMIN_PASSWORD_MIN_LENGTH = 8;
+
+export function validateAdminNewPassword(password: string, confirmPassword: string) {
+  if (password.length < ADMIN_PASSWORD_MIN_LENGTH) {
+    return `La contraseña debe tener al menos ${ADMIN_PASSWORD_MIN_LENGTH} caracteres.`;
+  }
+
+  if (password !== confirmPassword) {
+    return "Las contraseñas no coinciden.";
+  }
+
+  return null;
+}
+
 export type CustomerFormData = {
   nombre: string;
   rut: string;

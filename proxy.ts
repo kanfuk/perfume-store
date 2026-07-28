@@ -10,7 +10,9 @@ export async function proxy(request: NextRequest) {
     request
   });
 
-  if (request.nextUrl.pathname === "/admin/login") {
+  const publicAdminPaths = new Set(["/admin/login", "/admin/set-password"]);
+
+  if (publicAdminPaths.has(request.nextUrl.pathname)) {
     return response;
   }
 

@@ -13,7 +13,10 @@ export const feedbackMessages = {
   confirmMaintenanceTitle: "Confirmar mantenimiento",
   confirmSensitiveOrderTitle: "Confirmar accion del pedido",
   confirmSensitiveOrderDescription:
-    "Revisa la accion antes de continuar. El cambio impacta el estado operativo del pedido."
+    "Revisa la accion antes de continuar. El cambio impacta el estado operativo del pedido.",
+  adminPasswordRecoveryInvalidEmail: "Ingresa un correo electrónico válido.",
+  adminPasswordRecoveryRequested:
+    "Si el correo está registrado, recibirás un enlace para definir tu contraseña."
 } as const;
 
 export function formatPendingOrdersLabel(count: number) {

@@ -552,6 +552,20 @@ for select
 to authenticated
 using (email = auth.email() and activo = true);
 
+-- Grant de tabla base requerido ademas de RLS (ver migracion
+-- 20260728000000_grant_select_usuarios_admin.sql): sin este GRANT, Postgres
+-- niega el SELECT con 42501 antes de siquiera evaluar RLS, para cualquier
+-- rol -- incluido service_role, que ignora RLS pero no el grant de tabla.
+-- Tambien se revocan REFERENCES/TRIGGER/TRUNCATE (otorgados por defecto por
+-- la plantilla de Supabase a toda tabla de public) para dejar esta tabla en
+-- el minimo estricto: unicamente SELECT.
+revoke all on table public.usuarios_admin from public;
+revoke all on table public.usuarios_admin from anon;
+revoke references, trigger, truncate on table public.usuarios_admin from authenticated;
+revoke references, trigger, truncate on table public.usuarios_admin from service_role;
+grant select on table public.usuarios_admin to authenticated;
+grant select on table public.usuarios_admin to service_role;
+
 -- productos: lectura publica solo de productos activos; admin gestiona todo.
 drop policy if exists "public_can_read_active_products" on public.productos;
 create policy "public_can_read_active_products"
@@ -686,6 +700,66 @@ for all
 to authenticated
 using (user_id = auth.uid() and public.is_active_admin())
 with check (user_id = auth.uid() and public.is_active_admin());
+
+-- ============================================================
+-- Privilegios de tabla base para las 8 tablas operativas que el codigo de
+-- la app realmente consulta (ver migracion
+-- 20260728010000_runtime_table_privileges.sql). RLS y las politicas de
+-- arriba no alcanzan sin este GRANT: Postgres exige el privilegio de tabla
+-- antes de evaluar RLS, para cualquier rol -- incluido service_role, que
+-- ignora RLS pero no el grant de tabla. business_settings,
+-- operaciones_admin_log y los archivo_* no se tocan: ningun codigo
+-- TypeScript los consulta (solo funciones SECURITY DEFINER).
+-- ============================================================
+
+revoke all on table public.pedidos from public;
+revoke all on table public.pedidos from anon;
+revoke all on table public.pedidos from authenticated;
+revoke all on table public.pedidos from service_role;
+grant select, insert, update on table public.pedidos to service_role;
+grant select on table public.pedidos to authenticated;
+
+revoke all on table public.pedido_items from public;
+revoke all on table public.pedido_items from anon;
+revoke all on table public.pedido_items from authenticated;
+revoke all on table public.pedido_items from service_role;
+grant select, insert on table public.pedido_items to service_role;
+
+revoke all on table public.clientes from public;
+revoke all on table public.clientes from anon;
+revoke all on table public.clientes from authenticated;
+revoke all on table public.clientes from service_role;
+grant select, insert, update on table public.clientes to service_role;
+
+revoke all on table public.productos from public;
+revoke all on table public.productos from anon;
+revoke all on table public.productos from authenticated;
+revoke all on table public.productos from service_role;
+grant select, insert, update, delete on table public.productos to service_role;
+
+revoke all on table public.pagos from public;
+revoke all on table public.pagos from anon;
+revoke all on table public.pagos from authenticated;
+revoke all on table public.pagos from service_role;
+grant select, insert on table public.pagos to service_role;
+
+revoke all on table public.fiados from public;
+revoke all on table public.fiados from anon;
+revoke all on table public.fiados from authenticated;
+revoke all on table public.fiados from service_role;
+grant select, insert, update on table public.fiados to service_role;
+
+revoke all on table public.admin_push_subscriptions from public;
+revoke all on table public.admin_push_subscriptions from anon;
+revoke all on table public.admin_push_subscriptions from authenticated;
+revoke all on table public.admin_push_subscriptions from service_role;
+grant select, insert, update on table public.admin_push_subscriptions to service_role;
+
+revoke all on table public.user_device_badge_settings from public;
+revoke all on table public.user_device_badge_settings from anon;
+revoke all on table public.user_device_badge_settings from authenticated;
+revoke all on table public.user_device_badge_settings from service_role;
+grant select, insert, update on table public.user_device_badge_settings to service_role;
 
 -- ============================================================
 -- Funciones administrativas SECURITY DEFINER (cierre mensual y limpieza

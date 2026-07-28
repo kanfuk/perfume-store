@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { requestAdminPasswordRecovery } from "@/lib/admin/passwordRecovery";
 
 type AdminLoginFormProps = {
   nextPath: string;
@@ -18,6 +19,8 @@ export function AdminLoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [recoverySubmitting, setRecoverySubmitting] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState("");
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,6 +51,27 @@ export function AdminLoginForm({
     }
   };
 
+  const handleRecoveryRequest = async () => {
+    if (recoverySubmitting) {
+      return;
+    }
+
+    setRecoveryMessage("");
+    setRecoverySubmitting(true);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const result = await requestAdminPasswordRecovery(
+        email,
+        supabase.auth,
+        `${window.location.origin}/admin/set-password`
+      );
+      setRecoveryMessage(result.message);
+    } finally {
+      setRecoverySubmitting(false);
+    }
+  };
+
   return (
     <form
       method="post"
@@ -56,13 +80,13 @@ export function AdminLoginForm({
     >
       <div className="space-y-3">
         <span className="inline-flex rounded-full bg-[#ddf4e5] px-3 py-1 text-sm font-semibold text-[#247a4d]">
-          Bienvenida Pauli
+          Perfume Store
         </span>
         <h1 className="text-3xl font-bold leading-tight text-[#1f3328] sm:text-4xl">
-          Ingreso administrador
+          Administración
         </h1>
         <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
-          Bienvenida, Pauli. Inicia sesión para administrar tu tienda con todo en orden.
+          Inicia sesión para administrar tu tienda con todo en orden.
         </p>
       </div>
 
@@ -94,6 +118,20 @@ export function AdminLoginForm({
       </button>
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
+
+      <div className="border-t border-[#e6f2ea] pt-4 text-center">
+        <button
+          type="button"
+          onClick={handleRecoveryRequest}
+          disabled={recoverySubmitting}
+          className="text-sm font-medium text-[#247a4d] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-[#a8d8b7]"
+        >
+          {recoverySubmitting ? "Enviando..." : "Crear o recuperar contraseña"}
+        </button>
+        {recoveryMessage ? (
+          <p className="mt-2 text-sm text-[#6b7c70]">{recoveryMessage}</p>
+        ) : null}
+      </div>
     </form>
   );
 }

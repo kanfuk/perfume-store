@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import { mockProducts } from "@/lib/mocks/products";
 import { METODO_DESPACHO_STARKEN_POR_PAGAR } from "@/lib/constants";
 import {
+  ADMIN_PASSWORD_MIN_LENGTH,
   isValidEmail,
+  normalizeEmail,
   validateAdminDirectSaleForm,
+  validateAdminNewPassword,
   validateCustomerOrderForm,
   validateCustomOrderForm
 } from "@/lib/validators";
@@ -35,6 +38,38 @@ describe("isValidEmail", () => {
   it("rechaza correos sin arroba o dominio", () => {
     expect(isValidEmail("persona-sin-arroba")).toBe(false);
     expect(isValidEmail("persona@sindominio")).toBe(false);
+  });
+});
+
+describe("normalizeEmail", () => {
+  it("recorta espacios y convierte a minusculas", () => {
+    expect(normalizeEmail("  Admin@Ejemplo.COM  ")).toBe("admin@ejemplo.com");
+  });
+
+  it("no altera un correo ya normalizado", () => {
+    expect(normalizeEmail("admin@ejemplo.com")).toBe("admin@ejemplo.com");
+  });
+});
+
+describe("validateAdminNewPassword", () => {
+  it("rechaza contraseñas mas cortas que el minimo", () => {
+    const result = validateAdminNewPassword("1234567", "1234567");
+
+    expect(result).toBe(
+      `La contraseña debe tener al menos ${ADMIN_PASSWORD_MIN_LENGTH} caracteres.`
+    );
+  });
+
+  it("rechaza contraseñas que no coinciden", () => {
+    const result = validateAdminNewPassword("contraseña-larga", "otra-contraseña");
+
+    expect(result).toBe("Las contraseñas no coinciden.");
+  });
+
+  it("acepta una contraseña valida y coincidente", () => {
+    const result = validateAdminNewPassword("contraseña-larga", "contraseña-larga");
+
+    expect(result).toBeNull();
   });
 });
 
