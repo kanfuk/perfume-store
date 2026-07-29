@@ -30,6 +30,15 @@ Existe exactamente un registro en `public.usuarios_admin`, con `rol = ADMIN` y `
 
 `proxy.ts` mantiene `/admin/login` y `/admin/set-password` como únicas rutas públicas bajo `/admin`; el resto exige sesión.
 
+### URLs productivas (Fase 1D-C/D/E — ver `PERFUME_STORE_VERCEL_DEPLOYMENT.md`)
+
+- **Site URL de Supabase**: `https://perfume-store-mu-smoky.vercel.app`
+- Login: `https://perfume-store-mu-smoky.vercel.app/admin/login`
+- Callback de auth: `https://perfume-store-mu-smoky.vercel.app/auth/callback`
+- Definir contraseña: `https://perfume-store-mu-smoky.vercel.app/admin/set-password`
+
+Login administrativo **validado manualmente en producción** contra el Supabase remoto real, desde internet: autenticación, autorización, dashboard completo y navegación administrativa funcionando correctamente.
+
 ## 4. Causa raíz de los grants faltantes (diagnóstico y corrección)
 
 La migración `20260724000000_perfume_store_foundation.sql` ("clean foundation") creó las 15 tablas del proyecto habilitando RLS y políticas, pero **nunca ejecutó el `GRANT` de tabla base** que Postgres exige antes de evaluar RLS. Sin ese `GRANT`, cualquier rol —incluido `service_role`, que ignora RLS pero no el privilegio de tabla— recibía `permission denied` (`SQLSTATE 42501`) al intentar leer o escribir, sin importar la política. El error se manifestó primero como un login que siempre volvía a `/admin/login` (la excepción real se descartaba en un `catch` genérico), y después como `"No fue posible obtener los pedidos."` al cargar el dashboard.
