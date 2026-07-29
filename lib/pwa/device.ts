@@ -1,4 +1,4 @@
-const DEVICE_ID_STORAGE_KEY = "pauli_store_device_id";
+const DEVICE_ID_STORAGE_KEY = "smellme_device_id";
 
 export function getOrCreateDeviceId() {
   if (typeof window === "undefined") {

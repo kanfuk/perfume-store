@@ -32,14 +32,14 @@ export function CartSummary({
   footer
 }: CartSummaryProps) {
   return (
-    <div className="overflow-hidden rounded-[30px] border border-[#d8ebdd] bg-white/95 shadow-soft">
-      <div className="bg-[linear-gradient(180deg,#f6fcf7_0%,#eef8f0_100%)] p-5">
+    <div className="overflow-hidden rounded-[30px] border border-[#e3d9c8] bg-white/95 shadow-soft">
+      <div className="bg-[linear-gradient(180deg,#faf7f1_0%,#f2ece0_100%)] p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="font-display text-xl font-semibold text-[#1f3328]">{title}</h3>
-            <p className="mt-1 text-sm text-[#6b7c70]">{subtitle}</p>
+            <h3 className="font-display text-xl font-semibold text-[#231f19]">{title}</h3>
+            <p className="mt-1 text-sm text-[#74695c]">{subtitle}</p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#247a4d]">
+          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#6b4a26]">
             {(totalItems ?? lines.length)} unidad{(totalItems ?? lines.length) === 1 ? "" : "es"}
           </span>
         </div>
@@ -47,29 +47,29 @@ export function CartSummary({
       <div className="space-y-3 p-5">
         <div className="mt-4 space-y-3">
           {lines.length === 0 ? (
-            <div className="rounded-[22px] border border-dashed border-[#d8ebdd] bg-[#fff9ef] px-4 py-5 text-sm text-[#6b7c70]">
+            <div className="rounded-[22px] border border-dashed border-[#e3d9c8] bg-[#faf7f1] px-4 py-5 text-sm text-[#74695c]">
               {emptyText}
             </div>
           ) : (
             lines.map((item) => (
               <div
                 key={item.productoId}
-                className="flex items-start justify-between gap-4 rounded-[22px] border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-3"
+                className="flex items-start justify-between gap-4 rounded-[22px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3"
               >
                 <div className="flex min-w-0 gap-3">
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[16px] border border-[#d8ebdd] bg-white sm:h-16 sm:w-16">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[16px] border border-[#e3d9c8] bg-white sm:h-16 sm:w-16">
                     <ProductImage
-                      src={item.product?.imageUrl ?? "/images/products/pedido-personalizado.png"}
+                      src={item.product?.imageUrl}
                       alt={item.product?.nombre ?? "Producto"}
                       sizes="(max-width: 640px) 56px, 64px"
                       className="object-cover"
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="break-words font-medium text-[#1f3328]">
+                    <div className="break-words font-medium text-[#231f19]">
                       {item.product?.nombre}
                     </div>
-                    <div className="mt-1 text-sm text-[#6b7c70]">
+                    <div className="mt-1 text-sm text-[#74695c]">
                       Valor unitario: {formatCurrency(item.product?.precioVenta ?? 0)}
                     </div>
                     <QuantitySelector
@@ -80,7 +80,7 @@ export function CartSummary({
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-3">
-                  <div className="text-sm font-semibold text-[#247a4d]">
+                  <div className="text-sm font-semibold text-[#6b4a26]">
                     {formatCurrency(item.subtotal)}
                   </div>
                   <button
@@ -96,9 +96,9 @@ export function CartSummary({
             ))
           )}
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-[#d8ebdd] pt-4 text-base">
-          <span className="font-semibold text-[#1f3328]">Total</span>
-          <span className="font-semibold text-[#247a4d]">{formatCurrency(total)}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-[#e3d9c8] pt-4 text-base">
+          <span className="font-semibold text-[#231f19]">Total</span>
+          <span className="font-semibold text-[#6b4a26]">{formatCurrency(total)}</span>
         </div>
         {footer ? <div className="pt-2">{footer}</div> : null}
       </div>

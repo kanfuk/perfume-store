@@ -1,7 +1,7 @@
 const securityTxt = [
   "Contact: mailto:kanfuk@gmail.com",
   "Preferred-Languages: es, en",
-  "Canonical: https://pauli-store-clientes.vercel.app/.well-known/security.txt",
+  "Canonical: https://perfume-store-mu-smoky.vercel.app/.well-known/security.txt",
   "Expires: 2027-06-16T00:00:00.000Z"
 ].join("\n");
 

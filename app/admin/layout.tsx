@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { AdminPwaInitializer } from "@/components/admin/AdminPwaInitializer";
 
 export const metadata: Metadata = {
-  title: "Pauli Admin",
-  description: "Panel administrador de Pauli Store",
+  title: "Smellme Admin",
+  description: "Panel administrador de Smellme.cl",
   manifest: "/admin.webmanifest"
 };
 

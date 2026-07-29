@@ -83,22 +83,22 @@ export function AdminSetPasswordForm() {
 
   if (status === "checking") {
     return (
-      <div className="w-full space-y-3 rounded-[30px] border border-[#d8ebdd] bg-white/95 p-6 text-center shadow-soft backdrop-blur sm:p-7">
-        <p className="text-sm text-[#6b7c70]">Verificando enlace...</p>
+      <div className="w-full space-y-3 rounded-[30px] border border-[#e3d9c8] bg-white/95 p-6 text-center shadow-soft backdrop-blur sm:p-7">
+        <p className="text-sm text-[#74695c]">Verificando enlace...</p>
       </div>
     );
   }
 
   if (status === "no-session") {
     return (
-      <div className="w-full space-y-4 rounded-[30px] border border-[#d8ebdd] bg-white/95 p-6 text-center shadow-soft backdrop-blur sm:p-7">
-        <p className="text-sm leading-6 text-[#6b7c70]">
+      <div className="w-full space-y-4 rounded-[30px] border border-[#e3d9c8] bg-white/95 p-6 text-center shadow-soft backdrop-blur sm:p-7">
+        <p className="text-sm leading-6 text-[#74695c]">
           El enlace no es válido o ya expiró. Solicita una nueva invitación o recuperación de
           contraseña.
         </p>
         <a
           href="/admin/login"
-          className="inline-flex w-full items-center justify-center rounded-[18px] bg-[#3fa66b] px-4 py-3 font-semibold text-white transition hover:bg-[#247a4d]"
+          className="inline-flex w-full items-center justify-center rounded-[18px] bg-[#9c7a45] px-4 py-3 font-semibold text-white transition hover:bg-[#6b4a26]"
         >
           Volver al ingreso
         </a>
@@ -108,8 +108,8 @@ export function AdminSetPasswordForm() {
 
   if (status === "success") {
     return (
-      <div className="w-full space-y-3 rounded-[30px] border border-[#d8ebdd] bg-white/95 p-6 text-center shadow-soft backdrop-blur sm:p-7">
-        <p className="text-sm leading-6 text-[#1f3328]">
+      <div className="w-full space-y-3 rounded-[30px] border border-[#e3d9c8] bg-white/95 p-6 text-center shadow-soft backdrop-blur sm:p-7">
+        <p className="text-sm leading-6 text-[#231f19]">
           Contraseña actualizada correctamente. Redirigiendo al ingreso...
         </p>
       </div>
@@ -120,43 +120,43 @@ export function AdminSetPasswordForm() {
     <form
       method="post"
       onSubmit={handleSubmit}
-      className="w-full space-y-6 rounded-[30px] border border-[#d8ebdd] bg-white/95 p-6 shadow-soft backdrop-blur sm:p-7"
+      className="w-full space-y-6 rounded-[30px] border border-[#e3d9c8] bg-white/95 p-6 shadow-soft backdrop-blur sm:p-7"
     >
       <div className="space-y-3">
-        <h1 className="text-3xl font-bold leading-tight text-[#1f3328] sm:text-4xl">
+        <h1 className="text-3xl font-bold leading-tight text-[#231f19] sm:text-4xl">
           Definir contraseña
         </h1>
-        <p className="copy-justified text-sm leading-6 text-[#6b7c70]">
+        <p className="copy-justified text-sm leading-6 text-[#74695c]">
           Define la contraseña para tu cuenta de administrador.
         </p>
       </div>
 
       <label className="block space-y-2">
-        <span className="text-sm font-medium text-[#1f3328]">Nueva contraseña</span>
+        <span className="text-sm font-medium text-[#231f19]">Nueva contraseña</span>
         <input
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           autoComplete="new-password"
-          className="w-full rounded-[18px] border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-3 text-[#1f3328] outline-none transition focus:border-[#3fa66b]"
+          className="w-full rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-[#231f19] outline-none transition focus:border-[#9c7a45]"
         />
       </label>
 
       <label className="block space-y-2">
-        <span className="text-sm font-medium text-[#1f3328]">Confirmar contraseña</span>
+        <span className="text-sm font-medium text-[#231f19]">Confirmar contraseña</span>
         <input
           type="password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           autoComplete="new-password"
-          className="w-full rounded-[18px] border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-3 text-[#1f3328] outline-none transition focus:border-[#3fa66b]"
+          className="w-full rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-[#231f19] outline-none transition focus:border-[#9c7a45]"
         />
       </label>
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-[18px] bg-[#3fa66b] px-4 py-3 font-semibold text-white transition hover:bg-[#247a4d] disabled:cursor-not-allowed disabled:bg-[#a8d8b7]"
+        className="w-full rounded-[18px] bg-[#9c7a45] px-4 py-3 font-semibold text-white transition hover:bg-[#6b4a26] disabled:cursor-not-allowed disabled:bg-[#d9c8a0]"
       >
         {submitting ? "Guardando..." : "Guardar contraseña"}
       </button>

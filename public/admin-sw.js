@@ -19,7 +19,7 @@ function parsePushPayload(event) {
   const title =
     declarativeNotification && typeof declarativeNotification.title === "string"
       ? declarativeNotification.title
-      : rawPayload.title || "Pauli Admin";
+      : rawPayload.title || "Smellme Admin";
   const body =
     declarativeNotification && typeof declarativeNotification.body === "string"
       ? declarativeNotification.body
@@ -51,7 +51,7 @@ function parsePushPayload(event) {
       "/icons/android-chrome-192x192.png",
     tag:
       (declarativeNotification && declarativeNotification.tag) ||
-      "pauli-admin-pending-orders",
+      "smellme-admin-pending-orders",
     pedidoId:
       (typeof fallbackData.pedidoId === "string" && fallbackData.pedidoId) ||
       rawPayload.pedidoId ||

@@ -4,19 +4,19 @@
 
 :root {
   color-scheme: light;
-  --app-revision: "2026-06-22-green-pastel-ui";
-  --bg-main: #f3faf4;
-  --bg-soft: #eaf6ec;
+  --app-revision: "2026-07-29-smellme-boutique-ui";
+  --bg-main: #faf7f1;
+  --bg-soft: #f2ece0;
   --card: #ffffff;
-  --primary: #3fa66b;
-  --primary-dark: #247a4d;
-  --primary-soft: #ddf4e5;
-  --accent: #f4d77a;
-  --danger-soft: #f28b82;
-  --text-main: #1f3328;
-  --text-muted: #6b7c70;
-  --border-soft: #d8ebdd;
-  --shadow-soft-green: 0 12px 30px rgba(31, 51, 40, 0.08);
+  --primary: #9c7a45;
+  --primary-dark: #6b4a26;
+  --primary-soft: #ece1c9;
+  --accent: #d9c8a0;
+  --danger-soft: #f2b8b3;
+  --text-main: #231f19;
+  --text-muted: #74695c;
+  --border-soft: #e3d9c8;
+  --shadow-soft-green: 0 12px 30px rgba(35, 31, 25, 0.08);
 }
 
 * {
@@ -38,9 +38,9 @@ body {
   max-width: 100%;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(173, 225, 187, 0.36), transparent 28%),
-    radial-gradient(circle at top right, rgba(234, 246, 236, 0.72), transparent 24%),
-    linear-gradient(180deg, #f8fdf9 0%, #eef8f0 100%);
+    radial-gradient(circle at top left, rgba(217, 200, 160, 0.36), transparent 28%),
+    radial-gradient(circle at top right, rgba(242, 236, 224, 0.72), transparent 24%),
+    linear-gradient(180deg, #faf7f1 0%, #f2ece0 100%);
   color: var(--text-main);
   font-family: var(--font-body), Arial, Helvetica, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -81,7 +81,7 @@ input[type="date"] {
 }
 
 ::selection {
-  background: rgba(63, 166, 107, 0.2);
+  background: rgba(156, 122, 69, 0.2);
 }
 
 .line-clamp-2 {
@@ -126,7 +126,7 @@ input[type="date"] {
 
 .interactive-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(31, 51, 40, 0.12);
+  box-shadow: 0 18px 38px rgba(35, 31, 25, 0.12);
 }
 
 .product-description {

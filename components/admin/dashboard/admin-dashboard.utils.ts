@@ -481,14 +481,14 @@ export function todayDateValue() {
 
 export function buttonToneClass(tone: "primary" | "warning" | "muted") {
   if (tone === "primary") {
-    return "inline-flex min-h-11 items-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm";
+    return "inline-flex min-h-11 items-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm";
   }
 
   if (tone === "warning") {
     return "inline-flex min-h-11 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800";
   }
 
-  return "inline-flex min-h-11 items-center rounded-xl border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900";
+  return "inline-flex min-h-11 items-center rounded-xl border border-brand-100 bg-white px-4 py-2.5 text-sm font-semibold text-brand-900";
 }
 
 function toDateInputValue(date: Date) {

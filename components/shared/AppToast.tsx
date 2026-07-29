@@ -11,15 +11,15 @@ type AppToastProps = {
 export function AppToast({ message, tone, onClose }: AppToastProps) {
   const palette =
     tone === "success"
-      ? "border-[#bfe4ca] bg-[#ecfff1] text-[#177245]"
+      ? "border-[#d9c8a0] bg-[#f2ece0] text-[#5c431f]"
       : tone === "error"
         ? "border-[#f2b8b3] bg-[#fff2f1] text-[#b44b43]"
-        : "border-[#d8ebdd] bg-white text-[#1f3328]";
+        : "border-[#e3d9c8] bg-white text-[#231f19]";
 
   return (
     <div
       aria-live={tone === "error" ? "assertive" : "polite"}
-      className={`fixed inset-x-4 top-4 z-[70] mx-auto flex max-w-md items-start gap-3 rounded-[22px] border px-4 py-3 shadow-[0_20px_40px_rgba(31,51,40,0.14)] backdrop-blur ${palette}`}
+      className={`fixed inset-x-4 top-4 z-[70] mx-auto flex max-w-md items-start gap-3 rounded-[22px] border px-4 py-3 shadow-[0_20px_40px_rgba(35, 31, 25,0.14)] backdrop-blur ${palette}`}
       role="status"
     >
       <div className="min-w-0 flex-1 text-sm font-medium leading-6">{message}</div>

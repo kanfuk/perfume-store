@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   useEffect,
   useEffectEvent,
@@ -1833,38 +1832,32 @@ export function AdminDashboard({
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-5 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
       <AdminNotificationBadge count={attentionCount} onClick={openAttentionOrders} />
 
-      <section className="max-w-full overflow-x-hidden rounded-[28px] border border-emerald-100 bg-[linear-gradient(135deg,#f8fdf9_0%,#edf8f0_100%)] p-5 shadow-soft">
+      <section className="max-w-full overflow-x-hidden rounded-[28px] border border-brand-100 bg-[linear-gradient(135deg,#faf7f1_0%,#f2ece0_100%)] p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
+            <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-3 py-1 text-sm font-semibold text-brand-800">
               <Store className="h-4 w-4" />
               Panel admin
             </span>
             <div className="flex items-center gap-4">
-              <div className="relative h-16 w-16 shrink-0 rounded-[20px] bg-[#f3faf4] p-2 shadow-[0_12px_24px_rgba(31,51,40,0.08)]">
-                <Image
-                  src="/brand/pauli-store-logo-transparent.png"
-                  alt="Logo Pauli Store"
-                  fill
-                  className="object-contain p-2"
-                  priority
-                />
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-brand-950 shadow-[0_12px_24px_rgba(35,31,25,0.18)]">
+                <span className="font-display text-2xl font-semibold text-brand-50">S</span>
               </div>
               <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
-                  Pauli Store
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">
+                  Smellme.cl
                 </div>
-                <h1 className="font-display text-3xl font-semibold text-emerald-950">
+                <h1 className="font-display text-3xl font-semibold text-brand-950">
                   {currentViewMeta.title}
                 </h1>
               </div>
             </div>
             <div className="space-y-1">
-              <p className="max-w-3xl text-sm leading-6 text-emerald-900/70">
+              <p className="max-w-3xl text-sm leading-6 text-brand-900/70">
                 {currentViewMeta.description}
               </p>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700/80">
-                Pauli Store admin
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700/80">
+                Smellme.cl admin
               </p>
               {isInstalledPwa &&
               attentionCount > 0 &&
@@ -1927,7 +1920,7 @@ export function AdminDashboard({
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 max-w-full overflow-x-hidden rounded-lg border border-emerald-100 bg-white/95 p-3 shadow-soft backdrop-blur">
+      <section className="sticky top-0 z-20 max-w-full overflow-x-hidden rounded-lg border border-brand-100 bg-white/95 p-3 shadow-soft backdrop-blur">
         <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
           <AdminSectionTab
             label="Inicio"
@@ -1973,29 +1966,29 @@ export function AdminDashboard({
           />
           <Link
             href="/admin/venta-directa"
-            className="min-h-[88px] min-w-[132px] rounded-[20px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-left text-emerald-900 transition hover:border-emerald-200 sm:min-w-[146px]"
+            className="min-h-[88px] min-w-[132px] rounded-[20px] border border-brand-100 bg-brand-50 px-4 py-3 text-left text-brand-900 transition hover:border-brand-200 sm:min-w-[146px]"
           >
             <div className="flex items-start justify-between gap-3">
-              <span className="rounded-[16px] bg-white p-2 text-emerald-700">
+              <span className="rounded-[16px] bg-white p-2 text-brand-700">
                 <ShoppingBag className="h-4 w-4" />
               </span>
             </div>
             <div className="mt-3 min-w-0">
-              <div className="text-sm font-semibold text-emerald-950">Venta directa</div>
-              <div className="mt-1 text-xs text-emerald-700/80">Personalizada</div>
+              <div className="text-sm font-semibold text-brand-950">Venta directa</div>
+              <div className="mt-1 text-xs text-brand-700/80">Personalizada</div>
             </div>
           </Link>
         </StableHorizontalRail>
       </section>
 
       {error ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
           {error}
         </div>
       ) : null}
 
       {successMessage ? (
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-3 text-sm text-brand-800">
           {successMessage}
         </div>
       ) : null}
@@ -2012,7 +2005,7 @@ export function AdminDashboard({
           <textarea
             readOnly
             value={whatsAppFallback.message}
-            className="mt-3 min-h-32 w-full rounded-2xl border border-amber-200 bg-white px-3 py-3 text-sm text-emerald-950"
+            className="mt-3 min-h-32 w-full rounded-2xl border border-amber-200 bg-white px-3 py-3 text-sm text-brand-950"
           />
           <div className="mt-3 flex flex-wrap gap-3">
             <button
@@ -2093,9 +2086,9 @@ export function AdminDashboard({
             helper="Paso 1: entra aquí varias veces al día. Lo pendiente arriba, el detalle al costado."
           />
 
-          <div className="grid gap-4 rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft lg:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="grid gap-4 rounded-lg border border-brand-100 bg-white/90 p-4 shadow-soft lg:grid-cols-[minmax(0,1fr)_220px]">
             <label className="space-y-2">
-              <span className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
+              <span className="flex items-center gap-2 text-sm font-semibold text-brand-900">
                 <Search className="h-4 w-4" />
                 Buscar pedido
               </span>
@@ -2103,16 +2096,16 @@ export function AdminDashboard({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Cliente, teléfono, producto o fecha"
-                className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 outline-none placeholder:text-emerald-400"
+                className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950 outline-none placeholder:text-brand-400"
               />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-emerald-900">Vista</span>
+              <span className="text-sm font-semibold text-brand-900">Vista</span>
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-                className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+                className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
               >
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -2216,12 +2209,12 @@ export function AdminDashboard({
             </div>
 
             {statusFilter !== "historial" ? (
-              <aside className="rounded-lg border border-emerald-200 bg-[linear-gradient(180deg,#f7fcf8_0%,#ffffff_100%)] p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
-                <div className="mb-4 rounded-2xl border border-emerald-100 bg-white px-4 py-3">
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700/70">
+              <aside className="rounded-lg border border-brand-200 bg-[linear-gradient(180deg,#faf7f1_0%,#ffffff_100%)] p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
+                <div className="mb-4 rounded-2xl border border-brand-100 bg-white px-4 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700/70">
                     Resumen del pedido seleccionado
                   </div>
-                  <p className="mt-1 text-sm text-emerald-900/65">
+                  <p className="mt-1 text-sm text-brand-900/65">
                     Aqui se ve el detalle completo del pedido activo sin confundirse con la lista.
                   </p>
                 </div>
@@ -2243,7 +2236,7 @@ export function AdminDashboard({
               <button
                 type="button"
                 onClick={() => setProductModalState({ mode: "create" })}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white"
               >
                 <Plus className="h-4 w-4" />
                 Nuevo producto
@@ -2251,10 +2244,10 @@ export function AdminDashboard({
             }
           />
 
-          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft">
+          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-brand-100 bg-white/90 p-4 shadow-soft">
             <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
               <label className="min-w-0 space-y-2">
-                <span className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
+                <span className="flex items-center gap-2 text-sm font-semibold text-brand-900">
                   <Search className="h-4 w-4" />
                   Buscar producto
                 </span>
@@ -2263,7 +2256,7 @@ export function AdminDashboard({
                   value={productSearch}
                   onChange={(event) => setProductSearch(event.target.value)}
                   placeholder="Nombre, descripción o tipo"
-                  className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 outline-none placeholder:text-emerald-400"
+                  className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950 outline-none placeholder:text-brand-400"
                 />
                 <datalist id="stock-product-options">
                   {stockProductNameOptions.map((productName) => (
@@ -2276,7 +2269,7 @@ export function AdminDashboard({
               </label>
 
               <div className="min-w-0 space-y-2">
-                <span className="text-sm font-semibold text-emerald-900">Filtro rápido</span>
+                <span className="text-sm font-semibold text-brand-900">Filtro rápido</span>
                 <StableHorizontalRail className="flex gap-2 overflow-x-auto">
                   <FilterChip
                     label="Activos"
@@ -2384,10 +2377,10 @@ export function AdminDashboard({
           </div>
 
           <div className="grid gap-5 xl:grid-cols-2">
-            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+            <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
               <div className="space-y-1">
-                <h2 className="text-xl font-bold text-emerald-950">Cerrar pedidos agendados</h2>
-                <p className="text-sm text-emerald-900/70">
+                <h2 className="text-xl font-bold text-brand-950">Cerrar pedidos agendados</h2>
+                <p className="text-sm text-brand-900/70">
                   Marca rápido como pagado o fiado.
                 </p>
               </div>
@@ -2407,10 +2400,10 @@ export function AdminDashboard({
               </div>
             </section>
 
-            <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+            <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
               <div className="space-y-1">
-                <h2 className="text-xl font-bold text-emerald-950">Fiados pendientes</h2>
-                <p className="text-sm text-emerald-900/70">
+                <h2 className="text-xl font-bold text-brand-950">Fiados pendientes</h2>
+                <p className="text-sm text-brand-900/70">
                   Registra abonos sin perder el historial del cliente.
                 </p>
               </div>
@@ -2422,13 +2415,13 @@ export function AdminDashboard({
                 {groupedFiados.map((customer) => (
                   <article
                     key={customer.clienteId}
-                    className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
+                    className="rounded-lg border border-brand-100 bg-brand-50/60 p-4"
                   >
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="font-semibold text-emerald-950">{customer.nombre}</div>
-                          <div className="mt-1 space-y-1 text-sm text-emerald-900/65">
+                          <div className="font-semibold text-brand-950">{customer.nombre}</div>
+                          <div className="mt-1 space-y-1 text-sm text-brand-900/65">
                             <div>Saldo total {formatCurrency(customer.totalPendiente)}</div>
                             {customer.telefono ? <div>{customer.telefono}</div> : null}
                             {customer.lugarTrabajo ? <div>{customer.lugarTrabajo}</div> : null}
@@ -2449,18 +2442,18 @@ export function AdminDashboard({
                         />
                       </div>
 
-                      <div className="space-y-3 rounded-xl border border-emerald-100 bg-white px-3 py-3">
+                      <div className="space-y-3 rounded-xl border border-brand-100 bg-white px-3 py-3">
                         {customer.fiados.map((fiado) => (
                           <div
                             key={fiado.id}
-                            className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/40 px-3 py-3"
+                            className="space-y-3 rounded-lg border border-brand-100 bg-brand-50/40 px-3 py-3"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <div className="font-semibold text-emerald-950">
+                                <div className="font-semibold text-brand-950">
                                   Pedido del {formatFiadoDate(fiado)}
                                 </div>
-                                <div className="text-sm text-emerald-900/65">
+                                <div className="text-sm text-brand-900/65">
                                   Pendiente {formatCurrency(fiado.saldoPendiente)}
                                 </div>
                               </div>
@@ -2474,16 +2467,16 @@ export function AdminDashboard({
                                     key={`${fiado.id}-${item.productoId}-${item.productoNombre}`}
                                     className="flex items-start justify-between gap-3 text-sm"
                                   >
-                                    <div className="text-emerald-950">
+                                    <div className="text-brand-950">
                                       {item.cantidad}x {item.productoNombre}
                                     </div>
-                                    <div className="text-right font-semibold text-emerald-700">
+                                    <div className="text-right font-semibold text-brand-700">
                                       {formatCurrency(item.subtotal)}
                                     </div>
                                   </div>
                                 ))
                               ) : (
-                                <div className="text-sm text-emerald-900/65">
+                                <div className="text-sm text-brand-900/65">
                                   Detalle no disponible en registro antiguo.
                                 </div>
                               )}
@@ -2521,20 +2514,20 @@ export function AdminDashboard({
             </section>
           </div>
 
-          <section className="rounded-[24px] border border-emerald-100 bg-white/90 p-5 shadow-soft">
-            <div className="flex items-center gap-2 text-emerald-950">
+          <section className="rounded-[24px] border border-brand-100 bg-white/90 p-5 shadow-soft">
+            <div className="flex items-center gap-2 text-brand-950">
               <Archive className="h-5 w-5" />
               <h3 className="text-lg font-bold">Cierre de mes</h3>
             </div>
-            <p className="copy-justified mt-3 text-sm leading-6 text-emerald-900/70">
+            <p className="copy-justified mt-3 text-sm leading-6 text-brand-900/70">
               Usa cierre de mes cuando ya no queden pedidos pendientes ni agendados y
               quieras archivar la operación completa del periodo. Esta vista ya no expone
               herramientas de prueba para mantener el flujo más limpio y profesional.
             </p>
             <div className="mt-4">
-              <article className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4">
-                <h4 className="text-base font-semibold text-emerald-950">Cierre de mes</h4>
-                <p className="copy-justified mt-2 text-sm leading-6 text-emerald-900/70">
+              <article className="rounded-[20px] border border-brand-100 bg-brand-50/70 p-4">
+                <h4 className="text-base font-semibold text-brand-950">Cierre de mes</h4>
+                <p className="copy-justified mt-2 text-sm leading-6 text-brand-900/70">
                   Archiva pedidos, items, pagos, fiados y clientes en un log histórico y
                   deja limpio el panel operativo. Conserva productos y stock.
                 </p>
@@ -2542,7 +2535,7 @@ export function AdminDashboard({
                   type="button"
                   disabled={busyMaintenanceAction !== ""}
                   onClick={() => void runMaintenanceAction("close-month")}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-brand-300"
                 >
                   <Archive className="h-4 w-4" />
                   {busyMaintenanceAction === "close-month"
@@ -2564,18 +2557,18 @@ export function AdminDashboard({
             helper="Sirve para ubicar rápido a cada cliente antes de confirmar o cobrar."
           />
 
-          <section className="overflow-hidden rounded-[30px] border border-[#D8EBDD] bg-[linear-gradient(135deg,#F6FCF7_0%,#EAF6EC_55%,#F3FAF4_100%)] p-4 shadow-[0_20px_40px_rgba(31,51,40,0.08)] sm:p-5">
+          <section className="overflow-hidden rounded-[30px] border border-[#e3d9c8] bg-[linear-gradient(135deg,#faf7f1_0%,#f2ece0_55%,#faf7f1_100%)] p-4 shadow-[0_20px_40px_rgba(35, 31, 25,0.08)] sm:p-5">
             <div className="space-y-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div className="min-w-0 space-y-3">
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#D8EBDD] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#247A4D]">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#e3d9c8] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#6b4a26]">
                     Clientes
                   </span>
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-[#1F3328] sm:text-3xl">
+                    <h2 className="text-2xl font-bold text-[#231f19] sm:text-3xl">
                       Administra tus clientes y revisa su actividad
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-[#6B7C70]">
+                    <p className="max-w-2xl text-sm leading-6 text-[#74695c]">
                       Busca rápido, revisa fiados y ubica a cada cliente desde una vista
                       cómoda para celular y escritorio.
                     </p>
@@ -2593,7 +2586,7 @@ export function AdminDashboard({
               />
 
               {customersLoading ? (
-                <p className="text-sm text-[#6B7C70]">Cargando clientes...</p>
+                <p className="text-sm text-[#74695c]">Cargando clientes...</p>
               ) : null}
             </div>
           </section>
@@ -2630,18 +2623,18 @@ export function AdminDashboard({
             {customerCards.map((customer) => (
               <article
                 key={customer.clienteId}
-                className="rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft"
+                className="rounded-lg border border-brand-100 bg-white/90 p-4 shadow-soft"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-emerald-950">{customer.nombre}</h3>
-                      <p className="mt-1 text-sm text-emerald-900/65">{customer.lugarTrabajo}</p>
+                      <h3 className="text-lg font-semibold text-brand-950">{customer.nombre}</h3>
+                      <p className="mt-1 text-sm text-brand-900/65">{customer.lugarTrabajo}</p>
                     </div>
                     <StatusBadge tone="neutral" label={`${customer.pedidos} pedido(s)`} />
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-emerald-900/70">
+                  <div className="flex items-center gap-2 text-sm text-brand-900/70">
                     <Phone className="h-4 w-4" />
                     {customer.telefono || "Sin teléfono"}
                   </div>
@@ -2657,18 +2650,18 @@ export function AdminDashboard({
                     />
                   </div>
 
-                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
+                  <div className="rounded-lg border border-brand-100 bg-brand-50/60 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-brand-700/70">
                       Fechas agendadas
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {customer.proximasFechas.length === 0 ? (
-                        <span className="text-sm text-emerald-900/55">Sin fechas activas</span>
+                        <span className="text-sm text-brand-900/55">Sin fechas activas</span>
                       ) : (
                         customer.proximasFechas.slice(0, 4).map((fecha) => (
                           <span
                             key={`${customer.clienteId}-${fecha}`}
-                            className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800"
+                            className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-800"
                           >
                             {formatDateOnly(fecha)}
                           </span>
@@ -2692,7 +2685,7 @@ export function AdminDashboard({
             helper="Revisa márgenes, costos estimados y productos más rentables."
           />
 
-          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-emerald-100 bg-white/90 p-4 shadow-soft sm:p-5">
+          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-brand-100 bg-white/90 p-4 shadow-soft sm:p-5">
             <div className="space-y-4">
               <SegmentedControl
                 value={reportTab}
@@ -2764,8 +2757,8 @@ export function AdminDashboard({
               </div>
 
               <div className="grid gap-5 xl:grid-cols-2">
-                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-                  <div className="flex items-center gap-2 text-emerald-950">
+                <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-brand-950">
                     <Box className="h-5 w-5" />
                     <h3 className="text-lg font-bold">Top productos</h3>
                   </div>
@@ -2776,16 +2769,16 @@ export function AdminDashboard({
                     {reportSummary.topProductos.map((item) => (
                       <article
                         key={item.nombre}
-                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                        className="rounded-lg border border-brand-100 bg-white p-4"
                       >
                         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 max-[380px]:grid-cols-1 max-[380px]:items-start">
                           <div className="min-w-0">
-                            <div className="font-semibold leading-5 text-emerald-950">{item.nombre}</div>
-                            <div className="mt-1 text-sm leading-5 text-emerald-900/65">
+                            <div className="font-semibold leading-5 text-brand-950">{item.nombre}</div>
+                            <div className="mt-1 text-sm leading-5 text-brand-900/65">
                               {item.unidades} unidades
                             </div>
                           </div>
-                          <div className="text-sm font-semibold text-emerald-700">
+                          <div className="text-sm font-semibold text-brand-700">
                             {formatCurrency(item.total)}
                           </div>
                         </div>
@@ -2794,8 +2787,8 @@ export function AdminDashboard({
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-                  <div className="flex items-center gap-2 text-emerald-950">
+                <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-brand-950">
                     <UserRound className="h-5 w-5" />
                     <h3 className="text-lg font-bold">Top clientes</h3>
                   </div>
@@ -2806,16 +2799,16 @@ export function AdminDashboard({
                     {reportSummary.topClientes.map((item) => (
                       <article
                         key={item.nombre}
-                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                        className="rounded-lg border border-brand-100 bg-white p-4"
                       >
                         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 max-[380px]:grid-cols-1 max-[380px]:items-start">
                           <div className="min-w-0">
-                            <div className="font-semibold leading-5 text-emerald-950">{item.nombre}</div>
-                            <div className="mt-1 text-sm leading-5 text-emerald-900/65">
+                            <div className="font-semibold leading-5 text-brand-950">{item.nombre}</div>
+                            <div className="mt-1 text-sm leading-5 text-brand-900/65">
                               {item.pedidos} pedido(s)
                             </div>
                           </div>
-                          <div className="text-sm font-semibold text-emerald-700">
+                          <div className="text-sm font-semibold text-brand-700">
                             {formatCurrency(item.total)}
                           </div>
                         </div>
@@ -2894,8 +2887,8 @@ export function AdminDashboard({
               ) : null}
 
               <div className="grid gap-5 xl:grid-cols-2">
-                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-                  <div className="flex items-center gap-2 text-emerald-950">
+                <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-brand-950">
                     <BarChart3 className="h-5 w-5" />
                     <h3 className="text-lg font-bold">Ventas vs costos vs utilidad</h3>
                   </div>
@@ -2924,8 +2917,8 @@ export function AdminDashboard({
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-                  <div className="flex items-center gap-2 text-emerald-950">
+                <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-brand-950">
                     <Sparkles className="h-5 w-5" />
                     <h3 className="text-lg font-bold">Top 5 por utilidad</h3>
                   </div>
@@ -2936,18 +2929,18 @@ export function AdminDashboard({
                     {profitabilitySummary.topProductosPorUtilidad.map((item) => (
                       <article
                         key={`${item.id}-${item.nombre}-profit`}
-                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                        className="rounded-lg border border-brand-100 bg-white p-4"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <div className="font-semibold text-emerald-950">{item.nombre}</div>
-                            <div className="text-sm text-emerald-900/65">
+                            <div className="font-semibold text-brand-950">{item.nombre}</div>
+                            <div className="text-sm text-brand-900/65">
                               {item.unidades} unidades · {formatPercent((item.utilidad / item.ventaTotal) * 100)}
                             </div>
                           </div>
                           <div className="inline-flex items-center justify-end gap-2 whitespace-nowrap max-[380px]:justify-start">
                             <CostStatusBadge status={item.status} compact />
-                            <div className="text-sm font-semibold text-emerald-700">
+                            <div className="text-sm font-semibold text-brand-700">
                               {formatCurrency(item.utilidad)}
                             </div>
                           </div>
@@ -2959,8 +2952,8 @@ export function AdminDashboard({
               </div>
 
               <div className="grid gap-5 xl:grid-cols-2">
-                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-                  <div className="flex items-center gap-2 text-emerald-950">
+                <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-brand-950">
                     <ReceiptText className="h-5 w-5" />
                     <h3 className="text-lg font-bold">Rentabilidad por tipo de venta</h3>
                   </div>
@@ -2971,12 +2964,12 @@ export function AdminDashboard({
                     {profitabilitySummary.resumenPorTipo.map((item) => (
                       <article
                         key={item.key}
-                        className="rounded-lg border border-emerald-100 bg-white p-4"
+                        className="rounded-lg border border-brand-100 bg-white p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="font-semibold text-emerald-950">{item.label}</div>
-                            <div className="text-sm text-emerald-900/65">
+                            <div className="font-semibold text-brand-950">{item.label}</div>
+                            <div className="text-sm text-brand-900/65">
                               {item.pedidos} pedido(s) · {item.unidades} unidades
                             </div>
                           </div>
@@ -2992,8 +2985,8 @@ export function AdminDashboard({
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-                  <div className="flex items-center gap-2 text-emerald-950">
+                <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+                  <div className="flex items-center gap-2 text-brand-950">
                     <AlertCircle className="h-5 w-5" />
                     <h3 className="text-lg font-bold">Productos con costo estimado</h3>
                   </div>
@@ -3026,8 +3019,8 @@ export function AdminDashboard({
                 </section>
               </div>
 
-              <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-                <div className="flex items-center gap-2 text-emerald-950">
+              <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+                <div className="flex items-center gap-2 text-brand-950">
                   <Box className="h-5 w-5" />
                   <h3 className="text-lg font-bold">Rentabilidad por producto</h3>
                 </div>
@@ -3038,12 +3031,12 @@ export function AdminDashboard({
                   {profitabilitySummary.rentabilidadPorProducto.map((item) => (
                     <article
                       key={`${item.id}-${item.nombre}`}
-                      className="rounded-lg border border-emerald-100 bg-white p-4"
+                      className="rounded-lg border border-brand-100 bg-white p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="font-semibold text-emerald-950">{item.nombre}</div>
-                          <div className="text-sm text-emerald-900/65">
+                          <div className="font-semibold text-brand-950">{item.nombre}</div>
+                          <div className="text-sm text-brand-900/65">
                             {item.unidades} unidades vendidas
                           </div>
                         </div>
@@ -3145,12 +3138,12 @@ function StockProductCard({
   const desiredStatus = draft?.activo ?? (product.activo ? "activo" : "pausado");
 
   return (
-    <article className="min-w-0 max-w-full overflow-hidden rounded-[24px] border border-emerald-100 bg-white/90 p-4 shadow-soft">
+    <article className="min-w-0 max-w-full overflow-hidden rounded-[24px] border border-brand-100 bg-white/90 p-4 shadow-soft">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 gap-4">
-          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-emerald-100 bg-emerald-50">
+          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-brand-100 bg-brand-50">
             <ProductImage
-              src={product.imageUrl ?? "/images/products/dobladita-ave-pimenton.jpeg"}
+              src={product.imageUrl}
               alt={product.nombre}
               sizes="96px"
               className="object-cover"
@@ -3158,13 +3151,13 @@ function StockProductCard({
           </div>
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="break-words text-lg font-semibold text-emerald-950">{product.nombre}</h3>
+              <h3 className="break-words text-lg font-semibold text-brand-950">{product.nombre}</h3>
               <StatusBadge
                 tone={product.activo ? "pedido" : "neutral"}
                 label={product.activo ? "ACTIVO" : "PAUSADO"}
               />
             </div>
-            <p className="break-words text-sm leading-6 text-emerald-900/70">
+            <p className="break-words text-sm leading-6 text-brand-900/70">
               {product.descripcion || "Sin descripción."}
             </p>
           </div>
@@ -3173,7 +3166,7 @@ function StockProductCard({
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-900 sm:w-auto"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2.5 text-sm font-semibold text-brand-900 sm:w-auto"
         >
           <PencilLine className="h-4 w-4" />
           Editar
@@ -3184,14 +3177,14 @@ function StockProductCard({
         <select
           value={desiredStatus}
           onChange={(event) => onChange("activo", event.target.value)}
-          className="min-h-11 min-w-0 rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
+          className="min-h-11 min-w-0 rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900"
         >
           <option value="activo">Activo</option>
           <option value="pausado">Pausado</option>
         </select>
         <StatusBadge
           tone="neutral"
-          label={draft?.tipoProducto || product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
+          label={draft?.tipoProducto || product.badgeLabel || product.tipoProducto || "PERFUME"}
         />
         <StatusBadge
           tone={getUnifiedProductStock(product) > 0 ? "pedido" : "warning"}
@@ -3223,14 +3216,14 @@ function StockProductCard({
         />
       </div>
 
-      <details className="mt-4 min-w-0 overflow-hidden rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-emerald-900">
+      <details className="mt-4 min-w-0 overflow-hidden rounded-lg border border-brand-100 bg-brand-50/50 p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-brand-900">
           Ver detalle del producto
         </summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <MiniMetric
             label="Badge"
-            value={product.badgeLabel || product.tipoProducto || "PRODUCTO CASERO"}
+            value={product.badgeLabel || product.tipoProducto || "PERFUME"}
           />
           <MiniMetric label="Imagen" value={product.imageUrl ? "Configurada" : "Fallback"} />
           <MiniMetric label="Costo unitario" value={formatCurrency(product.costoUnitario)} />
@@ -3240,7 +3233,7 @@ function StockProductCard({
       </details>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0 break-words text-sm text-emerald-900/60">
+        <div className="min-w-0 break-words text-sm text-brand-900/60">
           Ajusta aquí lo rápido. Editar abre el detalle completo.
         </div>
         <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
@@ -3248,7 +3241,7 @@ function StockProductCard({
             type="button"
             disabled={busy}
             onClick={onDelete}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-100 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700"
           >
             <Trash2 className="h-4 w-4" />
             {busy ? "Procesando..." : "Eliminar"}
@@ -3257,7 +3250,7 @@ function StockProductCard({
             type="button"
             disabled={busy}
             onClick={onSave}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white"
           >
             <Archive className="h-4 w-4" />
             {busy ? "Guardando..." : "Guardar"}
@@ -3284,11 +3277,11 @@ function OrderSection({
   return (
     <section
       id={htmlId}
-      className="scroll-mt-32 rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft"
+      className="scroll-mt-32 rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft"
     >
       <div className="space-y-1">
-        <h2 className="text-xl font-bold text-emerald-950">{title}</h2>
-        <p className="text-sm text-emerald-900/70">{subtitle}</p>
+        <h2 className="text-xl font-bold text-brand-950">{title}</h2>
+        <p className="text-sm text-brand-900/70">{subtitle}</p>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -3299,15 +3292,15 @@ function OrderSection({
             key={order.id}
             className={`rounded-lg border p-4 ${
               selectedOrderId === order.id
-                ? "border-emerald-300 bg-emerald-50"
-                : "border-emerald-100 bg-white"
+                ? "border-brand-300 bg-brand-50"
+                : "border-brand-100 bg-white"
             }`}
           >
             <button type="button" onClick={() => onSelect(order.id)} className="w-full text-left">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-semibold text-emerald-950">
+                    <h3 className="text-base font-semibold text-brand-950">
                       {order.clienteNombre}
                     </h3>
                     {order.adminSeen === false ? (
@@ -3322,11 +3315,11 @@ function OrderSection({
                       />
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-emerald-900/65">
+                  <div className="flex items-center gap-2 text-sm text-brand-900/65">
                     <Phone className="h-4 w-4" />
                     {order.clienteTelefono || "Sin teléfono"}
                   </div>
-                  <div className="space-y-1 text-sm text-emerald-900/65">
+                  <div className="space-y-1 text-sm text-brand-900/65">
                     {renderGroupedItemLines(
                       order.items.map((item) => ({
                         name: item.productoNombre,
@@ -3358,13 +3351,13 @@ function OrderSection({
               </div>
 
               <div className="mt-3 xl:hidden">
-                <span className="inline-flex min-h-10 items-center rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm font-semibold text-emerald-900">
+                <span className="inline-flex min-h-10 items-center rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-semibold text-brand-900">
                   Ver detalle abajo
                 </span>
               </div>
 
               {selectedOrderId === order.id ? (
-                <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 xl:hidden">
+                <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/60 p-3 xl:hidden">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <MiniMetric
                       label="Lugar"
@@ -3383,14 +3376,14 @@ function OrderSection({
                         className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2"
                       >
                         <div>
-                          <div className="text-sm font-semibold text-emerald-950">
+                          <div className="text-sm font-semibold text-brand-950">
                             {item.productoNombre}
                           </div>
-                          <div className="text-xs text-emerald-900/65">
+                          <div className="text-xs text-brand-900/65">
                             {item.cantidad} x {formatCurrency(item.precioUnitario)}
                           </div>
                         </div>
-                        <div className="text-sm font-semibold text-emerald-700">
+                        <div className="text-sm font-semibold text-brand-700">
                           {formatCurrency(item.subtotal)}
                         </div>
                       </div>
@@ -3453,7 +3446,7 @@ function OrderDetailPanel({
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-bold text-emerald-950">{order.clienteNombre}</h2>
+          <h2 className="text-xl font-bold text-brand-950">{order.clienteNombre}</h2>
           <StatusBadge
             tone="pedido"
             label={ESTADO_PEDIDO_LABELS[order.estadoPedido as EstadoPedido] ?? order.estadoPedido}
@@ -3464,7 +3457,7 @@ function OrderDetailPanel({
           />
           {order.adminSeen === false ? <StatusBadge tone="warning" label="SIN VER" /> : null}
         </div>
-        <div className="grid gap-1 text-sm text-emerald-900/70 sm:grid-cols-2">
+        <div className="grid gap-1 text-sm text-brand-900/70 sm:grid-cols-2">
           {order.clienteRut ? <div>RUT: {order.clienteRut}</div> : null}
           {order.clienteEmail ? <div>{order.clienteEmail}</div> : null}
           {order.clienteDireccion ? (
@@ -3508,12 +3501,12 @@ function OrderDetailPanel({
       </div>
 
       {shouldShowOrderWhatsAppAction(order) ? (
-        <section className="rounded-lg border border-emerald-100 bg-white p-4 shadow-soft">
+        <section className="rounded-lg border border-brand-100 bg-white p-4 shadow-soft">
           <div className="space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
+            <div className="text-xs font-semibold uppercase tracking-wide text-brand-700/70">
               Confirmación al cliente
             </div>
-            <p className="text-sm text-emerald-900/70">
+            <p className="text-sm text-brand-900/70">
               Abre WhatsApp con el mensaje listo para confirmar el pedido manualmente.
             </p>
           </div>
@@ -3541,28 +3534,28 @@ function OrderDetailPanel({
 
       <DebtCollectionButton order={order} fullWidth />
 
-      <section className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
+      <section className="rounded-lg border border-brand-100 bg-brand-50/60 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-brand-700/70">
           Productos
         </div>
         <div className="mt-3 space-y-3">
           {order.items.map((item) => (
             <div
               key={`${order.id}-${item.productoId}`}
-              className="rounded-lg border border-emerald-100 bg-white p-3"
+              className="rounded-lg border border-brand-100 bg-white p-3"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-semibold text-emerald-950">{item.productoNombre}</div>
-                  <div className="text-sm text-emerald-900/65">
+                  <div className="font-semibold text-brand-950">{item.productoNombre}</div>
+                  <div className="text-sm text-brand-900/65">
                     {formatCurrency(item.precioUnitario)} x {item.cantidad}
                   </div>
-                  <div className="text-xs text-emerald-700/75">
+                  <div className="text-xs text-brand-700/75">
                     Costo {formatCurrency(item.costoUnitario)} · Utilidad{" "}
                     {formatCurrency(item.utilidadBruta)}
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-emerald-700">
+                <div className="text-sm font-semibold text-brand-700">
                   {formatCurrency(item.subtotal)}
                 </div>
               </div>
@@ -3609,7 +3602,7 @@ function OrderWhatsAppButton({
       disabled
       className={`${sharedClassName} ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
-      } border border-emerald-100 bg-emerald-50 text-emerald-900/55`}
+      } border border-brand-100 bg-brand-50 text-brand-900/55`}
       title={label}
     >
       <MessageCircle className="h-4 w-4" />
@@ -3661,7 +3654,7 @@ function DebtCollectionButton({
       rel="noreferrer"
       className={`${className} ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
-      } border border-emerald-200 bg-white text-emerald-900`}
+      } border border-brand-200 bg-white text-brand-900`}
     >
       <MessageCircle className="h-4 w-4" />
       Cobrar
@@ -3691,7 +3684,7 @@ function GroupedDebtCollectionButton({
       rel="noreferrer"
       className={`${className} ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
-      } border border-emerald-200 bg-white text-emerald-900`}
+      } border border-brand-200 bg-white text-brand-900`}
     >
       <MessageCircle className="h-4 w-4" />
       Cobrar por WhatsApp
@@ -3709,12 +3702,12 @@ function PaymentOrderCard({
   onPaid: () => void;
 }) {
   return (
-    <article className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
+    <article className="rounded-lg border border-brand-100 bg-brand-50/60 p-4">
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
-            <div className="mt-1 space-y-1 text-sm text-emerald-900/65">
+            <div className="font-semibold text-brand-950">{order.clienteNombre}</div>
+            <div className="mt-1 space-y-1 text-sm text-brand-900/65">
               {renderGroupedItemLines(
                 order.items.map((item) => ({
                   name: item.productoNombre,
@@ -3777,10 +3770,10 @@ function AdminActionModal({
   const [method, setMethod] = useState("EFECTIVO");
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-emerald-950/20 px-4 py-4">
-      <div className="mx-auto max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto rounded-[20px] border border-emerald-100 bg-white p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-soft">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-brand-950/20 px-4 py-4">
+      <div className="mx-auto max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto rounded-[20px] border border-brand-100 bg-white p-5 pb-[calc(20px+env(safe-area-inset-bottom))] shadow-soft">
         <div className="space-y-1">
-          <div className="inline-flex rounded-2xl bg-emerald-100 p-3 text-emerald-700">
+          <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700">
             {state.type === "agendar" ? (
               <CalendarClock className="h-5 w-5" />
             ) : state.type === "cancelar" ? (
@@ -3789,19 +3782,19 @@ function AdminActionModal({
               <HandCoins className="h-5 w-5" />
             )}
           </div>
-          <h3 className="pt-2 text-xl font-bold text-emerald-950">
+          <h3 className="pt-2 text-xl font-bold text-brand-950">
             {state.type === "agendar"
               ? "Agendar pedido"
               : state.type === "cancelar"
                 ? "Cancelar pedido"
                 : "Registrar abono"}
           </h3>
-          <p className="text-sm text-emerald-900/70">{state.order.clienteNombre}</p>
+          <p className="text-sm text-brand-900/70">{state.order.clienteNombre}</p>
         </div>
 
         <div className="mt-4 space-y-4">
           {state.type === "agendar" ? (
-            <p className="text-sm text-emerald-900/70">
+            <p className="text-sm text-brand-900/70">
               El pedido pasa a AGENDADO. La fecha y sucursal de despacho se coordinan por
               WhatsApp, no se elige aqui.
             </p>
@@ -3809,12 +3802,12 @@ function AdminActionModal({
 
           {state.type === "cancelar" ? (
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-emerald-900">Motivo</span>
+              <span className="text-sm font-semibold text-brand-900">Motivo</span>
               <textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+                className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
               />
             </label>
           ) : null}
@@ -3822,22 +3815,22 @@ function AdminActionModal({
           {state.type === "abonar" ? (
             <>
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-emerald-900">Monto abonado</span>
+                <span className="text-sm font-semibold text-brand-900">Monto abonado</span>
                 <input
                   type="number"
                   min={1}
                   max={state.order.saldoPendiente}
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
-                  className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+                  className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-emerald-900">Metodo de pago</span>
+                <span className="text-sm font-semibold text-brand-900">Metodo de pago</span>
                 <select
                   value={method}
                   onChange={(event) => setMethod(event.target.value)}
-                  className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+                  className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
                 >
                   <option value="EFECTIVO">Efectivo</option>
                   <option value="TRANSFERENCIA">Transferencia</option>
@@ -3852,7 +3845,7 @@ function AdminActionModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
+            className="rounded-lg border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900"
           >
             Cerrar
           </button>
@@ -3874,7 +3867,7 @@ function AdminActionModal({
                     : {}
               )
             }
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
           >
             {busy ? "Guardando..." : "Confirmar"}
           </button>
@@ -3930,20 +3923,20 @@ function ProductModal({
   const [activo, setActivo] = useState(current?.activo ?? true);
 
   return (
-    <div className="fixed inset-0 z-50 bg-emerald-950/20 px-3 py-3 sm:px-4 sm:py-5">
+    <div className="fixed inset-0 z-50 bg-brand-950/20 px-3 py-3 sm:px-4 sm:py-5">
       <div className="mx-auto flex h-full w-full max-w-2xl items-center justify-center">
-        <div className="flex max-h-[calc(100dvh-24px)] min-h-0 w-full flex-col overflow-hidden rounded-[24px] border border-emerald-100 bg-white shadow-soft sm:max-h-[calc(100dvh-40px)]">
-          <div className="shrink-0 border-b border-emerald-100 bg-white/95 px-5 py-4 backdrop-blur">
+        <div className="flex max-h-[calc(100dvh-24px)] min-h-0 w-full flex-col overflow-hidden rounded-[24px] border border-brand-100 bg-white shadow-soft sm:max-h-[calc(100dvh-40px)]">
+          <div className="shrink-0 border-b border-brand-100 bg-white/95 px-5 py-4 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="inline-flex rounded-2xl bg-emerald-100 p-3 text-emerald-700">
+                <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700">
                   <Package2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-emerald-950">
+                  <h3 className="text-xl font-bold text-brand-950">
                     {state.mode === "create" ? "Nuevo producto" : "Editar producto"}
                   </h3>
-                  <p className="text-sm text-emerald-900/70">
+                  <p className="text-sm text-brand-900/70">
                     Ajusta catálogo, stock y precio sin perderte en el celular.
                   </p>
                 </div>
@@ -3951,7 +3944,7 @@ function ProductModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-2xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
+                className="rounded-2xl border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900"
               >
                 Cerrar
               </button>
@@ -3968,21 +3961,21 @@ function ProductModal({
               <MiniMetric label="Stock" value={stock} />
               <MiniMetric
                 label="Badge"
-                value={badgeLabel || tipoProducto || "PRODUCTO CASERO"}
+                value={badgeLabel || tipoProducto || "PERFUME"}
               />
             </section>
 
-            <label className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
+            <label className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-4 text-sm text-brand-900 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="font-semibold text-emerald-950">Disponible para clientes</div>
-                <div className="mt-1 text-xs text-emerald-900/65">
+                <div className="font-semibold text-brand-950">Disponible para clientes</div>
+                <div className="mt-1 text-xs text-brand-900/65">
                   Apágalo cuando no quieras vender este producto.
                 </div>
               </div>
               <select
                 value={activo ? "Activo" : "Pausado"}
                 onChange={(event) => setActivo(event.target.value === "Activo")}
-                className="min-h-11 w-full min-w-0 rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 sm:w-auto"
+                className="min-h-11 w-full min-w-0 rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900 sm:w-auto"
               >
                 <option value="Activo">Activo</option>
                 <option value="Pausado">Pausado</option>
@@ -3991,12 +3984,12 @@ function ProductModal({
 
             <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-emerald-900">Nombre</span>
+            <span className="text-sm font-semibold text-brand-900">Nombre</span>
             <input
               list="stock-modal-product-names"
               value={nombre}
               onChange={(event) => setNombre(event.target.value)}
-              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             />
             <datalist id="stock-modal-product-names">
               {productNameOptions.map((productName) => (
@@ -4005,22 +3998,22 @@ function ProductModal({
             </datalist>
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-emerald-900">Descripción corta</span>
+            <span className="text-sm font-semibold text-brand-900">Descripción corta</span>
             <textarea
               value={descripcion}
               onChange={(event) => setDescripcion(event.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             />
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-emerald-900">Badge visible</span>
+            <span className="text-sm font-semibold text-brand-900">Badge visible</span>
             <input
               list="stock-modal-badge-options"
               value={badgeLabel}
               onChange={(event) => setBadgeLabel(event.target.value)}
-              placeholder="Ejemplo: DOBLADITA QUESO"
-              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              placeholder="Ejemplo: EAU DE PARFUM"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             />
             <datalist id="stock-modal-badge-options">
               {badgeOptions.map((badgeOption) => (
@@ -4029,23 +4022,23 @@ function ProductModal({
             </datalist>
           </label>
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-emerald-900">Ruta pública de imagen</span>
+            <span className="text-sm font-semibold text-brand-900">Ruta pública de imagen</span>
             <input
               value={imageUrl}
               onChange={(event) => setImageUrl(event.target.value)}
-              placeholder="/images/products/dobladita-solo-queso.jpeg"
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              placeholder="/images/products/perfume-floral-100.png"
+              className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-emerald-900">Precio</span>
+            <span className="text-sm font-semibold text-brand-900">Precio</span>
             <input
               list="stock-modal-price-options"
               type="number"
               min={0}
               value={precioVenta}
               onChange={(event) => setPrecioVenta(event.target.value)}
-              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             />
             <datalist id="stock-modal-price-options">
               {priceSuggestions.map((priceSuggestion) => (
@@ -4054,31 +4047,31 @@ function ProductModal({
             </datalist>
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-emerald-900">Costo</span>
+            <span className="text-sm font-semibold text-brand-900">Costo</span>
             <input
               type="number"
               min={0}
               value={costoUnitario}
               onChange={(event) => setCostoUnitario(event.target.value)}
-              className="w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-emerald-900">Stock</span>
+            <span className="text-sm font-semibold text-brand-900">Stock</span>
             <input
               type="number"
               min={0}
               value={stock}
               onChange={(event) => setStock(event.target.value)}
-              className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             />
           </label>
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-emerald-900">Tipo</span>
+            <span className="text-sm font-semibold text-brand-900">Tipo</span>
             <select
               value={tipoProducto}
               onChange={(event) => setTipoProducto(event.target.value)}
-              className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+              className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
             >
               {typeOptions.map((typeOption) => (
                 <option key={typeOption} value={typeOption}>
@@ -4091,12 +4084,12 @@ function ProductModal({
             </div>
           </div>
 
-          <div className="shrink-0 border-t border-emerald-100 bg-white/95 px-5 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] backdrop-blur">
+          <div className="shrink-0 border-t border-brand-100 bg-white/95 px-5 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] backdrop-blur">
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="min-h-11 rounded-lg border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-900"
+              className="min-h-11 rounded-lg border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900"
             >
               Cerrar
             </button>
@@ -4117,7 +4110,7 @@ function ProductModal({
                   activo
                 })
               }
-              className="min-h-11 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+              className="min-h-11 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
             >
               {busy ? "Guardando..." : "Guardar producto"}
             </button>
@@ -4144,7 +4137,7 @@ function ClientStatsCards({
       label: "Total clientes",
       value: String(summary.total),
       detail: "Contactos visibles en el panel",
-      accent: "bg-[#3FA66B]"
+      accent: "bg-[#9c7a45]"
     },
     {
       label: "Con pedidos",
@@ -4162,7 +4155,7 @@ function ClientStatsCards({
       label: "Recientes",
       value: String(summary.recientes),
       detail: "Movimiento dentro de 14 dias",
-      accent: "bg-[#247A4D]"
+      accent: "bg-[#6b4a26]"
     }
   ];
 
@@ -4171,16 +4164,16 @@ function ClientStatsCards({
       {items.map((item) => (
         <article
           key={item.label}
-          className="rounded-[24px] border border-[#D8EBDD] bg-white p-4 shadow-[0_12px_30px_rgba(31,51,40,0.08)]"
+          className="rounded-[24px] border border-[#e3d9c8] bg-white p-4 shadow-[0_12px_30px_rgba(35, 31, 25,0.08)]"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-[#6B7C70]">{item.label}</p>
-              <p className="mt-2 text-3xl font-bold text-[#1F3328]">{item.value}</p>
+              <p className="text-sm font-medium text-[#74695c]">{item.label}</p>
+              <p className="mt-2 text-3xl font-bold text-[#231f19]">{item.value}</p>
             </div>
             <span className={`mt-1 h-3 w-3 rounded-full ${item.accent}`} />
           </div>
-          <p className="mt-3 text-sm leading-5 text-[#6B7C70]">{item.detail}</p>
+          <p className="mt-3 text-sm leading-5 text-[#74695c]">{item.detail}</p>
         </article>
       ))}
     </div>
@@ -4195,13 +4188,13 @@ function ClientSearchBar({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex w-full max-w-xl items-center gap-3 rounded-[22px] border border-[#D8EBDD] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(31,51,40,0.08)]">
-      <Search className="h-5 w-5 text-[#247A4D]" />
+    <label className="flex w-full max-w-xl items-center gap-3 rounded-[22px] border border-[#e3d9c8] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(35, 31, 25,0.08)]">
+      <Search className="h-5 w-5 text-[#6b4a26]" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Buscar por nombre, teléfono o unidad..."
-        className="w-full border-0 bg-transparent p-0 text-[15px] text-[#1F3328] outline-none placeholder:text-[#6B7C70]"
+        className="w-full border-0 bg-transparent p-0 text-[15px] text-[#231f19] outline-none placeholder:text-[#74695c]"
       />
     </label>
   );
@@ -4240,14 +4233,14 @@ function ClientFilterChips({
             onClick={() => onChange(filter.value)}
             className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
               active
-                ? "border-[#3FA66B] bg-[#3FA66B] text-white shadow-[0_10px_24px_rgba(63,166,107,0.22)]"
-                : "border-[#D8EBDD] bg-white text-[#247A4D]"
+                ? "border-[#9c7a45] bg-[#9c7a45] text-white shadow-[0_10px_24px_rgba(156, 122, 69,0.22)]"
+                : "border-[#e3d9c8] bg-white text-[#6b4a26]"
             }`}
           >
             <span>{filter.label}</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${
-                active ? "bg-white/20 text-white" : "bg-[#DDF4E5] text-[#247A4D]"
+                active ? "bg-white/20 text-white" : "bg-[#ece1c9] text-[#6b4a26]"
               }`}
             >
               {filter.count}
@@ -4279,15 +4272,15 @@ function ClientCard({
     : "Sin pedidos";
 
   return (
-    <article className="overflow-hidden rounded-[28px] border border-[#D8EBDD] bg-white shadow-[0_18px_40px_rgba(31,51,40,0.08)]">
-      <div className="border-b border-[#D8EBDD] bg-[linear-gradient(135deg,#F6FCF7_0%,#EAF6EC_72%,#FFFFFF_100%)] p-5">
+    <article className="overflow-hidden rounded-[28px] border border-[#e3d9c8] bg-white shadow-[0_18px_40px_rgba(35, 31, 25,0.08)]">
+      <div className="border-b border-[#e3d9c8] bg-[linear-gradient(135deg,#faf7f1_0%,#f2ece0_72%,#FFFFFF_100%)] p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#DDF4E5] text-lg font-bold text-[#247A4D] shadow-[0_10px_20px_rgba(63,166,107,0.15)]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#ece1c9] text-lg font-bold text-[#6b4a26] shadow-[0_10px_20px_rgba(156, 122, 69,0.15)]">
               {initial}
             </div>
             <div className="min-w-0 space-y-2">
-              <h3 className="text-xl font-bold text-[#1F3328]">{customer.nombre}</h3>
+              <h3 className="text-xl font-bold text-[#231f19]">{customer.nombre}</h3>
               <div className="flex flex-wrap gap-2">
                 <ClientPill label={`${customer.pedidos} pedido(s)`} tone="neutral" />
                 <ClientPill
@@ -4298,7 +4291,7 @@ function ClientCard({
               </div>
             </div>
           </div>
-          <span className="rounded-full border border-[#D8EBDD] bg-white px-3 py-1 text-xs font-semibold text-[#247A4D]">
+          <span className="rounded-full border border-[#e3d9c8] bg-white px-3 py-1 text-xs font-semibold text-[#6b4a26]">
             {lastMovementLabel}
           </span>
         </div>
@@ -4330,18 +4323,18 @@ function ClientCard({
           <MiniMetric label="Último pedido" value={lastOrderLabel} />
         </div>
 
-        <div className="rounded-[22px] border border-[#D8EBDD] bg-[#F6FCF7] p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#247A4D]">
+        <div className="rounded-[22px] border border-[#e3d9c8] bg-[#faf7f1] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6b4a26]">
             Fechas agendadas
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {customer.proximasFechas.length === 0 ? (
-              <span className="text-sm text-[#6B7C70]">Sin pedidos agendados por ahora</span>
+              <span className="text-sm text-[#74695c]">Sin pedidos agendados por ahora</span>
             ) : (
               customer.proximasFechas.slice(0, 4).map((fecha) => (
                 <span
                   key={`${customer.clienteId}-${fecha}`}
-                  className="rounded-full border border-[#D8EBDD] bg-white px-3 py-1 text-xs font-semibold text-[#247A4D]"
+                  className="rounded-full border border-[#e3d9c8] bg-white px-3 py-1 text-xs font-semibold text-[#6b4a26]"
                 >
                   {formatDateOnly(fecha)}
                 </span>
@@ -4354,21 +4347,21 @@ function ClientCard({
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-sm font-semibold text-[#247A4D]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-sm font-semibold text-[#6b4a26]"
           >
             Editar cliente
           </button>
           <button
             type="button"
             onClick={onOpenOrders}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-[#3FA66B] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(63,166,107,0.2)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-[#9c7a45] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(156, 122, 69,0.2)]"
           >
             Ver pedidos
           </button>
           <button
             type="button"
             onClick={onOpenPayments}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#D8EBDD] bg-[#F6FCF7] px-4 py-3 text-sm font-semibold text-[#247A4D]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm font-semibold text-[#6b4a26]"
           >
             Revisar cobros
           </button>
@@ -4399,16 +4392,16 @@ function CustomerEditModal({
   const [lugarTrabajo, setLugarTrabajo] = useState(state.customer.lugarTrabajo);
 
   return (
-    <div className="fixed inset-0 z-[110] bg-[#143f38]/35 p-4 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[110] bg-[#241d14]/35 p-4 backdrop-blur-[2px]">
       <div className="mx-auto flex min-h-full w-full max-w-xl items-center justify-center">
-        <div className="w-full overflow-hidden rounded-[30px] border border-[#D8EBDD] bg-white shadow-[0_30px_60px_rgba(31,51,40,0.22)]">
-          <div className="border-b border-[#D8EBDD] bg-[linear-gradient(135deg,#F6FCF7_0%,#EAF6EC_72%,#FFFFFF_100%)] p-5">
+        <div className="w-full overflow-hidden rounded-[30px] border border-[#e3d9c8] bg-white shadow-[0_30px_60px_rgba(35, 31, 25,0.22)]">
+          <div className="border-b border-[#e3d9c8] bg-[linear-gradient(135deg,#faf7f1_0%,#f2ece0_72%,#FFFFFF_100%)] p-5">
             <div className="space-y-2">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#D8EBDD] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#247A4D]">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#e3d9c8] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#6b4a26]">
                 Editar cliente
               </span>
-              <h3 className="text-xl font-bold text-[#1F3328]">Actualiza datos sin tocar pedidos</h3>
-              <p className="text-sm leading-6 text-[#6B7C70]">
+              <h3 className="text-xl font-bold text-[#231f19]">Actualiza datos sin tocar pedidos</h3>
+              <p className="text-sm leading-6 text-[#74695c]">
                 Este cambio solo actualiza el cliente seleccionado. Si el telefono o la identidad ya
                 existen en otro registro, bloqueamos el guardado para evitar cruces.
               </p>
@@ -4417,42 +4410,42 @@ function CustomerEditModal({
 
           <div className="space-y-4 p-5">
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#1F3328]">Nombre</span>
+              <span className="text-sm font-medium text-[#231f19]">Nombre</span>
               <input
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
-                className="block min-h-11 w-full rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-base text-[#1F3328] outline-none"
+                className="block min-h-11 w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                 placeholder="Ejemplo: Claudia"
               />
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#1F3328]">Telefono</span>
+              <span className="text-sm font-medium text-[#231f19]">Telefono</span>
               <input
                 value={telefono}
                 onChange={(event) => setTelefono(formatChileanMobileInput(event.target.value))}
-                className="block min-h-11 w-full rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-base text-[#1F3328] outline-none"
+                className="block min-h-11 w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                 placeholder="9 1234 5678"
               />
-              <p className="text-xs text-[#6B7C70]">Puedes dejarlo vacio si no corresponde.</p>
+              <p className="text-xs text-[#74695c]">Puedes dejarlo vacio si no corresponde.</p>
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#1F3328]">Unidad o lugar de trabajo</span>
+              <span className="text-sm font-medium text-[#231f19]">Unidad o lugar de trabajo</span>
               <input
                 value={lugarTrabajo}
                 onChange={(event) => setLugarTrabajo(event.target.value)}
-                className="block min-h-11 w-full rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-base text-[#1F3328] outline-none"
+                className="block min-h-11 w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                 placeholder="Ejemplo: Finanzas"
               />
             </label>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-[#D8EBDD] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#e3d9c8] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="min-h-11 rounded-[18px] border border-[#D8EBDD] bg-white px-4 py-3 text-sm font-semibold text-[#247A4D]"
+              className="min-h-11 rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-sm font-semibold text-[#6b4a26]"
             >
               Cerrar
             </button>
@@ -4467,7 +4460,7 @@ function CustomerEditModal({
                   lugarTrabajo
                 })
               }
-              className="min-h-11 rounded-[18px] bg-[#3FA66B] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(63,166,107,0.2)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="min-h-11 rounded-[18px] bg-[#9c7a45] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(156, 122, 69,0.2)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {busy ? "Guardando..." : "Guardar cliente"}
             </button>
@@ -4488,12 +4481,12 @@ function ClientFact({
   value: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-[#D8EBDD] bg-[#F6FCF7] p-4">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#247A4D]">
+    <div className="rounded-[20px] border border-[#e3d9c8] bg-[#faf7f1] p-4">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#6b4a26]">
         <Icon className="h-4 w-4" />
         {label}
       </div>
-      <div className="mt-3 text-sm font-semibold leading-6 text-[#1F3328]">{value}</div>
+      <div className="mt-3 text-sm font-semibold leading-6 text-[#231f19]">{value}</div>
     </div>
   );
 }
@@ -4507,12 +4500,12 @@ function ClientPill({
 }) {
   const className =
     tone === "success"
-      ? "border-[#D8EBDD] bg-[#DDF4E5] text-[#247A4D]"
+      ? "border-[#e3d9c8] bg-[#ece1c9] text-[#6b4a26]"
       : tone === "danger"
         ? "border-[#F5C0BB] bg-[#FFF0EF] text-[#D66D63]"
         : tone === "accent"
           ? "border-[#F0E2AA] bg-[#FFF8DE] text-[#8A6A14]"
-          : "border-[#D8EBDD] bg-white text-[#247A4D]";
+          : "border-[#e3d9c8] bg-white text-[#6b4a26]";
 
   return (
     <span
@@ -4525,14 +4518,14 @@ function ClientPill({
 
 function ClientEmptyState({ hasSearch }: { hasSearch: boolean }) {
   return (
-    <div className="rounded-[28px] border border-dashed border-[#D8EBDD] bg-[#F3FAF4] p-8 text-center shadow-soft">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#247A4D] shadow-[0_12px_24px_rgba(31,51,40,0.08)]">
+    <div className="rounded-[28px] border border-dashed border-[#e3d9c8] bg-[#faf7f1] p-8 text-center shadow-soft">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#6b4a26] shadow-[0_12px_24px_rgba(35, 31, 25,0.08)]">
         <UserRound className="h-6 w-6" />
       </div>
-      <h3 className="mt-4 text-xl font-bold text-[#1F3328]">
+      <h3 className="mt-4 text-xl font-bold text-[#231f19]">
         {hasSearch ? "No encontramos coincidencias." : "Aún no hay clientes registrados."}
       </h3>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6B7C70]">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#74695c]">
         {hasSearch
           ? "Prueba con otro nombre, teléfono o lugar de trabajo para seguir buscando."
           : "Cuando ingresen pedidos, aparecerán aquí automáticamente."}
@@ -4552,13 +4545,13 @@ function InlineField({
 }) {
   return (
     <label className="min-w-0 space-y-2">
-      <span className="text-sm font-semibold text-emerald-900">{label}</span>
+      <span className="text-sm font-semibold text-brand-900">{label}</span>
       <input
         type="number"
         min={0}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+        className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
       />
     </label>
   );
@@ -4577,11 +4570,11 @@ function InlineSelectField({
 }) {
   return (
     <label className="min-w-0 space-y-2">
-      <span className="text-sm font-semibold text-emerald-900">{label}</span>
+      <span className="text-sm font-semibold text-brand-900">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+        className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -4604,14 +4597,14 @@ function QuickStockAdjuster({
 
   return (
     <div className="min-w-0 space-y-2">
-      <span className="text-sm font-semibold text-emerald-900">Ajuste Rápido</span>
+      <span className="text-sm font-semibold text-brand-900">Ajuste Rápido</span>
       <div className="grid grid-cols-4 gap-2">
         {[-1, 1, 5, 10].map((delta) => (
           <button
             key={delta}
             type="button"
             onClick={() => onChange(String(Math.max(0, currentValue + delta)))}
-            className="min-h-11 rounded-lg border border-emerald-100 bg-white px-2 text-sm font-semibold text-emerald-900"
+            className="min-h-11 rounded-lg border border-brand-100 bg-white px-2 text-sm font-semibold text-brand-900"
           >
             {delta > 0 ? `+${delta}` : delta}
           </button>

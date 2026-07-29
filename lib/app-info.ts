@@ -1,5 +1,7 @@
 export const appInfo = {
-  name: "Pauli Store",
+  name: "Smellme.cl",
+  shortName: "Smellme",
+  tagline: "Perfumes, testers y fragancias exclusivas",
   version: "1.2.0",
   developer: "Riedmann Apps",
   copyright: "Todos los derechos reservados"

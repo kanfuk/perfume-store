@@ -1,6 +1,6 @@
-# Pauli Store v1.2.0
+# Smellme.cl v1.2.0
 
-Aplicacion web responsive para una tienda casera, con flujo publico de pedidos y panel admin conectado a Supabase.
+Aplicacion web responsive para una tienda de perfumes, testers y fragancias exclusivas, con flujo publico de pedidos y panel admin conectado a Supabase.
 
 Version actual: `1.2.0`
 
@@ -15,7 +15,7 @@ Hoy el proyecto ya incluye:
 - guardado local de clientes frecuentes en el dispositivo
 - modal de confirmacion al agendar pedido
 - panel admin con login real usando Supabase Auth
-- branding visible de Pauli Store en cliente y admin
+- branding visible de Smellme.cl en cliente y admin
 - CTA corporativo de Riedmann Apps enlazado a `https://riedmannapps.com`
 - venta directa y pedido personalizado desde admin
 - seleccion de clientes existentes en venta directa y pedido personalizado
@@ -107,9 +107,8 @@ Pendiente para una fase posterior:
 
 ## Produccion actual
 
-- URL publica: `https://pauli-store-clientes.vercel.app`
-- ultimo deploy validado: `2026-06-26`
-- estado operativo resumido: [docs/43_ESTADO_ACTUAL_APP_2026_06_26.md](docs/43_ESTADO_ACTUAL_APP_2026_06_26.md)
+- URL publica: `https://perfume-store-mu-smoky.vercel.app`
+- ver detalle de despliegue: [docs/PERFUME_STORE_VERCEL_DEPLOYMENT.md](docs/PERFUME_STORE_VERCEL_DEPLOYMENT.md)
 
 ## Iconografia y manifest
 
@@ -124,7 +123,7 @@ La app ya integra:
 - `public/icons/android-chrome-512x512.png`
 - `public/site.webmanifest`
 - `public/admin.webmanifest`
-- `public/icons/` con el set vigente del logo de Pauli Store
+- `public/icons/` con el set vigente del logo de Smellme.cl
 
 Verificacion recomendada despues del deploy:
 
@@ -195,5 +194,5 @@ Migraciones recientes:
 1. validar en Supabase real que `stock_actual = stock_agenda` despues de editar y vender
 2. confirmar en produccion la reasociacion de pedidos manuales al cliente correcto cuando se dejan fiados
 3. ejecutar limpieza final de datos de prueba antes del lanzamiento
-4. validar flujo completo desde celular con Pauli usando datos reales
+4. validar flujo completo desde celular con datos reales
 5. endurecer CSP con `nonce` o `report-only` antes de quitar `unsafe-inline` y `unsafe-eval`

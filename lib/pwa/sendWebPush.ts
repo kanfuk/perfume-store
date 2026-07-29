@@ -91,7 +91,7 @@ function buildDeclarativePushPayload(args: SendPendingOrdersPushArgs) {
   const title = pendingCount > 0 ? "Nuevo pedido pendiente" : "Pedidos actualizados";
   const body =
     pendingCount > 0
-      ? `Hay ${pendingCount} pedido(s) por revisar en Pauli Admin.`
+      ? `Hay ${pendingCount} pedido(s) por revisar en Smellme Admin.`
       : "No quedan pedidos pendientes por revisar.";
   const navigateUrl = getAdminOrdersUrl();
 
@@ -102,7 +102,7 @@ function buildDeclarativePushPayload(args: SendPendingOrdersPushArgs) {
       body,
       navigate: navigateUrl,
       app_badge: String(pendingCount),
-      tag: "pauli-admin-pending-orders",
+      tag: "smellme-admin-pending-orders",
       icon: "/icons/android-chrome-192x192.png",
       badge: "/icons/android-chrome-192x192.png",
       data: {

@@ -17,8 +17,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: appInfo.name,
-  description: "Pedidos caseros de Pauli Store",
+  title: `${appInfo.name} — ${appInfo.tagline}`,
+  description: "Perfumes, testers y fragancias exclusivas a precio conveniente.",
   manifest: "/site.webmanifest",
   appleWebApp: {
     capable: true,
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#247a4d"
+  themeColor: "#6b4a26"
 };
 
 type RootLayoutProps = Readonly<{

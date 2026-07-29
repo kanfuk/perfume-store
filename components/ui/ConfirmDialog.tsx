@@ -21,7 +21,7 @@ function getConfirmButtonClassName(tone: "default" | "danger" | "warning" = "def
     return "bg-amber-500 text-amber-950 hover:bg-amber-400";
   }
 
-  return "bg-emerald-600 text-white hover:bg-emerald-700";
+  return "bg-brand-600 text-white hover:bg-brand-700";
 }
 
 export function ConfirmDialog({ state }: { state: ConfirmDialogState }) {
@@ -87,7 +87,7 @@ export function ConfirmDialog({ state }: { state: ConfirmDialogState }) {
 
   return (
     <div
-      className="fixed inset-0 z-[130] flex items-center justify-center bg-[#1f3328]/40 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-[#231f19]/40 px-4 backdrop-blur-sm"
       role="presentation"
     >
       <button
@@ -101,12 +101,12 @@ export function ConfirmDialog({ state }: { state: ConfirmDialogState }) {
         aria-modal="true"
         aria-labelledby="app-confirm-title"
         aria-describedby="app-confirm-description"
-        className="relative w-full max-w-md rounded-[30px] border border-[#d8ebdd] bg-white p-6 shadow-[0_24px_60px_rgba(31,51,40,0.18)]"
+        className="relative w-full max-w-md rounded-[30px] border border-[#e3d9c8] bg-white p-6 shadow-[0_24px_60px_rgba(35, 31, 25,0.18)]"
       >
-        <h2 id="app-confirm-title" className="text-xl font-semibold text-[#1f3328]">
+        <h2 id="app-confirm-title" className="text-xl font-semibold text-[#231f19]">
           {state.title}
         </h2>
-        <p id="app-confirm-description" className="mt-2 text-sm leading-6 text-[#6b7c70]">
+        <p id="app-confirm-description" className="mt-2 text-sm leading-6 text-[#74695c]">
           {state.description}
         </p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -114,7 +114,7 @@ export function ConfirmDialog({ state }: { state: ConfirmDialogState }) {
             ref={cancelButtonRef}
             type="button"
             onClick={state.onCancel}
-            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#d8ebdd] bg-white px-4 py-3 text-sm font-semibold text-[#1f3328]"
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#e3d9c8] bg-white px-4 py-3 text-sm font-semibold text-[#231f19]"
           >
             {state.cancelLabel ?? "Volver"}
           </button>

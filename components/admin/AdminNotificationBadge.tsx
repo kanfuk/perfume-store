@@ -36,7 +36,7 @@ export function AdminNotificationBadge({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="fixed right-4 top-[calc(16px+env(safe-area-inset-top))] z-30 inline-flex min-h-11 items-center gap-3 rounded-full border border-[#D8EBDD] bg-white/96 px-4 py-2.5 text-left text-[#14532d] shadow-[0_14px_36px_rgba(20,83,45,0.18)] backdrop-blur sm:right-6"
+      className="fixed right-4 top-[calc(16px+env(safe-area-inset-top))] z-30 inline-flex min-h-11 items-center gap-3 rounded-full border border-[#e3d9c8] bg-white/96 px-4 py-2.5 text-left text-[#3a2b16] shadow-[0_14px_36px_rgba(58, 43, 22,0.18)] backdrop-blur sm:right-6"
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E7F7EC] text-[#1F7A4A] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
         <BellRing className="h-5 w-5" />
@@ -45,7 +45,7 @@ export function AdminNotificationBadge({
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#4B6A59]">
           Pedidos por atender
         </span>
-        <span className="block text-sm font-semibold text-[#1F3328]">
+        <span className="block text-sm font-semibold text-[#231f19]">
           Revisar pendientes
         </span>
       </span>

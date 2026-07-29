@@ -36,7 +36,7 @@ function getToastIcon(tone: AppToastTone) {
 
 function getToastPalette(tone: AppToastTone) {
   if (tone === "success") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-900";
+    return "border-brand-200 bg-brand-50 text-brand-900";
   }
 
   if (tone === "error") {
@@ -51,7 +51,7 @@ function getToastPalette(tone: AppToastTone) {
     return "border-slate-200 bg-white text-slate-900";
   }
 
-  return "border-[#d8ebdd] bg-white text-[#1f3328]";
+  return "border-[#e3d9c8] bg-white text-[#231f19]";
 }
 
 export function AppToastViewport({
@@ -71,7 +71,7 @@ export function AppToastViewport({
         <div
           key={toast.id}
           role="status"
-          className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-[24px] border px-4 py-3 shadow-[0_20px_40px_rgba(31,51,40,0.14)] backdrop-blur ${getToastPalette(toast.tone)}`}
+          className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-[24px] border px-4 py-3 shadow-[0_20px_40px_rgba(35, 31, 25,0.14)] backdrop-blur ${getToastPalette(toast.tone)}`}
         >
           <div className="mt-0.5 shrink-0">{getToastIcon(toast.tone)}</div>
           <div className="min-w-0 flex-1">

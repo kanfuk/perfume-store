@@ -12,7 +12,6 @@ import {
   Sparkles,
   UserRound
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { CartSummary } from "@/components/shared/CartSummary";
 import { ProductCatalog } from "@/components/shared/ProductCatalog";
@@ -625,34 +624,27 @@ export function AdminDirectSale({
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-6 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
-      <section className="overflow-hidden rounded-[34px] border border-[#cbebd6] bg-[#f3faf4] shadow-soft">
-        <div className="bg-[linear-gradient(140deg,#f3faf4_0%,#eaf8ef_48%,#ddf4e5_100%)] p-6 sm:p-8">
+      <section className="overflow-hidden rounded-[34px] border border-[#e3d9c8] bg-[#faf7f1] shadow-soft">
+        <div className="bg-[linear-gradient(140deg,#faf7f1_0%,#f2ece0_48%,#ece1c9_100%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-4">
-              <div className="flex w-fit items-center gap-3 rounded-[24px] border border-white/70 bg-white/85 px-4 py-3 shadow-[0_16px_30px_rgba(31,51,40,0.08)]">
-                <div className="relative h-14 w-14 overflow-hidden rounded-[18px] bg-white ring-1 ring-[#d8ebdd]">
-                  <Image
-                    src="/brand/pauli-store-logo-transparent.png"
-                    alt="Logo de Pauli Store"
-                    fill
-                    className="object-contain p-2"
-                    sizes="56px"
-                    priority
-                  />
+              <div className="flex w-fit items-center gap-3 rounded-[24px] border border-white/70 bg-white/85 px-4 py-3 shadow-[0_16px_30px_rgba(35,31,25,0.08)]">
+                <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[18px] bg-[#231f19] ring-1 ring-[#e3d9c8]">
+                  <span className="font-display text-xl font-semibold text-[#faf7f1]">S</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#f3faf4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#247a4d]">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#faf7f1] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#6b4a26]">
                     <ShoppingBag className="h-3.5 w-3.5" />
-                    Admin Pauli Store
+                    Admin Smellme.cl
                   </span>
-                  <p className="text-sm font-semibold text-[#1f3328]">Ventas ágiles con identidad de marca</p>
+                  <p className="text-sm font-semibold text-[#231f19]">Ventas ágiles con identidad de marca</p>
                 </div>
               </div>
               <div className="space-y-2">
-                <h1 className="font-display text-3xl font-semibold text-[#1f3328] sm:text-4xl">
+                <h1 className="font-display text-3xl font-semibold text-[#231f19] sm:text-4xl">
                   Venta directa
                 </h1>
-                <p className="max-w-3xl text-sm leading-6 text-[#6b7c70] sm:text-base">
+                <p className="max-w-3xl text-sm leading-6 text-[#74695c] sm:text-base">
                   Registra ventas realizadas en el momento sin usar el formulario público.
                 </p>
               </div>
@@ -660,7 +652,7 @@ export function AdminDirectSale({
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admin"
-                className="inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] border border-[#d8ebdd] bg-white/80 px-4 py-3 text-center text-sm font-semibold text-[#6b7c70] sm:min-w-[146px]"
+                className="inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] border border-[#e3d9c8] bg-white/80 px-4 py-3 text-center text-sm font-semibold text-[#74695c] sm:min-w-[146px]"
               >
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Inicio</span>
@@ -683,12 +675,12 @@ export function AdminDirectSale({
       </section>
 
       {successMessage ? (
-        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+        <div className="rounded-[24px] border border-brand-200 bg-brand-50 px-4 py-4 text-sm text-brand-800">
           {successMessage}
         </div>
       ) : null}
       {serverError ? (
-        <div className="rounded-[24px] border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+        <div className="rounded-[24px] border border-brand-100 bg-brand-50 px-4 py-4 text-sm text-brand-800">
           {serverError}
         </div>
       ) : null}
@@ -708,20 +700,20 @@ export function AdminDirectSale({
             >
               <div className="grid gap-4 md:grid-cols-[1.4fr_0.8fr]">
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">Buscar producto</span>
+                  <span className="text-sm font-medium text-[#231f19]">Buscar producto</span>
                   <input
                     value={productSearch}
                     onChange={(event) => setProductSearch(event.target.value)}
                     placeholder="Escribe nombre, tipo o descripción"
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                   />
                 </label>
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">Producto rápido</span>
+                  <span className="text-sm font-medium text-[#231f19]">Producto rápido</span>
                   <select
                     value={selectedCatalogProductId}
                     onChange={(event) => setSelectedCatalogProductId(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
                   >
                     <option value="">Selecciona producto</option>
                     {products.map((product) => (
@@ -734,11 +726,11 @@ export function AdminDirectSale({
               </div>
               <div className="grid gap-4 md:grid-cols-[0.8fr_0.8fr_auto] md:items-end">
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">Cantidad</span>
+                  <span className="text-sm font-medium text-[#231f19]">Cantidad</span>
                   <select
                     value={catalogQuantityChoice}
                     onChange={(event) => syncCatalogQuantityChoice(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
                   >
                     {QUICK_QUANTITY_OPTIONS.map((quantity) => (
                       <option key={quantity} value={quantity}>
@@ -750,32 +742,32 @@ export function AdminDirectSale({
                 </label>
                 {catalogQuantityChoice === OTHER_QUANTITY_VALUE ? (
                   <label className="block space-y-2">
-                    <span className="text-sm font-medium text-[#1f3328]">Otra cantidad</span>
+                    <span className="text-sm font-medium text-[#231f19]">Otra cantidad</span>
                     <input
                       type="number"
                       min={1}
                       value={catalogManualQuantity}
                       onChange={(event) => setCatalogManualQuantity(event.target.value)}
                       placeholder="Ejemplo: 7"
-                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                     />
                   </label>
                 ) : (
-                  <div className="rounded-[18px] border border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                  <div className="rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
                     Elige una cantidad sugerida o cambia a &quot;Otra cantidad&quot;.
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={addSelectedCatalogProduct}
-                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                  className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
                 >
                   Agregar al resumen
                 </button>
               </div>
               {selectedCatalogProduct ? (
-                <div className="rounded-[18px] border border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
-                  <strong className="text-[#1f3328]">{selectedCatalogProduct.nombre}</strong>
+                <div className="rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
+                  <strong className="text-[#231f19]">{selectedCatalogProduct.nombre}</strong>
                   {" · "}
                   {selectedCatalogProduct.activo ? "Activo" : "Inactivo"}
                   {" · "}
@@ -821,20 +813,20 @@ export function AdminDirectSale({
 
               {customerMode === "existente" ? (
                 <div className="space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">Cliente existente</span>
+                  <span className="text-sm font-medium text-[#231f19]">Cliente existente</span>
                   <label className="relative block">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7c70]" />
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#74695c]" />
                     <input
                       value={customerSearch}
                       onChange={(event) => handleCustomerSearchChange(event.target.value)}
                       placeholder="Busca por nombre, telefono o lugar de trabajo"
-                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white py-3 pl-11 pr-4 text-base text-[#231f19] outline-none"
                     />
                   </label>
                   <select
                     value={selectedCustomerId}
                     onChange={(event) => syncExistingCustomer(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
                   >
                     <option value="">
                       {customers.length === 0
@@ -876,11 +868,11 @@ export function AdminDirectSale({
               />
 
               {matchedCustomer ? (
-                <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <div className="rounded-[18px] border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
                   La venta se asociara al cliente existente {matchedCustomer.nombre}.
                 </div>
               ) : customerMode !== "ocasional" && normalizedCustomerName ? (
-                <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                <div className="rounded-[18px] border border-dashed border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
                   Si no coincide con un cliente existente, se registrara como cliente nuevo.
                 </div>
               ) : null}
@@ -901,12 +893,12 @@ export function AdminDirectSale({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#1f3328]">Nota interna opcional</span>
+                <span className="text-sm font-medium text-[#231f19]">Nota interna opcional</span>
                 <textarea
                   value={catalogNote}
                   onChange={(event) => setCatalogNote(event.target.value)}
                   rows={3}
-                  className="w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                  className="w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                   placeholder="Ejemplo: venta del pasillo o retiro inmediato"
                 />
               </label>
@@ -925,17 +917,17 @@ export function AdminDirectSale({
               subtitle="Mismo calculo del cliente, pero listo para cerrar al instante."
             />
 
-            <div className="rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft">
+            <div className="rounded-[30px] border border-[#e3d9c8] bg-white/95 p-5 shadow-soft">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
                     <BadgeCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#1f3328]">
+                    <h3 className="text-lg font-semibold text-[#231f19]">
                       Registrar venta
                     </h3>
-                    <p className="text-sm text-[#6b7c70]">
+                    <p className="text-sm text-[#74695c]">
                       La venta se guardara como FINALIZADO/{paymentState}.
                     </p>
                   </div>
@@ -944,7 +936,7 @@ export function AdminDirectSale({
                   type="button"
                   disabled={submitting || saleItems.length === 0}
                   onClick={() => void submitDirectSale()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-emerald-600 px-4 py-4 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-brand-600 px-4 py-4 text-base font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-200"
                 >
                   <ShoppingBag className="h-5 w-5" />
                   {submitting ? "Registrando venta..." : "Registrar venta"}
@@ -962,20 +954,20 @@ export function AdminDirectSale({
               subtitle="Registra pedidos especiales como queques enteros, preparaciones a pedido u otros productos."
             >
               <div className="space-y-2">
-                <span className="text-sm font-medium text-[#1f3328]">Cliente existente opcional</span>
+                <span className="text-sm font-medium text-[#231f19]">Cliente existente opcional</span>
                 <label className="relative block">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7c70]" />
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#74695c]" />
                   <input
                     value={customCustomerSearch}
                     onChange={(event) => handleCustomCustomerSearchChange(event.target.value)}
                     placeholder="Busca por nombre, telefono o lugar de trabajo"
-                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white py-3 pl-11 pr-4 text-base text-[#1f3328] outline-none"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white py-3 pl-11 pr-4 text-base text-[#231f19] outline-none"
                     />
                   </label>
                 <select
                   value={customSelectedCustomerId}
                   onChange={(event) => syncCustomExistingCustomer(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
                 >
                   <option value="">
                     {customers.length === 0
@@ -992,11 +984,11 @@ export function AdminDirectSale({
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">Producto</span>
+                  <span className="text-sm font-medium text-[#231f19]">Producto</span>
                   <select
                     value={customForm.productoBaseId}
                     onChange={(event) => syncCustomProduct(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
                   >
                     <option value="">Selecciona producto del catálogo</option>
                     {products.map((product) => (
@@ -1007,11 +999,11 @@ export function AdminDirectSale({
                   </select>
                 </label>
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">Cantidad</span>
+                  <span className="text-sm font-medium text-[#231f19]">Cantidad</span>
                   <select
                     value={customQuantityChoice}
                     onChange={(event) => syncCustomQuantityChoice(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
                   >
                     {QUICK_QUANTITY_OPTIONS.map((quantity) => (
                       <option key={quantity} value={quantity}>
@@ -1024,20 +1016,20 @@ export function AdminDirectSale({
               </div>
               {customQuantityChoice === OTHER_QUANTITY_VALUE ? (
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">Otra cantidad</span>
+                  <span className="text-sm font-medium text-[#231f19]">Otra cantidad</span>
                   <input
                     type="number"
                     min={1}
                     value={customManualQuantity}
                     onChange={(event) => syncCustomManualQuantity(event.target.value)}
                     placeholder="Ejemplo: 7"
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                   />
                 </label>
               ) : null}
               {selectedCustomCatalogProduct ? (
-                <div className="rounded-[18px] border border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
-                  <strong className="text-[#1f3328]">{selectedCustomCatalogProduct.nombre}</strong>
+                <div className="rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
+                  <strong className="text-[#231f19]">{selectedCustomCatalogProduct.nombre}</strong>
                   {" · "}
                   {selectedCustomCatalogProduct.activo ? "Activo" : "Inactivo"}
                   {" · "}
@@ -1080,11 +1072,11 @@ export function AdminDirectSale({
               />
 
               {matchedCustomCustomer ? (
-                <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <div className="rounded-[18px] border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
                   Este pedido se asociara al cliente existente {matchedCustomCustomer.nombre}.
                 </div>
               ) : normalizedCustomCustomerName ? (
-                <div className="rounded-[18px] border border-dashed border-[#d8ebdd] bg-[#f8fdf9] px-4 py-3 text-sm text-[#6b7c70]">
+                <div className="rounded-[18px] border border-dashed border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
                   Si no coincide con un cliente existente, se registrara como cliente nuevo.
                 </div>
               ) : null}
@@ -1100,11 +1092,11 @@ export function AdminDirectSale({
                   icon={<NotebookPen className="h-4 w-4" />}
                 />
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#1f3328]">
+                  <span className="text-sm font-medium text-[#231f19]">
                     Fecha de entrega opcional
                   </span>
-                  <div className="flex items-center gap-3 rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3">
-                    <span className="text-[#6b7c70]">
+                  <div className="flex items-center gap-3 rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3">
+                    <span className="text-[#74695c]">
                       <CalendarClock className="h-4 w-4" />
                     </span>
                     <input
@@ -1117,7 +1109,7 @@ export function AdminDirectSale({
                           fechaEntrega: event.target.value
                         }))
                       }
-                      className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#1f3328] outline-none"
+                      className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#231f19] outline-none"
                     />
                     <button
                       type="button"
@@ -1130,7 +1122,7 @@ export function AdminDirectSale({
                           : undefined
                       }
                       disabled={!todayDate}
-                      className="shrink-0 rounded-xl border border-[#d8ebdd] bg-[#f6fcf7] px-3 py-2 text-sm font-semibold text-[#247a4d]"
+                      className="shrink-0 rounded-xl border border-[#e3d9c8] bg-[#faf7f1] px-3 py-2 text-sm font-semibold text-[#6b4a26]"
                     >
                       Hoy
                     </button>
@@ -1139,14 +1131,14 @@ export function AdminDirectSale({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#1f3328]">Descripción / observación</span>
+                <span className="text-sm font-medium text-[#231f19]">Descripción / observación</span>
                 <textarea
                   value={customForm.descripcion}
                   onChange={(event) =>
                     setCustomForm((current) => ({ ...current, descripcion: event.target.value }))
                   }
                   rows={4}
-                  className="w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+                  className="w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
                   placeholder="Detalles del pedido, sabores, relleno o instrucciones."
                 />
               </label>
@@ -1177,7 +1169,7 @@ export function AdminDirectSale({
               </div>
 
               <div className="space-y-3">
-                <div className="text-sm font-medium text-[#1f3328]">Estado inicial del pedido</div>
+                <div className="text-sm font-medium text-[#231f19]">Estado inicial del pedido</div>
                   <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
                   <ChoiceButton
                     active={customForm.estadoInicial === "NUEVO"}
@@ -1209,11 +1201,11 @@ export function AdminDirectSale({
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
-            <div className="rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft">
+            <div className="rounded-[30px] border border-[#e3d9c8] bg-white/95 p-5 shadow-soft">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#1f3328]">Resumen antes de guardar</h3>
-                  <p className="mt-1 text-sm text-[#6b7c70]">
+                  <h3 className="text-lg font-semibold text-[#231f19]">Resumen antes de guardar</h3>
+                  <p className="mt-1 text-sm text-[#74695c]">
                     Cliente, producto, total y estado en una sola vista.
                   </p>
                 </div>
@@ -1256,7 +1248,7 @@ export function AdminDirectSale({
                   type="button"
                   disabled={submitting}
                   onClick={() => void submitCustomOrder()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-emerald-600 px-4 py-4 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-200"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[24px] bg-brand-600 px-4 py-4 text-base font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-200"
                 >
                   <Sparkles className="h-5 w-5" />
                   {submitting
@@ -1271,7 +1263,7 @@ export function AdminDirectSale({
 
       <Link
         href="/admin"
-        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#d8ebdd] bg-white/95 text-[#6b7c70] shadow-soft backdrop-blur md:hidden"
+        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e3d9c8] bg-white/95 text-[#74695c] shadow-soft backdrop-blur md:hidden"
         aria-label="Inicio admin"
       >
         <Home className="h-4 w-4" />
@@ -1293,14 +1285,14 @@ function CardSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-[30px] border border-[#d8ebdd] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
+    <section className="space-y-4 rounded-[30px] border border-[#e3d9c8] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3fa66b] shadow-sm">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#9c7a45] shadow-sm">
           {icon}
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[#1f3328]">{title}</h2>
-          <p className="copy-justified text-sm text-[#6b7c70]">{subtitle}</p>
+          <h2 className="text-lg font-semibold text-[#231f19]">{title}</h2>
+          <p className="copy-justified text-sm text-[#74695c]">{subtitle}</p>
         </div>
       </div>
       {children}
@@ -1325,8 +1317,8 @@ function ModeButton({
       onClick={onClick}
       className={`inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] px-4 py-3 text-center text-sm font-semibold transition sm:min-w-[146px] ${
         active
-          ? "bg-[#3fa66b] text-white"
-          : "border border-[#d8ebdd] bg-white/80 text-[#6b7c70]"
+          ? "bg-[#9c7a45] text-white"
+          : "border border-[#e3d9c8] bg-white/80 text-[#74695c]"
       }`}
     >
       {icon}
@@ -1352,12 +1344,12 @@ function ChoiceButton({
       onClick={onClick}
       className={`flex h-full flex-col justify-between rounded-[22px] border px-4 py-4 text-left transition ${
         active
-          ? "border-emerald-200 bg-emerald-50 shadow-soft"
-          : "border-[#d8ebdd] bg-white"
+          ? "border-brand-200 bg-brand-50 shadow-soft"
+          : "border-[#e3d9c8] bg-white"
       }`}
     >
-      <div className="font-semibold text-[#1f3328]">{title}</div>
-      <div className="mt-1 text-sm leading-6 text-[#6b7c70]">{text}</div>
+      <div className="font-semibold text-[#231f19]">{title}</div>
+      <div className="mt-1 text-sm leading-6 text-[#74695c]">{text}</div>
     </button>
   );
 }
@@ -1377,14 +1369,14 @@ function TextField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#1f3328]">{label}</span>
-      <div className="flex items-center gap-3 rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3">
-        <span className="text-[#6b7c70]">{icon}</span>
+      <span className="text-sm font-medium text-[#231f19]">{label}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3">
+        <span className="text-[#74695c]">{icon}</span>
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#1f3328] outline-none placeholder:text-[#6b7c70]"
+          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#231f19] outline-none placeholder:text-[#74695c]"
         />
       </div>
     </label>
@@ -1402,13 +1394,13 @@ function NumberField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#1f3328]">{label}</span>
+      <span className="text-sm font-medium text-[#231f19]">{label}</span>
       <input
         type="number"
         min={0}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#d8ebdd] bg-white px-4 py-3 text-base text-[#1f3328] outline-none"
+        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
       />
     </label>
   );
@@ -1416,9 +1408,9 @@ function NumberField({
 
 function SummaryFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#d8ebdd] bg-[#f6fcf7] px-4 py-3">
-      <span className="text-sm text-[#6b7c70]">{label}</span>
-      <span className="text-right text-sm font-semibold text-[#1f3328]">{value}</span>
+    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3">
+      <span className="text-sm text-[#74695c]">{label}</span>
+      <span className="text-right text-sm font-semibold text-[#231f19]">{value}</span>
     </div>
   );
 }

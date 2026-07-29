@@ -164,14 +164,14 @@ export function DashboardHomeView({
       </div>
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
+        <article className="rounded-[24px] border border-brand-100 bg-white/95 p-5 shadow-soft">
           <div className="flex items-center gap-3">
-            <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
+            <span className="rounded-2xl bg-brand-100 p-3 text-brand-700">
               <Sparkles className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-xl font-bold text-emerald-950">Lo de hoy</h2>
-              <p className="text-sm text-emerald-900/65">Tres decisiones y listo.</p>
+              <h2 className="text-xl font-bold text-brand-950">Lo de hoy</h2>
+              <p className="text-sm text-brand-900/65">Tres decisiones y listo.</p>
             </div>
           </div>
 
@@ -197,14 +197,14 @@ export function DashboardHomeView({
           </div>
         </article>
 
-        <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
+        <article className="rounded-[24px] border border-brand-100 bg-white/95 p-5 shadow-soft">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-violet-100 p-3 text-violet-700">
               <BarChart3 className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-xl font-bold text-emerald-950">Cierre rapido</h2>
-              <p className="text-sm text-emerald-900/65">Numeros puntuales del negocio.</p>
+              <h2 className="text-xl font-bold text-brand-950">Cierre rapido</h2>
+              <p className="text-sm text-brand-900/65">Numeros puntuales del negocio.</p>
             </div>
           </div>
 
@@ -216,11 +216,11 @@ export function DashboardHomeView({
       </section>
 
       {!badgeDeviceSetting?.badgeEnabled ? (
-        <section className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft">
+        <section className="rounded-[24px] border border-brand-100 bg-white/95 p-5 shadow-soft">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-bold text-emerald-950">Badge del icono</h2>
-              <p className="mt-1 text-sm text-emerald-900/65">
+              <h2 className="text-xl font-bold text-brand-950">Badge del icono</h2>
+              <p className="mt-1 text-sm text-brand-900/65">
                 Activa el contador de pedidos pendientes en el icono de la app de tu iPhone.
               </p>
             </div>
@@ -250,11 +250,11 @@ export function DashboardHomeView({
             />
           </div>
 
-          <div className="mt-4 space-y-2 text-sm text-emerald-900/75">
+          <div className="mt-4 space-y-2 text-sm text-brand-900/75">
             {!badgeSupported ? <p>Este navegador no soporta badge en el icono.</p> : null}
             {!isInstalledPwa ? (
               <p>
-                Para ver el badge en el icono, instala Pauli Store en la pantalla de inicio y abre
+                Para ver el badge en el icono, instala Smellme.cl en la pantalla de inicio y abre
                 la app desde ese icono.
               </p>
             ) : null}
@@ -284,7 +284,7 @@ export function DashboardHomeView({
               type="button"
               disabled={badgeActionLoading || badgeCardLoading || !badgeDeviceId}
               onClick={onActivateBadgeForCurrentDevice}
-              className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-emerald-200"
+              className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-brand-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-brand-200"
             >
               {badgeActionLoading ? "Activando..." : "Activar badge en este iPhone"}
             </button>
@@ -293,7 +293,7 @@ export function DashboardHomeView({
                 type="button"
                 disabled={badgeActionLoading}
                 onClick={onTestBadgeOnCurrentDevice}
-                className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
+                className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-brand-200 bg-white px-4 py-3 text-sm font-semibold text-brand-900 disabled:cursor-not-allowed disabled:bg-brand-50"
               >
                 Probar badge
               </button>
@@ -303,7 +303,7 @@ export function DashboardHomeView({
                 type="button"
                 disabled={badgeActionLoading}
                 onClick={onTestPushOnCurrentDevice}
-                className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-50"
+                className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-brand-200 bg-white px-4 py-3 text-sm font-semibold text-brand-900 disabled:cursor-not-allowed disabled:bg-brand-50"
               >
                 Probar notificacion
               </button>
@@ -313,11 +313,11 @@ export function DashboardHomeView({
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <article className="rounded-[24px] border border-emerald-100 bg-white/95 p-5 shadow-soft lg:col-span-3">
+        <article className="rounded-[24px] border border-brand-100 bg-white/95 p-5 shadow-soft lg:col-span-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-bold text-emerald-950">Pedidos por atender</h2>
-              <p className="mt-1 text-sm text-emerald-900/65">
+              <h2 className="text-xl font-bold text-brand-950">Pedidos por atender</h2>
+              <p className="mt-1 text-sm text-brand-900/65">
                 Lo ultimo que entro y aun sigue sin agenda o sin revision final. Desde aqui puedes
                 revisar, abrir agenda o compartir el resumen por WhatsApp.
               </p>
@@ -325,7 +325,7 @@ export function DashboardHomeView({
             <button
               type="button"
               onClick={onOpenAttentionOrders}
-              className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-emerald-600 px-4 py-3 text-sm font-semibold text-white"
+              className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-brand-600 px-4 py-3 text-sm font-semibold text-white"
             >
               Abrir pedidos
             </button>
@@ -338,12 +338,12 @@ export function DashboardHomeView({
             {pendingUnseenOrders.map((order) => (
               <article
                 key={order.id}
-                className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 p-4"
+                className="rounded-[20px] border border-brand-100 bg-brand-50/70 p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-base font-semibold text-emerald-950">
+                      <div className="text-base font-semibold text-brand-950">
                         {order.clienteNombre}
                       </div>
                       <StatusBadge tone="warning" label="NUEVO" />
@@ -354,11 +354,11 @@ export function DashboardHomeView({
                         />
                       ) : null}
                     </div>
-                    <div className="text-sm text-emerald-900/70">
+                    <div className="text-sm text-brand-900/70">
                       {order.clienteLugarTrabajo || "Sin lugar"} ·{" "}
                       {order.clienteTelefono || "Sin telefono"}
                     </div>
-                    <div className="space-y-1 text-sm text-emerald-900/80">
+                    <div className="space-y-1 text-sm text-brand-900/80">
                       {renderGroupedItemLines(
                         order.items.map((item) => ({
                           name: item.productoNombre,
@@ -371,11 +371,11 @@ export function DashboardHomeView({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs uppercase tracking-wide text-emerald-700/70">Total</div>
-                    <div className="mt-1 text-lg font-bold text-emerald-950">
+                    <div className="text-xs uppercase tracking-wide text-brand-700/70">Total</div>
+                    <div className="mt-1 text-lg font-bold text-brand-950">
                       {formatCurrency(order.total)}
                     </div>
-                    <div className="mt-1 text-xs text-emerald-900/65">
+                    <div className="mt-1 text-xs text-brand-900/65">
                       {formatShortDateTime(order.fechaPedido)}
                     </div>
                   </div>
@@ -423,11 +423,11 @@ export function DashboardHomeView({
         />
       </section>
 
-      <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+      <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-emerald-950">Atajos principales</h2>
-          <p className="text-sm text-emerald-900/70">
-            Entra directo a lo que mas usa Pauli en el dia a dia.
+          <h2 className="text-2xl font-bold text-brand-950">Atajos principales</h2>
+          <p className="text-sm text-brand-900/70">
+            Entra directo a lo que mas usas en el dia a dia.
           </p>
         </div>
 
@@ -476,12 +476,12 @@ export function DashboardHomeView({
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-          <div className="flex items-center gap-2 text-emerald-950">
+        <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+          <div className="flex items-center gap-2 text-brand-950">
             <Sparkles className="h-5 w-5" />
             <h3 className="text-lg font-bold">Agenda agrupada</h3>
           </div>
-          <p className="mt-1 text-sm text-emerald-900/70">
+          <p className="mt-1 text-sm text-brand-900/70">
             Si una misma persona pidio varias veces para el mismo dia, aqui aparece todo junto.
           </p>
 
@@ -490,12 +490,12 @@ export function DashboardHomeView({
             {agendaGroups.slice(0, 4).map((group) => (
               <article
                 key={group.key}
-                className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
+                className="rounded-lg border border-brand-100 bg-brand-50/60 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="font-semibold text-emerald-950">{group.clienteNombre}</div>
-                    <div className="mt-1 text-sm text-emerald-900/65">
+                    <div className="font-semibold text-brand-950">{group.clienteNombre}</div>
+                    <div className="mt-1 text-sm text-brand-900/65">
                       {group.fechaEntrega === "sin-fecha"
                         ? "Sin fecha"
                         : formatDateOnly(group.fechaEntrega)}
@@ -508,12 +508,12 @@ export function DashboardHomeView({
                   <MiniMetric label="Monto" value={formatCurrency(group.totalMonto)} />
                   <MiniMetric label="Telefono" value={group.clienteTelefono || "-"} />
                 </div>
-                <div className="mt-3 space-y-2 rounded-2xl border border-emerald-100 bg-white/90 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700/70">
+                <div className="mt-3 space-y-2 rounded-2xl border border-brand-100 bg-white/90 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-brand-700/70">
                     Pedido
                   </div>
                   {renderGroupedItemLines(group.itemLines, 4).map((line) => (
-                    <div key={`${group.key}-${line}`} className="text-sm text-emerald-900/80">
+                    <div key={`${group.key}-${line}`} className="text-sm text-brand-900/80">
                       {line}
                     </div>
                   ))}
@@ -523,8 +523,8 @@ export function DashboardHomeView({
           </div>
         </section>
 
-        <section className="rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
-          <div className="flex items-center gap-2 text-emerald-950">
+        <section className="rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
+          <div className="flex items-center gap-2 text-brand-950">
             <Store className="h-5 w-5" />
             <h3 className="text-lg font-bold">Resumen al grano</h3>
           </div>

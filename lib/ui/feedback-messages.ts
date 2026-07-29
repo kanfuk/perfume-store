@@ -1,5 +1,5 @@
 export const feedbackMessages = {
-  orderSubmitted: "Pedido registrado. Pauli confirmara disponibilidad por WhatsApp.",
+  orderSubmitted: "Pedido registrado. Confirmaremos disponibilidad por WhatsApp.",
   orderSubmitError: "No se pudo registrar el pedido. Revisa los datos e intenta nuevamente.",
   productAdded: "Producto agregado al pedido.",
   productRemoved: "Producto quitado del pedido.",

@@ -27,19 +27,19 @@ export function SectionIntro({
   helper?: string;
 }) {
   return (
-    <section className="max-w-full overflow-x-hidden rounded-[24px] border border-emerald-100 bg-white/90 p-5 shadow-soft">
+    <section className="max-w-full overflow-x-hidden rounded-[24px] border border-brand-100 bg-white/90 p-5 shadow-soft">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="rounded-[18px] bg-emerald-100 p-3 text-emerald-700">
+          <span className="rounded-[18px] bg-brand-100 p-3 text-brand-700">
             <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0 space-y-1">
-            <h2 className="break-words text-2xl font-bold text-emerald-950">{title}</h2>
-            <p className="copy-justified break-words text-sm text-emerald-900/70">
+            <h2 className="break-words text-2xl font-bold text-brand-950">{title}</h2>
+            <p className="copy-justified break-words text-sm text-brand-900/70">
               {subtitle}
             </p>
             {helper ? (
-              <p className="copy-justified break-words rounded-[18px] bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <p className="copy-justified break-words rounded-[18px] bg-brand-50 px-3 py-2 text-sm text-brand-800">
                 {helper}
               </p>
             ) : null}
@@ -69,9 +69,9 @@ export function HomeActionCard({
   const palette =
     tone === "rose"
       ? {
-          gradientClass: "from-emerald-50 to-white",
-          iconTextClass: "text-emerald-700",
-          iconBgClass: "bg-emerald-100"
+          gradientClass: "from-brand-50 to-white",
+          iconTextClass: "text-brand-700",
+          iconBgClass: "bg-brand-100"
         }
       : tone === "violet"
         ? {
@@ -87,9 +87,9 @@ export function HomeActionCard({
             }
           : tone === "emerald"
             ? {
-                gradientClass: "from-emerald-50 to-white",
-                iconTextClass: "text-emerald-700",
-                iconBgClass: "bg-emerald-100"
+                gradientClass: "from-brand-50 to-white",
+                iconTextClass: "text-brand-700",
+                iconBgClass: "bg-brand-100"
               }
             : {
                 gradientClass: "from-slate-50 to-white",
@@ -101,22 +101,22 @@ export function HomeActionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`max-w-full overflow-x-hidden rounded-[20px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-emerald-200`}
+      className={`max-w-full overflow-x-hidden rounded-[20px] border border-brand-100 bg-gradient-to-br ${palette.gradientClass} p-4 text-left shadow-soft transition hover:border-brand-200`}
     >
       <div className="flex items-start justify-between gap-3">
         <span className={`rounded-2xl p-3 ${palette.iconBgClass} ${palette.iconTextClass}`}>
           <Icon className="h-5 w-5" />
         </span>
-        <span className="inline-flex min-h-8 items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
+        <span className="inline-flex min-h-8 items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-800">
           {badge}
         </span>
       </div>
       <div className="mt-4 min-w-0 space-y-2">
-        <div className="break-words text-lg font-semibold text-emerald-950">{title}</div>
-        <p className="copy-justified break-words text-sm leading-6 text-emerald-900/70">
+        <div className="break-words text-lg font-semibold text-brand-950">{title}</div>
+        <p className="copy-justified break-words text-sm leading-6 text-brand-900/70">
           {subtitle}
         </p>
-        <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800">
+        <div className="inline-flex items-center gap-2 text-sm font-semibold text-brand-800">
           Abrir
           <ArrowRight className="h-4 w-4" />
         </div>
@@ -140,20 +140,20 @@ export function QuickTaskRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-4 text-left transition hover:border-emerald-200 sm:flex-nowrap"
+      className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-100 bg-brand-50/70 px-4 py-4 text-left transition hover:border-brand-200 sm:flex-nowrap"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <span className="rounded-2xl bg-white p-3 text-emerald-700 shadow-sm">
+        <span className="rounded-2xl bg-white p-3 text-brand-700 shadow-sm">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-emerald-950">{title}</div>
-          <div className="copy-justified mt-1 break-words text-xs text-emerald-900/65">
+          <div className="text-sm font-semibold text-brand-950">{title}</div>
+          <div className="copy-justified mt-1 break-words text-xs text-brand-900/65">
             {detail}
           </div>
         </div>
       </div>
-      <ArrowRight className="h-4 w-4 shrink-0 text-emerald-500" />
+      <ArrowRight className="h-4 w-4 shrink-0 text-brand-500" />
     </button>
   );
 }
@@ -177,14 +177,14 @@ export function AdminSectionTab({
       onClick={onClick}
       className={`min-h-[88px] min-w-[132px] rounded-[20px] border px-4 py-3 text-left transition sm:min-w-[146px] ${
         active
-          ? "border-emerald-200 bg-emerald-600 text-white"
-          : "border-emerald-100 bg-emerald-50 text-emerald-900"
+          ? "border-brand-200 bg-brand-600 text-white"
+          : "border-brand-100 bg-brand-50 text-brand-900"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <span
           className={`rounded-[16px] p-2 ${
-            active ? "bg-white/20 text-white" : "bg-white text-emerald-700"
+            active ? "bg-white/20 text-white" : "bg-white text-brand-700"
           }`}
         >
           <Icon className="h-4 w-4" />
@@ -192,7 +192,7 @@ export function AdminSectionTab({
       </div>
       <div className="mt-3">
         <div className="text-sm font-semibold">{label}</div>
-        <div className={`mt-1 text-xs ${active ? "text-white/80" : "text-emerald-700/80"}`}>
+        <div className={`mt-1 text-xs ${active ? "text-white/80" : "text-brand-700/80"}`}>
           {badge}
         </div>
       </div>
@@ -215,8 +215,8 @@ export function FilterChip({
       onClick={onClick}
       className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
         active
-          ? "border-emerald-600 bg-emerald-600 text-white shadow-[0_10px_24px_rgba(36,122,77,0.18)]"
-          : "border-emerald-100 bg-emerald-50 text-emerald-800 hover:border-emerald-200 hover:bg-white"
+          ? "border-brand-600 bg-brand-600 text-white shadow-[0_10px_24px_rgba(107, 74, 38,0.18)]"
+          : "border-brand-100 bg-brand-50 text-brand-800 hover:border-brand-200 hover:bg-white"
       }`}
     >
       {label}
@@ -234,7 +234,7 @@ export function SegmentedControl({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="inline-grid min-h-12 w-full grid-cols-2 gap-1 rounded-[20px] border border-emerald-100 bg-emerald-50 p-1">
+    <div className="inline-grid min-h-12 w-full grid-cols-2 gap-1 rounded-[20px] border border-brand-100 bg-brand-50 p-1">
       {options.map((option) => (
         <button
           key={option.value}
@@ -242,8 +242,8 @@ export function SegmentedControl({
           onClick={() => onChange(option.value)}
           className={`min-h-10 rounded-[16px] px-4 py-2 text-sm font-semibold transition ${
             value === option.value
-              ? "bg-white text-emerald-950 shadow-[0_10px_24px_rgba(31,51,40,0.08)]"
-              : "text-emerald-700/80"
+              ? "bg-white text-brand-950 shadow-[0_10px_24px_rgba(35, 31, 25,0.08)]"
+              : "text-brand-700/80"
           }`}
         >
           {option.label}
@@ -266,13 +266,13 @@ export function CompactSelect({
 }) {
   return (
     <label className="min-w-0 space-y-2">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700/75">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-700/75">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block min-h-12 w-full rounded-[18px] border border-emerald-100 bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-[0_8px_20px_rgba(31,51,40,0.04)] outline-none transition focus:border-emerald-300"
+        className="block min-h-12 w-full rounded-[18px] border border-brand-100 bg-white px-4 py-3 text-sm font-semibold text-brand-950 shadow-[0_8px_20px_rgba(35, 31, 25,0.04)] outline-none transition focus:border-brand-300"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -295,14 +295,14 @@ export function ReportDateField({
 }) {
   return (
     <label className="min-w-0 max-w-full space-y-2 overflow-hidden">
-      <span className="text-sm font-semibold text-emerald-900">{label}</span>
-      <div className="flex min-h-12 items-center gap-3 rounded-[18px] border border-emerald-100 bg-emerald-50 px-4 py-3 focus-within:border-emerald-300 focus-within:bg-white">
-        <CalendarRange className="h-4 w-4 shrink-0 text-emerald-700/70" />
+      <span className="text-sm font-semibold text-brand-900">{label}</span>
+      <div className="flex min-h-12 items-center gap-3 rounded-[18px] border border-brand-100 bg-brand-50 px-4 py-3 focus-within:border-brand-300 focus-within:bg-white">
+        <CalendarRange className="h-4 w-4 shrink-0 text-brand-700/70" />
         <input
           type="date"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="block w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-sm text-emerald-950 outline-none"
+          className="block w-full min-w-0 appearance-none border-0 bg-transparent p-0 text-sm text-brand-950 outline-none"
         />
       </div>
     </label>
@@ -325,9 +325,9 @@ export function HeroMetric({
   const palette =
     tone === "rose"
       ? {
-          gradientClass: "from-white to-emerald-50",
-          iconBgClass: "bg-emerald-100",
-          iconTextClass: "text-emerald-700"
+          gradientClass: "from-white to-brand-50",
+          iconBgClass: "bg-brand-100",
+          iconTextClass: "text-brand-700"
         }
       : tone === "violet"
         ? {
@@ -342,20 +342,20 @@ export function HeroMetric({
               iconTextClass: "text-amber-700"
             }
           : {
-              gradientClass: "from-white to-emerald-50",
-              iconBgClass: "bg-emerald-100",
-              iconTextClass: "text-emerald-700"
+              gradientClass: "from-white to-brand-50",
+              iconBgClass: "bg-brand-100",
+              iconTextClass: "text-brand-700"
             };
   return (
     <article
-      className={`max-w-full overflow-x-hidden rounded-[22px] border border-emerald-100 bg-gradient-to-br ${palette.gradientClass} p-4 shadow-soft`}
+      className={`max-w-full overflow-x-hidden rounded-[22px] border border-brand-100 bg-gradient-to-br ${palette.gradientClass} p-4 shadow-soft`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-emerald-900/60">
+          <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-brand-900/60">
             {label}
           </div>
-          <div className="mt-2 break-words text-[1.8rem] font-bold leading-none text-emerald-950">
+          <div className="mt-2 break-words text-[1.8rem] font-bold leading-none text-brand-950">
             {value}
           </div>
         </div>
@@ -365,7 +365,7 @@ export function HeroMetric({
           <Icon className="h-[18px] w-[18px]" />
         </span>
       </div>
-      <p className="mt-3 break-words text-xs leading-5 text-emerald-900/65">{detail}</p>
+      <p className="mt-3 break-words text-xs leading-5 text-brand-900/65">{detail}</p>
     </article>
   );
 }
@@ -383,7 +383,7 @@ export function FocusCard({
 }) {
   const className =
     tone === "rose"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-800"
+      ? "border-brand-100 bg-brand-50 text-brand-800"
       : tone === "violet"
         ? "border-violet-200 bg-violet-50 text-violet-800"
         : "border-amber-200 bg-amber-50 text-amber-800";
@@ -421,8 +421,8 @@ export function MiniHomeTab({
   const palette =
     tone === "rose"
       ? active
-        ? "bg-emerald-600 text-white"
-        : "bg-emerald-50 text-emerald-800"
+        ? "bg-brand-600 text-white"
+        : "bg-brand-50 text-brand-800"
       : tone === "violet"
         ? active
           ? "bg-violet-600 text-white"
@@ -455,11 +455,11 @@ export function CompactHistorySection({
   emptyText: string;
 }) {
   return (
-    <details className="max-w-full overflow-x-hidden rounded-lg border border-emerald-100 bg-white/90 p-5 shadow-soft">
+    <details className="max-w-full overflow-x-hidden rounded-lg border border-brand-100 bg-white/90 p-5 shadow-soft">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <h2 className="text-xl font-bold text-emerald-950">{title}</h2>
-          <p className="break-words text-sm text-emerald-900/70">{subtitle}</p>
+          <h2 className="text-xl font-bold text-brand-950">{title}</h2>
+          <p className="break-words text-sm text-brand-900/70">{subtitle}</p>
         </div>
         <StatusBadge tone="neutral" label={`${orders.length} registro(s)`} />
       </summary>
@@ -469,12 +469,12 @@ export function CompactHistorySection({
         {orders.map((order) => (
           <article
             key={order.id}
-            className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4"
+            className="rounded-lg border border-brand-100 bg-brand-50/60 p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-semibold text-emerald-950">{order.clienteNombre}</div>
-                <div className="mt-1 text-sm text-emerald-900/65">{order.productoNombre}</div>
+                <div className="font-semibold text-brand-950">{order.clienteNombre}</div>
+                <div className="mt-1 text-sm text-brand-900/65">{order.productoNombre}</div>
               </div>
               <StatusBadge
                 tone={title.toLowerCase().includes("cancelados") ? "warning" : "neutral"}
@@ -501,9 +501,9 @@ export function CompactHistorySection({
 
 export function SimpleFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/60 px-4 py-3">
-      <span className="text-sm text-emerald-900/70">{label}</span>
-      <span className="text-base font-semibold text-emerald-950">{value}</span>
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-brand-100 bg-brand-50/60 px-4 py-3">
+      <span className="text-sm text-brand-900/70">{label}</span>
+      <span className="text-base font-semibold text-brand-950">{value}</span>
     </div>
   );
 }
@@ -523,15 +523,15 @@ export function ProfitabilityBar({
 }) {
   const width = maxAmount > 0 ? Math.max(8, Math.min(100, (amount / maxAmount) * 100)) : 0;
   const barClassName =
-    tone === "violet" ? "bg-violet-500" : tone === "amber" ? "bg-amber-500" : "bg-emerald-500";
+    tone === "violet" ? "bg-violet-500" : tone === "amber" ? "bg-amber-500" : "bg-brand-500";
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-emerald-950">{label}</div>
-        <div className="text-sm font-semibold text-emerald-700">{value}</div>
+        <div className="text-sm font-semibold text-brand-950">{label}</div>
+        <div className="text-sm font-semibold text-brand-700">{value}</div>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-emerald-100">
+      <div className="h-3 overflow-hidden rounded-full bg-brand-100">
         <div className={`h-full rounded-full ${barClassName}`} style={{ width: `${width}%` }} />
       </div>
     </div>
@@ -540,16 +540,16 @@ export function ProfitabilityBar({
 
 export function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-h-[72px] flex-col justify-center rounded-[18px] border border-emerald-100 bg-white px-3 py-3">
-      <div className="text-[11px] uppercase tracking-wide text-emerald-700/70">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-emerald-950">{value}</div>
+    <div className="flex min-h-[72px] flex-col justify-center rounded-[18px] border border-brand-100 bg-white px-3 py-3">
+      <div className="text-[11px] uppercase tracking-wide text-brand-700/70">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-brand-950">{value}</div>
     </div>
   );
 }
 
 export function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-emerald-100 bg-emerald-50/50 p-4 text-sm text-emerald-900/60">
+    <div className="rounded-lg border border-dashed border-brand-100 bg-brand-50/50 p-4 text-sm text-brand-900/60">
       {text}
     </div>
   );
@@ -564,7 +564,7 @@ export function StatusBadge({
 }) {
   const classes =
     tone === "pedido"
-      ? "bg-emerald-100 text-emerald-800"
+      ? "bg-brand-100 text-brand-800"
       : tone === "warning"
         ? "bg-amber-100 text-amber-800"
         : "bg-slate-100 text-slate-700";
@@ -618,12 +618,12 @@ export function BadgeStatusChip({
           ? "Abrir desde inicio"
           : "Por activar";
   const className = badgeEnabled
-    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+    ? "border-brand-200 bg-brand-50 text-brand-800"
     : !badgeSupported || notificationPermission === "denied"
       ? "border-amber-200 bg-amber-50 text-amber-800"
       : "border-violet-200 bg-violet-50 text-violet-800";
   const indicatorClassName = badgeEnabled
-    ? "bg-emerald-500"
+    ? "bg-brand-500"
     : !badgeSupported || notificationPermission === "denied"
       ? "bg-amber-500"
       : "bg-violet-500";
@@ -684,8 +684,8 @@ export function HeaderIconButton({
 }) {
   const className =
     accent === "soft"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-900"
-      : "border-emerald-100 bg-white text-emerald-900";
+      ? "border-brand-100 bg-brand-50 text-brand-900"
+      : "border-brand-100 bg-white text-brand-900";
 
   return (
     <button
@@ -694,7 +694,7 @@ export function HeaderIconButton({
       disabled={disabled}
       title={title}
       aria-label={label}
-      className={`inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(16,24,40,0.08)] disabled:cursor-not-allowed disabled:bg-emerald-50 disabled:text-emerald-500 ${className}`}
+      className={`inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(16,24,40,0.08)] disabled:cursor-not-allowed disabled:bg-brand-50 disabled:text-brand-500 ${className}`}
     >
       {icon}
       <span className="sr-only">{label}</span>
@@ -712,7 +712,7 @@ export function MobileQuickHomeButton({
   return (
     <Link
       href={href}
-      className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-100 bg-white/95 text-emerald-900 shadow-soft backdrop-blur md:hidden"
+      className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-100 bg-white/95 text-brand-900 shadow-soft backdrop-blur md:hidden"
       aria-label={label}
       title={label}
     >
