@@ -8,6 +8,10 @@
 
 import type { ProductoProps } from "@/domain/Producto";
 import { isValidChileanMobilePhone } from "@/lib/chile-phone";
+import {
+  isValidChileCommuneForRegion,
+  isValidChileRegion
+} from "@/lib/chile-locations";
 import { isMetodoDespacho, type MetodoDespacho } from "@/lib/constants";
 import { isValidChileanRut } from "@/lib/rut";
 import {
@@ -99,10 +103,17 @@ export function validateCustomerOrderForm(
 
   if (!data.region.trim()) {
     errors.region = "Selecciona tu región.";
+  } else if (!isValidChileRegion(data.region)) {
+    errors.region = "Selecciona una región válida.";
   }
 
   if (!data.comuna.trim()) {
     errors.comuna = "Selecciona tu comuna.";
+  } else if (
+    isValidChileRegion(data.region) &&
+    !isValidChileCommuneForRegion(data.region, data.comuna)
+  ) {
+    errors.comuna = "Selecciona una comuna perteneciente a la región.";
   }
 
   if (!data.direccion.trim()) {

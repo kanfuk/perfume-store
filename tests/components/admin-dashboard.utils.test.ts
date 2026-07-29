@@ -32,7 +32,7 @@ function createOrderItem(
 ): AdminOrderSummary["items"][number] {
   return {
     productoId: "prod-1",
-    productoNombre: "Dobladita",
+    productoNombre: "Perfume floral",
     cantidad: 2,
     precioUnitario: 2000,
     costoUnitario: 0,

@@ -21,7 +21,7 @@ function baseCustomerForm(
     rut: "11.111.111-1",
     email: "rodrigo@example.com",
     telefono: "999999999",
-    region: "Metropolitana",
+    region: "Región Metropolitana de Santiago",
     comuna: "Providencia",
     direccion: "Calle Falsa 123",
     metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
@@ -173,6 +173,29 @@ describe("validateCustomerOrderForm", () => {
     );
 
     expect(result.isValid).toBe(true);
+  });
+
+  it("rechaza una comuna que no pertenece a la región seleccionada", () => {
+    const result = validateCustomerOrderForm(
+      baseCustomerForm({
+        region: "Región de Valparaíso",
+        comuna: "Providencia"
+      }),
+      mockProducts
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.comuna).toBe("Selecciona una comuna perteneciente a la región.");
+  });
+
+  it("rechaza valores de región arbitrarios", () => {
+    const result = validateCustomerOrderForm(
+      baseCustomerForm({ region: "Región inventada" }),
+      mockProducts
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.region).toBe("Selecciona una región válida.");
   });
 
   it("rechaza numeros que no son celular chileno", () => {

@@ -282,7 +282,7 @@ function baseCustomerOrderInput(
     rut: "11.111.111-1",
     email: "rodrigo@example.com",
     telefono: "999999999",
-    region: "Metropolitana",
+    region: "Región Metropolitana de Santiago",
     comuna: "Providencia",
     direccion: "Calle Falsa 123",
     metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
@@ -309,7 +309,7 @@ describe("PedidoService.crearPedido (flujo publico, Fase 1C)", () => {
         rut: "11111111-1",
         email: "rodrigo@example.com",
         telefono: "+56999999999",
-        region: "Metropolitana",
+        region: "Región Metropolitana de Santiago",
         comuna: "Providencia",
         direccion: "Calle Falsa 123",
         referenciaDireccion: undefined

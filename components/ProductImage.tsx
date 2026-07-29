@@ -23,12 +23,12 @@ export function ProductImage({
   if (!src || hasError) {
     return (
       <div
-        className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,#faf7f1_0%,#f2ece0_58%,#dff1e5_100%)] px-6 text-center ${fallbackClassName}`}
+        className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,#f7f8fa_0%,#f5f3ff_58%,#eeebff_100%)] px-6 text-center ${fallbackClassName}`}
       >
-        <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#6b4a26] shadow-sm">
+        <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#5434e6] shadow-sm">
           Smellme.cl
         </span>
-        <span className="max-w-[14rem] text-sm font-semibold text-[#74695c]">
+        <span className="max-w-[14rem] text-sm font-semibold text-[#667085]">
           {alt}
         </span>
       </div>

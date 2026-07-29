@@ -87,7 +87,7 @@ export function ConfirmDialog({ state }: { state: ConfirmDialogState }) {
 
   return (
     <div
-      className="fixed inset-0 z-[130] flex items-center justify-center bg-[#231f19]/40 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-[#111318]/40 px-4 backdrop-blur-sm"
       role="presentation"
     >
       <button
@@ -101,12 +101,12 @@ export function ConfirmDialog({ state }: { state: ConfirmDialogState }) {
         aria-modal="true"
         aria-labelledby="app-confirm-title"
         aria-describedby="app-confirm-description"
-        className="relative w-full max-w-md rounded-[30px] border border-[#e3d9c8] bg-white p-6 shadow-[0_24px_60px_rgba(35, 31, 25,0.18)]"
+        className="relative w-full max-w-md rounded-[30px] border border-[#e4e7ec] bg-white p-6 shadow-[0_24px_60px_rgba(17, 19, 24,0.18)]"
       >
-        <h2 id="app-confirm-title" className="text-xl font-semibold text-[#231f19]">
+        <h2 id="app-confirm-title" className="text-xl font-semibold text-[#111318]">
           {state.title}
         </h2>
-        <p id="app-confirm-description" className="mt-2 text-sm leading-6 text-[#74695c]">
+        <p id="app-confirm-description" className="mt-2 text-sm leading-6 text-[#667085]">
           {state.description}
         </p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -114,7 +114,7 @@ export function ConfirmDialog({ state }: { state: ConfirmDialogState }) {
             ref={cancelButtonRef}
             type="button"
             onClick={state.onCancel}
-            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#e3d9c8] bg-white px-4 py-3 text-sm font-semibold text-[#231f19]"
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#111318]"
           >
             {state.cancelLabel ?? "Volver"}
           </button>

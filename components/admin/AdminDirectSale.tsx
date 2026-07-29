@@ -623,28 +623,28 @@ export function AdminDirectSale({
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col gap-6 overflow-x-hidden px-4 py-5 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6">
-      <section className="overflow-hidden rounded-[34px] border border-[#e3d9c8] bg-[#faf7f1] shadow-soft">
-        <div className="bg-[linear-gradient(140deg,#faf7f1_0%,#f2ece0_48%,#ece1c9_100%)] p-6 sm:p-8">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1600px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-4">
-              <div className="flex w-fit items-center gap-3 rounded-[24px] border border-white/70 bg-white/85 px-4 py-3 shadow-[0_16px_30px_rgba(35,31,25,0.08)]">
-                <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[18px] bg-[#231f19] ring-1 ring-[#e3d9c8]">
-                  <span className="font-display text-xl font-semibold text-[#faf7f1]">S</span>
+              <div className="flex w-fit items-center gap-3">
+                <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white">
+                  <span className="text-lg font-bold text-[#17191f]">S</span>
                 </div>
                 <div className="space-y-1">
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#faf7f1] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#6b4a26]">
+                  <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
                     <ShoppingBag className="h-3.5 w-3.5" />
                     Admin Smellme.cl
                   </span>
-                  <p className="text-sm font-semibold text-[#231f19]">Ventas ágiles con identidad de marca</p>
+                  <p className="text-sm font-semibold text-white/60">Ventas ágiles con identidad de marca</p>
                 </div>
               </div>
               <div className="space-y-2">
-                <h1 className="font-display text-3xl font-semibold text-[#231f19] sm:text-4xl">
+                <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
                   Venta directa
                 </h1>
-                <p className="max-w-3xl text-sm leading-6 text-[#74695c] sm:text-base">
+                <p className="max-w-3xl text-sm leading-6 text-white/60 sm:text-base">
                   Registra ventas realizadas en el momento sin usar el formulario público.
                 </p>
               </div>
@@ -652,7 +652,7 @@ export function AdminDirectSale({
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admin"
-                className="inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] border border-[#e3d9c8] bg-white/80 px-4 py-3 text-center text-sm font-semibold text-[#74695c] sm:min-w-[146px]"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
               >
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Inicio</span>
@@ -691,8 +691,8 @@ export function AdminDirectSale({
       ) : null}
 
       {mode === "catalogo" ? (
-        <section className="grid w-full max-w-full min-w-0 gap-6 pb-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-6">
+        <section className="grid w-full max-w-full min-w-0 gap-6 pb-6 xl:grid-cols-12">
+          <div className="space-y-6 xl:col-span-7">
             <CardSection
               icon={<ShoppingBag className="h-5 w-5" />}
               title="Catálogo interno"
@@ -700,20 +700,20 @@ export function AdminDirectSale({
             >
               <div className="grid gap-4 md:grid-cols-[1.4fr_0.8fr]">
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">Buscar producto</span>
+                  <span className="text-sm font-medium text-[#111318]">Buscar producto</span>
                   <input
                     value={productSearch}
                     onChange={(event) => setProductSearch(event.target.value)}
                     placeholder="Escribe nombre, tipo o descripción"
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
                   />
                 </label>
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">Producto rápido</span>
+                  <span className="text-sm font-medium text-[#111318]">Producto rápido</span>
                   <select
                     value={selectedCatalogProductId}
                     onChange={(event) => setSelectedCatalogProductId(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
                   >
                     <option value="">Selecciona producto</option>
                     {products.map((product) => (
@@ -726,11 +726,11 @@ export function AdminDirectSale({
               </div>
               <div className="grid gap-4 md:grid-cols-[0.8fr_0.8fr_auto] md:items-end">
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">Cantidad</span>
+                  <span className="text-sm font-medium text-[#111318]">Cantidad</span>
                   <select
                     value={catalogQuantityChoice}
                     onChange={(event) => syncCatalogQuantityChoice(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
                   >
                     {QUICK_QUANTITY_OPTIONS.map((quantity) => (
                       <option key={quantity} value={quantity}>
@@ -742,18 +742,18 @@ export function AdminDirectSale({
                 </label>
                 {catalogQuantityChoice === OTHER_QUANTITY_VALUE ? (
                   <label className="block space-y-2">
-                    <span className="text-sm font-medium text-[#231f19]">Otra cantidad</span>
+                    <span className="text-sm font-medium text-[#111318]">Otra cantidad</span>
                     <input
                       type="number"
                       min={1}
                       value={catalogManualQuantity}
                       onChange={(event) => setCatalogManualQuantity(event.target.value)}
                       placeholder="Ejemplo: 7"
-                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
                     />
                   </label>
                 ) : (
-                  <div className="rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
+                  <div className="rounded-[18px] border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm text-[#667085]">
                     Elige una cantidad sugerida o cambia a &quot;Otra cantidad&quot;.
                   </div>
                 )}
@@ -766,8 +766,8 @@ export function AdminDirectSale({
                 </button>
               </div>
               {selectedCatalogProduct ? (
-                <div className="rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
-                  <strong className="text-[#231f19]">{selectedCatalogProduct.nombre}</strong>
+                <div className="rounded-[18px] border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm text-[#667085]">
+                  <strong className="text-[#111318]">{selectedCatalogProduct.nombre}</strong>
                   {" · "}
                   {selectedCatalogProduct.activo ? "Activo" : "Inactivo"}
                   {" · "}
@@ -813,20 +813,20 @@ export function AdminDirectSale({
 
               {customerMode === "existente" ? (
                 <div className="space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">Cliente existente</span>
+                  <span className="text-sm font-medium text-[#111318]">Cliente existente</span>
                   <label className="relative block">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#74695c]" />
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#667085]" />
                     <input
                       value={customerSearch}
                       onChange={(event) => handleCustomerSearchChange(event.target.value)}
                       placeholder="Busca por nombre, telefono o lugar de trabajo"
-                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white py-3 pl-11 pr-4 text-base text-[#231f19] outline-none"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white py-3 pl-11 pr-4 text-base text-[#111318] outline-none"
                     />
                   </label>
                   <select
                     value={selectedCustomerId}
                     onChange={(event) => syncExistingCustomer(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
                   >
                     <option value="">
                       {customers.length === 0
@@ -872,7 +872,7 @@ export function AdminDirectSale({
                   La venta se asociara al cliente existente {matchedCustomer.nombre}.
                 </div>
               ) : customerMode !== "ocasional" && normalizedCustomerName ? (
-                <div className="rounded-[18px] border border-dashed border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
+                <div className="rounded-[18px] border border-dashed border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm text-[#667085]">
                   Si no coincide con un cliente existente, se registrara como cliente nuevo.
                 </div>
               ) : null}
@@ -893,19 +893,19 @@ export function AdminDirectSale({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#231f19]">Nota interna opcional</span>
+                <span className="text-sm font-medium text-[#111318]">Nota interna opcional</span>
                 <textarea
                   value={catalogNote}
                   onChange={(event) => setCatalogNote(event.target.value)}
                   rows={3}
-                  className="w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
+                  className="w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
                   placeholder="Ejemplo: venta del pasillo o retiro inmediato"
                 />
               </label>
             </CardSection>
           </div>
 
-          <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
+          <aside className="space-y-4 xl:sticky xl:top-6 xl:col-span-5 xl:h-fit">
             <CartSummary
               lines={cartLines}
               total={total}
@@ -917,17 +917,17 @@ export function AdminDirectSale({
               subtitle="Mismo calculo del cliente, pero listo para cerrar al instante."
             />
 
-            <div className="rounded-[30px] border border-[#e3d9c8] bg-white/95 p-5 shadow-soft">
+            <div className="rounded-[30px] border border-[#e4e7ec] bg-white/95 p-5 shadow-soft">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
                     <BadgeCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#231f19]">
+                    <h3 className="text-lg font-semibold text-[#111318]">
                       Registrar venta
                     </h3>
-                    <p className="text-sm text-[#74695c]">
+                    <p className="text-sm text-[#667085]">
                       La venta se guardara como FINALIZADO/{paymentState}.
                     </p>
                   </div>
@@ -954,20 +954,20 @@ export function AdminDirectSale({
               subtitle="Registra pedidos especiales como queques enteros, preparaciones a pedido u otros productos."
             >
               <div className="space-y-2">
-                <span className="text-sm font-medium text-[#231f19]">Cliente existente opcional</span>
+                <span className="text-sm font-medium text-[#111318]">Cliente existente opcional</span>
                 <label className="relative block">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#74695c]" />
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#667085]" />
                   <input
                     value={customCustomerSearch}
                     onChange={(event) => handleCustomCustomerSearchChange(event.target.value)}
                     placeholder="Busca por nombre, telefono o lugar de trabajo"
-                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white py-3 pl-11 pr-4 text-base text-[#231f19] outline-none"
+                      className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white py-3 pl-11 pr-4 text-base text-[#111318] outline-none"
                     />
                   </label>
                 <select
                   value={customSelectedCustomerId}
                   onChange={(event) => syncCustomExistingCustomer(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
                 >
                   <option value="">
                     {customers.length === 0
@@ -984,11 +984,11 @@ export function AdminDirectSale({
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">Producto</span>
+                  <span className="text-sm font-medium text-[#111318]">Producto</span>
                   <select
                     value={customForm.productoBaseId}
                     onChange={(event) => syncCustomProduct(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
                   >
                     <option value="">Selecciona producto del catálogo</option>
                     {products.map((product) => (
@@ -999,11 +999,11 @@ export function AdminDirectSale({
                   </select>
                 </label>
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">Cantidad</span>
+                  <span className="text-sm font-medium text-[#111318]">Cantidad</span>
                   <select
                     value={customQuantityChoice}
                     onChange={(event) => syncCustomQuantityChoice(event.target.value)}
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19]"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
                   >
                     {QUICK_QUANTITY_OPTIONS.map((quantity) => (
                       <option key={quantity} value={quantity}>
@@ -1016,20 +1016,20 @@ export function AdminDirectSale({
               </div>
               {customQuantityChoice === OTHER_QUANTITY_VALUE ? (
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">Otra cantidad</span>
+                  <span className="text-sm font-medium text-[#111318]">Otra cantidad</span>
                   <input
                     type="number"
                     min={1}
                     value={customManualQuantity}
                     onChange={(event) => syncCustomManualQuantity(event.target.value)}
                     placeholder="Ejemplo: 7"
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
                   />
                 </label>
               ) : null}
               {selectedCustomCatalogProduct ? (
-                <div className="rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
-                  <strong className="text-[#231f19]">{selectedCustomCatalogProduct.nombre}</strong>
+                <div className="rounded-[18px] border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm text-[#667085]">
+                  <strong className="text-[#111318]">{selectedCustomCatalogProduct.nombre}</strong>
                   {" · "}
                   {selectedCustomCatalogProduct.activo ? "Activo" : "Inactivo"}
                   {" · "}
@@ -1076,7 +1076,7 @@ export function AdminDirectSale({
                   Este pedido se asociara al cliente existente {matchedCustomCustomer.nombre}.
                 </div>
               ) : normalizedCustomCustomerName ? (
-                <div className="rounded-[18px] border border-dashed border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-sm text-[#74695c]">
+                <div className="rounded-[18px] border border-dashed border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm text-[#667085]">
                   Si no coincide con un cliente existente, se registrara como cliente nuevo.
                 </div>
               ) : null}
@@ -1092,11 +1092,11 @@ export function AdminDirectSale({
                   icon={<NotebookPen className="h-4 w-4" />}
                 />
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#231f19]">
+                  <span className="text-sm font-medium text-[#111318]">
                     Fecha de entrega opcional
                   </span>
-                  <div className="flex items-center gap-3 rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3">
-                    <span className="text-[#74695c]">
+                  <div className="flex items-center gap-3 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3">
+                    <span className="text-[#667085]">
                       <CalendarClock className="h-4 w-4" />
                     </span>
                     <input
@@ -1109,7 +1109,7 @@ export function AdminDirectSale({
                           fechaEntrega: event.target.value
                         }))
                       }
-                      className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#231f19] outline-none"
+                      className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#111318] outline-none"
                     />
                     <button
                       type="button"
@@ -1122,7 +1122,7 @@ export function AdminDirectSale({
                           : undefined
                       }
                       disabled={!todayDate}
-                      className="shrink-0 rounded-xl border border-[#e3d9c8] bg-[#faf7f1] px-3 py-2 text-sm font-semibold text-[#6b4a26]"
+                      className="shrink-0 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2 text-sm font-semibold text-[#5434e6]"
                     >
                       Hoy
                     </button>
@@ -1131,14 +1131,14 @@ export function AdminDirectSale({
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#231f19]">Descripción / observación</span>
+                <span className="text-sm font-medium text-[#111318]">Descripción / observación</span>
                 <textarea
                   value={customForm.descripcion}
                   onChange={(event) =>
                     setCustomForm((current) => ({ ...current, descripcion: event.target.value }))
                   }
                   rows={4}
-                  className="w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
+                  className="w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
                   placeholder="Detalles del pedido, sabores, relleno o instrucciones."
                 />
               </label>
@@ -1169,7 +1169,7 @@ export function AdminDirectSale({
               </div>
 
               <div className="space-y-3">
-                <div className="text-sm font-medium text-[#231f19]">Estado inicial del pedido</div>
+                <div className="text-sm font-medium text-[#111318]">Estado inicial del pedido</div>
                   <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
                   <ChoiceButton
                     active={customForm.estadoInicial === "NUEVO"}
@@ -1201,11 +1201,11 @@ export function AdminDirectSale({
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
-            <div className="rounded-[30px] border border-[#e3d9c8] bg-white/95 p-5 shadow-soft">
+            <div className="rounded-[30px] border border-[#e4e7ec] bg-white/95 p-5 shadow-soft">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#231f19]">Resumen antes de guardar</h3>
-                  <p className="mt-1 text-sm text-[#74695c]">
+                  <h3 className="text-lg font-semibold text-[#111318]">Resumen antes de guardar</h3>
+                  <p className="mt-1 text-sm text-[#667085]">
                     Cliente, producto, total y estado en una sola vista.
                   </p>
                 </div>
@@ -1263,7 +1263,7 @@ export function AdminDirectSale({
 
       <Link
         href="/admin"
-        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e3d9c8] bg-white/95 text-[#74695c] shadow-soft backdrop-blur md:hidden"
+        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4e7ec] bg-white/95 text-[#667085] shadow-soft backdrop-blur md:hidden"
         aria-label="Inicio admin"
       >
         <Home className="h-4 w-4" />
@@ -1285,14 +1285,14 @@ function CardSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-[30px] border border-[#e3d9c8] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
+    <section className="space-y-4 rounded-[30px] border border-[#e4e7ec] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#9c7a45] shadow-sm">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#7357ff] shadow-sm">
           {icon}
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[#231f19]">{title}</h2>
-          <p className="copy-justified text-sm text-[#74695c]">{subtitle}</p>
+          <h2 className="text-lg font-semibold text-[#111318]">{title}</h2>
+          <p className="copy-justified text-sm text-[#667085]">{subtitle}</p>
         </div>
       </div>
       {children}
@@ -1317,8 +1317,8 @@ function ModeButton({
       onClick={onClick}
       className={`inline-flex min-h-[56px] min-w-[132px] items-center justify-center gap-2 rounded-[20px] px-4 py-3 text-center text-sm font-semibold transition sm:min-w-[146px] ${
         active
-          ? "bg-[#9c7a45] text-white"
-          : "border border-[#e3d9c8] bg-white/80 text-[#74695c]"
+          ? "bg-[#7357ff] text-white"
+          : "border border-[#e4e7ec] bg-white/80 text-[#667085]"
       }`}
     >
       {icon}
@@ -1345,11 +1345,11 @@ function ChoiceButton({
       className={`flex h-full flex-col justify-between rounded-[22px] border px-4 py-4 text-left transition ${
         active
           ? "border-brand-200 bg-brand-50 shadow-soft"
-          : "border-[#e3d9c8] bg-white"
+          : "border-[#e4e7ec] bg-white"
       }`}
     >
-      <div className="font-semibold text-[#231f19]">{title}</div>
-      <div className="mt-1 text-sm leading-6 text-[#74695c]">{text}</div>
+      <div className="font-semibold text-[#111318]">{title}</div>
+      <div className="mt-1 text-sm leading-6 text-[#667085]">{text}</div>
     </button>
   );
 }
@@ -1369,14 +1369,14 @@ function TextField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#231f19]">{label}</span>
-      <div className="flex items-center gap-3 rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3">
-        <span className="text-[#74695c]">{icon}</span>
+      <span className="text-sm font-medium text-[#111318]">{label}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3">
+        <span className="text-[#667085]">{icon}</span>
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#231f19] outline-none placeholder:text-[#74695c]"
+          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#111318] outline-none placeholder:text-[#667085]"
         />
       </div>
     </label>
@@ -1394,13 +1394,13 @@ function NumberField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#231f19]">{label}</span>
+      <span className="text-sm font-medium text-[#111318]">{label}</span>
       <input
         type="number"
         min={0}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e3d9c8] bg-white px-4 py-3 text-base text-[#231f19] outline-none"
+        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
       />
     </label>
   );
@@ -1408,9 +1408,9 @@ function NumberField({
 
 function SummaryFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3">
-      <span className="text-sm text-[#74695c]">{label}</span>
-      <span className="text-right text-sm font-semibold text-[#231f19]">{value}</span>
+    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+      <span className="text-sm text-[#667085]">{label}</span>
+      <span className="text-right text-sm font-semibold text-[#111318]">{value}</span>
     </div>
   );
 }

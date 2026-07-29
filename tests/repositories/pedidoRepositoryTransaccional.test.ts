@@ -71,7 +71,7 @@ function baseCliente() {
     rut: "11.111.111-1",
     email: "cliente@example.com",
     telefono: "+56912345678",
-    region: "Metropolitana",
+    region: "Región Metropolitana de Santiago",
     comuna: "Providencia",
     direccion: "Calle Falsa 123"
   };

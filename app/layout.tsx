@@ -1,20 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Manrope } from "next/font/google";
 import { AppFeedbackProvider } from "@/components/ui/AppFeedbackProvider";
 import { appInfo } from "@/lib/app-info";
 import "./globals.css";
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap"
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap"
-});
 
 export const metadata: Metadata = {
   title: `${appInfo.name} — ${appInfo.tagline}`,
@@ -61,7 +48,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6b4a26"
+  themeColor: "#17191f"
 };
 
 type RootLayoutProps = Readonly<{
@@ -71,9 +58,7 @@ type RootLayoutProps = Readonly<{
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="es">
-      <body className={`${manrope.variable} ${fraunces.variable}`}>
-        <AppFeedbackProvider>{children}</AppFeedbackProvider>
-      </body>
+      <body><AppFeedbackProvider>{children}</AppFeedbackProvider></body>
     </html>
   );
 }

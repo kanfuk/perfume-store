@@ -10,35 +10,35 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#FAF7F1",
+        background: "#F7F8FA",
         panel: "#FFFFFF",
-        primary: "#9C7A45",
-        secondary: "#D9C8A0",
-        ink: "#231F19",
-        border: "#E3D9C8",
-        success: "#6B7A4F",
-        danger: "#B1493F",
+        primary: "#7357FF",
+        secondary: "#6E8BFF",
+        ink: "#111318",
+        border: "#E4E7EC",
+        success: "#16845B",
+        danger: "#D92D20",
         warning: "#C9A24B",
         // Escala premium (marfil/bronce) usada en el admin en reemplazo del
         // "emerald" pastel heredado. Mismos 11 pasos que las escalas nativas
         // de Tailwind para que clases como bg-brand-100 / text-brand-900
         // funcionen igual que antes, solo con la nueva paleta.
         brand: {
-          50: "#FAF7F1",
-          100: "#F2ECE0",
-          200: "#E3D9C8",
-          300: "#D9C8A0",
-          400: "#C4A878",
-          500: "#9C7A45",
-          600: "#8A6A3A",
-          700: "#6B4A26",
-          800: "#4A3620",
-          900: "#3A2B16",
-          950: "#231F19"
+          50: "#F5F3FF",
+          100: "#EEEBFF",
+          200: "#DCD6FF",
+          300: "#C1B6FF",
+          400: "#9B88FF",
+          500: "#7357FF",
+          600: "#6547FA",
+          700: "#5434E6",
+          800: "#452BB8",
+          900: "#392694",
+          950: "#20145D"
         }
       },
       boxShadow: {
-        soft: "0 16px 40px rgba(35, 31, 25, 0.08)"
+        soft: "0 8px 24px rgba(17, 19, 24, 0.07)"
       }
     }
   },

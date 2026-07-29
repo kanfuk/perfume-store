@@ -4,19 +4,20 @@
 
 :root {
   color-scheme: light;
-  --app-revision: "2026-07-29-smellme-boutique-ui";
-  --bg-main: #faf7f1;
-  --bg-soft: #f2ece0;
+  --app-revision: "2026-07-29-smellme-visual-redesign";
+  --bg-main: #f7f8fa;
+  --bg-soft: #eef0f4;
   --card: #ffffff;
-  --primary: #9c7a45;
-  --primary-dark: #6b4a26;
-  --primary-soft: #ece1c9;
-  --accent: #d9c8a0;
-  --danger-soft: #f2b8b3;
-  --text-main: #231f19;
-  --text-muted: #74695c;
-  --border-soft: #e3d9c8;
-  --shadow-soft-green: 0 12px 30px rgba(35, 31, 25, 0.08);
+  --primary: #7357ff;
+  --primary-dark: #5b3ff2;
+  --primary-soft: #eeebff;
+  --accent: #6e8bff;
+  --danger-soft: #fee4e2;
+  --text-main: #111318;
+  --text-muted: #667085;
+  --border-soft: #e4e7ec;
+  --shadow-soft-green: 0 8px 24px rgba(17, 19, 24, 0.07);
+  --font-body: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -37,12 +38,9 @@ body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(217, 200, 160, 0.36), transparent 28%),
-    radial-gradient(circle at top right, rgba(242, 236, 224, 0.72), transparent 24%),
-    linear-gradient(180deg, #faf7f1 0%, #f2ece0 100%);
+  background: #f7f8fa;
   color: var(--text-main);
-  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -81,7 +79,7 @@ input[type="date"] {
 }
 
 ::selection {
-  background: rgba(156, 122, 69, 0.2);
+  background: rgba(115, 87, 255, 0.22);
 }
 
 .line-clamp-2 {
@@ -104,8 +102,8 @@ input[type="date"] {
 }
 
 .font-display {
-  font-family: var(--font-display), Georgia, serif;
-  letter-spacing: -0.03em;
+  font-family: var(--font-body);
+  letter-spacing: -0.045em;
 }
 
 .text-danger {
@@ -126,7 +124,45 @@ input[type="date"] {
 
 .interactive-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 38px rgba(35, 31, 25, 0.12);
+  box-shadow: 0 16px 36px rgba(17, 19, 24, 0.1);
+}
+
+:focus-visible {
+  outline: 3px solid rgba(115, 87, 255, 0.32);
+  outline-offset: 2px;
+}
+
+.app-input {
+  min-height: 52px;
+  border: 1px solid #d0d5dd;
+  border-radius: 14px;
+  background: #fff;
+  color: #111318;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-input:focus-within,
+.app-input:focus {
+  border-color: #7357ff;
+  box-shadow: 0 0 0 4px rgba(115, 87, 255, 0.12);
+}
+
+.app-button-primary {
+  min-height: 50px;
+  border-radius: 14px;
+  background: #7357ff;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(115, 87, 255, 0.2);
+}
+
+.app-button-primary:hover {
+  background: #5b3ff2;
+}
+
+.app-button-primary:disabled {
+  cursor: not-allowed;
+  background: #c7bfff;
+  box-shadow: none;
 }
 
 .product-description {

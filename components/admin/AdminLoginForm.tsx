@@ -76,60 +76,63 @@ export function AdminLoginForm({
     <form
       method="post"
       onSubmit={handleSubmit}
-      className="w-full space-y-6 rounded-[30px] border border-[#e3d9c8] bg-white/95 p-6 shadow-soft backdrop-blur sm:p-7"
+      className="w-full space-y-6"
     >
       <div className="space-y-3">
-        <span className="inline-flex rounded-full bg-[#ece1c9] px-3 py-1 text-sm font-semibold text-[#6b4a26]">
+        <span className="inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-[#7357ff]">
           Smellme.cl
         </span>
-        <h1 className="text-3xl font-bold leading-tight text-[#231f19] sm:text-4xl">
+        <h1 className="text-3xl font-bold leading-tight text-[#111318] sm:text-4xl">
           Administración
         </h1>
-        <p className="copy-justified text-sm leading-6 text-[#74695c]">
+        <p className="copy-justified text-sm leading-6 text-[#667085]">
           Inicia sesión para administrar tu catálogo de fragancias.
         </p>
       </div>
 
       <label className="block space-y-2">
-        <span className="text-sm font-medium text-[#231f19]">Correo admin</span>
+        <span className="text-sm font-medium text-[#111318]">Correo admin</span>
         <input
+          type="email"
+          autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-[#231f19] outline-none transition focus:border-[#9c7a45]"
+          className="app-input w-full px-4 outline-none"
         />
       </label>
 
       <label className="block space-y-2">
-        <span className="text-sm font-medium text-[#231f19]">Clave admin</span>
+        <span className="text-sm font-medium text-[#111318]">Clave admin</span>
         <input
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded-[18px] border border-[#e3d9c8] bg-[#faf7f1] px-4 py-3 text-[#231f19] outline-none transition focus:border-[#9c7a45]"
+          className="app-input w-full px-4 outline-none"
         />
       </label>
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-[18px] bg-[#9c7a45] px-4 py-3 font-semibold text-white transition hover:bg-[#6b4a26] disabled:cursor-not-allowed disabled:bg-[#d9c8a0]"
+        className="app-button-primary w-full px-4 py-3 font-semibold transition"
       >
         {submitting ? "Ingresando..." : "Entrar al panel"}
       </button>
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-      <div className="border-t border-[#e6f2ea] pt-4 text-center">
+      <div className="border-t border-[#e4e7ec] pt-4 text-center">
         <button
           type="button"
           onClick={handleRecoveryRequest}
           disabled={recoverySubmitting}
-          className="text-sm font-medium text-[#6b4a26] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-[#d9c8a0]"
+          className="text-sm font-medium text-[#5434e6] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-[#c1b6ff]"
         >
           {recoverySubmitting ? "Enviando..." : "Crear o recuperar contraseña"}
         </button>
         {recoveryMessage ? (
-          <p className="mt-2 text-sm text-[#74695c]">{recoveryMessage}</p>
+          <p className="mt-2 text-sm text-[#667085]">{recoveryMessage}</p>
         ) : null}
       </div>
     </form>

@@ -10,7 +10,7 @@ export function AppFooter({
   showClientCta = false
 }: AppFooterProps) {
   return (
-    <footer className={className}>
+    <footer id="site-footer" className={className}>
       <RiedmannsBranding variant={showClientCta ? "client" : "admin"} />
     </footer>
   );

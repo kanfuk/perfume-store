@@ -24,7 +24,7 @@ function createPedidoBase() {
     telefono: "999999999",
     rut: "11.111.111-1",
     email: "rodrigo@example.com",
-    region: "Metropolitana",
+    region: "Región Metropolitana de Santiago",
     comuna: "Providencia",
     direccion: "Calle Falsa 123"
   });

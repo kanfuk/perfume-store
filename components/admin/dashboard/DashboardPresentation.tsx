@@ -175,27 +175,17 @@ export function AdminSectionTab({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[88px] min-w-[132px] rounded-[20px] border px-4 py-3 text-left transition sm:min-w-[146px] ${
+      className={`inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border px-4 py-2 text-left text-sm font-semibold transition ${
         active
-          ? "border-brand-200 bg-brand-600 text-white"
-          : "border-brand-100 bg-brand-50 text-brand-900"
+          ? "border-[#7357ff] bg-[#7357ff] text-white"
+          : "border-[#e4e7ec] bg-white text-[#344054] hover:border-[#c1b6ff]"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span
-          className={`rounded-[16px] p-2 ${
-            active ? "bg-white/20 text-white" : "bg-white text-brand-700"
-          }`}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-      </div>
-      <div className="mt-3">
-        <div className="text-sm font-semibold">{label}</div>
-        <div className={`mt-1 text-xs ${active ? "text-white/80" : "text-brand-700/80"}`}>
-          {badge}
-        </div>
-      </div>
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+      <span className={`rounded-full px-2 py-0.5 text-[11px] ${active ? "bg-white/15 text-white/85" : "bg-[#f2f4f7] text-[#667085]"}`}>
+        {badge}
+      </span>
     </button>
   );
 }
@@ -242,7 +232,7 @@ export function SegmentedControl({
           onClick={() => onChange(option.value)}
           className={`min-h-10 rounded-[16px] px-4 py-2 text-sm font-semibold transition ${
             value === option.value
-              ? "bg-white text-brand-950 shadow-[0_10px_24px_rgba(35, 31, 25,0.08)]"
+              ? "bg-white text-brand-950 shadow-[0_10px_24px_rgba(17, 19, 24,0.08)]"
               : "text-brand-700/80"
           }`}
         >
@@ -272,7 +262,7 @@ export function CompactSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block min-h-12 w-full rounded-[18px] border border-brand-100 bg-white px-4 py-3 text-sm font-semibold text-brand-950 shadow-[0_8px_20px_rgba(35, 31, 25,0.04)] outline-none transition focus:border-brand-300"
+        className="block min-h-12 w-full rounded-[18px] border border-brand-100 bg-white px-4 py-3 text-sm font-semibold text-brand-950 shadow-[0_8px_20px_rgba(17, 19, 24,0.04)] outline-none transition focus:border-brand-300"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
