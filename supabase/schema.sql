@@ -143,6 +143,7 @@ create table if not exists public.productos (
   image_url text,
   image_storage_path text,
   badge_label text,
+  modo_precio text not null default 'AUTO',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint productos_precio_venta_check check (precio_venta >= 0),
@@ -153,7 +154,8 @@ create table if not exists public.productos (
   constraint productos_stock_minimo_check check (stock_minimo >= 0),
   constraint productos_stock_reservado_check check (
     stock_reservado >= 0 and stock_reservado <= stock_actual
-  )
+  ),
+  constraint productos_modo_precio_check check (modo_precio in ('AUTO', 'MANUAL'))
 );
 
 comment on column public.productos.stock_agenda is
@@ -164,6 +166,8 @@ comment on column public.productos.image_url is
   'Imagen externa (URL absoluta o ruta bajo /public). Compatible con el uso actual del codigo heredado.';
 comment on column public.productos.image_storage_path is
   'Ruta reservada para Supabase Storage cuando se migren imagenes fuera de /public. Sin uso todavia.';
+comment on column public.productos.modo_precio is
+  'AUTO: precio_venta se recalcula desde costo_unitario + el recargo indicado en cada importacion de proveedor o accion "volver a automatico". MANUAL: precio_venta fue fijado a mano por el admin; las importaciones futuras actualizan solo el costo y preservan este precio.';
 
 create unique index if not exists productos_sku_unique_idx
   on public.productos (sku)

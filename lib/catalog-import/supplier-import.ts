@@ -173,6 +173,13 @@ export function calculateSalePrice(costoUnitario: number, markupPercentage: numb
 }
 
 export type SupplierImportAction = "CREAR" | "ACTUALIZAR";
+export type SupplierModoPrecio = "AUTO" | "MANUAL";
+
+/** Info minima del producto existente necesaria para decidir el precio final. */
+export type ExistingProductPriceInfo = {
+  modoPrecio: SupplierModoPrecio;
+  precioVenta: number;
+};
 
 export type SupplierPlanRow = {
   rowNumber: number;
@@ -181,7 +188,12 @@ export type SupplierPlanRow = {
   marca: string;
   contenido: string;
   costoUnitario: number;
-  precioVenta: number;
+  /** Siempre el precio calculado con el recargo vigente, aunque no se aplique (referencia). */
+  precioVentaSugerido: number;
+  /** El precio que realmente se escribira: igual al sugerido salvo que el producto sea MANUAL. */
+  precioVentaFinal: number;
+  /** Modo resultante tras esta importacion: se preserva si ya era MANUAL; AUTO si es nuevo. */
+  modoPrecio: SupplierModoPrecio;
   action: SupplierImportAction;
 };
 
@@ -207,7 +219,7 @@ export type SupplierImportPreview = {
 export function buildSupplierImportPlan(
   rows: SupplierImportRow[],
   markupPercentage: number,
-  existingSkus: ReadonlySet<string>
+  existingProducts: ReadonlyMap<string, ExistingProductPriceInfo>
 ): { plan: SupplierPlanRow[]; duplicateErrors: AdminImportRowError[] } {
   const seenKeys = new Map<string, number>();
   const uniqueRows: SupplierImportRow[] = [];
@@ -235,6 +247,10 @@ export function buildSupplierImportPlan(
 
   const plan: SupplierPlanRow[] = uniqueRows.map((row) => {
     const sku = skuMap.get(row)!;
+    const existing = existingProducts.get(sku);
+    const precioVentaSugerido = calculateSalePrice(row.precioCompra, markupPercentage);
+    const esManualExistente = existing?.modoPrecio === "MANUAL";
+
     return {
       rowNumber: row.rowNumber,
       sku,
@@ -242,8 +258,10 @@ export function buildSupplierImportPlan(
       marca: normalizeDisplayText(row.marca),
       contenido: normalizeContenido(row.contenido),
       costoUnitario: row.precioCompra,
-      precioVenta: calculateSalePrice(row.precioCompra, markupPercentage),
-      action: existingSkus.has(sku) ? "ACTUALIZAR" : "CREAR"
+      precioVentaSugerido,
+      precioVentaFinal: esManualExistente ? (existing as ExistingProductPriceInfo).precioVenta : precioVentaSugerido,
+      modoPrecio: esManualExistente ? "MANUAL" : "AUTO",
+      action: existing ? "ACTUALIZAR" : "CREAR"
     };
   });
 
@@ -253,7 +271,7 @@ export function buildSupplierImportPlan(
 export function buildSupplierImportPreview(
   buffer: Buffer,
   markupPercentageRaw: unknown,
-  existingSkus: ReadonlySet<string>
+  existingProducts: ReadonlyMap<string, ExistingProductPriceInfo>
 ): SupplierImportPreview {
   const markup = validateMarkupPercentage(markupPercentageRaw ?? DEFAULT_MARKUP_PERCENTAGE);
   if (markup.error !== null) {
@@ -285,7 +303,7 @@ export function buildSupplierImportPreview(
     };
   }
 
-  const { plan, duplicateErrors } = buildSupplierImportPlan(parsed.rows, markup.value, existingSkus);
+  const { plan, duplicateErrors } = buildSupplierImportPlan(parsed.rows, markup.value, existingProducts);
   const erroresFila = [...parsed.errors, ...duplicateErrors];
 
   return {

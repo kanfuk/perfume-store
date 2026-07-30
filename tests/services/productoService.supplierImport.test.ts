@@ -148,6 +148,30 @@ describe("ProductoService - importacion de proveedor (preservacion de campos)", 
     expect(updated?.precioAnterior).toBe(70000);
   });
 
+  it("producto existente en modo MANUAL: la importacion actualiza el costo pero preserva el precio manual", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedExistingProduct(repository);
+    await repository.actualizarProducto("existente-1", { precioVenta: 72000, modoPrecio: "MANUAL" });
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarImportacionProveedor(
+      supplierCsv("La Bomba;Carolina Herrera;80ML;50000"),
+      "proveedor.csv",
+      200,
+      35
+    );
+
+    expect(preview.plan[0].modoPrecio).toBe("MANUAL");
+    expect(preview.plan[0].precioVentaFinal).toBe(72000); // preservado, nunca sobrescrito
+    expect(preview.plan[0].precioVentaSugerido).toBe(67500); // solo referencia (50000 * 1.35)
+
+    await service.confirmarImportacionProveedor(preview.plan);
+
+    const updated = await repository.buscarProductoPorId("existente-1");
+    expect(updated?.costoUnitario).toBe(50000); // el costo SI se actualiza
+    expect(updated?.precioVenta).toBe(72000); // el precio manual queda intacto
+  });
+
   it("el payload de actualizacion solo incluye nombre/marca/contenido/costo/precio (nunca stock/activo/imagen/top12)", async () => {
     const repository = new FullProductRepositoryStub();
     seedExistingProduct(repository);

@@ -6,6 +6,8 @@
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
  */
 
+export type ModoPrecio = "AUTO" | "MANUAL";
+
 export type ProductoProps = {
   id: string;
   sku?: string;
@@ -29,6 +31,12 @@ export type ProductoProps = {
   esOfertaSemana?: boolean;
   ordenDestacado?: number;
   tipoProducto?: string;
+  /**
+   * AUTO: precioVenta se recalcula desde costoUnitario + recargo configurado
+   * en cada importacion de proveedor. MANUAL: precioVenta fue fijado a mano
+   * por el admin; las importaciones futuras solo actualizan el costo.
+   */
+  modoPrecio?: ModoPrecio;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -56,6 +64,7 @@ export class Producto {
   private _activo: boolean;
   private _esTop: boolean;
   private _esOfertaSemana: boolean;
+  private _modoPrecio: ModoPrecio;
 
   constructor(props: ProductoProps) {
     this.id = props.id;
@@ -80,6 +89,7 @@ export class Producto {
     this._activo = props.activo ?? true;
     this._esTop = props.esTop ?? false;
     this._esOfertaSemana = props.esOfertaSemana ?? false;
+    this._modoPrecio = props.modoPrecio ?? "AUTO";
     this.validarProducto();
   }
 
@@ -123,6 +133,10 @@ export class Producto {
     return this._esOfertaSemana;
   }
 
+  get modoPrecio() {
+    return this._modoPrecio;
+  }
+
   calcularUtilidadUnitaria() {
     return this._precioVenta - this._costoUnitario;
   }
@@ -135,6 +149,20 @@ export class Producto {
 
   actualizarCosto(costoUnitario: number) {
     this._costoUnitario = costoUnitario;
+    this.validarProducto();
+  }
+
+  /** Fija un precio manual: pasa a modo MANUAL, se preserva ante futuras importaciones de proveedor. */
+  fijarPrecioManual(precioVenta: number) {
+    this._precioVenta = precioVenta;
+    this._modoPrecio = "MANUAL";
+    this.validarProducto();
+  }
+
+  /** Recalcula el precio desde costo+recargo y vuelve a modo AUTO. */
+  recalcularPrecioAutomatico(recargoPorcentaje: number) {
+    this._precioVenta = Math.round(this._costoUnitario * (1 + recargoPorcentaje / 100));
+    this._modoPrecio = "AUTO";
     this.validarProducto();
   }
 
@@ -183,6 +211,10 @@ export class Producto {
 
     if (this._stockReservado < 0) {
       throw new Error("El stock reservado no puede ser negativo.");
+    }
+
+    if (this._modoPrecio !== "AUTO" && this._modoPrecio !== "MANUAL") {
+      throw new Error("El modo de precio debe ser AUTO o MANUAL.");
     }
   }
 

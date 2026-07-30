@@ -119,6 +119,7 @@ type SupabaseProductRow = {
   es_oferta_semana: boolean | null;
   orden_destacado: number | null;
   tipo_producto: string | null;
+  modo_precio?: string | null;
 };
 
 class SupabaseProductRepository implements ProductRepository {
@@ -259,6 +260,7 @@ class SupabaseProductRepository implements ProductRepository {
       payload.orden_destacado = cambios.ordenDestacado ?? null;
     if (cambios.tipoProducto !== undefined)
       payload.tipo_producto = cambios.tipoProducto;
+    if (cambios.modoPrecio !== undefined) payload.modo_precio = cambios.modoPrecio;
 
     const response = await supabase
       .from("productos")
@@ -319,7 +321,8 @@ function buildProductPayload(producto: Omit<ProductoProps, "id"> & { id?: string
     es_top: producto.esTop ?? false,
     es_oferta_semana: producto.esOfertaSemana ?? false,
     orden_destacado: producto.ordenDestacado ?? null,
-    tipo_producto: producto.tipoProducto ?? "simple"
+    tipo_producto: producto.tipoProducto ?? "simple",
+    modo_precio: producto.modoPrecio ?? "AUTO"
   };
 }
 
@@ -345,7 +348,8 @@ function mapSupabaseProduct(data: SupabaseProductRow): ProductoProps {
     esTop: data.es_top ?? false,
     esOfertaSemana: data.es_oferta_semana ?? false,
     ordenDestacado: data.orden_destacado ?? undefined,
-    tipoProducto: data.tipo_producto ?? "simple"
+    tipoProducto: data.tipo_producto ?? "simple",
+    modoPrecio: data.modo_precio === "MANUAL" ? "MANUAL" : "AUTO"
   };
 }
 

@@ -23,8 +23,18 @@ import {
 import {
   buildSupplierImportPreview,
   type SupplierImportPreview,
-  type SupplierPlanRow
+  type SupplierPlanRow,
+  type ExistingProductPriceInfo
 } from "@/lib/catalog-import/supplier-import.ts";
+import {
+  validateSalePriceInput,
+  roundPriceToStep,
+  calculateAutoPrice,
+  applyPercentageAdjustment,
+  applyFixedAdjustment,
+  isValidRoundingStep,
+  type RoundingStep
+} from "@/lib/pricing";
 
 export type ProductoAdminInput = {
   sku?: string;
@@ -120,7 +130,8 @@ export class ProductoService {
         esOfertaSemana: domainProduct.esOfertaSemana,
         ordenDestacado: domainProduct.ordenDestacado,
         tipoProducto: domainProduct.tipoProducto,
-        utilidadUnitaria: domainProduct.calcularUtilidadUnitaria()
+        utilidadUnitaria: domainProduct.calcularUtilidadUnitaria(),
+        modoPrecio: domainProduct.modoPrecio
       };
     });
   }
@@ -394,9 +405,17 @@ export class ProductoService {
     if (binaryError) return this.blockedSupplierPreview([binaryError]);
 
     const existingProducts = await this.productRepository.buscarTodosProductos();
-    const existingSkus = new Set(existingProducts.map((p) => p.sku).filter(Boolean) as string[]);
+    const existingBySku = new Map<string, ExistingProductPriceInfo>();
+    for (const p of existingProducts) {
+      if (p.sku) {
+        existingBySku.set(p.sku, {
+          modoPrecio: p.modoPrecio === "MANUAL" ? "MANUAL" : "AUTO",
+          precioVenta: p.precioVenta
+        });
+      }
+    }
 
-    return buildSupplierImportPreview(buffer, markupPercentage, existingSkus);
+    return buildSupplierImportPreview(buffer, markupPercentage, existingBySku);
   }
 
   private blockedSupplierPreview(erroresGlobales: string[]): SupplierImportPreview {
@@ -417,8 +436,11 @@ export class ProductoService {
    * Confirma la importacion del perfil "CSV de proveedor": upsert por SKU.
    * En ACTUALIZAR toca UNICAMENTE nombre/marca/contenido/costo/precio de
    * venta -- nunca stock, activo, imagen, Top 12 ni ofertas del producto
-   * existente (se preservan intactos). En CREAR, el producto nace inactivo
-   * con stock 0 (nunca debe quedar visible publicamente sin revision manual).
+   * existente (se preservan intactos). Si el producto existente es MANUAL,
+   * el costo se actualiza pero el precio de venta manual se preserva
+   * (row.precioVentaFinal ya viene resuelto asi desde buildSupplierImportPlan).
+   * En CREAR, el producto nace inactivo con stock 0 y modo AUTO (nunca debe
+   * quedar visible publicamente sin revision manual).
    */
   async confirmarImportacionProveedor(plan: SupplierPlanRow[]) {
     let creados = 0;
@@ -433,7 +455,7 @@ export class ProductoService {
           marca: row.marca,
           contenido: row.contenido,
           costoUnitario: row.costoUnitario,
-          precioVenta: row.precioVenta
+          precioVenta: row.precioVentaFinal
         });
         actualizados += 1;
         continue;
@@ -445,13 +467,14 @@ export class ProductoService {
         nombre: row.nombre,
         marca: row.marca,
         contenido: row.contenido,
-        precioVenta: row.precioVenta,
+        precioVenta: row.precioVentaFinal,
         costoUnitario: row.costoUnitario,
         stockActual: 0,
         stockAgenda: 0,
         activo: false,
         esTop: false,
         esOfertaSemana: false,
+        modoPrecio: "AUTO",
         tipoProducto: "simple"
       });
 
@@ -469,6 +492,7 @@ export class ProductoService {
         activo: domainProduct.activo,
         esTop: domainProduct.esTop,
         esOfertaSemana: domainProduct.esOfertaSemana,
+        modoPrecio: domainProduct.modoPrecio,
         tipoProducto: domainProduct.tipoProducto
       });
       creados += 1;
@@ -476,6 +500,207 @@ export class ProductoService {
 
     return { creados, actualizados };
   }
+
+  /**
+   * Edicion rapida - fila individual: fija un precio manual. Toca UNICAMENTE
+   * precio_venta y modo_precio; nunca stock, imagen, Top 12 ni ofertas.
+   */
+  async fijarPrecioManualProducto(id: string, precioVentaRaw: unknown) {
+    const validation = validateSalePriceInput(precioVentaRaw);
+    if (validation.error !== null) {
+      throw new Error(validation.error);
+    }
+
+    const current = await this.productRepository.buscarProductoPorId(id);
+    if (!current) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    const domainProduct = new Producto(current);
+    domainProduct.fijarPrecioManual(validation.value);
+
+    await this.productRepository.actualizarProducto(id, {
+      precioVenta: domainProduct.precioVenta,
+      modoPrecio: domainProduct.modoPrecio
+    });
+
+    return { id, precioVenta: domainProduct.precioVenta, modoPrecio: domainProduct.modoPrecio };
+  }
+
+  /**
+   * Edicion rapida - fila individual: "Volver a precio automatico". Recalcula
+   * desde costo + recargo indicado y vuelve a modo AUTO. Toca UNICAMENTE
+   * precio_venta y modo_precio.
+   */
+  async volverPrecioAutomaticoProducto(id: string, recargoPorcentajeRaw: unknown) {
+    const markup = typeof recargoPorcentajeRaw === "number" ? recargoPorcentajeRaw : Number(recargoPorcentajeRaw);
+    if (!Number.isFinite(markup) || markup < 0 || markup > 300) {
+      throw new Error("El recargo debe ser un número entre 0 y 300.");
+    }
+
+    const current = await this.productRepository.buscarProductoPorId(id);
+    if (!current) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    const domainProduct = new Producto(current);
+    domainProduct.recalcularPrecioAutomatico(markup);
+
+    await this.productRepository.actualizarProducto(id, {
+      precioVenta: domainProduct.precioVenta,
+      modoPrecio: domainProduct.modoPrecio
+    });
+
+    return { id, precioVenta: domainProduct.precioVenta, modoPrecio: domainProduct.modoPrecio };
+  }
+
+  /**
+   * Edicion masiva de precios: dry-run. Nunca escribe. Re-deriva el precio
+   * nuevo desde el estado ACTUAL de cada producto (nunca confia en un precio
+   * "nuevo" enviado por el navegador).
+   */
+  async previsualizarAjusteMasivoPrecio(
+    productIds: string[],
+    operation: BulkPriceOperation
+  ): Promise<BulkPricePreview> {
+    const operationError = validateBulkOperation(operation);
+    if (operationError) {
+      return { operation, productos: [], erroresGlobales: [operationError] };
+    }
+
+    const productos: BulkPricePreviewRow[] = [];
+    const erroresGlobales: string[] = [];
+
+    for (const id of productIds) {
+      const current = await this.productRepository.buscarProductoPorId(id);
+      if (!current) {
+        erroresGlobales.push(`Producto ${id} no encontrado.`);
+        continue;
+      }
+
+      const precioAnterior = current.precioVenta;
+      const precioNuevo = computeBulkNewPrice(current, operation);
+
+      if (precioNuevo === null) {
+        erroresGlobales.push(
+          `${current.nombre || id}: el resultado del ajuste no es un precio valido (debe ser un entero mayor que 0).`
+        );
+        continue;
+      }
+
+      productos.push({
+        id,
+        sku: current.sku ?? "",
+        nombre: current.nombre,
+        precioAnterior,
+        precioNuevo,
+        diferencia: precioNuevo - precioAnterior
+      });
+    }
+
+    return { operation, productos, erroresGlobales };
+  }
+
+  /**
+   * Edicion masiva de precios: confirmacion. Re-deriva el plan igual que el
+   * preview (nunca confia en el navegador) y aplica solo precio_venta +
+   * modo_precio por producto. "recargo" deja el producto en AUTO; los demas
+   * ajustes (porcentaje/monto) marcan MANUAL; "redondeo" preserva el modo
+   * actual del producto.
+   */
+  async confirmarAjusteMasivoPrecio(productIds: string[], operation: BulkPriceOperation) {
+    const operationError = validateBulkOperation(operation);
+    if (operationError) {
+      throw new Error(operationError);
+    }
+
+    let actualizados = 0;
+
+    for (const id of productIds) {
+      const current = await this.productRepository.buscarProductoPorId(id);
+      if (!current) continue;
+
+      const precioNuevo = computeBulkNewPrice(current, operation);
+      if (precioNuevo === null) continue;
+
+      const modoPrecio: "AUTO" | "MANUAL" =
+        operation.type === "recargo"
+          ? "AUTO"
+          : operation.type === "redondeo"
+            ? current.modoPrecio === "MANUAL"
+              ? "MANUAL"
+              : "AUTO"
+            : "MANUAL";
+
+      await this.productRepository.actualizarProducto(id, {
+        precioVenta: precioNuevo,
+        modoPrecio
+      });
+      actualizados += 1;
+    }
+
+    return { actualizados };
+  }
+}
+
+export type BulkPriceOperation =
+  | { type: "recargo"; porcentaje: number }
+  | { type: "ajuste-porcentaje"; porcentaje: number }
+  | { type: "ajuste-monto"; monto: number }
+  | { type: "redondeo"; paso: RoundingStep };
+
+export type BulkPricePreviewRow = {
+  id: string;
+  sku: string;
+  nombre: string;
+  precioAnterior: number;
+  precioNuevo: number;
+  diferencia: number;
+};
+
+export type BulkPricePreview = {
+  operation: BulkPriceOperation;
+  productos: BulkPricePreviewRow[];
+  erroresGlobales: string[];
+};
+
+function validateBulkOperation(operation: BulkPriceOperation): string | null {
+  if (operation.type === "recargo" || operation.type === "ajuste-porcentaje") {
+    if (!Number.isFinite(operation.porcentaje)) return "El porcentaje debe ser un número válido.";
+    if (operation.type === "recargo" && (operation.porcentaje < 0 || operation.porcentaje > 300)) {
+      return "El recargo debe estar entre 0 y 300%.";
+    }
+  }
+  if (operation.type === "ajuste-monto" && !Number.isFinite(operation.monto)) {
+    return "El monto debe ser un número válido.";
+  }
+  if (operation.type === "redondeo" && !isValidRoundingStep(operation.paso)) {
+    return "El paso de redondeo debe ser 100, 500 o 1000.";
+  }
+  return null;
+}
+
+function computeBulkNewPrice(
+  current: { precioVenta: number; costoUnitario?: number },
+  operation: BulkPriceOperation
+): number | null {
+  let precioNuevo: number;
+
+  if (operation.type === "recargo") {
+    precioNuevo = calculateAutoPrice(current.costoUnitario ?? 0, operation.porcentaje);
+  } else if (operation.type === "ajuste-porcentaje") {
+    precioNuevo = applyPercentageAdjustment(current.precioVenta, operation.porcentaje);
+  } else if (operation.type === "ajuste-monto") {
+    precioNuevo = applyFixedAdjustment(current.precioVenta, operation.monto);
+  } else {
+    precioNuevo = roundPriceToStep(current.precioVenta, operation.paso);
+  }
+
+  if (!Number.isFinite(precioNuevo) || !Number.isInteger(precioNuevo) || precioNuevo <= 0) {
+    return null;
+  }
+
+  return precioNuevo;
 }
 
 export function createProductoService() {

@@ -174,37 +174,65 @@ describe("supplier-import - calculateSalePrice", () => {
   });
 });
 
+const NO_EXISTING = new Map<string, { modoPrecio: "AUTO" | "MANUAL"; precioVenta: number }>();
+
 describe("supplier-import - buildSupplierImportPlan / SKU", () => {
   it("genera SKU automaticamente con el motor determinista existente", () => {
     const parsed = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;58000"));
-    const { plan } = buildSupplierImportPlan(parsed.rows, 35, new Set());
+    const { plan } = buildSupplierImportPlan(parsed.rows, 35, NO_EXISTING);
     expect(plan[0].sku).toBe("SML-CAROLINA-HERRERA-LA-BOMBA-80ML");
   });
 
   it("el SKU es estable entre ejecuciones para el mismo input", () => {
     const parsed = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;58000"));
-    const run1 = buildSupplierImportPlan(parsed.rows, 35, new Set());
-    const run2 = buildSupplierImportPlan(parsed.rows, 35, new Set());
+    const run1 = buildSupplierImportPlan(parsed.rows, 35, NO_EXISTING);
+    const run2 = buildSupplierImportPlan(parsed.rows, 35, NO_EXISTING);
     expect(run1.plan[0].sku).toBe(run2.plan[0].sku);
   });
 
-  it("clasifica CREAR cuando el SKU no existe aun", () => {
+  it("clasifica CREAR cuando el SKU no existe aun (modo AUTO)", () => {
     const parsed = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;58000"));
-    const { plan } = buildSupplierImportPlan(parsed.rows, 35, new Set());
+    const { plan } = buildSupplierImportPlan(parsed.rows, 35, NO_EXISTING);
     expect(plan[0].action).toBe("CREAR");
+    expect(plan[0].modoPrecio).toBe("AUTO");
+    expect(plan[0].precioVentaFinal).toBe(plan[0].precioVentaSugerido);
   });
 
   it("clasifica ACTUALIZAR cuando el SKU ya existe en el catalogo remoto", () => {
     const parsed = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;58000"));
-    const { plan } = buildSupplierImportPlan(parsed.rows, 35, new Set(["SML-CAROLINA-HERRERA-LA-BOMBA-80ML"]));
+    const existing = new Map([
+      ["SML-CAROLINA-HERRERA-LA-BOMBA-80ML", { modoPrecio: "AUTO" as const, precioVenta: 70000 }]
+    ]);
+    const { plan } = buildSupplierImportPlan(parsed.rows, 35, existing);
     expect(plan[0].action).toBe("ACTUALIZAR");
+  });
+
+  it("producto existente AUTO: recalcula el precio con el recargo vigente", () => {
+    const parsed = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;58000"));
+    const existing = new Map([
+      ["SML-CAROLINA-HERRERA-LA-BOMBA-80ML", { modoPrecio: "AUTO" as const, precioVenta: 999 }]
+    ]);
+    const { plan } = buildSupplierImportPlan(parsed.rows, 35, existing);
+    expect(plan[0].precioVentaFinal).toBe(78300);
+    expect(plan[0].modoPrecio).toBe("AUTO");
+  });
+
+  it("producto existente MANUAL: preserva el precio manual, muestra el sugerido como referencia", () => {
+    const parsed = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;58000"));
+    const existing = new Map([
+      ["SML-CAROLINA-HERRERA-LA-BOMBA-80ML", { modoPrecio: "MANUAL" as const, precioVenta: 65000 }]
+    ]);
+    const { plan } = buildSupplierImportPlan(parsed.rows, 35, existing);
+    expect(plan[0].precioVentaFinal).toBe(65000); // preservado, NUNCA sobrescrito
+    expect(plan[0].precioVentaSugerido).toBe(78300); // referencia informativa
+    expect(plan[0].modoPrecio).toBe("MANUAL");
   });
 
   it("bloquea filas cuyo SKU quedaria duplicado dentro del mismo archivo", () => {
     const parsed = parseSupplierCsv(
       csv("La Bomba;Carolina Herrera;80ML;58000", "La Bomba;Carolina Herrera;80ML;60000")
     );
-    const { plan, duplicateErrors } = buildSupplierImportPlan(parsed.rows, 35, new Set());
+    const { plan, duplicateErrors } = buildSupplierImportPlan(parsed.rows, 35, NO_EXISTING);
     expect(plan).toHaveLength(1);
     expect(duplicateErrors).toHaveLength(1);
     expect(duplicateErrors[0].message).toMatch(/SKU duplicado/);
@@ -217,19 +245,19 @@ describe("supplier-import - buildSupplierImportPreview (integracion)", () => {
       "La Bomba;Carolina Herrera;80ML;58000",
       "Aqua di Gio Profondo;Giorgio Armani;125ML;65000"
     );
-    const preview = buildSupplierImportPreview(buffer, 35, new Set());
+    const preview = buildSupplierImportPreview(buffer, 35, NO_EXISTING);
 
     expect(preview.perfil).toBe("proveedor");
     expect(preview.porcentajeAplicado).toBe(35);
     expect(preview.filasUtiles).toBe(2);
     expect(preview.resumen).toEqual({ crear: 2, actualizar: 0, bloqueado: 0 });
-    expect(preview.plan[0].precioVenta).toBe(78300);
-    expect(preview.plan[1].precioVenta).toBe(87750);
+    expect(preview.plan[0].precioVentaFinal).toBe(78300);
+    expect(preview.plan[1].precioVentaFinal).toBe(87750);
   });
 
   it("un porcentaje invalido bloquea el preview completo (error global, no por fila)", () => {
     const buffer = csv("La Bomba;Carolina Herrera;80ML;58000");
-    const preview = buildSupplierImportPreview(buffer, -10, new Set());
+    const preview = buildSupplierImportPreview(buffer, -10, NO_EXISTING);
     expect(preview.erroresGlobales[0]).toMatch(/no puede ser negativo/);
     expect(preview.plan).toHaveLength(0);
   });

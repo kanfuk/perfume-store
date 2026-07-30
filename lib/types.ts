@@ -1,4 +1,5 @@
 import type { EstadoPago, EstadoPedido, MetodoDespacho } from "@/lib/constants";
+import type { ModoPrecio } from "@/domain/Producto";
 
 export type OrderOrigin = "PUBLICO" | "ADMIN_DIRECTO" | "PERSONALIZADO";
 
@@ -25,6 +26,7 @@ export type ProductRecord = {
   esOfertaSemana?: boolean;
   ordenDestacado?: number;
   tipoProducto?: string;
+  modoPrecio?: ModoPrecio;
 };
 
 export type AdminProductRecord = {
@@ -50,6 +52,7 @@ export type AdminProductRecord = {
   ordenDestacado?: number;
   tipoProducto: string;
   utilidadUnitaria: number;
+  modoPrecio: ModoPrecio;
 };
 
 export type CustomerOrderLineInput = {

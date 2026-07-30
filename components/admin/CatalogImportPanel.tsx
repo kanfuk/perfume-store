@@ -32,7 +32,9 @@ type SupplierPlanRow = {
   marca: string;
   contenido: string;
   costoUnitario: number;
-  precioVenta: number;
+  precioVentaSugerido: number;
+  precioVentaFinal: number;
+  modoPrecio: "AUTO" | "MANUAL";
   action: "CREAR" | "ACTUALIZAR";
 };
 
@@ -381,7 +383,8 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
             <th className="px-4 py-3">Nombre</th>
             <th className="px-4 py-3">Marca</th>
             <th className="px-4 py-3">Costo</th>
-            <th className="px-4 py-3">Precio calculado</th>
+            <th className="px-4 py-3">Precio final</th>
+            <th className="px-4 py-3">Modo</th>
             <th className="px-4 py-3">Stock</th>
             <th className="px-4 py-3">Estado</th>
           </tr>
@@ -396,7 +399,23 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
               <td className="px-4 py-3 text-[#111318]">{item.nombre}</td>
               <td className="px-4 py-3 text-[#667085]">{item.marca}</td>
               <td className="px-4 py-3 text-[#111318]">{formatCurrency(item.costoUnitario)}</td>
-              <td className="px-4 py-3 text-[#111318]">{formatCurrency(item.precioVenta)}</td>
+              <td className="px-4 py-3 text-[#111318]">
+                {formatCurrency(item.precioVentaFinal)}
+                {item.modoPrecio === "MANUAL" && item.precioVentaFinal !== item.precioVentaSugerido ? (
+                  <div className="text-xs text-[#98a2b3]">
+                    Sugerido: {formatCurrency(item.precioVentaSugerido)}
+                  </div>
+                ) : null}
+              </td>
+              <td className="px-4 py-3">
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    item.modoPrecio === "MANUAL" ? "bg-[#fff3c4] text-[#8a5a00]" : "bg-[#eeebff] text-[#5434e6]"
+                  }`}
+                >
+                  {item.modoPrecio}
+                </span>
+              </td>
               <td className="px-4 py-3 text-[#667085]">
                 {item.action === "ACTUALIZAR" ? "Se conserva" : "Inicial: 0"}
               </td>

@@ -1978,6 +1978,13 @@ export function AdminDashboard({
             <Boxes className="h-4 w-4 text-[#7357ff]" />
             Importar catálogo
           </Link>
+          <Link
+            href="/admin/precios"
+            className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
+          >
+            <CircleDollarSign className="h-4 w-4 text-[#7357ff]" />
+            Edición de precios
+          </Link>
         </StableHorizontalRail>
       </section>
 

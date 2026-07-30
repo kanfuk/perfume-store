@@ -23,6 +23,7 @@ function createProduct(overrides: Partial<AdminProductRecord> = {}): AdminProduc
     esOfertaSemana: false,
     tipoProducto: "simple",
     utilidadUnitaria: 0,
+    modoPrecio: "AUTO",
     ...overrides
   };
 }
