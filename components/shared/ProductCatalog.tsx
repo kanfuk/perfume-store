@@ -12,6 +12,8 @@ type ProductCatalogProps = {
   onRemove?: (productId: string) => void;
   showStockCount?: boolean;
   footerLabel?: string;
+  /** Grilla mas densa (2/3/4/5 columnas) usada por el catalogo publico completo. */
+  dense?: boolean;
 };
 
 export function ProductCatalog({
@@ -21,7 +23,8 @@ export function ProductCatalog({
   onDecrease,
   onRemove,
   showStockCount = false,
-  footerLabel
+  footerLabel,
+  dense = false
 }: ProductCatalogProps) {
   if (products.length === 0) {
     return (
@@ -40,7 +43,11 @@ export function ProductCatalog({
   }
 
   return (
-    <div className="grid w-full max-w-full min-w-0 gap-4 md:auto-rows-fr md:grid-cols-2">
+    <div
+      className={`grid w-full max-w-full min-w-0 gap-3 auto-rows-fr sm:gap-4 ${
+        dense ? "grid-cols-[repeat(auto-fill,minmax(150px,1fr))]" : "md:grid-cols-2"
+      }`}
+    >
       {products.map((product) => (
         <ProductCard
           key={product.id}

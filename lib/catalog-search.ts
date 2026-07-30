@@ -8,7 +8,7 @@
 
 import type { ProductRecord } from "@/lib/types";
 
-export type CatalogSortOption = "nombre-asc" | "precio-asc" | "precio-desc";
+export type CatalogSortOption = "recomendados" | "nombre-asc" | "precio-asc" | "precio-desc";
 
 export type CatalogFilterOptions = {
   query?: string;
@@ -51,6 +51,7 @@ export function filterAndSortProducts(
   result = [...result].sort((a, b) => {
     if (sort === "precio-asc") return a.precioVenta - b.precioVenta;
     if (sort === "precio-desc") return b.precioVenta - a.precioVenta;
+    if (sort === "recomendados") return 0; // preserva el orden recibido (curado en el origen)
     return a.nombre.localeCompare(b.nombre);
   });
 

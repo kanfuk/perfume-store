@@ -191,7 +191,7 @@ describe("ProductoService - importacion de proveedor (preservacion de campos)", 
     );
   });
 
-  it("producto nuevo: se crea inactivo con stock 0", async () => {
+  it("producto nuevo: se crea activo con stock 1 y aparece de inmediato en el catalogo publico", async () => {
     const repository = new FullProductRepositoryStub();
     const service = new ProductoService(repository);
 
@@ -207,9 +207,15 @@ describe("ProductoService - importacion de proveedor (preservacion de campos)", 
 
     const created = await repository.buscarProductoPorSku(preview.plan[0].sku);
     expect(created).not.toBeNull();
-    expect(created?.stockActual).toBe(0);
-    expect(created?.activo).toBe(false);
+    expect(created?.stockActual).toBe(1);
+    expect(created?.stockAgenda).toBe(1);
+    expect(created?.stockReservado).toBe(0);
+    expect(created?.stockMinimo).toBe(0);
+    expect(created?.activo).toBe(true);
     expect(created?.esTop).toBe(false);
+    expect(created?.ordenDestacado).toBeUndefined();
+    expect(created?.esOfertaSemana).toBe(false);
+    expect(created?.modoPrecio).toBe("AUTO");
     expect(created?.precioVenta).toBe(54000); // 40000 * 1.35
   });
 

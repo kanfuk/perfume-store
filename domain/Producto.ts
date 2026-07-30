@@ -29,7 +29,8 @@ export type ProductoProps = {
   activo?: boolean;
   esTop?: boolean;
   esOfertaSemana?: boolean;
-  ordenDestacado?: number;
+  /** null limpia explícitamente la posición (usado al reemplazar un puesto del Top 12). */
+  ordenDestacado?: number | null;
   tipoProducto?: string;
   /**
    * AUTO: precioVenta se recalcula desde costoUnitario + recargo configurado
@@ -52,7 +53,7 @@ export class Producto {
   readonly imageStoragePath: string;
   readonly badgeLabel: string;
   readonly tipoProducto: string;
-  readonly ordenDestacado?: number;
+  readonly ordenDestacado?: number | null;
   readonly createdAt?: Date;
   private _precioVenta: number;
   private _precioAnterior?: number;

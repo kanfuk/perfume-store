@@ -16,13 +16,13 @@ type CatalogExplorerProps = {
   onRemove?: (productId: string) => void;
 };
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 24;
 
-/** Catalogo completo con busqueda por nombre/marca/SKU, filtro por marca y orden. */
+/** Catalogo completo con busqueda por nombre/marca/SKU, chips de marca y orden. */
 export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRemove }: CatalogExplorerProps) {
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
-  const [sort, setSort] = useState<SortOption>("nombre-asc");
+  const [sort, setSort] = useState<SortOption>("recomendados");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const brands = useMemo(() => getAvailableBrands(products), [products]);
@@ -34,6 +34,14 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
 
   const visibleProducts = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
+  const hasActiveFilters = query.trim() !== "" || brandFilter !== "" || sort !== "recomendados";
+
+  function clearFilters() {
+    setQuery("");
+    setBrandFilter("");
+    setSort("recomendados");
+    setVisibleCount(PAGE_SIZE);
+  }
 
   return (
     <div className="space-y-4">
@@ -47,37 +55,71 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
               setQuery(event.target.value);
               setVisibleCount(PAGE_SIZE);
             }}
-            placeholder="Buscar por nombre, marca o SKU"
+            placeholder="Buscar por nombre o marca"
             aria-label="Buscar en el catálogo"
             className="w-full rounded-xl border border-[#e4e7ec] bg-white py-2.5 pl-9 pr-3 text-sm text-[#111318] shadow-sm outline-none transition focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
           />
         </div>
-        <select
-          value={brandFilter}
-          onChange={(event) => {
-            setBrandFilter(event.target.value);
-            setVisibleCount(PAGE_SIZE);
-          }}
-          aria-label="Filtrar por marca"
-          className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#111318] shadow-sm outline-none transition focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
-        >
-          <option value="">Todas las marcas</option>
-          {brands.map((brand) => (
-            <option key={brand} value={brand}>
-              {brand}
-            </option>
-          ))}
-        </select>
         <select
           value={sort}
           onChange={(event) => setSort(event.target.value as SortOption)}
           aria-label="Ordenar catálogo"
           className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#111318] shadow-sm outline-none transition focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
         >
-          <option value="nombre-asc">Nombre (A-Z)</option>
-          <option value="precio-asc">Precio (menor a mayor)</option>
-          <option value="precio-desc">Precio (mayor a menor)</option>
+          <option value="recomendados">Recomendados</option>
+          <option value="nombre-asc">Nombre A-Z</option>
+          <option value="precio-asc">Menor precio</option>
+          <option value="precio-desc">Mayor precio</option>
         </select>
+      </div>
+
+      <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
+          onClick={() => {
+            setBrandFilter("");
+            setVisibleCount(PAGE_SIZE);
+          }}
+          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+            brandFilter === ""
+              ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
+              : "border-[#e4e7ec] bg-white text-[#667085]"
+          }`}
+        >
+          Todas
+        </button>
+        {brands.map((brand) => (
+          <button
+            key={brand}
+            type="button"
+            onClick={() => {
+              setBrandFilter(brand);
+              setVisibleCount(PAGE_SIZE);
+            }}
+            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+              brandFilter === brand
+                ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
+                : "border-[#e4e7ec] bg-white text-[#667085]"
+            }`}
+          >
+            {brand}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-[#667085]">
+          {filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}
+        </p>
+        {hasActiveFilters ? (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-sm font-semibold text-[#5434e6] hover:text-[#392694]"
+          >
+            Limpiar filtros
+          </button>
+        ) : null}
       </div>
 
       {filtered.length === 0 && products.length > 0 ? (
@@ -95,6 +137,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
             onAdd={onAdd}
             onDecrease={onDecrease}
             onRemove={onRemove}
+            dense
           />
           {hasMore ? (
             <div className="flex justify-center pt-2">

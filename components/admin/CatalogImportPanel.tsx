@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, CheckCircle2, Home, ShoppingBag, UploadCloud } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  Boxes,
+  CheckCircle2,
+  CircleDollarSign,
+  Home,
+  ShoppingBag,
+  Store,
+  UploadCloud
+} from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 
@@ -79,16 +88,43 @@ function readFileAsBase64(file: File): Promise<string> {
 const MAX_CLIENT_FILE_SIZE = 2 * 1024 * 1024;
 const DEFAULT_MARKUP = 35;
 
+const PREVIEW_STAGES = [
+  "Leyendo archivo…",
+  "Validando estructura…",
+  "Generando SKU…",
+  "Calculando precios…",
+  "Preparando vista previa…"
+];
+
+const CONFIRM_STAGES = ["Importando productos…", "Actualizando catálogo…", "Finalizando…"];
+
+type Phase = "idle" | "previewing" | "confirming";
+type LastAction = "preview" | "confirm" | null;
+
 export function CatalogImportPanel() {
   const [fileName, setFileName] = useState("");
   const [fileBase64, setFileBase64] = useState("");
   const [profileChoice, setProfileChoice] = useState<ProfileChoice>("auto");
   const [markupPercentage, setMarkupPercentage] = useState(String(DEFAULT_MARKUP));
   const [result, setResult] = useState<PreviewResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [stageIndex, setStageIndex] = useState(0);
   const [error, setError] = useState("");
+  const [lastAction, setLastAction] = useState<LastAction>(null);
   const [confirmResult, setConfirmResult] = useState<{ creados: number; actualizados: number } | null>(null);
+
+  const busy = phase !== "idle";
+  const stages = phase === "previewing" ? PREVIEW_STAGES : phase === "confirming" ? CONFIRM_STAGES : [];
+  const stageLabel = stages[stageIndex] ?? "";
+
+  useEffect(() => {
+    if (phase === "idle") return;
+    const activeStages = phase === "previewing" ? PREVIEW_STAGES : CONFIRM_STAGES;
+    const id = setInterval(() => {
+      setStageIndex((prev) => Math.min(prev + 1, activeStages.length - 1));
+    }, 450);
+    return () => clearInterval(id);
+  }, [phase]);
 
   function resetPreviewState() {
     setResult(null);
@@ -97,6 +133,7 @@ export function CatalogImportPanel() {
   }
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    if (busy) return;
     const file = event.target.files?.[0];
     resetPreviewState();
 
@@ -118,22 +155,27 @@ export function CatalogImportPanel() {
   }
 
   function handleProfileChange(value: ProfileChoice) {
+    if (busy) return;
     setProfileChoice(value);
     resetPreviewState();
   }
 
   function handleMarkupChange(value: string) {
+    if (busy) return;
     setMarkupPercentage(value);
     resetPreviewState();
   }
 
   async function requestPreview() {
+    if (busy) return;
     if (!fileBase64 || !fileName) {
       setError("Selecciona un archivo CSV primero.");
       return;
     }
 
-    setLoading(true);
+    setPhase("previewing");
+    setStageIndex(0);
+    setLastAction("preview");
     setError("");
     setConfirmResult(null);
 
@@ -161,14 +203,17 @@ export function CatalogImportPanel() {
     } catch {
       setError("No fue posible conectar con el servidor.");
     } finally {
-      setLoading(false);
+      setPhase("idle");
     }
   }
 
   async function confirmImport() {
+    if (busy) return;
     if (!fileBase64 || !fileName || !result) return;
 
-    setConfirming(true);
+    setPhase("confirming");
+    setStageIndex(0);
+    setLastAction("confirm");
     setError("");
 
     try {
@@ -195,7 +240,16 @@ export function CatalogImportPanel() {
     } catch {
       setError("No fue posible conectar con el servidor.");
     } finally {
-      setConfirming(false);
+      setPhase("idle");
+    }
+  }
+
+  function retryLastAction() {
+    if (busy) return;
+    if (lastAction === "confirm") {
+      void confirmImport();
+    } else if (lastAction === "preview") {
+      void requestPreview();
     }
   }
 
@@ -233,76 +287,137 @@ export function CatalogImportPanel() {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={handleFileChange}
-            aria-label="Seleccionar archivo CSV"
-            className="block w-full rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5 text-sm text-[#344054]"
-          />
-          <div className="flex flex-col gap-1">
-            <label htmlFor="profile-choice" className="text-xs font-semibold text-[#667085]">
-              Tipo de archivo
-            </label>
-            <select
-              id="profile-choice"
-              value={profileChoice}
-              onChange={(event) => handleProfileChange(event.target.value as ProfileChoice)}
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
-            >
-              <option value="auto">Detección automática</option>
-              <option value="proveedor">CSV de proveedor</option>
-              <option value="canonico">Catálogo canónico</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#667085]">
-              Recargo sobre costo (%)
-            </label>
+        <fieldset disabled={busy} className="contents">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
             <input
-              id="markup-percentage"
-              type="number"
-              min={0}
-              max={300}
-              value={markupPercentage}
-              onChange={(event) => handleMarkupChange(event.target.value)}
-              className="w-28 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFileChange}
+              aria-label="Seleccionar archivo CSV"
+              className="block w-full rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
             />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="profile-choice" className="text-xs font-semibold text-[#667085]">
+                Tipo de archivo
+              </label>
+              <select
+                id="profile-choice"
+                value={profileChoice}
+                onChange={(event) => handleProfileChange(event.target.value as ProfileChoice)}
+                className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="auto">Detección automática</option>
+                <option value="proveedor">CSV de proveedor</option>
+                <option value="canonico">Catálogo canónico</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#667085]">
+                Recargo sobre costo (%)
+              </label>
+              <input
+                id="markup-percentage"
+                type="number"
+                min={0}
+                max={300}
+                value={markupPercentage}
+                onChange={(event) => handleMarkupChange(event.target.value)}
+                className="w-28 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
           </div>
-        </div>
 
-        <p className="text-xs text-[#667085]">
-          El precio de venta se calcula agregando este porcentaje al costo. El archivo habitual del
-          proveedor no necesita SKU ni precio de venta: el sistema genera ambos automáticamente.
-        </p>
+          <p className="text-xs text-[#667085]">
+            El precio de venta se calcula agregando este porcentaje al costo. El archivo habitual del
+            proveedor no necesita SKU ni precio de venta: el sistema genera ambos automáticamente.
+          </p>
 
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={requestPreview}
-            disabled={!fileBase64 || loading}
-            className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <UploadCloud className="h-4 w-4" />
-            {loading ? "Analizando..." : "Vista previa"}
-          </button>
-        </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={requestPreview}
+              disabled={!fileBase64 || busy}
+              className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {phase === "previewing" ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+              ) : (
+                <UploadCloud className="h-4 w-4" />
+              )}
+              {phase === "previewing" ? "Analizando..." : "Vista previa"}
+            </button>
+          </div>
+        </fieldset>
+
+        {busy ? (
+          <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+            <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la importación">
+              <div className="indeterminate-progress-fill" />
+            </div>
+            <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
+              {stageLabel}
+            </p>
+          </div>
+        ) : null}
 
         {error ? (
-          <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
+          <div className="flex items-start justify-between gap-3 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+            {lastAction ? (
+              <button
+                type="button"
+                onClick={retryLastAction}
+                disabled={busy}
+                className="shrink-0 rounded-lg border border-[#8a2c22]/30 px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Reintentar
+              </button>
+            ) : null}
           </div>
         ) : null}
 
         {confirmResult ? (
-          <div className="flex items-start gap-2 rounded-xl border border-[#bfe6c6] bg-[#eefbf1] px-4 py-3 text-sm text-[#1f6d33]">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              Importación aplicada: {confirmResult.creados} creados, {confirmResult.actualizados}{" "}
-              actualizados.
-            </span>
+          <div className="space-y-3 rounded-xl border border-[#bfe6c6] bg-[#eefbf1] px-4 py-4 text-sm text-[#1f6d33]">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Importación aplicada: {confirmResult.creados} creados, {confirmResult.actualizados}{" "}
+                actualizados.
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/admin/stock"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#1f6d33] shadow-sm"
+              >
+                <Boxes className="h-4 w-4" />
+                Revisar stock
+              </Link>
+              <Link
+                href="/admin/precios"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#1f6d33] shadow-sm"
+              >
+                <CircleDollarSign className="h-4 w-4" />
+                Editar precios
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#1f6d33] shadow-sm"
+              >
+                <Store className="h-4 w-4" />
+                Ver catálogo público
+              </Link>
+              <Link
+                href="/admin"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#1f6d33] shadow-sm"
+              >
+                <Home className="h-4 w-4" />
+                Volver al inicio
+              </Link>
+            </div>
           </div>
         ) : null}
 
@@ -358,10 +473,13 @@ export function CatalogImportPanel() {
               <button
                 type="button"
                 onClick={confirmImport}
-                disabled={!canConfirm || confirming}
+                disabled={!canConfirm || busy}
                 className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {confirming ? "Aplicando..." : "Confirmar importación"}
+                {phase === "confirming" ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                ) : null}
+                {phase === "confirming" ? "Aplicando..." : "Confirmar importación"}
               </button>
             </div>
           </div>
@@ -417,18 +535,18 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
                 </span>
               </td>
               <td className="px-4 py-3 text-[#667085]">
-                {item.action === "ACTUALIZAR" ? "Se conserva" : "Inicial: 0"}
+                {item.action === "ACTUALIZAR" ? "Se conserva" : "Inicial: 1"}
               </td>
               <td className="px-4 py-3 text-[#667085]">
-                {item.action === "ACTUALIZAR" ? "Se conserva" : "Nuevo: inactivo"}
+                {item.action === "ACTUALIZAR" ? "Se conserva" : "Nuevo: activo"}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
       <p className="border-t border-[#e4e7ec] bg-[#f7f8fa] px-4 py-2 text-xs text-[#667085]">
-        Producto nuevo: se creará inactivo y con stock 0. Producto existente: stock, imagen y Top 12
-        se conservan sin cambios.
+        Producto nuevo: se creará activo y con stock 1, listo para revisar en Stock rápido. Producto
+        existente: stock, imagen y Top 12 se conservan sin cambios.
       </p>
     </div>
   );

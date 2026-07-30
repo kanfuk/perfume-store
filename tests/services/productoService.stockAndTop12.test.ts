@@ -1,0 +1,416 @@
+import { describe, expect, it } from "vitest";
+import type { ProductoProps } from "@/domain/Producto";
+import type { ProductRepository } from "@/repositories/productRepository";
+import { ProductoService } from "@/services/productoService";
+
+class FullProductRepositoryStub implements ProductRepository {
+  actualizarProductoCalls: Array<{ id: string; cambios: unknown }> = [];
+  private readonly products = new Map<string, ProductoProps>();
+
+  seed(product: ProductoProps) {
+    this.products.set(product.id, product);
+  }
+
+  async buscarProductosActivos() {
+    return Array.from(this.products.values()).filter((p) => p.activo !== false);
+  }
+
+  async buscarTodosProductos() {
+    return Array.from(this.products.values());
+  }
+
+  async buscarProductoPorId(id: string) {
+    return this.products.get(id) ?? null;
+  }
+
+  async buscarProductoPorSku(sku: string) {
+    return Array.from(this.products.values()).find((p) => p.sku === sku) ?? null;
+  }
+
+  async crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }) {
+    const id = producto.id ?? "producto-nuevo";
+    const record: ProductoProps = { ...producto, id };
+    this.products.set(id, record);
+    return record;
+  }
+
+  async actualizarProducto(id: string, cambios: Partial<Omit<ProductoProps, "id">>) {
+    this.actualizarProductoCalls.push({ id, cambios });
+    const current = this.products.get(id);
+    if (!current) throw new Error("Producto no encontrado.");
+    const updated = { ...current, ...cambios };
+    this.products.set(id, updated);
+    return updated;
+  }
+
+  async ajustarStockAgenda(id: string, cantidad: number) {
+    const current = this.products.get(id);
+    if (!current) throw new Error("Producto no encontrado.");
+    const nuevoStock = (current.stockActual ?? 0) + cantidad;
+    const updated = { ...current, stockActual: nuevoStock, stockAgenda: nuevoStock };
+    this.products.set(id, updated);
+    return updated;
+  }
+
+  async eliminarProducto() {
+    // no usado en estos tests
+  }
+}
+
+function seedProduct(repository: FullProductRepositoryStub, overrides: Partial<ProductoProps> = {}) {
+  const product: ProductoProps = {
+    id: "prod-1",
+    sku: "SML-CAROLINA-HERRERA-LA-BOMBA-80ML",
+    nombre: "La Bomba",
+    marca: "Carolina Herrera",
+    contenido: "80ML",
+    precioVenta: 65000,
+    costoUnitario: 45000,
+    stockActual: 7,
+    stockAgenda: 7,
+    stockReservado: 2,
+    activo: true,
+    esTop: false,
+    esOfertaSemana: false,
+    imageUrl: "",
+    modoPrecio: "AUTO",
+    tipoProducto: "simple",
+    ...overrides
+  };
+  repository.seed(product);
+  return product;
+}
+
+describe("ProductoService - stock rapido individual", () => {
+  it("ajustarStockRapido suma al stock actual y agenda", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const result = await service.ajustarStockRapido("prod-1", 3);
+    expect(result).toEqual({ id: "prod-1", stockActual: 10, activo: true });
+
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.stockActual).toBe(10);
+    expect(updated?.stockAgenda).toBe(10);
+  });
+
+  it("ajustarStockRapido resta y bloquea negativos", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 3, stockReservado: 0 });
+    const service = new ProductoService(repository);
+
+    await expect(service.ajustarStockRapido("prod-1", -5)).rejects.toThrow(/no puede ser negativo/);
+  });
+
+  it("ajustarStockRapido bloquea dejar el stock por debajo de lo reservado", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 5, stockReservado: 4 });
+    const service = new ProductoService(repository);
+
+    await expect(service.ajustarStockRapido("prod-1", -2)).rejects.toThrow(/reservado/);
+  });
+
+  it("ajustarStockRapido nunca toca precio, imagen, activo ni Top12", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { esTop: true, ordenDestacado: 3, imageUrl: "/images/foo.webp" });
+    const service = new ProductoService(repository);
+
+    await service.ajustarStockRapido("prod-1", 1);
+
+    const cambios = repository.actualizarProductoCalls[0].cambios as Record<string, unknown>;
+    expect(Object.keys(cambios).sort()).toEqual(["stockActual", "stockAgenda"]);
+  });
+
+  it("establecerStockRapido fija un valor absoluto valido", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const result = await service.establecerStockRapido("prod-1", 20);
+    expect(result.stockActual).toBe(20);
+  });
+
+  it("establecerStockRapido rechaza valores negativos, no enteros o por debajo de lo reservado", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockReservado: 3 });
+    const service = new ProductoService(repository);
+
+    await expect(service.establecerStockRapido("prod-1", -1)).rejects.toThrow();
+    await expect(service.establecerStockRapido("prod-1", 1.5)).rejects.toThrow();
+    await expect(service.establecerStockRapido("prod-1", 2)).rejects.toThrow(/reservado/);
+  });
+
+  it("agotarProductoRapido deja el stock igual al reservado", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 9, stockReservado: 2 });
+    const service = new ProductoService(repository);
+
+    const result = await service.agotarProductoRapido("prod-1");
+    expect(result.stockActual).toBe(2);
+  });
+
+  it("cambiarActivoStockRapido activa y pausa reutilizando la regla de stock minimo", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: false, stockActual: 5 });
+    const service = new ProductoService(repository);
+
+    const activado = await service.cambiarActivoStockRapido("prod-1", true);
+    expect(activado.activo).toBe(true);
+
+    const pausado = await service.cambiarActivoStockRapido("prod-1", false);
+    expect(pausado.activo).toBe(false);
+  });
+
+  it("cambiarActivoStockRapido rechaza activar sin stock", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: false, stockActual: 0, stockReservado: 0 });
+    const service = new ProductoService(repository);
+
+    await expect(service.cambiarActivoStockRapido("prod-1", true)).rejects.toThrow(/stock/i);
+  });
+});
+
+describe("ProductoService - stock rapido masivo", () => {
+  it("previsualizarAjusteMasivoStock es un dry-run: no escribe nada", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await service.previsualizarAjusteMasivoStock(["prod-1"], { type: "sumar", cantidad: 1 });
+    expect(repository.actualizarProductoCalls).toHaveLength(0);
+  });
+
+  it("sumar: incrementa el stock de todos los seleccionados", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { id: "prod-1", sku: "SML-A", stockActual: 5 });
+    seedProduct(repository, { id: "prod-2", sku: "SML-B", stockActual: 1 });
+    const service = new ProductoService(repository);
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1", "prod-2"], {
+      type: "sumar",
+      cantidad: 1
+    });
+    expect(result.actualizados).toBe(2);
+    expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(6);
+    expect((await repository.buscarProductoPorId("prod-2"))?.stockActual).toBe(2);
+  });
+
+  it("restar: bloquea productos que quedarian bajo lo reservado (reporta error pero sigue con el resto)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { id: "prod-1", sku: "SML-A", stockActual: 1, stockReservado: 1 });
+    seedProduct(repository, { id: "prod-2", sku: "SML-B", stockActual: 5, stockReservado: 0 });
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarAjusteMasivoStock(["prod-1", "prod-2"], {
+      type: "restar",
+      cantidad: 1
+    });
+    expect(preview.productos).toHaveLength(1);
+    expect(preview.erroresGlobales).toHaveLength(1);
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1", "prod-2"], {
+      type: "restar",
+      cantidad: 1
+    });
+    expect(result.actualizados).toBe(1);
+    expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(1);
+    expect((await repository.buscarProductoPorId("prod-2"))?.stockActual).toBe(4);
+  });
+
+  it("establecer: fija un valor absoluto para todos los seleccionados", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { id: "prod-1", sku: "SML-A" });
+    seedProduct(repository, { id: "prod-2", sku: "SML-B" });
+    const service = new ProductoService(repository);
+
+    await service.confirmarAjusteMasivoStock(["prod-1", "prod-2"], { type: "establecer", valor: 15 });
+    expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(15);
+    expect((await repository.buscarProductoPorId("prod-2"))?.stockActual).toBe(15);
+  });
+
+  it("activar/pausar: toca UNICAMENTE activo, nunca el stock", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: true, stockActual: 5 });
+    const service = new ProductoService(repository);
+
+    await service.confirmarAjusteMasivoStock(["prod-1"], { type: "pausar" });
+
+    const cambios = repository.actualizarProductoCalls[0].cambios as Record<string, unknown>;
+    expect(Object.keys(cambios)).toEqual(["activo"]);
+    expect((await repository.buscarProductoPorId("prod-1"))?.activo).toBe(false);
+    expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(5);
+  });
+
+  it("activar: se bloquea si el producto no tiene stock", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: false, stockActual: 0 });
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarAjusteMasivoStock(["prod-1"], { type: "activar" });
+    expect(preview.productos).toHaveLength(0);
+    expect(preview.erroresGlobales).toHaveLength(1);
+  });
+
+  it("rechaza cantidad invalida en el preview", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarAjusteMasivoStock(["prod-1"], { type: "sumar", cantidad: -1 });
+    expect(preview.erroresGlobales[0]).toMatch(/entero mayor que 0/);
+  });
+});
+
+describe("ProductoService - Top 12 editorial", () => {
+  it("obtenerEstadoTop12 devuelve 12 posiciones, vacias si nadie esta vinculado", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const estado = await service.obtenerEstadoTop12();
+    expect(estado).toHaveLength(12);
+    expect(estado.every((slot) => slot.producto === null)).toBe(true);
+    expect(estado.map((slot) => slot.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  it("vincularProductoTop12 asigna es_top, orden_destacado e imagen", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const result = await service.vincularProductoTop12(3, "prod-1", "/images/perfumes/top12/top-03.webp");
+    expect(result.rank).toBe(3);
+
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.esTop).toBe(true);
+    expect(updated?.ordenDestacado).toBe(3);
+    expect(updated?.imageUrl).toBe("/images/perfumes/top12/top-03.webp");
+  });
+
+  it("reemplazar una posicion libera al producto anterior sin borrar su propia imagen", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      id: "prod-1",
+      sku: "SML-A",
+      esTop: true,
+      ordenDestacado: 3,
+      imageUrl: "/images/mi-propia-foto.webp"
+    });
+    seedProduct(repository, { id: "prod-2", sku: "SML-B", nombre: "212 Vip" });
+    const service = new ProductoService(repository);
+
+    await service.vincularProductoTop12(3, "prod-2", "/images/perfumes/top12/top-03.webp");
+
+    const anterior = await repository.buscarProductoPorId("prod-1");
+    expect(anterior?.esTop).toBe(false);
+    expect(anterior?.ordenDestacado).toBeNull();
+    expect(anterior?.imageUrl).toBe("/images/mi-propia-foto.webp");
+
+    const nuevo = await repository.buscarProductoPorId("prod-2");
+    expect(nuevo?.esTop).toBe(true);
+    expect(nuevo?.ordenDestacado).toBe(3);
+    expect(nuevo?.imageUrl).toBe("/images/perfumes/top12/top-03.webp");
+  });
+
+  it("un producto vinculado a otra posicion libera automaticamente la anterior al moverse", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { id: "prod-1", sku: "SML-A", esTop: true, ordenDestacado: 5 });
+    const service = new ProductoService(repository);
+
+    await service.vincularProductoTop12(8, "prod-1", "/images/perfumes/top12/top-08.webp");
+
+    const estado = await service.obtenerEstadoTop12();
+    expect(estado.find((slot) => slot.rank === 5)?.producto).toBeNull();
+    expect(estado.find((slot) => slot.rank === 8)?.producto?.id).toBe("prod-1");
+  });
+
+  it("rechaza posiciones fuera de 1..12 o no enteras", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await expect(service.vincularProductoTop12(0, "prod-1", "/images/x.webp")).rejects.toThrow();
+    await expect(service.vincularProductoTop12(13, "prod-1", "/images/x.webp")).rejects.toThrow();
+    await expect(service.vincularProductoTop12(2.5, "prod-1", "/images/x.webp")).rejects.toThrow();
+  });
+
+  it("rechaza vincular sin imagen o producto inexistente", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await expect(service.vincularProductoTop12(1, "prod-1", "")).rejects.toThrow(/imagen/);
+    await expect(service.vincularProductoTop12(1, "no-existe", "/images/x.webp")).rejects.toThrow(/no encontrado/);
+  });
+
+  it("desvincularProductoTop12 libera la posicion sin tocar la imagen", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { esTop: true, ordenDestacado: 4, imageUrl: "/images/foto.webp" });
+    const service = new ProductoService(repository);
+
+    await service.desvincularProductoTop12(4);
+
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.esTop).toBe(false);
+    expect(updated?.ordenDestacado).toBeNull();
+    expect(updated?.imageUrl).toBe("/images/foto.webp");
+  });
+
+  it("desvincularProductoTop12 en una posicion vacia no hace nada", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await service.desvincularProductoTop12(9);
+    expect(repository.actualizarProductoCalls).toHaveLength(0);
+  });
+});
+
+describe("ProductoService - visibilidad publica del catalogo", () => {
+  it("obtenerProductosActivos excluye productos sin stock o sin precio, aunque esten activos", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { id: "prod-1", sku: "SML-A", activo: true, stockActual: 5, precioVenta: 10000 });
+    seedProduct(repository, { id: "prod-2", sku: "SML-B", activo: true, stockActual: 0, precioVenta: 10000 });
+    seedProduct(repository, { id: "prod-3", sku: "SML-C", activo: true, stockActual: 5, precioVenta: 0 });
+    seedProduct(repository, { id: "prod-4", sku: "SML-D", activo: false, stockActual: 5, precioVenta: 10000 });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    expect(activos.map((p) => p.id)).toEqual(["prod-1"]);
+  });
+});
+
+describe("ProductoService - asignacion manual de imagen", () => {
+  it("acepta una URL https", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const result = await service.asignarImagenProducto("prod-1", "https://cdn.example.com/foto.webp");
+    expect(result.imageUrl).toBe("https://cdn.example.com/foto.webp");
+
+    const cambios = repository.actualizarProductoCalls[0].cambios as Record<string, unknown>;
+    expect(Object.keys(cambios)).toEqual(["imageUrl"]);
+  });
+
+  it("acepta una ruta local /images/", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const result = await service.asignarImagenProducto("prod-1", "/images/perfumes/mi-foto.webp");
+    expect(result.imageUrl).toBe("/images/perfumes/mi-foto.webp");
+  });
+
+  it("rechaza protocolos distintos de https y rutas fuera de /images/", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await expect(service.asignarImagenProducto("prod-1", "http://inseguro.com/x.webp")).rejects.toThrow();
+    await expect(service.asignarImagenProducto("prod-1", "javascript:alert(1)")).rejects.toThrow();
+    await expect(service.asignarImagenProducto("prod-1", "/otra-carpeta/x.webp")).rejects.toThrow();
+    await expect(service.asignarImagenProducto("prod-1", "")).rejects.toThrow();
+  });
+});

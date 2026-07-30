@@ -51,6 +51,7 @@ export function ProductCard({
         <ProductImage
           src={product.imageUrl}
           alt={product.nombre}
+          brand={product.marca}
           sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
           className={imageFit === "contain" ? "object-contain" : "object-cover"}
         />
@@ -81,14 +82,22 @@ export function ProductCard({
           ) : null}
         </div>
       </div>
-      <div className="flex flex-1 flex-col space-y-4 p-4">
-        <div className="space-y-2">
-          <h4 className="text-[1.25rem] font-semibold leading-tight text-[#111318]">
+      <div className="flex flex-1 flex-col space-y-3 p-4">
+        <div className="space-y-1">
+          {product.marca ? (
+            <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
+              {product.marca}
+            </p>
+          ) : null}
+          <h4 className="line-clamp-2 text-base font-semibold leading-tight text-[#111318] sm:text-[1.1rem]">
             {product.nombre}
           </h4>
+          {product.contenido ? <p className="text-xs text-[#98a2b3]">{product.contenido}</p> : null}
+        </div>
+        <div className="space-y-2">
           <p
-            className={`product-description mt-1 break-words text-sm leading-relaxed text-[#667085] ${
-              descriptionExpanded ? "" : "line-clamp-2 sm:line-clamp-3"
+            className={`product-description break-words text-sm leading-relaxed text-[#667085] ${
+              descriptionExpanded ? "" : "line-clamp-2"
             }`}
           >
             {product.descripcion}
@@ -104,21 +113,16 @@ export function ProductCard({
           ) : null}
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#667085]">
-              Valor unitario
-            </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#111318]">
-                {formatCurrency(product.precioVenta)}
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0 flex flex-wrap items-baseline gap-2">
+            <span className="text-xl font-bold text-[#111318] sm:text-2xl">
+              {formatCurrency(product.precioVenta)}
+            </span>
+            {hasPreviousPrice ? (
+              <span className="text-sm font-medium text-[#98a2b3] line-through">
+                {formatCurrency(product.precioAnterior as number)}
               </span>
-              {hasPreviousPrice ? (
-                <span className="text-sm font-medium text-[#98a2b3] line-through">
-                  {formatCurrency(product.precioAnterior as number)}
-                </span>
-              ) : null}
-            </div>
+            ) : null}
           </div>
 
           {quantity > 0 && onDecrease && onRemove ? (
@@ -161,12 +165,21 @@ export function ProductCard({
           )}
         </div>
 
-        <div className="flex items-center justify-between rounded-xl bg-[#f7f8fa] px-4 py-3 text-sm">
-          <span className="font-medium text-[#667085]">{footerLabel}</span>
-          <span className="font-semibold text-[#344054]">
-            {showStockCount ? String(availableStock) : isOutOfStock ? "Agotado" : "Disponible"}
-          </span>
-        </div>
+        {showStockCount ? (
+          <div className="rounded-xl bg-[#f7f8fa] px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm">
+            <div className="truncate font-medium text-[#667085]">{footerLabel}</div>
+            <div className="truncate font-semibold text-[#344054]">{availableStock}</div>
+          </div>
+        ) : (
+          <div
+            className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+              isOutOfStock ? "bg-[#fdf1ef] text-[#8a2c22]" : "bg-[#eefbf1] text-[#1f6d33]"
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${isOutOfStock ? "bg-[#b44b43]" : "bg-[#1f9d4b]"}`} />
+            {isOutOfStock ? "Agotado" : "Disponible"}
+          </div>
+        )}
       </div>
     </article>
   );

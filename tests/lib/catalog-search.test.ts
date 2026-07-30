@@ -59,6 +59,11 @@ describe("catalog-search - filterAndSortProducts", () => {
     expect(result.map((p) => p.nombre)).toEqual(["212 Vip", "La Bomba", "Sauvage"]);
   });
 
+  it("recomendados preserva el orden recibido", () => {
+    const result = filterAndSortProducts(products, { sort: "recomendados" });
+    expect(result.map((p) => p.id)).toEqual(["1", "2", "3"]);
+  });
+
   it("ordena por precio ascendente", () => {
     const result = filterAndSortProducts(products, { sort: "precio-asc" });
     expect(result.map((p) => p.precioVenta)).toEqual([40000, 65000, 80000]);

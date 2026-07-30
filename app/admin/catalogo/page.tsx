@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { QuickStockPanel } from "@/components/admin/QuickStockPanel";
+import { CatalogControlCenter } from "@/components/admin/CatalogControlCenter";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 
-export default async function AdminStockPage() {
+export default async function AdminCatalogoPage() {
   if (!(await isAdminAuthenticated())) {
     redirect("/admin/login");
   }
 
-  return <QuickStockPanel />;
+  return <CatalogControlCenter />;
 }

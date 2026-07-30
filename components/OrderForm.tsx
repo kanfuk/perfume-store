@@ -1116,19 +1116,24 @@ export function OrderForm() {
       {itemCount > 0 ? (
         <div className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-xl xl:hidden">
           <div className="flex items-center justify-between gap-4 rounded-[26px] border border-[#c1b6ff] bg-[linear-gradient(135deg,#452bb8_0%,#5434e6_55%,#7357ff_100%)] px-4 py-3 text-white shadow-[0_22px_46px_rgba(17,19,24,0.28)]">
-            <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCartSheetOpen(true)}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              aria-label="Ver pedido"
+            >
               <span className="cart-count-badge shrink-0 border border-white/20 bg-[#fff3] text-white">
                 {itemCount}
               </span>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-wide text-white/75">
-                  {itemCount} producto{itemCount === 1 ? "" : "s"} · {formatCurrency(total)}
+                  Ver pedido · {itemCount} producto{itemCount === 1 ? "" : "s"} · {formatCurrency(total)}
                 </div>
                 <div className="truncate text-sm font-medium text-white/90">
                   {cartCtaCopy.message}
                 </div>
               </div>
-            </div>
+            </button>
             <button
               type="button"
               onClick={handleCartPrimaryAction}
