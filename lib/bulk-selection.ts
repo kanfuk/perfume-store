@@ -42,3 +42,20 @@ export function isEntireCatalogSelected(selected: ReadonlySet<string>, allIds: r
 export function toUniqueIdArray(selected: ReadonlySet<string>): string[] {
   return [...selected];
 }
+
+export type MasterCheckboxState = "unchecked" | "indeterminate" | "checked";
+
+/**
+ * Estado real (no solo visual) del checkbox maestro "Seleccionar todo el
+ * catalogo": sin seleccion = unchecked, seleccion parcial = indeterminate,
+ * catalogo completo seleccionado = checked. La UI debe usar la propiedad
+ * DOM `indeterminate` (no solo color) para el estado intermedio.
+ */
+export function getMasterCheckboxState(
+  selected: ReadonlySet<string>,
+  allIds: readonly string[]
+): MasterCheckboxState {
+  if (selected.size === 0) return "unchecked";
+  if (isEntireCatalogSelected(selected, allIds)) return "checked";
+  return "indeterminate";
+}

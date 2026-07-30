@@ -5,7 +5,8 @@ import {
   toggleId,
   countVisibleSelected,
   isEntireCatalogSelected,
-  toUniqueIdArray
+  toUniqueIdArray,
+  getMasterCheckboxState
 } from "@/lib/bulk-selection.ts";
 
 describe("bulk-selection - selectIds (seleccionar visibles/resultados/todo)", () => {
@@ -97,5 +98,48 @@ describe("bulk-selection - toUniqueIdArray", () => {
     const array = toUniqueIdArray(selected);
     expect(array).toEqual(["p1", "p2"]);
     expect(new Set(array).size).toBe(array.length);
+  });
+});
+
+describe("bulk-selection - getMasterCheckboxState (checkbox maestro de Stock rapido)", () => {
+  const allIds = Array.from({ length: 101 }, (_, index) => `p${index + 1}`); // mas de 100 productos
+
+  it("catalogo sin ninguna seleccion = unchecked", () => {
+    expect(getMasterCheckboxState(new Set(), allIds)).toBe("unchecked");
+  });
+
+  it("seleccion parcial (algunos pero no todos) = indeterminate", () => {
+    const selected = new Set(["p1", "p2", "p50"]);
+    expect(getMasterCheckboxState(selected, allIds)).toBe("indeterminate");
+  });
+
+  it("catalogo completo seleccionado (los 101 productId) = checked", () => {
+    const selected = new Set(allIds);
+    expect(getMasterCheckboxState(selected, allIds)).toBe("checked");
+  });
+
+  it("desmarcar el maestro (limpiar seleccion) vuelve a unchecked", () => {
+    const full = new Set(allIds);
+    const cleared = clearSelection();
+    expect(getMasterCheckboxState(full, allIds)).toBe("checked");
+    expect(getMasterCheckboxState(cleared, allIds)).toBe("unchecked");
+  });
+
+  it("seleccionar todo el catalogo incluye todos los productId y no duplica", () => {
+    const seleccion = selectIds(new Set(), allIds);
+    expect(seleccion.size).toBe(101);
+    expect(getMasterCheckboxState(seleccion, allIds)).toBe("checked");
+    expect(toUniqueIdArray(seleccion)).toHaveLength(101);
+  });
+
+  it("cambiar de filtro (menos ids visibles) no altera el estado 'checked' de la seleccion total", () => {
+    const seleccion = selectIds(new Set(), allIds);
+    const visiblesTrasFiltro = allIds.slice(0, 5); // un filtro nuevo reduce lo renderizado, no la seleccion
+    expect(getMasterCheckboxState(seleccion, allIds)).toBe("checked");
+    expect(countVisibleSelected(seleccion, visiblesTrasFiltro)).toBe(5);
+  });
+
+  it("catalogo vacio nunca es 'checked' (isEntireCatalogSelected ya lo garantiza)", () => {
+    expect(getMasterCheckboxState(new Set(), [])).toBe("unchecked");
   });
 });

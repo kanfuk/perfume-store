@@ -10,7 +10,8 @@ import {
   getAvailableFamilyBrands,
   filterAndSortFamilies,
   groupByFamilyKey,
-  getTopFamilies
+  getTopFamilies,
+  getSelectableVariants
 } from "@/lib/product-families.ts";
 import type { ProductRecord } from "@/lib/types";
 
@@ -185,6 +186,69 @@ describe("product-families - disponibilidad", () => {
     ];
     const [family] = groupProductsIntoFamilies(products);
     expect(getDefaultVariant(family).productId).toBe("p50");
+  });
+});
+
+describe("product-families - getSelectableVariants (pausados vs sin stock, Fase 2B.10)", () => {
+  it("una variante pausada (activo=false) queda excluida por completo del selector publico", () => {
+    const products = [
+      product({ id: "p30", nombre: "X", contenido: "30ML", activo: true, stockActual: 3 }),
+      product({ id: "p80", nombre: "X", contenido: "80ML", activo: false, stockActual: 5 }) // pausada
+    ];
+    const [family] = groupProductsIntoFamilies(products);
+    const selectable = getSelectableVariants(family);
+    expect(selectable.map((v) => v.productId)).toEqual(["p30"]);
+  });
+
+  it("una variante activa sin stock SI aparece en el selector, pero deshabilitada (no disponible)", () => {
+    const products = [
+      product({ id: "p30", nombre: "X", contenido: "30ML", activo: true, stockActual: 0 }),
+      product({ id: "p80", nombre: "X", contenido: "80ML", activo: true, stockActual: 5 })
+    ];
+    const [family] = groupProductsIntoFamilies(products);
+    const selectable = getSelectableVariants(family);
+    expect(selectable.map((v) => v.productId)).toEqual(["p30", "p80"]);
+    expect(selectable.find((v) => v.productId === "p30")!.disponible).toBe(false);
+  });
+
+  it("getDefaultVariant nunca preselecciona una variante pausada", () => {
+    const products = [
+      product({ id: "p30", nombre: "X", contenido: "30ML", activo: false, stockActual: 10 }), // pausada, con stock
+      product({ id: "p80", nombre: "X", contenido: "80ML", activo: true, stockActual: 0 }) // activa pero sin stock
+    ];
+    const [family] = groupProductsIntoFamilies(products);
+    expect(getDefaultVariant(family).productId).toBe("p80");
+  });
+
+  it("getFamilyMinPrice/getFamilyMaxPrice ignoran variantes pausadas", () => {
+    const products = [
+      product({ id: "p1", nombre: "X", contenido: "30ML", precioVenta: 1000, activo: false, stockActual: 5 }), // pausada, barata
+      product({ id: "p2", nombre: "X", contenido: "50ML", precioVenta: 5000, activo: true, stockActual: 3 })
+    ];
+    const [family] = groupProductsIntoFamilies(products);
+    expect(getFamilyMinPrice(family)).toBe(5000);
+    expect(getFamilyMaxPrice(family)).toBe(5000);
+  });
+
+  it("getFamilySearchHaystack no expone el contenido/SKU de variantes pausadas", () => {
+    const products = [
+      product({ id: "p1", nombre: "X", marca: "Y", contenido: "80ML", sku: "SKU-PAUSADA", activo: false, stockActual: 5 })
+    ];
+    const [family] = groupProductsIntoFamilies(products);
+    const haystack = getFamilySearchHaystack(family).toLowerCase();
+    expect(haystack).not.toContain("80ml");
+    expect(haystack).not.toContain("sku-pausada");
+  });
+
+  it("familia con todas las variantes pausadas o sin stock se oculta del catalogo publico", () => {
+    const products = [
+      product({ id: "p1", nombre: "X", contenido: "30ML", activo: false, stockActual: 10 }), // pausada
+      product({ id: "p2", nombre: "X", contenido: "50ML", activo: true, stockActual: 0 }), // sin stock
+      product({ id: "p3", nombre: "Y", contenido: "50ML", activo: true, stockActual: 4 })
+    ];
+    const families = groupProductsIntoFamilies(products);
+    const visible = getVisibleFamilies(families);
+    expect(visible.map((f) => f.nombre)).toEqual(["Y"]);
   });
 });
 

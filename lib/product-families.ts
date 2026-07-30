@@ -206,33 +206,48 @@ export function getTopFamilies(families: ProductFamily[], limit: number): TopFam
     .slice(0, limit);
 }
 
+/**
+ * Variantes que pueden ofrecerse publicamente: excluye las pausadas por
+ * completo (una pausa administrativa significa que esa variante no se
+ * ofrece, no que aparezca deshabilitada). Las variantes activas sin stock SI
+ * se incluyen aqui: esas deben verse en el selector, pero deshabilitadas con
+ * "Sin stock". Preserva el orden (ya ordenado por contenido ascendente).
+ */
+export function getSelectableVariants(family: ProductFamily): ProductVariant[] {
+  return family.variants.filter((v) => v.activo);
+}
+
 /** Familias con al menos una variante disponible (activa y con stock). Las demas no deben mostrarse en el catalogo publico. */
 export function getVisibleFamilies(families: ProductFamily[]): ProductFamily[] {
   return families.filter((family) => family.variants.some((v) => v.disponible));
 }
 
-/** Variante seleccionada por defecto: disponible de menor contenido; si ninguna esta disponible, la primera. */
+/** Variante seleccionada por defecto: disponible de menor contenido; si ninguna esta disponible, la primera variante activa (nunca una pausada). */
 export function getDefaultVariant(family: ProductFamily): ProductVariant {
-  return family.variants.find((v) => v.disponible) ?? family.variants[0];
+  const selectable = getSelectableVariants(family);
+  return selectable.find((v) => v.disponible) ?? selectable[0] ?? family.variants[0];
 }
 
-/** Precio minimo entre variantes disponibles (o entre todas si ninguna esta disponible). Util para ordenar por "menor precio". */
+/** Precio minimo entre variantes disponibles (o entre las activas si ninguna esta disponible). Util para ordenar por "menor precio". */
 export function getFamilyMinPrice(family: ProductFamily): number {
-  const pool = family.variants.filter((v) => v.disponible);
-  const source = pool.length > 0 ? pool : family.variants;
+  const selectable = getSelectableVariants(family);
+  const pool = selectable.filter((v) => v.disponible);
+  const source = pool.length > 0 ? pool : selectable.length > 0 ? selectable : family.variants;
   return Math.min(...source.map((v) => v.precioVenta));
 }
 
-/** Precio maximo entre variantes disponibles (o entre todas si ninguna esta disponible). Util para ordenar por "mayor precio". */
+/** Precio maximo entre variantes disponibles (o entre las activas si ninguna esta disponible). Util para ordenar por "mayor precio". */
 export function getFamilyMaxPrice(family: ProductFamily): number {
-  const pool = family.variants.filter((v) => v.disponible);
-  const source = pool.length > 0 ? pool : family.variants;
+  const selectable = getSelectableVariants(family);
+  const pool = selectable.filter((v) => v.disponible);
+  const source = pool.length > 0 ? pool : selectable.length > 0 ? selectable : family.variants;
   return Math.max(...source.map((v) => v.precioVenta));
 }
 
-/** Todo el texto buscable de una familia: nombre, marca y el contenido de cada variante. */
+/** Todo el texto buscable de una familia: nombre, marca y el contenido de cada variante ofrecible (las pausadas no son buscables por tamano). */
 export function getFamilySearchHaystack(family: ProductFamily): string {
-  return [family.nombre, family.marca, ...family.variants.map((v) => v.contenido), ...family.variants.map((v) => v.sku ?? "")]
+  const selectable = getSelectableVariants(family);
+  return [family.nombre, family.marca, ...selectable.map((v) => v.contenido), ...selectable.map((v) => v.sku ?? "")]
     .join(" ");
 }
 

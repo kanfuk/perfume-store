@@ -17,7 +17,8 @@ import {
   clearSelection,
   toggleId,
   countVisibleSelected,
-  isEntireCatalogSelected
+  isEntireCatalogSelected,
+  getMasterCheckboxState
 } from "@/lib/bulk-selection";
 import type { AdminProductRecord } from "@/lib/types";
 import type { BulkStockOperation, BulkStockPreview, BulkStockConfirmResult } from "@/services/productoService";
@@ -108,6 +109,7 @@ export function QuickStockPanel() {
 
   const openerButtonRef = useRef<HTMLButtonElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
+  const masterCheckboxRef = useRef<HTMLInputElement | null>(null);
 
   async function loadProducts() {
     setLoading(true);
@@ -171,6 +173,23 @@ export function QuickStockPanel() {
   const visibleIds = useMemo(() => visibleProducts.map((p) => p.id), [visibleProducts]);
   const visibleSelectedCount = countVisibleSelected(selectedIds, visibleIds);
   const isWholeCatalogSelected = isEntireCatalogSelected(selectedIds, allIds);
+  const masterCheckboxState = getMasterCheckboxState(selectedIds, allIds);
+  const isPartialSelection = masterCheckboxState === "indeterminate";
+  const hasActiveFilter = query.trim() !== "" || brandFilter !== "" || quickFilter !== "todos";
+
+  useEffect(() => {
+    if (masterCheckboxRef.current) {
+      masterCheckboxRef.current.indeterminate = isPartialSelection;
+    }
+  }, [isPartialSelection]);
+
+  function handleMasterCheckboxChange(checked: boolean) {
+    if (checked) {
+      handleSelectAll();
+    } else {
+      handleClearSelection();
+    }
+  }
 
   function resetFilters(patch: Partial<{ query: string; brandFilter: string; quickFilter: QuickFilter }>) {
     if (patch.query !== undefined) setQuery(patch.query);
@@ -481,44 +500,59 @@ export function QuickStockPanel() {
           ))}
         </div>
 
-        {/* Barra de controles de seleccion (seccion 3) */}
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5">
-          <button
-            type="button"
-            onClick={handleSelectVisible}
-            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#344054]"
-          >
-            Seleccionar visibles
-          </button>
-          <button
-            type="button"
-            onClick={handleSelectFiltered}
-            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#344054]"
-          >
-            Seleccionar resultados
-          </button>
-          <button
-            type="button"
-            onClick={handleSelectAll}
-            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#344054]"
-          >
-            Seleccionar todo
-          </button>
-          <button
-            type="button"
-            onClick={handleClearSelection}
-            disabled={selectedIds.size === 0}
-            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Limpiar selección
-          </button>
+        {/* Checkbox maestro siempre visible (seccion 3-5): selecciona TODO el catalogo con un toque, */}
+        {/* sin depender de filtros, scroll ni de encontrar un boton perdido entre otros controles. */}
+        <div className="sticky top-0 z-20 space-y-2 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] px-4 py-3 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <label className="flex min-h-11 w-fit cursor-pointer items-center gap-3 rounded-xl border-2 border-[#7357ff] bg-white px-3.5 py-2 shadow-sm">
+              <input
+                ref={masterCheckboxRef}
+                type="checkbox"
+                checked={isWholeCatalogSelected}
+                onChange={(event) => handleMasterCheckboxChange(event.target.checked)}
+                aria-label="Seleccionar todos los productos del catálogo"
+                className="h-5 w-5 accent-[#7357ff]"
+              />
+              <span className="text-sm font-bold text-[#392694]">
+                <span className="hidden sm:inline">Seleccionar todo el catálogo</span>
+                <span className="sm:hidden">Todo el catálogo</span>
+                {" · "}
+                {allIds.length} producto{allIds.length === 1 ? "" : "s"}
+              </span>
+            </label>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+              <span className="font-semibold text-[#344054]" aria-live="polite">
+                {selectedIds.size} seleccionado(s) · {visibleSelectedCount} visibles
+              </span>
+              <button
+                type="button"
+                onClick={handleSelectFiltered}
+                className="min-h-9 rounded-lg border border-[#d8cdfe] bg-white px-3 py-1.5 font-semibold text-[#5434e6]"
+              >
+                Seleccionar resultados{hasActiveFilter ? `: ${filtered.length}` : ""}
+              </button>
+              <button
+                type="button"
+                onClick={handleSelectVisible}
+                className="font-semibold text-[#667085] underline decoration-dotted underline-offset-2"
+              >
+                Seleccionar visibles
+              </button>
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                disabled={selectedIds.size === 0}
+                className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
         </div>
 
         <p className="text-sm font-medium text-[#344054]" aria-live="polite">
-          {filtered.length} producto(s) · {selectedIds.size} seleccionado(s)
-          {selectedIds.size > 0 && selectedIds.size !== visibleSelectedCount
-            ? ` · ${visibleSelectedCount} visibles en este filtro`
-            : ""}
+          {filtered.length} producto(s) encontrado(s)
         </p>
 
         {loading ? (

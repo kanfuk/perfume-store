@@ -41,7 +41,9 @@ Ningún modificador (EDT, EDP, Eau de Toilette, Eau de Parfum, Parfum, Elixir, I
 
 Cada variante (`ProductVariant`) conserva sus propios campos; `groupProductsIntoFamilies` nunca combina, promedia ni comparte estos valores entre variantes. `disponible = activo && stock_actual > 0`. La variante inicial seleccionada es la disponible de menor contenido (`getDefaultVariant`); si ninguna variante de la familia está disponible, la familia completa se oculta del catálogo público (`getVisibleFamilies`).
 
-**Cambio necesario en `/api/products`** (`ProductoService.obtenerProductosActivos`): antes filtraba producto por producto (activo + stock + precio); ahora una **familia** es visible si **al menos una** de sus variantes es vendible, y en ese caso se exponen **todas** sus variantes (incluidas las agotadas/pausadas), para que el selector pueda mostrarlas como "Sin stock" en vez de ocultarlas por completo. Se agregó el campo `activo` a la respuesta pública (antes no viajaba). El endpoint y su forma (`{ products: ProductRecord[] }`) no cambiaron; solo cambió qué filas del catálogo incluye.
+**Cambio necesario en `/api/products`** (`ProductoService.obtenerProductosActivos`): antes filtraba producto por producto (activo + stock + precio); ahora una **familia** es visible si **al menos una** de sus variantes es vendible, y en ese caso se exponen **todas** sus variantes (incluidas las agotadas/pausadas). Se agregó el campo `activo` a la respuesta pública (antes no viajaba). El endpoint y su forma (`{ products: ProductRecord[] }`) no cambiaron; solo cambió qué filas del catálogo incluye.
+
+> **Superado en Fase 2B.10** (`docs/SMELLME_PUBLIC_SEARCH_FIRST_CATALOG.md`): esta fase mostraba las variantes pausadas en el selector como "Sin stock", igual que las agotadas. Eso quedó corregido: `getSelectableVariants(family)` excluye del todo las variantes con `activo=false` (una pausa administrativa significa que esa variante no se ofrece), mientras que las activas sin stock siguen apareciendo, deshabilitadas, como "Sin stock".
 
 ## 5. Selector público (`ProductFamilyCard`)
 
@@ -52,6 +54,8 @@ Cada variante (`ProductVariant`) conserva sus propios campos; `groupProductsInto
 `ProductCard.tsx` ganó una prop opcional `sizeSelector` (reemplaza la línea estática de contenido cuando se provee); se mantiene 100% retrocompatible para sus otros usos.
 
 **`ProductCatalog.tsx` se mantiene intacto a propósito**: también lo usa el selector de productos de venta directa en `AdminDirectSale.tsx`, que debe seguir mostrando cada producto/SKU individual con su stock exacto (un admin vendiendo manualmente necesita elegir la fila real, no una abstracción de familia). Se creó `FamilyCatalog.tsx` como componente nuevo y separado para el catálogo público.
+
+> **Superado en Fase 2B.10**: `FamilyCatalog.tsx` (tarjetas grandes con imagen para el catálogo completo) se eliminó — el catálogo completo (100+ productos) pasó a un directorio compacto sin fotografías (`CompactFamilyCatalog.tsx`/`CompactFamilyRow.tsx`, ver `docs/SMELLME_PUBLIC_SEARCH_FIRST_CATALOG.md`). `ProductFamilyCard.tsx` (con imagen) se mantiene, pero ahora exclusivamente para el Top 12.
 
 ## 6. Búsqueda, filtros, orden y paginación
 

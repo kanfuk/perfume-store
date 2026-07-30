@@ -103,3 +103,17 @@ Acción: Dejar stock disponible en 1
 Producto A: reservado 0 → stock final 1.
 Producto B: reservado 2 → stock final 3.
 ```
+
+## 12. Actualización — Fase 2B.10: checkbox maestro siempre visible
+
+**Problema reportado**: aunque "Seleccionar todo" ya existía y funcionaba (sección 2), en la interfaz real era un botón de texto más entre otros tres botones idénticos (`Seleccionar visibles` / `Seleccionar resultados` / `Seleccionar todo` / `Limpiar selección`), sin jerarquía visual, sin checkbox, sin contador junto al botón y sin estado indeterminado. Nada indicaba que "Seleccionar todo" ignoraba filtros y actuaba sobre el catálogo completo. No estaba "perdido" al final de la página ni oculto tras una condición: el problema era puramente de jerarquía visual y de affordance (un botón de texto no comunica "esto es un checkbox de 3 estados").
+
+**Corrección**: se reemplazó esa fila de botones por un checkbox maestro real (`<input type="checkbox">`), siempre visible (`sticky top-0` dentro del panel de Stock rápido, antes de la grilla, sin depender de scroll ni de filtros), con:
+
+- Etiqueta visible: `"Seleccionar todo el catálogo · {n} productos"` (móvil: `"Todo el catálogo · {n} productos"`).
+- Etiqueta accesible: `aria-label="Seleccionar todos los productos del catálogo"`.
+- Tres estados reales, no solo de color: **unchecked** (sin selección), **indeterminate** (selección parcial — se fija con la propiedad DOM `element.indeterminate`, nunca simulada solo con estilos), **checked** (`isEntireCatalogSelected` true). Nueva función pura `getMasterCheckboxState(selected, allIds)` en `lib/bulk-selection.ts` centraliza esta decisión y es 100% testeable sin DOM.
+- Junto al checkbox: contador siempre visible `"{seleccionados} seleccionado(s) · {visibles} visibles"`, el botón secundario `"Seleccionar resultados"` (con el conteo del filtro activo cuando aplica: `"Seleccionar resultados: 18"`) y `"Limpiar"`. `"Seleccionar visibles"` se mantuvo como acción secundaria de menor jerarquía (enlace de texto subrayado) para no competir visualmente con el checkbox maestro, tal como pide esta fase.
+- No se duplicó lógica de selección: el checkbox invoca las mismas funciones ya existentes (`selectIds(current, allIds)` al marcar, `clearSelection()` al desmarcar) — el cambio fue exclusivamente de presentación/jerarquía, no de reglas de selección.
+
+No hay diferencia de comportamiento entre escritorio y celular (mismo componente, mismo `aria-label`); el mínimo de 44px de alto se cumple en la etiqueta del checkbox y en los botones secundarios.

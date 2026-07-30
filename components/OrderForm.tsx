@@ -19,6 +19,7 @@ import { OffersSection } from "@/components/shared/OffersSection";
 import { CatalogExplorer } from "@/components/shared/CatalogExplorer";
 import { AppToast } from "@/components/shared/AppToast";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
+import { groupProductsIntoFamilies, getTopFamilies } from "@/lib/product-families";
 import {
   CHILE_REGIONS,
   getCommunesForRegion,
@@ -30,7 +31,8 @@ import {
   calcularCostoDespacho,
   METODO_DESPACHO_DOMICILIO_SEMANAL,
   METODO_DESPACHO_LABELS,
-  METODO_DESPACHO_STARKEN_POR_PAGAR
+  METODO_DESPACHO_STARKEN_POR_PAGAR,
+  TOP_PRODUCTS_LIMIT
 } from "@/lib/constants";
 import { normalizeCustomerLookupValue } from "@/lib/customers/identity";
 import { formatCurrency } from "@/lib/format";
@@ -275,6 +277,11 @@ export function OrderForm() {
     () => Object.fromEntries(form.items.map((item) => [item.productoId, item.cantidad])),
     [form.items]
   );
+
+  const topFamilyKeys = useMemo(() => {
+    const families = groupProductsIntoFamilies(products);
+    return new Set(getTopFamilies(families, TOP_PRODUCTS_LIMIT).map((entry) => entry.family.key));
+  }, [products]);
 
   function handleAddToCatalog(productId: string) {
     const product = products.find((item) => item.id === productId);
@@ -798,16 +805,14 @@ export function OrderForm() {
                 onDecrease={decrementItem}
                 onRemove={removeItem}
               />
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-[#111318]">Catálogo completo</h3>
-                <CatalogExplorer
-                  products={products}
-                  quantities={catalogQuantities}
-                  onAdd={handleAddToCatalog}
-                  onDecrease={decrementItem}
-                  onRemove={removeItem}
-                />
-              </div>
+              <CatalogExplorer
+                products={products}
+                quantities={catalogQuantities}
+                onAdd={handleAddToCatalog}
+                onDecrease={decrementItem}
+                onRemove={removeItem}
+                top12Keys={topFamilyKeys}
+              />
             </div>
             {validation.errors.items ? (
               <p className="text-sm text-danger">{validation.errors.items}</p>

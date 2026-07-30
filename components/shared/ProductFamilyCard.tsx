@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { formatCurrency } from "@/lib/format";
-import { getDefaultVariant, type ProductFamily } from "@/lib/product-families";
+import { getDefaultVariant, getSelectableVariants, type ProductFamily } from "@/lib/product-families";
 import type { ProductRecord } from "@/lib/types";
 
 type ProductFamilyCardProps = {
@@ -40,13 +40,15 @@ export function ProductFamilyCard({
   rank,
   initialVariantId
 }: ProductFamilyCardProps) {
+  const selectableVariants = getSelectableVariants(family);
   const [selectedId, setSelectedId] = useState(() => {
-    if (initialVariantId && family.variants.some((v) => v.productId === initialVariantId)) {
+    if (initialVariantId && selectableVariants.some((v) => v.productId === initialVariantId)) {
       return initialVariantId;
     }
     return getDefaultVariant(family).productId;
   });
-  const selected = family.variants.find((v) => v.productId === selectedId) ?? family.variants[0];
+  const selected =
+    selectableVariants.find((v) => v.productId === selectedId) ?? getDefaultVariant(family);
 
   const virtualProduct: ProductRecord = {
     id: selected.productId,
@@ -67,7 +69,7 @@ export function ProductFamilyCard({
   };
 
   const selectorId = `family-size-${family.key}`;
-  const hasMultipleVariants = family.variants.length > 1;
+  const hasMultipleVariants = selectableVariants.length > 1;
 
   const sizeSelector = hasMultipleVariants ? (
     <div className="space-y-1" onClick={(event) => event.stopPropagation()}>
@@ -80,7 +82,7 @@ export function ProductFamilyCard({
         onChange={(event) => setSelectedId(event.target.value)}
         className="min-h-11 w-full rounded-lg border border-[#e4e7ec] bg-white px-3 py-2 text-sm text-[#111318] outline-none focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
       >
-        {family.variants.map((variant) => (
+        {selectableVariants.map((variant) => (
           <option key={variant.productId} value={variant.productId} disabled={!variant.disponible}>
             {variant.contenido} — {formatCurrency(variant.precioVenta)}
             {variant.disponible ? "" : " (Sin stock)"}
