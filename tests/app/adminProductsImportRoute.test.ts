@@ -10,7 +10,12 @@ vi.mock("@/lib/http-security", () => ({
   validateJsonRequest: () => null
 }));
 
-const { previsualizarImportacionCsv, confirmarImportacionCsv } = vi.hoisted(() => ({
+const {
+  previsualizarImportacionCsv,
+  confirmarImportacionCsv,
+  previsualizarImportacionProveedor,
+  confirmarImportacionProveedor
+} = vi.hoisted(() => ({
   previsualizarImportacionCsv: vi.fn(async () => ({
     totalFilas: 1,
     filasValidas: [{ sku: "SML-1" }] as unknown[],
@@ -19,11 +24,39 @@ const { previsualizarImportacionCsv, confirmarImportacionCsv } = vi.hoisted(() =
     resumen: { crear: 1, actualizar: 0, bloqueado: 0 },
     erroresGlobales: [] as string[]
   })),
-  confirmarImportacionCsv: vi.fn(async () => ({ creados: 1, actualizados: 0 }))
+  confirmarImportacionCsv: vi.fn(async () => ({ creados: 1, actualizados: 0 })),
+  previsualizarImportacionProveedor: vi.fn(async () => ({
+    perfil: "proveedor",
+    porcentajeAplicado: 35,
+    filasFisicas: 1,
+    filasVacias: 0,
+    filasUtiles: 1,
+    erroresFila: [] as unknown[],
+    plan: [
+      {
+        rowNumber: 2,
+        sku: "SML-CAROLINA-HERRERA-LA-BOMBA-80ML",
+        nombre: "La Bomba",
+        marca: "Carolina Herrera",
+        contenido: "80ML",
+        costoUnitario: 58000,
+        precioVenta: 78300,
+        action: "CREAR"
+      }
+    ] as unknown[],
+    resumen: { crear: 1, actualizar: 0, bloqueado: 0 },
+    erroresGlobales: [] as string[]
+  })),
+  confirmarImportacionProveedor: vi.fn(async () => ({ creados: 1, actualizados: 0 }))
 }));
 
 vi.mock("@/services/productoService", () => ({
-  createProductoService: () => ({ previsualizarImportacionCsv, confirmarImportacionCsv })
+  createProductoService: () => ({
+    previsualizarImportacionCsv,
+    confirmarImportacionCsv,
+    previsualizarImportacionProveedor,
+    confirmarImportacionProveedor
+  })
 }));
 
 import { POST } from "@/app/api/admin/products/import/route";
@@ -36,11 +69,25 @@ function makeRequest(body: unknown) {
   });
 }
 
+// Contenido base64 irrelevante para el contenido real: al forzar "profile"
+// explicitamente, la ruta nunca intenta detectar el perfil por encabezados.
+const FAKE_FILE_BASE64 = "aGVsbG8=";
+
+async function getPreviewHash(extra: Record<string, unknown> = {}): Promise<string> {
+  const response = await POST(
+    makeRequest({ action: "preview", fileName: "a.csv", fileBase64: FAKE_FILE_BASE64, ...extra })
+  );
+  const data = await response.json();
+  return data.previewHash;
+}
+
 describe("POST /api/admin/products/import", () => {
   beforeEach(() => {
     isAdminAuthenticated.mockClear();
     previsualizarImportacionCsv.mockClear();
     confirmarImportacionCsv.mockClear();
+    previsualizarImportacionProveedor.mockClear();
+    confirmarImportacionProveedor.mockClear();
   });
 
   it("rechaza con 401 cuando el admin no esta autenticado", async () => {
@@ -60,50 +107,156 @@ describe("POST /api/admin/products/import", () => {
   it("rechaza archivos cuyo base64 excede el limite de tamaño", async () => {
     const hugeBase64 = "A".repeat(3 * 1024 * 1024 + 10);
     const response = await POST(
-      makeRequest({ action: "preview", fileName: "a.csv", fileBase64: hugeBase64 })
+      makeRequest({ action: "preview", fileName: "a.csv", fileBase64: hugeBase64, profile: "canonico" })
     );
     expect(response.status).toBe(413);
     expect(previsualizarImportacionCsv).not.toHaveBeenCalled();
   });
 
-  it("action=preview solo llama al preview (dry-run), nunca a confirmar", async () => {
+  it("rechaza cuando no se puede detectar el perfil automaticamente", async () => {
+    // "hola mundo" no tiene encabezados de ningun perfil conocido.
+    const buffer = Buffer.from("hola,mundo\n1,2", "utf8");
     const response = await POST(
-      makeRequest({ action: "preview", fileName: "a.csv", fileBase64: "aGVsbG8=" })
+      makeRequest({ action: "preview", fileName: "a.csv", fileBase64: buffer.toString("base64") })
     );
+    expect(response.status).toBe(400);
     const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.preview.resumen).toEqual({ crear: 1, actualizar: 0, bloqueado: 0 });
-    expect(previsualizarImportacionCsv).toHaveBeenCalledTimes(1);
-    expect(confirmarImportacionCsv).not.toHaveBeenCalled();
+    expect(data.error).toMatch(/perfil de importación/i);
   });
 
-  it("action=confirm ejecuta la escritura solo si no hay errores globales", async () => {
-    const response = await POST(
-      makeRequest({ action: "confirm", fileName: "a.csv", fileBase64: "aGVsbG8=" })
-    );
-    const data = await response.json();
+  describe("perfil canonico", () => {
+    it("action=preview solo llama al preview (dry-run) y devuelve previewHash", async () => {
+      const response = await POST(
+        makeRequest({ action: "preview", fileName: "a.csv", fileBase64: FAKE_FILE_BASE64, profile: "canonico" })
+      );
+      const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data.creados).toBe(1);
-    expect(confirmarImportacionCsv).toHaveBeenCalledTimes(1);
-  });
-
-  it("action=confirm se bloquea cuando el preview trae errores globales", async () => {
-    previsualizarImportacionCsv.mockResolvedValueOnce({
-      totalFilas: 1,
-      filasValidas: [],
-      erroresFila: [],
-      plan: [],
-      resumen: { crear: 0, actualizar: 0, bloqueado: 0 },
-      erroresGlobales: ["Hay más de 12 productos destacados."]
+      expect(response.status).toBe(200);
+      expect(data.perfil).toBe("canonico");
+      expect(typeof data.previewHash).toBe("string");
+      expect(data.previewHash.length).toBeGreaterThan(0);
+      expect(data.preview.resumen).toEqual({ crear: 1, actualizar: 0, bloqueado: 0 });
+      expect(previsualizarImportacionCsv).toHaveBeenCalledTimes(1);
+      expect(confirmarImportacionCsv).not.toHaveBeenCalled();
     });
 
-    const response = await POST(
-      makeRequest({ action: "confirm", fileName: "a.csv", fileBase64: "aGVsbG8=" })
-    );
+    it("action=confirm ejecuta la escritura cuando el previewHash coincide", async () => {
+      const previewHash = await getPreviewHash({ profile: "canonico" });
 
-    expect(response.status).toBe(400);
-    expect(confirmarImportacionCsv).not.toHaveBeenCalled();
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "canonico",
+          previewHash
+        })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.creados).toBe(1);
+      expect(confirmarImportacionCsv).toHaveBeenCalledTimes(1);
+    });
+
+    it("action=confirm se rechaza con 409 si el previewHash no coincide (archivo/perfil cambiaron)", async () => {
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "canonico",
+          previewHash: "hash-invalido"
+        })
+      );
+
+      expect(response.status).toBe(409);
+      expect(confirmarImportacionCsv).not.toHaveBeenCalled();
+    });
+
+    it("action=confirm se bloquea cuando el preview trae errores globales, aun con hash valido", async () => {
+      const previewHash = await getPreviewHash({ profile: "canonico" });
+
+      previsualizarImportacionCsv.mockResolvedValueOnce({
+        totalFilas: 1,
+        filasValidas: [],
+        erroresFila: [],
+        plan: [],
+        resumen: { crear: 0, actualizar: 0, bloqueado: 0 },
+        erroresGlobales: ["Hay más de 12 productos destacados."]
+      });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "canonico",
+          previewHash
+        })
+      );
+
+      expect(response.status).toBe(400);
+      expect(confirmarImportacionCsv).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("perfil proveedor", () => {
+    it("action=preview con perfil proveedor devuelve porcentaje aplicado y plan", async () => {
+      const response = await POST(
+        makeRequest({
+          action: "preview",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35
+        })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.perfil).toBe("proveedor");
+      expect(data.preview.porcentajeAplicado).toBe(35);
+      expect(data.preview.plan[0].precioVenta).toBe(78300);
+      expect(previsualizarImportacionProveedor).toHaveBeenCalledTimes(1);
+    });
+
+    it("action=confirm con perfil proveedor ejecuta confirmarImportacionProveedor cuando el hash coincide", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash
+        })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.creados).toBe(1);
+      expect(confirmarImportacionProveedor).toHaveBeenCalledTimes(1);
+    });
+
+    it("cambiar el porcentaje entre preview y confirm invalida el hash (409, sin escritura)", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 40, // distinto al usado en el preview
+          previewHash
+        })
+      );
+
+      expect(response.status).toBe(409);
+      expect(confirmarImportacionProveedor).not.toHaveBeenCalled();
+    });
   });
 });

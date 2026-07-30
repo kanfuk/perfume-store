@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Home, ShoppingBag, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 
+type ProfileChoice = "auto" | "proveedor" | "canonico";
 type PlanAction = "CREAR" | "ACTUALIZAR" | "BLOQUEADO";
 
-type PlanRow = {
+type CanonicalPlanRow = {
   row: {
     rowNumber: number;
     sku: string;
@@ -24,16 +25,41 @@ type PlanRow = {
   reasons: string[];
 };
 
+type SupplierPlanRow = {
+  rowNumber: number;
+  sku: string;
+  nombre: string;
+  marca: string;
+  contenido: string;
+  costoUnitario: number;
+  precioVenta: number;
+  action: "CREAR" | "ACTUALIZAR";
+};
+
 type RowError = { rowNumber: number; sku: string; message: string };
 
-type Preview = {
+type CanonicalPreview = {
   totalFilas: number;
-  filasValidas: unknown[];
   erroresFila: RowError[];
-  plan: PlanRow[];
+  plan: CanonicalPlanRow[];
   resumen: { crear: number; actualizar: number; bloqueado: number };
   erroresGlobales: string[];
 };
+
+type SupplierPreview = {
+  porcentajeAplicado: number;
+  filasFisicas: number;
+  filasVacias: number;
+  filasUtiles: number;
+  erroresFila: RowError[];
+  plan: SupplierPlanRow[];
+  resumen: { crear: number; actualizar: number; bloqueado: number };
+  erroresGlobales: string[];
+};
+
+type PreviewResponse =
+  | { perfil: "canonico"; previewHash: string; preview: CanonicalPreview }
+  | { perfil: "proveedor"; previewHash: string; preview: SupplierPreview };
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -49,22 +75,28 @@ function readFileAsBase64(file: File): Promise<string> {
 }
 
 const MAX_CLIENT_FILE_SIZE = 2 * 1024 * 1024;
+const DEFAULT_MARKUP = 35;
 
 export function CatalogImportPanel() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
   const [fileBase64, setFileBase64] = useState("");
-  const [preview, setPreview] = useState<Preview | null>(null);
+  const [profileChoice, setProfileChoice] = useState<ProfileChoice>("auto");
+  const [markupPercentage, setMarkupPercentage] = useState(String(DEFAULT_MARKUP));
+  const [result, setResult] = useState<PreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
   const [confirmResult, setConfirmResult] = useState<{ creados: number; actualizados: number } | null>(null);
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    setPreview(null);
+  function resetPreviewState() {
+    setResult(null);
     setConfirmResult(null);
     setError("");
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    resetPreviewState();
 
     if (!file) return;
 
@@ -83,6 +115,16 @@ export function CatalogImportPanel() {
     setFileBase64(base64);
   }
 
+  function handleProfileChange(value: ProfileChoice) {
+    setProfileChoice(value);
+    resetPreviewState();
+  }
+
+  function handleMarkupChange(value: string) {
+    setMarkupPercentage(value);
+    resetPreviewState();
+  }
+
   async function requestPreview() {
     if (!fileBase64 || !fileName) {
       setError("Selecciona un archivo CSV primero.");
@@ -97,17 +139,23 @@ export function CatalogImportPanel() {
       const response = await fetch("/api/admin/products/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "preview", fileName, fileBase64 })
+        body: JSON.stringify({
+          action: "preview",
+          fileName,
+          fileBase64,
+          profile: profileChoice,
+          markupPercentage: Number(markupPercentage)
+        })
       });
       const data = await response.json();
 
       if (!response.ok) {
         setError(data.error ?? "No fue posible previsualizar el archivo.");
-        setPreview(data.preview ?? null);
+        setResult(null);
         return;
       }
 
-      setPreview(data.preview);
+      setResult(data);
     } catch {
       setError("No fue posible conectar con el servidor.");
     } finally {
@@ -116,7 +164,7 @@ export function CatalogImportPanel() {
   }
 
   async function confirmImport() {
-    if (!fileBase64 || !fileName || !preview) return;
+    if (!fileBase64 || !fileName || !result) return;
 
     setConfirming(true);
     setError("");
@@ -125,17 +173,23 @@ export function CatalogImportPanel() {
       const response = await fetch("/api/admin/products/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "confirm", fileName, fileBase64 })
+        body: JSON.stringify({
+          action: "confirm",
+          fileName,
+          fileBase64,
+          profile: profileChoice,
+          markupPercentage: Number(markupPercentage),
+          previewHash: result.previewHash
+        })
       });
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error ?? "No fue posible confirmar la importación.");
+        setError(data.error ?? "No fue posible confirmar la importación. Genera una vista previa nueva.");
         return;
       }
 
       setConfirmResult({ creados: data.creados, actualizados: data.actualizados });
-      setPreview(data.preview);
     } catch {
       setError("No fue posible conectar con el servidor.");
     } finally {
@@ -143,11 +197,8 @@ export function CatalogImportPanel() {
     }
   }
 
-  const canConfirm =
-    !!preview &&
-    preview.erroresGlobales.length === 0 &&
-    preview.plan.length > 0 &&
-    !confirmResult;
+  const preview = result?.preview;
+  const canConfirm = !!preview && preview.erroresGlobales.length === 0 && preview.plan.length > 0 && !confirmResult;
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1200px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
@@ -163,10 +214,9 @@ export function CatalogImportPanel() {
                 Importar catálogo (CSV)
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                Sube un CSV con el catálogo (sku, nombre, marca, contenido, costo_unitario,
-                precio_venta, stock, activo, es_top, orden_destacado, es_oferta_semana,
-                precio_anterior, image_url). Primero se genera una vista previa; nada se
-                guarda hasta que confirmes.
+                Acepta el catálogo técnico (sku, nombre, marca, contenido, costo, precio, stock...)
+                o el CSV habitual del proveedor (Perfume, Marca, Contenido, Precio Compra). Primero
+                se genera una vista previa; nada se guarda hasta que confirmes.
               </p>
             </div>
             <Link
@@ -181,15 +231,51 @@ export function CatalogImportPanel() {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
           <input
-            ref={fileInputRef}
             type="file"
             accept=".csv,text/csv"
             onChange={handleFileChange}
             aria-label="Seleccionar archivo CSV"
-            className="block w-full flex-1 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5 text-sm text-[#344054]"
+            className="block w-full rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5 text-sm text-[#344054]"
           />
+          <div className="flex flex-col gap-1">
+            <label htmlFor="profile-choice" className="text-xs font-semibold text-[#667085]">
+              Tipo de archivo
+            </label>
+            <select
+              id="profile-choice"
+              value={profileChoice}
+              onChange={(event) => handleProfileChange(event.target.value as ProfileChoice)}
+              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            >
+              <option value="auto">Detección automática</option>
+              <option value="proveedor">CSV de proveedor</option>
+              <option value="canonico">Catálogo canónico</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#667085]">
+              Recargo sobre costo (%)
+            </label>
+            <input
+              id="markup-percentage"
+              type="number"
+              min={0}
+              max={300}
+              value={markupPercentage}
+              onChange={(event) => handleMarkupChange(event.target.value)}
+              className="w-28 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            />
+          </div>
+        </div>
+
+        <p className="text-xs text-[#667085]">
+          El precio de venta se calcula agregando este porcentaje al costo. El archivo habitual del
+          proveedor no necesita SKU ni precio de venta: el sistema genera ambos automáticamente.
+        </p>
+
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={requestPreview}
@@ -218,68 +304,46 @@ export function CatalogImportPanel() {
           </div>
         ) : null}
 
-        {preview ? (
+        {result ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <SummaryTile label="Crear" value={preview.resumen.crear} tone="create" />
-              <SummaryTile label="Actualizar" value={preview.resumen.actualizar} tone="update" />
-              <SummaryTile label="Bloqueados" value={preview.resumen.bloqueado} tone="block" />
-              <SummaryTile label="Filas totales" value={preview.totalFilas} tone="neutral" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#eeebff] px-4 py-1.5 text-xs font-semibold text-[#5434e6]">
+              Perfil detectado: {result.perfil === "proveedor" ? "CSV de proveedor" : "Catálogo canónico"}
+              {result.perfil === "proveedor" ? ` · Recargo aplicado: ${result.preview.porcentajeAplicado}%` : null}
             </div>
 
-            {preview.erroresGlobales.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <SummaryTile label="Crear" value={result.preview.resumen.crear} tone="create" />
+              <SummaryTile label="Actualizar" value={result.preview.resumen.actualizar} tone="update" />
+              <SummaryTile label="Bloqueados" value={result.preview.resumen.bloqueado} tone="block" />
+              <SummaryTile
+                label="Filas totales"
+                value={result.perfil === "proveedor" ? result.preview.filasUtiles : result.preview.totalFilas}
+                tone="neutral"
+              />
+            </div>
+
+            {result.preview.erroresGlobales.length > 0 ? (
               <div className="space-y-1 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
                 <p className="font-semibold">No se puede confirmar mientras existan estos errores:</p>
                 <ul className="list-disc space-y-0.5 pl-5">
-                  {preview.erroresGlobales.map((message, index) => (
+                  {result.preview.erroresGlobales.map((message, index) => (
                     <li key={index}>{message}</li>
                   ))}
                 </ul>
               </div>
             ) : null}
 
-            {preview.plan.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
-                <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
-                    <tr>
-                      <th className="px-4 py-3">Acción</th>
-                      <th className="px-4 py-3">SKU</th>
-                      <th className="px-4 py-3">Nombre</th>
-                      <th className="px-4 py-3">Marca</th>
-                      <th className="px-4 py-3">Precio</th>
-                      <th className="px-4 py-3">Stock</th>
-                      <th className="px-4 py-3">Top</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#eef0f3]">
-                    {preview.plan.map((item) => (
-                      <tr key={item.row.sku}>
-                        <td className="px-4 py-3">
-                          <ActionBadge action={item.action} />
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs text-[#344054]">{item.row.sku}</td>
-                        <td className="px-4 py-3 text-[#111318]">{item.row.nombre}</td>
-                        <td className="px-4 py-3 text-[#667085]">{item.row.marca}</td>
-                        <td className="px-4 py-3 text-[#111318]">
-                          {item.row.precioVenta !== null ? formatCurrency(item.row.precioVenta) : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-[#111318]">{item.row.stock ?? "—"}</td>
-                        <td className="px-4 py-3 text-[#111318]">
-                          {item.row.esTop ? `#${item.row.ordenDestacado}` : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
+            {result.perfil === "proveedor" ? (
+              <SupplierPlanTable plan={result.preview.plan} />
+            ) : (
+              <CanonicalPlanTable plan={result.preview.plan} />
+            )}
 
-            {preview.erroresFila.length > 0 ? (
+            {result.preview.erroresFila.length > 0 ? (
               <div className="space-y-2 rounded-xl border border-[#fbe3b0] bg-[#fff8ec] px-4 py-3 text-sm text-[#8a5a00]">
-                <p className="font-semibold">Filas bloqueadas ({preview.erroresFila.length}):</p>
+                <p className="font-semibold">Filas bloqueadas ({result.preview.erroresFila.length}):</p>
                 <ul className="max-h-48 list-disc space-y-1 overflow-y-auto pl-5">
-                  {preview.erroresFila.map((rowError, index) => (
+                  {result.preview.erroresFila.map((rowError, index) => (
                     <li key={index}>
                       Fila {rowError.rowNumber} ({rowError.sku || "sin SKU"}): {rowError.message}
                     </li>
@@ -302,6 +366,92 @@ export function CatalogImportPanel() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
+  if (plan.length === 0) return null;
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
+      <table className="w-full min-w-[820px] text-left text-sm">
+        <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+          <tr>
+            <th className="px-4 py-3">Acción</th>
+            <th className="px-4 py-3">SKU generado</th>
+            <th className="px-4 py-3">Nombre</th>
+            <th className="px-4 py-3">Marca</th>
+            <th className="px-4 py-3">Costo</th>
+            <th className="px-4 py-3">Precio calculado</th>
+            <th className="px-4 py-3">Stock</th>
+            <th className="px-4 py-3">Estado</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#eef0f3]">
+          {plan.map((item) => (
+            <tr key={item.sku}>
+              <td className="px-4 py-3">
+                <ActionBadge action={item.action} />
+              </td>
+              <td className="px-4 py-3 font-mono text-xs text-[#344054]">{item.sku}</td>
+              <td className="px-4 py-3 text-[#111318]">{item.nombre}</td>
+              <td className="px-4 py-3 text-[#667085]">{item.marca}</td>
+              <td className="px-4 py-3 text-[#111318]">{formatCurrency(item.costoUnitario)}</td>
+              <td className="px-4 py-3 text-[#111318]">{formatCurrency(item.precioVenta)}</td>
+              <td className="px-4 py-3 text-[#667085]">
+                {item.action === "ACTUALIZAR" ? "Se conserva" : "Inicial: 0"}
+              </td>
+              <td className="px-4 py-3 text-[#667085]">
+                {item.action === "ACTUALIZAR" ? "Se conserva" : "Nuevo: inactivo"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="border-t border-[#e4e7ec] bg-[#f7f8fa] px-4 py-2 text-xs text-[#667085]">
+        Producto nuevo: se creará inactivo y con stock 0. Producto existente: stock, imagen y Top 12
+        se conservan sin cambios.
+      </p>
+    </div>
+  );
+}
+
+function CanonicalPlanTable({ plan }: { plan: CanonicalPlanRow[] }) {
+  if (plan.length === 0) return null;
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
+      <table className="w-full min-w-[720px] text-left text-sm">
+        <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+          <tr>
+            <th className="px-4 py-3">Acción</th>
+            <th className="px-4 py-3">SKU</th>
+            <th className="px-4 py-3">Nombre</th>
+            <th className="px-4 py-3">Marca</th>
+            <th className="px-4 py-3">Precio</th>
+            <th className="px-4 py-3">Stock</th>
+            <th className="px-4 py-3">Top</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#eef0f3]">
+          {plan.map((item) => (
+            <tr key={item.row.sku}>
+              <td className="px-4 py-3">
+                <ActionBadge action={item.action} />
+              </td>
+              <td className="px-4 py-3 font-mono text-xs text-[#344054]">{item.row.sku}</td>
+              <td className="px-4 py-3 text-[#111318]">{item.row.nombre}</td>
+              <td className="px-4 py-3 text-[#667085]">{item.row.marca}</td>
+              <td className="px-4 py-3 text-[#111318]">
+                {item.row.precioVenta !== null ? formatCurrency(item.row.precioVenta) : "—"}
+              </td>
+              <td className="px-4 py-3 text-[#111318]">{item.row.stock ?? "—"}</td>
+              <td className="px-4 py-3 text-[#111318]">
+                {item.row.esTop ? `#${item.row.ordenDestacado}` : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

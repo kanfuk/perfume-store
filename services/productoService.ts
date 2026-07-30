@@ -20,6 +20,11 @@ import {
   type AdminImportPreview,
   type AdminImportRow
 } from "@/lib/catalog-import/admin-import.ts";
+import {
+  buildSupplierImportPreview,
+  type SupplierImportPreview,
+  type SupplierPlanRow
+} from "@/lib/catalog-import/supplier-import.ts";
 
 export type ProductoAdminInput = {
   sku?: string;
@@ -363,6 +368,110 @@ export class ProductoService {
         });
         creados += 1;
       }
+    }
+
+    return { creados, actualizados };
+  }
+
+  /**
+   * Preview (dry-run) del perfil "CSV de proveedor": no escribe nada.
+   * Reutiliza las mismas validaciones de archivo (tamano/extension/binario)
+   * que el importador canonico.
+   */
+  async previsualizarImportacionProveedor(
+    buffer: Buffer,
+    fileName: string,
+    sizeBytes: number,
+    markupPercentage: unknown
+  ): Promise<SupplierImportPreview> {
+    const sizeError = validateFileSize(sizeBytes);
+    if (sizeError) return this.blockedSupplierPreview([sizeError]);
+
+    const extensionError = validateFileNameExtension(fileName);
+    if (extensionError) return this.blockedSupplierPreview([extensionError]);
+
+    const binaryError = validateBinaryContent(buffer);
+    if (binaryError) return this.blockedSupplierPreview([binaryError]);
+
+    const existingProducts = await this.productRepository.buscarTodosProductos();
+    const existingSkus = new Set(existingProducts.map((p) => p.sku).filter(Boolean) as string[]);
+
+    return buildSupplierImportPreview(buffer, markupPercentage, existingSkus);
+  }
+
+  private blockedSupplierPreview(erroresGlobales: string[]): SupplierImportPreview {
+    return {
+      perfil: "proveedor",
+      porcentajeAplicado: 0,
+      filasFisicas: 0,
+      filasVacias: 0,
+      filasUtiles: 0,
+      erroresFila: [],
+      plan: [],
+      resumen: { crear: 0, actualizar: 0, bloqueado: 0 },
+      erroresGlobales
+    };
+  }
+
+  /**
+   * Confirma la importacion del perfil "CSV de proveedor": upsert por SKU.
+   * En ACTUALIZAR toca UNICAMENTE nombre/marca/contenido/costo/precio de
+   * venta -- nunca stock, activo, imagen, Top 12 ni ofertas del producto
+   * existente (se preservan intactos). En CREAR, el producto nace inactivo
+   * con stock 0 (nunca debe quedar visible publicamente sin revision manual).
+   */
+  async confirmarImportacionProveedor(plan: SupplierPlanRow[]) {
+    let creados = 0;
+    let actualizados = 0;
+
+    for (const row of plan) {
+      const existing = await this.productRepository.buscarProductoPorSku(row.sku);
+
+      if (existing) {
+        await this.productRepository.actualizarProducto(existing.id, {
+          nombre: row.nombre,
+          marca: row.marca,
+          contenido: row.contenido,
+          costoUnitario: row.costoUnitario,
+          precioVenta: row.precioVenta
+        });
+        actualizados += 1;
+        continue;
+      }
+
+      const domainProduct = new Producto({
+        id: crypto.randomUUID(),
+        sku: row.sku,
+        nombre: row.nombre,
+        marca: row.marca,
+        contenido: row.contenido,
+        precioVenta: row.precioVenta,
+        costoUnitario: row.costoUnitario,
+        stockActual: 0,
+        stockAgenda: 0,
+        activo: false,
+        esTop: false,
+        esOfertaSemana: false,
+        tipoProducto: "simple"
+      });
+
+      await this.productRepository.crearProducto({
+        id: domainProduct.id,
+        sku: domainProduct.sku,
+        nombre: domainProduct.nombre,
+        marca: domainProduct.marca,
+        contenido: domainProduct.contenido,
+        descripcion: domainProduct.descripcion,
+        precioVenta: domainProduct.precioVenta,
+        costoUnitario: domainProduct.costoUnitario,
+        stockActual: domainProduct.stockActual,
+        stockAgenda: domainProduct.stockAgenda,
+        activo: domainProduct.activo,
+        esTop: domainProduct.esTop,
+        esOfertaSemana: domainProduct.esOfertaSemana,
+        tipoProducto: domainProduct.tipoProducto
+      });
+      creados += 1;
     }
 
     return { creados, actualizados };

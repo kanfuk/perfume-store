@@ -13,6 +13,20 @@ export function normalizeDisplayText(value: string): string {
     .trim();
 }
 
+/**
+ * Clave de encabezado: sin tildes, minusculas, SIN espacios ni separadores
+ * (espacios, guiones, guion bajo eliminados por completo). Permite que
+ * "Precio Compra", "precio_compra", "PrecioCompra" y "precio-compra"
+ * matcheen como el mismo encabezado.
+ */
+export function normalizeHeaderKey(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 /** Clave interna: sin tildes, minusculas, espacios unificados. Solo para comparar. */
 export function normalizeMatchKey(value: string): string {
   return normalizeDisplayText(value)
