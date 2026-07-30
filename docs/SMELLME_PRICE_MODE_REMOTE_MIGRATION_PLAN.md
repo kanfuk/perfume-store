@@ -1,9 +1,11 @@
 # Plan de migración remota — `modo_precio` (AUTO/MANUAL)
 
 - Fecha del plan: 2026-07-29
+- Fecha de ejecución real: 2026-07-29 (Fase 2B.5)
 - Rama: `feature/perfume-store-foundation`
-- Commit que contiene la migración: `08495f8ed635cf1dfbd5ddd85c662c0977cda035`
-- Estado: **plan únicamente. No ejecutado.** Ningún comando de este documento se corrió contra Supabase remoto.
+- Commit que contenía la migración al momento de aplicar: `08495f8ed635cf1dfbd5ddd85c662c0977cda035`
+- Commit de limpieza previo (ver sección 11): `3eeaecc364a712f9343eedf973f50c147105d859`
+- **Estado: APLICADA Y VERIFICADA.**
 - Alcance: aplicar `supabase/migrations/20260729020000_smellme_price_mode.sql` al proyecto Supabase de producción de Smellme.cl.
 
 ## 1. Migración exacta a aplicar
@@ -131,11 +133,66 @@ alter table public.productos drop column if exists modo_precio;
 
 Si el objetivo es solo "desactivar" la funcionalidad sin perder datos, preferir dejar la columna intacta (con su default `'AUTO'`) y simplemente no exponer la UI de edición de precios, en vez de ejecutar el rollback destructivo.
 
-## Explícitamente NO ejecutado en este plan
+## 11. Hallazgo durante la ejecución: migraciones stale de Pauli Store
 
-- `supabase db push`
-- `supabase migration up`
-- Cualquier SQL contra el proyecto remoto
-- `npx vercel` (Preview o producción)
+Antes de poder aplicar `20260729020000` de forma limpia, el primer `db push --linked --dry-run` falló con `LegacyDbPushMissingRemoteError`, exigiendo `--include-all` para insertar 9 archivos de migración de junio (`20260618001444` a `20260626120000`) que preceden cronológicamente a la fundación real de este proyecto (`20260724000000_perfume_store_foundation.sql`).
+
+Auditoría de esos 9 archivos confirmó que son **residuos de Pauli Store** (el proyecto anterior del que se bootstrapeó este repositorio), nunca aplicados a `perfume-store` y peligrosos de aplicar ahora:
+- 2 insertaban productos de repostería ("Dobladita", "Quequito", "Queque") directamente en `productos`, varios con `activo = true` (quedarían visibles en el storefront público de Smellme.cl).
+- 1 ejecutaba una fusión de clientes con nombres reales de Pauli Store hardcodeados, lo que habría creado clientes falsos en `clientes`.
+- 1 recreaba 4 políticas RLS, re-otorgaba grants sobre funciones admin, y ejecutaba `DELETE FROM usuarios_admin WHERE email='admin@paulistore.local'`.
+- Los 5 restantes eran redundantes con la fundación (mismas tablas/columnas ya creadas allí) o específicos de repostería.
+
+**Resolución:** se eliminaron los 9 archivos del repositorio real (commit `3eeaecc364a712f9343eedf973f50c147105d859`, `chore(supabase): remove stale Pauli Store migration files`, pusheado a `origin/feature/perfume-store-foundation` antes de tocar Supabase) y del workspace temporal. Ningún archivo legítimo se perdió: todo lo que esos 9 archivos también creaban ya está consolidado en `20260724000000_perfume_store_foundation.sql` y `supabase/schema.sql`, que no se modificaron.
+
+Tras la limpieza, el dry-run mostró **exclusivamente**:
+
+```json
+{"upToDate":false,"dryRun":true,"migrations":["20260729020000_smellme_price_mode.sql"],"seeds":[],"roles":[],"message":"Finished supabase db push."}
+```
+
+## 12. Resultado del `db push` real
+
+```json
+{"upToDate":false,"dryRun":false,"migrations":["20260729020000_smellme_price_mode.sql"],"seeds":[],"roles":[],"message":"Finished supabase db push."}
+```
+
+Aplicada una sola vez, sin errores.
+
+## 13. Verificación posterior (ejecutada)
+
+- **Columna:** `modo_precio | text | is_nullable=NO | column_default='AUTO'::text` ✅
+- **Constraint:** `productos_modo_precio_check` → `CHECK ((modo_precio = ANY (ARRAY['AUTO'::text, 'MANUAL'::text])))` ✅
+- **Comentario:** presente, explica AUTO y MANUAL tal como se redactó en la migración ✅
+- **Conteos de control (antes → después, idénticos):** `productos: 0→0`, `pedidos: 0→0`, `pedido_items: 0→0`, `clientes: 0→0` — catálogo remoto sigue vacío, sin efectos secundarios ✅
+- **Distribución `modo_precio`:** 0 filas (no hay productos aún; no aplica error) ✅
+- **Historial de migraciones (`migration list --linked`):** las 6 migraciones (5 de la fundación + `20260729020000`) muestran `local == remote`; `20260729020000` aparece una sola vez ✅
+- **`db lint --linked`:** `No schema errors found` ✅
+
+## 14. Smoke test administrativo (solo lectura, ejecutado)
+
+- `GET /` → 200
+- `GET /admin/login` → 200
+- `GET /api/products` → 200, `{"products":[]}` (la consulta `select("*")` sobre `productos`, que ahora incluye `modo_precio`, no falla)
+- `GET /admin` sin sesión → 307 a `/admin/login` (comportamiento sin cambios)
+- Login autenticado real y carga del dashboard admin: **no verificado en este smoke test** (sin credenciales admin disponibles en este entorno de ejecución; no se creó ninguna cuenta para no tocar Auth). Recomendado como verificación manual pendiente.
+
+## 15. Confirmación de ausencia de efectos secundarios
+
+- Ningún producto fue creado, importado ni activado.
+- Ningún cliente fue creado ni modificado.
+- `usuarios_admin`, RLS, políticas y grants: sin cambios (la única migración aplicada no los toca).
+- `business_settings`: sin cambios (no referenciado por la migración).
+- Rollback: **no ejecutado.**
+
+## Explícitamente NO ejecutado contra producción en esta fase
+
+- `supabase migration repair`
+- `supabase db reset` / `seed`
+- `supabase db diff`
+- SQL manual adicional fuera de la migración auditada
+- Cambios en Auth o Storage
 - Importación de CSV real
-- Escritura de productos
+- Escritura o activación de productos
+- `npx vercel --prod`
+- Merge a `main` o creación de tag
