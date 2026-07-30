@@ -7,12 +7,21 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Home,
+  ShieldQuestion,
   ShoppingBag,
   Store,
   UploadCloud
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
+import { CatalogQualityReview } from "@/components/admin/CatalogQualityReview";
+import { CatalogImportFinalSummary } from "@/components/admin/CatalogImportFinalSummary";
+import type {
+  FinalPlanRow,
+  QualityDecision,
+  QualityFinding,
+  QualityReviewSummary
+} from "@/lib/catalog-import/quality-review.ts";
 
 type ProfileChoice = "auto" | "proveedor" | "canonico";
 type PlanAction = "CREAR" | "ACTUALIZAR" | "BLOQUEADO";
@@ -95,11 +104,13 @@ const PREVIEW_STAGES = [
   "Calculando precios…",
   "Preparando vista previa…"
 ];
-
+const QUALITY_REVIEW_STAGES = ["Analizando posibles duplicados…", "Comparando con el catálogo…", "Preparando revisión…"];
+const FINAL_PLAN_STAGES = ["Aplicando decisiones…", "Generando catálogo final…"];
 const CONFIRM_STAGES = ["Importando productos…", "Actualizando catálogo…", "Finalizando…"];
 
-type Phase = "idle" | "previewing" | "confirming";
-type LastAction = "preview" | "confirm" | null;
+type Phase = "idle" | "previewing" | "quality-reviewing" | "building-plan" | "confirming";
+type Step = "preview" | "quality-review" | "final-summary" | "done";
+type LastAction = "preview" | "quality-review" | "final-plan" | "confirm" | null;
 
 export function CatalogImportPanel() {
   const [fileName, setFileName] = useState("");
@@ -108,18 +119,41 @@ export function CatalogImportPanel() {
   const [markupPercentage, setMarkupPercentage] = useState(String(DEFAULT_MARKUP));
   const [result, setResult] = useState<PreviewResponse | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
+  const [step, setStep] = useState<Step>("preview");
   const [stageIndex, setStageIndex] = useState(0);
   const [error, setError] = useState("");
   const [lastAction, setLastAction] = useState<LastAction>(null);
   const [confirmResult, setConfirmResult] = useState<{ creados: number; actualizados: number } | null>(null);
 
+  const [reviewHash, setReviewHash] = useState("");
+  const [findings, setFindings] = useState<QualityFinding[]>([]);
+  const [summary, setSummary] = useState<QualityReviewSummary | null>(null);
+  const [decisions, setDecisions] = useState<Record<string, QualityDecision>>({});
+  const [finalPlan, setFinalPlan] = useState<FinalPlanRow[] | null>(null);
+
   const busy = phase !== "idle";
-  const stages = phase === "previewing" ? PREVIEW_STAGES : phase === "confirming" ? CONFIRM_STAGES : [];
+  const stages =
+    phase === "previewing"
+      ? PREVIEW_STAGES
+      : phase === "quality-reviewing"
+        ? QUALITY_REVIEW_STAGES
+        : phase === "building-plan"
+          ? FINAL_PLAN_STAGES
+          : phase === "confirming"
+            ? CONFIRM_STAGES
+            : [];
   const stageLabel = stages[stageIndex] ?? "";
 
   useEffect(() => {
     if (phase === "idle") return;
-    const activeStages = phase === "previewing" ? PREVIEW_STAGES : CONFIRM_STAGES;
+    const activeStages =
+      phase === "previewing"
+        ? PREVIEW_STAGES
+        : phase === "quality-reviewing"
+          ? QUALITY_REVIEW_STAGES
+          : phase === "building-plan"
+            ? FINAL_PLAN_STAGES
+            : CONFIRM_STAGES;
     const id = setInterval(() => {
       setStageIndex((prev) => Math.min(prev + 1, activeStages.length - 1));
     }, 450);
@@ -130,6 +164,12 @@ export function CatalogImportPanel() {
     setResult(null);
     setConfirmResult(null);
     setError("");
+    setStep("preview");
+    setReviewHash("");
+    setFindings([]);
+    setSummary(null);
+    setDecisions({});
+    setFinalPlan(null);
   }
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -178,6 +218,11 @@ export function CatalogImportPanel() {
     setLastAction("preview");
     setError("");
     setConfirmResult(null);
+    setReviewHash("");
+    setFindings([]);
+    setSummary(null);
+    setDecisions({});
+    setFinalPlan(null);
 
     try {
       const response = await fetch("/api/admin/products/import", {
@@ -200,6 +245,88 @@ export function CatalogImportPanel() {
       }
 
       setResult(data);
+      setStep("preview");
+    } catch {
+      setError("No fue posible conectar con el servidor.");
+    } finally {
+      setPhase("idle");
+    }
+  }
+
+  async function requestQualityReview() {
+    if (busy || !result || result.perfil !== "proveedor") return;
+
+    setPhase("quality-reviewing");
+    setStageIndex(0);
+    setLastAction("quality-review");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "quality-review",
+          fileName,
+          fileBase64,
+          profile: "proveedor",
+          markupPercentage: Number(markupPercentage),
+          previewHash: result.previewHash
+        })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error ?? "No fue posible analizar la calidad del archivo.");
+        return;
+      }
+
+      setReviewHash(data.reviewHash);
+      setFindings(data.findings);
+      setSummary(data.summary);
+      setStep("quality-review");
+    } catch {
+      setError("No fue posible conectar con el servidor.");
+    } finally {
+      setPhase("idle");
+    }
+  }
+
+  async function requestFinalPlan(nextDecisions: QualityDecision[]) {
+    if (busy || !result || result.perfil !== "proveedor") return;
+
+    setPhase("building-plan");
+    setStageIndex(0);
+    setLastAction("final-plan");
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "final-plan",
+          fileName,
+          fileBase64,
+          profile: "proveedor",
+          markupPercentage: Number(markupPercentage),
+          previewHash: result.previewHash,
+          reviewHash,
+          decisions: nextDecisions
+        })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(
+          data.error ??
+            "No se puede continuar: hay conflictos bloqueantes sin resolver en la revisión de calidad."
+        );
+        return;
+      }
+
+      setFinalPlan(data.plan);
+      setStep("final-summary");
     } catch {
       setError("No fue posible conectar con el servidor.");
     } finally {
@@ -208,8 +335,7 @@ export function CatalogImportPanel() {
   }
 
   async function confirmImport() {
-    if (busy) return;
-    if (!fileBase64 || !fileName || !result) return;
+    if (busy || !fileBase64 || !fileName || !result) return;
 
     setPhase("confirming");
     setStageIndex(0);
@@ -217,17 +343,25 @@ export function CatalogImportPanel() {
     setError("");
 
     try {
+      const body: Record<string, unknown> = {
+        action: "confirm",
+        fileName,
+        fileBase64,
+        profile: profileChoice,
+        markupPercentage: Number(markupPercentage),
+        previewHash: result.previewHash
+      };
+
+      if (result.perfil === "proveedor") {
+        body.profile = "proveedor";
+        body.reviewHash = reviewHash;
+        body.decisions = Object.values(decisions);
+      }
+
       const response = await fetch("/api/admin/products/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "confirm",
-          fileName,
-          fileBase64,
-          profile: profileChoice,
-          markupPercentage: Number(markupPercentage),
-          previewHash: result.previewHash
-        })
+        body: JSON.stringify(body)
       });
       const data = await response.json();
 
@@ -237,6 +371,7 @@ export function CatalogImportPanel() {
       }
 
       setConfirmResult({ creados: data.creados, actualizados: data.actualizados });
+      setStep("done");
     } catch {
       setError("No fue posible conectar con el servidor.");
     } finally {
@@ -248,13 +383,18 @@ export function CatalogImportPanel() {
     if (busy) return;
     if (lastAction === "confirm") {
       void confirmImport();
+    } else if (lastAction === "final-plan") {
+      void requestFinalPlan(Object.values(decisions));
+    } else if (lastAction === "quality-review") {
+      void requestQualityReview();
     } else if (lastAction === "preview") {
       void requestPreview();
     }
   }
 
   const preview = result?.preview;
-  const canConfirm = !!preview && preview.erroresGlobales.length === 0 && preview.plan.length > 0 && !confirmResult;
+  const canConfirmCanonico =
+    result?.perfil === "canonico" && !!preview && preview.erroresGlobales.length === 0 && preview.plan.length > 0 && !confirmResult;
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1200px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
@@ -287,99 +427,264 @@ export function CatalogImportPanel() {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <fieldset disabled={busy} className="contents">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              onChange={handleFileChange}
-              aria-label="Seleccionar archivo CSV"
-              className="block w-full rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
-            />
-            <div className="flex flex-col gap-1">
-              <label htmlFor="profile-choice" className="text-xs font-semibold text-[#667085]">
-                Tipo de archivo
-              </label>
-              <select
-                id="profile-choice"
-                value={profileChoice}
-                onChange={(event) => handleProfileChange(event.target.value as ProfileChoice)}
-                className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <option value="auto">Detección automática</option>
-                <option value="proveedor">CSV de proveedor</option>
-                <option value="canonico">Catálogo canónico</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#667085]">
-                Recargo sobre costo (%)
-              </label>
-              <input
-                id="markup-percentage"
-                type="number"
-                min={0}
-                max={300}
-                value={markupPercentage}
-                onChange={(event) => handleMarkupChange(event.target.value)}
-                className="w-28 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
-              />
-            </div>
-          </div>
+        {step === "preview" ? (
+          <>
+            <fieldset disabled={busy} className="contents">
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFileChange}
+                  aria-label="Seleccionar archivo CSV"
+                  className="block w-full rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="profile-choice" className="text-xs font-semibold text-[#667085]">
+                    Tipo de archivo
+                  </label>
+                  <select
+                    id="profile-choice"
+                    value={profileChoice}
+                    onChange={(event) => handleProfileChange(event.target.value as ProfileChoice)}
+                    className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="auto">Detección automática</option>
+                    <option value="proveedor">CSV de proveedor</option>
+                    <option value="canonico">Catálogo canónico</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#667085]">
+                    Recargo sobre costo (%)
+                  </label>
+                  <input
+                    id="markup-percentage"
+                    type="number"
+                    min={0}
+                    max={300}
+                    value={markupPercentage}
+                    onChange={(event) => handleMarkupChange(event.target.value)}
+                    className="w-28 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
+              </div>
 
-          <p className="text-xs text-[#667085]">
-            El precio de venta se calcula agregando este porcentaje al costo. El archivo habitual del
-            proveedor no necesita SKU ni precio de venta: el sistema genera ambos automáticamente.
-          </p>
+              <p className="text-xs text-[#667085]">
+                El precio de venta se calcula agregando este porcentaje al costo. El archivo habitual del
+                proveedor no necesita SKU ni precio de venta: el sistema genera ambos automáticamente.
+              </p>
 
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={requestPreview}
-              disabled={!fileBase64 || busy}
-              className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {phase === "previewing" ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
-              ) : (
-                <UploadCloud className="h-4 w-4" />
-              )}
-              {phase === "previewing" ? "Analizando..." : "Vista previa"}
-            </button>
-          </div>
-        </fieldset>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={requestPreview}
+                  disabled={!fileBase64 || busy}
+                  className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {phase === "previewing" ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                  ) : (
+                    <UploadCloud className="h-4 w-4" />
+                  )}
+                  {phase === "previewing" ? "Analizando..." : "Vista previa"}
+                </button>
+              </div>
+            </fieldset>
 
-        {busy ? (
-          <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
-            <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la importación">
-              <div className="indeterminate-progress-fill" />
-            </div>
-            <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
-              {stageLabel}
-            </p>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="flex items-start justify-between gap-3 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-            {lastAction ? (
-              <button
-                type="button"
-                onClick={retryLastAction}
-                disabled={busy}
-                className="shrink-0 rounded-lg border border-[#8a2c22]/30 px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Reintentar
-              </button>
+            {busy ? (
+              <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+                <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la importación">
+                  <div className="indeterminate-progress-fill" />
+                </div>
+                <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
+                  {stageLabel}
+                </p>
+              </div>
             ) : null}
-          </div>
+
+            {error ? (
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+                {lastAction ? (
+                  <button
+                    type="button"
+                    onClick={retryLastAction}
+                    disabled={busy}
+                    className="shrink-0 rounded-lg border border-[#8a2c22]/30 px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Reintentar
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {result ? (
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#eeebff] px-4 py-1.5 text-xs font-semibold text-[#5434e6]">
+                  Perfil detectado: {result.perfil === "proveedor" ? "CSV de proveedor" : "Catálogo canónico"}
+                  {result.perfil === "proveedor" ? ` · Recargo aplicado: ${result.preview.porcentajeAplicado}%` : null}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <SummaryTile label="Crear" value={result.preview.resumen.crear} tone="create" />
+                  <SummaryTile label="Actualizar" value={result.preview.resumen.actualizar} tone="update" />
+                  <SummaryTile label="Bloqueados" value={result.preview.resumen.bloqueado} tone="block" />
+                  <SummaryTile
+                    label="Filas totales"
+                    value={result.perfil === "proveedor" ? result.preview.filasUtiles : result.preview.totalFilas}
+                    tone="neutral"
+                  />
+                </div>
+
+                {result.preview.erroresGlobales.length > 0 ? (
+                  <div className="space-y-1 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
+                    <p className="font-semibold">No se puede confirmar mientras existan estos errores:</p>
+                    <ul className="list-disc space-y-0.5 pl-5">
+                      {result.preview.erroresGlobales.map((message, index) => (
+                        <li key={index}>{message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {result.perfil === "proveedor" ? (
+                  <SupplierPlanTable plan={result.preview.plan} />
+                ) : (
+                  <CanonicalPlanTable plan={result.preview.plan} />
+                )}
+
+                {result.preview.erroresFila.length > 0 ? (
+                  <div className="space-y-2 rounded-xl border border-[#fbe3b0] bg-[#fff8ec] px-4 py-3 text-sm text-[#8a5a00]">
+                    <p className="font-semibold">Filas bloqueadas ({result.preview.erroresFila.length}):</p>
+                    <ul className="max-h-48 list-disc space-y-1 overflow-y-auto pl-5">
+                      {result.preview.erroresFila.map((rowError, index) => (
+                        <li key={index}>
+                          Fila {rowError.rowNumber} ({rowError.sku || "sin SKU"}): {rowError.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <div className="flex justify-end">
+                  {result.perfil === "proveedor" ? (
+                    <button
+                      type="button"
+                      onClick={requestQualityReview}
+                      disabled={result.preview.plan.length === 0 || busy}
+                      className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {phase === "quality-reviewing" ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                      ) : (
+                        <ShieldQuestion className="h-4 w-4" />
+                      )}
+                      {phase === "quality-reviewing" ? "Analizando..." : "Revisar inconsistencias"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={confirmImport}
+                      disabled={!canConfirmCanonico || busy}
+                      className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {phase === "confirming" ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                      ) : null}
+                      {phase === "confirming" ? "Aplicando..." : "Confirmar importación"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </>
         ) : null}
 
-        {confirmResult ? (
+        {step === "quality-review" && summary ? (
+          <>
+            {busy ? (
+              <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+                <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la revisión">
+                  <div className="indeterminate-progress-fill" />
+                </div>
+                <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
+                  {stageLabel}
+                </p>
+              </div>
+            ) : null}
+            {error ? (
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={retryLastAction}
+                  disabled={busy}
+                  className="shrink-0 rounded-lg border border-[#8a2c22]/30 px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : null}
+            <CatalogQualityReview
+              findings={findings}
+              summary={summary}
+              busy={busy}
+              decisions={decisions}
+              onDecisionsChange={setDecisions}
+              onBack={() => setStep("preview")}
+              onContinue={(nextDecisions) => {
+                setDecisions(Object.fromEntries(nextDecisions.map((d) => [d.findingId, d])));
+                void requestFinalPlan(nextDecisions);
+              }}
+            />
+          </>
+        ) : null}
+
+        {step === "final-summary" && summary && finalPlan ? (
+          <>
+            {error ? (
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={retryLastAction}
+                  disabled={busy}
+                  className="shrink-0 rounded-lg border border-[#8a2c22]/30 px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : null}
+            {busy ? (
+              <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+                <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la importación">
+                  <div className="indeterminate-progress-fill" />
+                </div>
+                <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
+                  {stageLabel}
+                </p>
+              </div>
+            ) : null}
+            <CatalogImportFinalSummary
+              plan={finalPlan}
+              summary={summary}
+              busy={busy}
+              onBack={() => setStep("quality-review")}
+              onConfirm={confirmImport}
+            />
+          </>
+        ) : null}
+
+        {step === "done" && confirmResult ? (
           <div className="space-y-3 rounded-xl border border-[#bfe6c6] bg-[#eefbf1] px-4 py-4 text-sm text-[#1f6d33]">
             <div className="flex items-start gap-2">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -417,70 +722,6 @@ export function CatalogImportPanel() {
                 <Home className="h-4 w-4" />
                 Volver al inicio
               </Link>
-            </div>
-          </div>
-        ) : null}
-
-        {result ? (
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#eeebff] px-4 py-1.5 text-xs font-semibold text-[#5434e6]">
-              Perfil detectado: {result.perfil === "proveedor" ? "CSV de proveedor" : "Catálogo canónico"}
-              {result.perfil === "proveedor" ? ` · Recargo aplicado: ${result.preview.porcentajeAplicado}%` : null}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <SummaryTile label="Crear" value={result.preview.resumen.crear} tone="create" />
-              <SummaryTile label="Actualizar" value={result.preview.resumen.actualizar} tone="update" />
-              <SummaryTile label="Bloqueados" value={result.preview.resumen.bloqueado} tone="block" />
-              <SummaryTile
-                label="Filas totales"
-                value={result.perfil === "proveedor" ? result.preview.filasUtiles : result.preview.totalFilas}
-                tone="neutral"
-              />
-            </div>
-
-            {result.preview.erroresGlobales.length > 0 ? (
-              <div className="space-y-1 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
-                <p className="font-semibold">No se puede confirmar mientras existan estos errores:</p>
-                <ul className="list-disc space-y-0.5 pl-5">
-                  {result.preview.erroresGlobales.map((message, index) => (
-                    <li key={index}>{message}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {result.perfil === "proveedor" ? (
-              <SupplierPlanTable plan={result.preview.plan} />
-            ) : (
-              <CanonicalPlanTable plan={result.preview.plan} />
-            )}
-
-            {result.preview.erroresFila.length > 0 ? (
-              <div className="space-y-2 rounded-xl border border-[#fbe3b0] bg-[#fff8ec] px-4 py-3 text-sm text-[#8a5a00]">
-                <p className="font-semibold">Filas bloqueadas ({result.preview.erroresFila.length}):</p>
-                <ul className="max-h-48 list-disc space-y-1 overflow-y-auto pl-5">
-                  {result.preview.erroresFila.map((rowError, index) => (
-                    <li key={index}>
-                      Fila {rowError.rowNumber} ({rowError.sku || "sin SKU"}): {rowError.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={confirmImport}
-                disabled={!canConfirm || busy}
-                className="app-button-primary inline-flex min-h-12 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {phase === "confirming" ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
-                ) : null}
-                {phase === "confirming" ? "Aplicando..." : "Confirmar importación"}
-              </button>
             </div>
           </div>
         ) : null}
@@ -545,8 +786,9 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
         </tbody>
       </table>
       <p className="border-t border-[#e4e7ec] bg-[#f7f8fa] px-4 py-2 text-xs text-[#667085]">
-        Producto nuevo: se creará activo y con stock 1, listo para revisar en Stock rápido. Producto
-        existente: stock, imagen y Top 12 se conservan sin cambios.
+        Este SKU es provisional: puede cambiar tras la revisión de calidad si se excluyen, unifican o
+        renombran filas. Producto nuevo: se creará activo y con stock 1. Producto existente: stock, imagen
+        y Top 12 se conservan sin cambios.
       </p>
     </div>
   );

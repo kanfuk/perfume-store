@@ -25,10 +25,19 @@ import {
 } from "@/lib/catalog-import/admin-import.ts";
 import {
   buildSupplierImportPreview,
+  parseSupplierCsv,
   type SupplierImportPreview,
   type SupplierPlanRow,
   type ExistingProductPriceInfo
 } from "@/lib/catalog-import/supplier-import.ts";
+import {
+  runQualityReview,
+  applyQualityDecisions,
+  type QualityReviewResult,
+  type QualityDecision,
+  type ApplyDecisionsResult,
+  type ExistingProductForReview
+} from "@/lib/catalog-import/quality-review.ts";
 import {
   validateSalePriceInput,
   roundPriceToStep,
@@ -421,6 +430,62 @@ export class ProductoService {
     }
 
     return buildSupplierImportPreview(buffer, markupPercentage, existingBySku);
+  }
+
+  /**
+   * Lista completa del catalogo existente en el formato que necesita el
+   * asistente de calidad (Fase 2B.7) para cotejar filas del CSV contra
+   * productos ya existentes. Solo lectura.
+   */
+  async obtenerProductosParaRevisionCalidad(): Promise<ExistingProductForReview[]> {
+    const productos = await this.productRepository.buscarTodosProductos();
+    return productos
+      .filter((p) => Boolean(p.sku))
+      .map((p) => ({
+        productId: p.id,
+        sku: p.sku as string,
+        marca: p.marca ?? "",
+        nombre: p.nombre,
+        contenido: p.contenido ?? "",
+        costoUnitario: p.costoUnitario ?? 0,
+        precioVenta: p.precioVenta,
+        modoPrecio: p.modoPrecio === "MANUAL" ? "MANUAL" : "AUTO"
+      }));
+  }
+
+  /**
+   * Asistente de calidad (Fase 2B.7): analiza el CSV de proveedor ya
+   * validado por `previsualizarImportacionProveedor` y ejecuta el motor de
+   * calidad (lib/catalog-import/quality-review.ts). Solo lectura: no escribe
+   * nada, no llama servicios externos.
+   */
+  async revisarCalidadImportacionProveedor(buffer: Buffer): Promise<QualityReviewResult> {
+    const parsed = parseSupplierCsv(buffer);
+    const existingProducts = await this.obtenerProductosParaRevisionCalidad();
+    return runQualityReview(parsed.rows, existingProducts, {
+      filasFisicas: parsed.filasFisicas,
+      filasVacias: parsed.filasVacias
+    });
+  }
+
+  /**
+   * Aplica las decisiones humanas del asistente de calidad y devuelve el
+   * plan final (SKU regenerado). NO escribe nada: el llamador decide si
+   * confirma con `confirmarImportacionProveedor`.
+   */
+  async construirPlanConDecisiones(
+    buffer: Buffer,
+    markupPercentage: number,
+    decisions: QualityDecision[]
+  ): Promise<{ review: QualityReviewResult; applied: ApplyDecisionsResult }> {
+    const parsed = parseSupplierCsv(buffer);
+    const existingProducts = await this.obtenerProductosParaRevisionCalidad();
+    const review = runQualityReview(parsed.rows, existingProducts, {
+      filasFisicas: parsed.filasFisicas,
+      filasVacias: parsed.filasVacias
+    });
+    const applied = applyQualityDecisions(parsed.rows, review.findings, decisions, existingProducts, markupPercentage);
+    return { review, applied };
   }
 
   private blockedSupplierPreview(erroresGlobales: string[]): SupplierImportPreview {

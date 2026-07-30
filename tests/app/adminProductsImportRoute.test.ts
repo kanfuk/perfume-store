@@ -14,7 +14,10 @@ const {
   previsualizarImportacionCsv,
   confirmarImportacionCsv,
   previsualizarImportacionProveedor,
-  confirmarImportacionProveedor
+  confirmarImportacionProveedor,
+  revisarCalidadImportacionProveedor,
+  obtenerProductosParaRevisionCalidad,
+  construirPlanConDecisiones
 } = vi.hoisted(() => ({
   previsualizarImportacionCsv: vi.fn(async () => ({
     totalFilas: 1,
@@ -47,7 +50,45 @@ const {
     resumen: { crear: 1, actualizar: 0, bloqueado: 0 },
     erroresGlobales: [] as string[]
   })),
-  confirmarImportacionProveedor: vi.fn(async () => ({ creados: 1, actualizados: 0 }))
+  confirmarImportacionProveedor: vi.fn(async () => ({ creados: 1, actualizados: 0 })),
+  revisarCalidadImportacionProveedor: vi.fn(async () => ({
+    findings: [] as unknown[],
+    summary: {
+      filasFisicas: 1,
+      filasVacias: 0,
+      filasUtiles: 1,
+      normalizacionesSeguras: 0,
+      variantesDetectadas: 0,
+      posiblesDuplicados: 0,
+      coincidenciasCatalogoExistente: 0,
+      incoherenciasNombreOMarca: 0,
+      advertenciasCosto: 0,
+      conflictosPendientes: 0
+    },
+    normalizedRows: [] as unknown[]
+  })),
+  obtenerProductosParaRevisionCalidad: vi.fn(async () => [] as unknown[]),
+  construirPlanConDecisiones: vi.fn(async () => ({
+    review: { findings: [], summary: {} },
+    applied: {
+      plan: [
+        {
+          rowNumbers: [2],
+          sku: "SML-CAROLINA-HERRERA-LA-BOMBA-80ML",
+          nombre: "La Bomba",
+          marca: "Carolina Herrera",
+          contenido: "80ML",
+          costoUnitario: 58000,
+          precioVentaSugerido: 78300,
+          precioVentaFinal: 78300,
+          modoPrecio: "AUTO",
+          action: "CREAR"
+        }
+      ] as unknown[],
+      unresolvedBlockers: [] as unknown[],
+      errors: [] as string[]
+    }
+  }))
 }));
 
 vi.mock("@/services/productoService", () => ({
@@ -55,7 +96,10 @@ vi.mock("@/services/productoService", () => ({
     previsualizarImportacionCsv,
     confirmarImportacionCsv,
     previsualizarImportacionProveedor,
-    confirmarImportacionProveedor
+    confirmarImportacionProveedor,
+    revisarCalidadImportacionProveedor,
+    obtenerProductosParaRevisionCalidad,
+    construirPlanConDecisiones
   })
 }));
 
@@ -81,6 +125,21 @@ async function getPreviewHash(extra: Record<string, unknown> = {}): Promise<stri
   return data.previewHash;
 }
 
+async function getReviewHash(previewHash: string, extra: Record<string, unknown> = {}): Promise<string> {
+  const response = await POST(
+    makeRequest({
+      action: "quality-review",
+      fileName: "a.csv",
+      fileBase64: FAKE_FILE_BASE64,
+      profile: "proveedor",
+      previewHash,
+      ...extra
+    })
+  );
+  const data = await response.json();
+  return data.reviewHash;
+}
+
 describe("POST /api/admin/products/import", () => {
   beforeEach(() => {
     isAdminAuthenticated.mockClear();
@@ -88,6 +147,9 @@ describe("POST /api/admin/products/import", () => {
     confirmarImportacionCsv.mockClear();
     previsualizarImportacionProveedor.mockClear();
     confirmarImportacionProveedor.mockClear();
+    revisarCalidadImportacionProveedor.mockClear();
+    obtenerProductosParaRevisionCalidad.mockClear();
+    construirPlanConDecisiones.mockClear();
   });
 
   it("rechaza con 401 cuando el admin no esta autenticado", async () => {
@@ -97,6 +159,17 @@ describe("POST /api/admin/products/import", () => {
 
     expect(response.status).toBe(401);
     expect(previsualizarImportacionCsv).not.toHaveBeenCalled();
+  });
+
+  it("rechaza con 401 la accion quality-review sin sesion admin", async () => {
+    isAdminAuthenticated.mockResolvedValueOnce(false);
+
+    const response = await POST(
+      makeRequest({ action: "quality-review", fileName: "a.csv", fileBase64: "AA==", profile: "proveedor" })
+    );
+
+    expect(response.status).toBe(401);
+    expect(revisarCalidadImportacionProveedor).not.toHaveBeenCalled();
   });
 
   it("rechaza cuando falta el archivo", async () => {
@@ -202,7 +275,7 @@ describe("POST /api/admin/products/import", () => {
   });
 
   describe("perfil proveedor", () => {
-    it("action=preview con perfil proveedor devuelve porcentaje aplicado y plan", async () => {
+    it("action=preview con perfil proveedor devuelve porcentaje aplicado y plan (sin ejecutar el asistente de calidad)", async () => {
       const response = await POST(
         makeRequest({
           action: "preview",
@@ -219,14 +292,15 @@ describe("POST /api/admin/products/import", () => {
       expect(data.preview.porcentajeAplicado).toBe(35);
       expect(data.preview.plan[0].precioVenta).toBe(78300);
       expect(previsualizarImportacionProveedor).toHaveBeenCalledTimes(1);
+      expect(revisarCalidadImportacionProveedor).not.toHaveBeenCalled();
     });
 
-    it("action=confirm con perfil proveedor ejecuta confirmarImportacionProveedor cuando el hash coincide", async () => {
+    it("action=quality-review devuelve hallazgos y reviewHash cuando el previewHash coincide", async () => {
       const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
 
       const response = await POST(
         makeRequest({
-          action: "confirm",
+          action: "quality-review",
           fileName: "a.csv",
           fileBase64: FAKE_FILE_BASE64,
           profile: "proveedor",
@@ -237,7 +311,72 @@ describe("POST /api/admin/products/import", () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
+      expect(Array.isArray(data.findings)).toBe(true);
+      expect(typeof data.reviewHash).toBe("string");
+      expect(revisarCalidadImportacionProveedor).toHaveBeenCalledTimes(1);
+    });
+
+    it("action=quality-review se rechaza con 409 si el previewHash no coincide", async () => {
+      const response = await POST(
+        makeRequest({
+          action: "quality-review",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash: "hash-invalido"
+        })
+      );
+
+      expect(response.status).toBe(409);
+      expect(revisarCalidadImportacionProveedor).not.toHaveBeenCalled();
+    });
+
+    it("action=final-plan devuelve el plan resuelto SIN escribir (no llama confirmarImportacionProveedor)", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+      const reviewHash = await getReviewHash(previewHash, { markupPercentage: 35 });
+
+      const response = await POST(
+        makeRequest({
+          action: "final-plan",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash,
+          reviewHash,
+          decisions: []
+        })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.plan).toHaveLength(1);
+      expect(construirPlanConDecisiones).toHaveBeenCalledTimes(1);
+      expect(confirmarImportacionProveedor).not.toHaveBeenCalled();
+    });
+
+    it("action=confirm ejecuta confirmarImportacionProveedor cuando previewHash y reviewHash coinciden", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+      const reviewHash = await getReviewHash(previewHash, { markupPercentage: 35 });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash,
+          reviewHash,
+          decisions: []
+        })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
       expect(data.creados).toBe(1);
+      expect(construirPlanConDecisiones).toHaveBeenCalledTimes(1);
       expect(confirmarImportacionProveedor).toHaveBeenCalledTimes(1);
     });
 
@@ -256,6 +395,142 @@ describe("POST /api/admin/products/import", () => {
       );
 
       expect(response.status).toBe(409);
+      expect(confirmarImportacionProveedor).not.toHaveBeenCalled();
+    });
+
+    it("confirmar sin pasar por quality-review (reviewHash ausente/invalido) se rechaza con 409", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash,
+          reviewHash: "hash-invalido"
+        })
+      );
+
+      expect(response.status).toBe(409);
+      expect(confirmarImportacionProveedor).not.toHaveBeenCalled();
+    });
+
+    it("un decision.findingId que no existe en la revision actual se rechaza con 409 (revision cambio)", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+      const reviewHash = await getReviewHash(previewHash, { markupPercentage: 35 });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash,
+          reviewHash,
+          decisions: [{ findingId: "NO_EXISTE:1", optionId: "IGNORE_WARNING" }]
+        })
+      );
+
+      expect(response.status).toBe(409);
+      expect(confirmarImportacionProveedor).not.toHaveBeenCalled();
+    });
+
+    it("conflictos bloqueantes sin resolver impiden confirmar (400, sin escritura)", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+      const reviewHash = await getReviewHash(previewHash, { markupPercentage: 35 });
+
+      construirPlanConDecisiones.mockResolvedValueOnce({
+        review: { findings: [], summary: {} },
+        applied: {
+          plan: [],
+          unresolvedBlockers: [{ id: "EXACT_DUPLICATE:2|3", type: "EXACT_DUPLICATE", severity: "BLOCKER" }],
+          errors: []
+        }
+      });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash,
+          reviewHash,
+          decisions: []
+        })
+      );
+
+      expect(response.status).toBe(400);
+      expect(confirmarImportacionProveedor).not.toHaveBeenCalled();
+    });
+
+    it("un producto existente seleccionado que ya no existe se rechaza con 409", async () => {
+      const previewHash = await getPreviewHash({ profile: "proveedor", markupPercentage: 35 });
+
+      const findingStub = {
+        id: "x",
+        type: "EXISTING_CATALOG_MATCH",
+        severity: "WARNING",
+        rowNumbers: [2],
+        rows: [],
+        options: []
+      };
+      revisarCalidadImportacionProveedor.mockResolvedValueOnce({
+        findings: [findingStub],
+        summary: {
+          filasFisicas: 1,
+          filasVacias: 0,
+          filasUtiles: 1,
+          normalizacionesSeguras: 0,
+          variantesDetectadas: 0,
+          posiblesDuplicados: 0,
+          coincidenciasCatalogoExistente: 1,
+          incoherenciasNombreOMarca: 0,
+          advertenciasCosto: 0,
+          conflictosPendientes: 0
+        },
+        normalizedRows: []
+      });
+      const reviewHash = await getReviewHash(previewHash, { markupPercentage: 35 });
+      // La accion quality-review anterior consumio el mock "once"; se
+      // reafirma la MISMA respuesta para que confirm vea el mismo hallazgo.
+      revisarCalidadImportacionProveedor.mockResolvedValueOnce({
+        findings: [findingStub],
+        summary: {
+          filasFisicas: 1,
+          filasVacias: 0,
+          filasUtiles: 1,
+          normalizacionesSeguras: 0,
+          variantesDetectadas: 0,
+          posiblesDuplicados: 0,
+          coincidenciasCatalogoExistente: 1,
+          incoherenciasNombreOMarca: 0,
+          advertenciasCosto: 0,
+          conflictosPendientes: 0
+        },
+        normalizedRows: []
+      });
+
+      const response = await POST(
+        makeRequest({
+          action: "confirm",
+          fileName: "a.csv",
+          fileBase64: FAKE_FILE_BASE64,
+          profile: "proveedor",
+          markupPercentage: 35,
+          previewHash,
+          reviewHash,
+          decisions: [{ findingId: "x", optionId: "UPDATE_EXISTING", targetProductId: "no-existe" }]
+        })
+      );
+
+      expect(response.status).toBe(409);
+      const data = await response.json();
+      expect(data.error).toMatch(/producto existente seleccionado ya no existe/i);
       expect(confirmarImportacionProveedor).not.toHaveBeenCalled();
     });
   });
