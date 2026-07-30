@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
-import { createProductoService, type BulkStockOperation } from "@/services/productoService";
+import { createProductoService, BULK_STOCK_OPERATION_TYPES, type BulkStockOperation } from "@/services/productoService";
 
 type BulkStockRequestBody = {
   action?: "preview" | "confirm";
@@ -10,6 +10,9 @@ type BulkStockRequestBody = {
   operation?: BulkStockOperation;
   previewHash?: string;
 };
+
+/** Fase 2B.9: limite razonable por solicitud (evita abuso y cargas descontroladas). */
+const MAX_PRODUCT_IDS = 500;
 
 function computePreviewHash(productIds: string[], operation: BulkStockOperation): string {
   const sortedIds = [...productIds].sort();
@@ -19,10 +22,16 @@ function computePreviewHash(productIds: string[], operation: BulkStockOperation)
     .digest("hex");
 }
 
+function isKnownOperationType(type: unknown): type is BulkStockOperation["type"] {
+  return typeof type === "string" && (BULK_STOCK_OPERATION_TYPES as readonly string[]).includes(type);
+}
+
 /**
  * Stock rapido - edicion masiva: preview (dry-run) y confirm. Activar/pausar
  * toca UNICAMENTE activo; el resto toca UNICAMENTE stock_actual/stock_agenda.
- * La confirmacion exige el hash del preview (productos + operacion).
+ * La confirmacion exige el hash del preview (productos + operacion). El
+ * servidor revalida TODO: nunca confia en stock/estado final calculado por
+ * el navegador, solo en los productIds y la operacion solicitada.
  */
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
@@ -38,14 +47,26 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as BulkStockRequestBody;
     const action = body.action === "confirm" ? "confirm" : "preview";
-    const productIds = Array.isArray(body.productIds) ? body.productIds.filter((id) => typeof id === "string") : [];
+    const rawProductIds = Array.isArray(body.productIds)
+      ? body.productIds.filter((id): id is string => typeof id === "string" && id.trim() !== "")
+      : [];
+    // Deduplicar explicitamente en vez de rechazar: una seleccion masiva
+    // (ej. "seleccionar todo" + "seleccionar resultados" combinados) puede
+    // producir IDs repetidos de forma legitima sin intencion maliciosa.
+    const productIds = [...new Set(rawProductIds)];
     const operation = body.operation;
 
     if (productIds.length === 0) {
       return NextResponse.json({ error: "Selecciona al menos un producto." }, { status: 400 });
     }
-    if (!operation || typeof operation.type !== "string") {
-      return NextResponse.json({ error: "Falta la operación a aplicar." }, { status: 400 });
+    if (productIds.length > MAX_PRODUCT_IDS) {
+      return NextResponse.json(
+        { error: `No se pueden procesar más de ${MAX_PRODUCT_IDS} productos por solicitud.` },
+        { status: 400 }
+      );
+    }
+    if (!operation || !isKnownOperationType(operation.type)) {
+      return NextResponse.json({ error: "La acción solicitada no es válida." }, { status: 400 });
     }
 
     const productoService = createProductoService();
@@ -73,7 +94,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (preview.productos.length === 0) {
+    if (preview.productos.every((row) => row.status === "BLOQUEADO")) {
       return NextResponse.json({ error: "No hay productos válidos para actualizar.", preview }, { status: 400 });
     }
 

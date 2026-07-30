@@ -196,7 +196,7 @@ describe("ProductoService - stock rapido masivo", () => {
     expect((await repository.buscarProductoPorId("prod-2"))?.stockActual).toBe(2);
   });
 
-  it("restar: bloquea productos que quedarian bajo lo reservado (reporta error pero sigue con el resto)", async () => {
+  it("restar: bloquea productos que quedarian bajo lo reservado (reporta el bloqueo por fila, sigue con el resto)", async () => {
     const repository = new FullProductRepositoryStub();
     seedProduct(repository, { id: "prod-1", sku: "SML-A", stockActual: 1, stockReservado: 1 });
     seedProduct(repository, { id: "prod-2", sku: "SML-B", stockActual: 5, stockReservado: 0 });
@@ -206,14 +206,19 @@ describe("ProductoService - stock rapido masivo", () => {
       type: "restar",
       cantidad: 1
     });
-    expect(preview.productos).toHaveLength(1);
-    expect(preview.erroresGlobales).toHaveLength(1);
+    expect(preview.totalSeleccionados).toBe(2);
+    expect(preview.productos).toHaveLength(2); // ambos aparecen, con su status
+    expect(preview.productos.find((p) => p.id === "prod-1")?.status).toBe("BLOQUEADO");
+    expect(preview.productos.find((p) => p.id === "prod-1")?.motivo).toMatch(/reservado/i);
+    expect(preview.productos.find((p) => p.id === "prod-2")?.status).toBe("CAMBIA");
 
     const result = await service.confirmarAjusteMasivoStock(["prod-1", "prod-2"], {
       type: "restar",
       cantidad: 1
     });
     expect(result.actualizados).toBe(1);
+    expect(result.bloqueados).toBe(1);
+    expect(result.total).toBe(2);
     expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(1);
     expect((await repository.buscarProductoPorId("prod-2"))?.stockActual).toBe(4);
   });
@@ -242,14 +247,111 @@ describe("ProductoService - stock rapido masivo", () => {
     expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(5);
   });
 
-  it("activar: se bloquea si el producto no tiene stock", async () => {
+  it("activar masivo (Fase 2B.9) NUNCA se bloquea por falta de stock: queda activo igual", async () => {
     const repository = new FullProductRepositoryStub();
     seedProduct(repository, { activo: false, stockActual: 0 });
     const service = new ProductoService(repository);
 
     const preview = await service.previsualizarAjusteMasivoStock(["prod-1"], { type: "activar" });
-    expect(preview.productos).toHaveLength(0);
-    expect(preview.erroresGlobales).toHaveLength(1);
+    expect(preview.productos).toHaveLength(1);
+    expect(preview.productos[0].status).toBe("CAMBIA");
+    expect(preview.productos[0].activoNuevo).toBe(true);
+    expect(preview.productos[0].stockNuevo).toBe(0); // el stock nunca se toca
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1"], { type: "activar" });
+    expect(result.actualizados).toBe(1);
+    expect((await repository.buscarProductoPorId("prod-1"))?.activo).toBe(true);
+    expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(0);
+  });
+
+  it("activar masivo: un producto ya activo queda como 'sin cambios'", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: true, stockActual: 5 });
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarAjusteMasivoStock(["prod-1"], { type: "activar" });
+    expect(preview.productos[0].status).toBe("SIN_CAMBIOS");
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1"], { type: "activar" });
+    expect(result.actualizados).toBe(0);
+    expect(result.sinCambios).toBe(1);
+  });
+
+  it("pausar masivo: un producto ya pausado queda como 'sin cambios'", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: false, stockActual: 5 });
+    const service = new ProductoService(repository);
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1"], { type: "pausar" });
+    expect(result.actualizados).toBe(0);
+    expect(result.sinCambios).toBe(1);
+  });
+
+  it("disponibleUno: deja stock_actual = stock_reservado + 1 (caso reserva 0 -> total 1)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 5, stockReservado: 0 });
+    const service = new ProductoService(repository);
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1"], { type: "disponibleUno" });
+    expect(result.actualizados).toBe(1);
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.stockActual).toBe(1);
+    expect(updated?.stockAgenda).toBe(1);
+  });
+
+  it("disponibleUno: caso reserva 2 -> total 3", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 10, stockReservado: 2 });
+    const service = new ProductoService(repository);
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1"], { type: "disponibleUno" });
+    expect(result.actualizados).toBe(1);
+    expect((await repository.buscarProductoPorId("prod-1"))?.stockActual).toBe(3);
+  });
+
+  it("disponibleUno: nunca modifica activo/precio/imagen/Top12", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 10, stockReservado: 0, esTop: true, ordenDestacado: 5, imageUrl: "/foto.webp" });
+    const service = new ProductoService(repository);
+
+    await service.confirmarAjusteMasivoStock(["prod-1"], { type: "disponibleUno" });
+    const cambios = repository.actualizarProductoCalls[0].cambios as Record<string, unknown>;
+    expect(Object.keys(cambios).sort()).toEqual(["stockActual", "stockAgenda"]);
+  });
+
+  it("agotar (masivo): deja el total exactamente en lo reservado, nunca debajo", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 10, stockReservado: 3 });
+    const service = new ProductoService(repository);
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1"], { type: "agotar" });
+    expect(result.actualizados).toBe(1);
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.stockActual).toBe(3);
+    expect(updated?.stockActual).toBeGreaterThanOrEqual(updated?.stockReservado ?? 0);
+  });
+
+  it("agotar: si ya esta en el reservado, queda 'sin cambios'", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { stockActual: 3, stockReservado: 3 });
+    const service = new ProductoService(repository);
+
+    const result = await service.confirmarAjusteMasivoStock(["prod-1"], { type: "agotar" });
+    expect(result.sinCambios).toBe(1);
+    expect(result.actualizados).toBe(0);
+  });
+
+  it("producto no encontrado (eliminado entre preview y confirm) cuenta como bloqueado, nunca lanza", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarAjusteMasivoStock(["no-existe"], { type: "activar" });
+    expect(preview.productos[0].status).toBe("BLOQUEADO");
+    expect(preview.productos[0].motivo).toMatch(/no encontrado/i);
+
+    const result = await service.confirmarAjusteMasivoStock(["no-existe"], { type: "activar" });
+    expect(result.bloqueados).toBe(1);
+    expect(result.actualizados).toBe(0);
   });
 
   it("rechaza cantidad invalida en el preview", async () => {

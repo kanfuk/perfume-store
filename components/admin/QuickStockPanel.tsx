@@ -1,24 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Home, Minus, Plus, ShoppingBag } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Home,
+  Minus,
+  Plus,
+  ShoppingBag,
+  X
+} from "lucide-react";
 import Link from "next/link";
 import { getAvailableBrands, filterAndSortProducts } from "@/lib/catalog-search";
+import {
+  selectIds,
+  clearSelection,
+  toggleId,
+  countVisibleSelected,
+  isEntireCatalogSelected
+} from "@/lib/bulk-selection";
 import type { AdminProductRecord } from "@/lib/types";
-import type { BulkStockOperation } from "@/services/productoService";
+import type { BulkStockOperation, BulkStockPreview, BulkStockConfirmResult } from "@/services/productoService";
 
 type QuickFilter = "todos" | "sin-stock" | "stock-uno" | "activos" | "pausados";
-type BulkActionChoice = "sumar" | "restar" | "establecer" | "activar" | "pausar";
+type BulkActionChoice = "sumar" | "restar" | "establecer" | "activar" | "pausar" | "disponibleUno" | "agotar";
 
-type BulkPreviewRow = {
-  id: string;
-  sku: string;
-  nombre: string;
-  stockAnterior: number;
-  stockNuevo: number;
-  activoAnterior: boolean;
-  activoNuevo: boolean;
-};
+const PAGE_SIZE = 30;
 
 async function fetchJson(url: string, init?: RequestInit) {
   const response = await fetch(url, init);
@@ -27,29 +34,80 @@ async function fetchJson(url: string, init?: RequestInit) {
   return data;
 }
 
+function buildBulkOperation(action: BulkActionChoice, value: string): BulkStockOperation {
+  if (action === "sumar") return { type: "sumar", cantidad: Number(value) };
+  if (action === "restar") return { type: "restar", cantidad: Number(value) };
+  if (action === "establecer") return { type: "establecer", valor: Number(value) };
+  if (action === "activar") return { type: "activar" };
+  if (action === "pausar") return { type: "pausar" };
+  if (action === "disponibleUno") return { type: "disponibleUno" };
+  return { type: "agotar" };
+}
+
+const ACTION_LABELS: Record<BulkActionChoice, string> = {
+  sumar: "Sumar cantidad",
+  restar: "Restar cantidad",
+  establecer: "Establecer stock total",
+  activar: "Activar",
+  pausar: "Pausar",
+  disponibleUno: "Dejar 1 disponible",
+  agotar: "Agotar disponibilidad"
+};
+
+function actionTitle(action: BulkActionChoice, count: number): string {
+  const plural = count === 1 ? "producto" : "productos";
+  if (action === "activar") return `Activar ${count} ${plural}`;
+  if (action === "pausar") return `Pausar ${count} ${plural}`;
+  if (action === "disponibleUno") return `Dejar 1 disponible en ${count} ${plural}`;
+  if (action === "agotar") return `Agotar disponibilidad en ${count} ${plural}`;
+  if (action === "sumar") return `Sumar cantidad en ${count} ${plural}`;
+  if (action === "restar") return `Restar cantidad en ${count} ${plural}`;
+  return `Establecer stock total en ${count} ${plural}`;
+}
+
+function actionConsequence(action: BulkActionChoice): string {
+  if (action === "activar") {
+    return "Los productos quedarán activos. Los que no tengan stock seguirán sin aparecer en el catálogo público.";
+  }
+  if (action === "pausar") {
+    return "Estos productos dejarán de aparecer en el catálogo público. El stock, precios, historial y reservas se conservarán.";
+  }
+  if (action === "disponibleUno") {
+    return "Cada producto quedará con una unidad disponible además de sus reservas existentes.";
+  }
+  if (action === "agotar") {
+    return "El stock total quedará igual al stock reservado de cada producto (disponible real: 0). Nunca queda por debajo de lo reservado.";
+  }
+  return "El stock total se recalcula respetando siempre el stock reservado de cada producto.";
+}
+
 export function QuickStockPanel() {
   const [products, setProducts] = useState<AdminProductRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("todos");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const [savingId, setSavingId] = useState<string | null>(null);
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = useState<BulkActionChoice>("sumar");
+  const [bulkAction, setBulkAction] = useState<BulkActionChoice>("activar");
   const [bulkValue, setBulkValue] = useState("1");
-  const [bulkPreview, setBulkPreview] = useState<{ productos: BulkPreviewRow[]; erroresGlobales: string[] } | null>(
-    null
-  );
+  const [bulkPreview, setBulkPreview] = useState<BulkStockPreview | null>(null);
   const [bulkPreviewHash, setBulkPreviewHash] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkConfirming, setBulkConfirming] = useState(false);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [pauseAllAck, setPauseAllAck] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkStockConfirmResult | null>(null);
+  const [bulkError, setBulkError] = useState("");
+
+  const openerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
   async function loadProducts() {
     setLoading(true);
@@ -88,6 +146,12 @@ export function QuickStockPanel() {
     };
   }, []);
 
+  useEffect(() => {
+    if (bulkConfirmOpen) {
+      modalRef.current?.focus();
+    }
+  }, [bulkConfirmOpen]);
+
   const brands = useMemo(() => getAvailableBrands(products), [products]);
 
   const filtered = useMemo(() => {
@@ -98,6 +162,22 @@ export function QuickStockPanel() {
     if (quickFilter === "pausados") list = list.filter((p) => !p.activo);
     return list;
   }, [products, query, brandFilter, quickFilter]);
+
+  const visibleProducts = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  const allIds = useMemo(() => products.map((p) => p.id), [products]);
+  const filteredIds = useMemo(() => filtered.map((p) => p.id), [filtered]);
+  const visibleIds = useMemo(() => visibleProducts.map((p) => p.id), [visibleProducts]);
+  const visibleSelectedCount = countVisibleSelected(selectedIds, visibleIds);
+  const isWholeCatalogSelected = isEntireCatalogSelected(selectedIds, allIds);
+
+  function resetFilters(patch: Partial<{ query: string; brandFilter: string; quickFilter: QuickFilter }>) {
+    if (patch.query !== undefined) setQuery(patch.query);
+    if (patch.brandFilter !== undefined) setBrandFilter(patch.brandFilter);
+    if (patch.quickFilter !== undefined) setQuickFilter(patch.quickFilter);
+    setVisibleCount(PAGE_SIZE);
+  }
 
   function displayStock(product: AdminProductRecord): string {
     return stockDrafts[product.id] ?? String(product.stockActual);
@@ -202,49 +282,74 @@ export function QuickStockPanel() {
   }
 
   function toggleSelected(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelectedIds((prev) => toggleId(prev, id));
     setBulkPreview(null);
   }
 
-  function buildBulkOperation(): BulkStockOperation {
-    if (bulkAction === "sumar") return { type: "sumar", cantidad: Number(bulkValue) };
-    if (bulkAction === "restar") return { type: "restar", cantidad: Number(bulkValue) };
-    if (bulkAction === "establecer") return { type: "establecer", valor: Number(bulkValue) };
-    if (bulkAction === "activar") return { type: "activar" };
-    return { type: "pausar" };
+  function handleSelectVisible() {
+    setSelectedIds((prev) => selectIds(prev, visibleIds));
+    setBulkPreview(null);
   }
 
-  async function requestBulkPreview() {
+  function handleSelectFiltered() {
+    setSelectedIds((prev) => selectIds(prev, filteredIds));
+    setBulkPreview(null);
+  }
+
+  function handleSelectAll() {
+    setSelectedIds((prev) => selectIds(prev, allIds));
+    setBulkPreview(null);
+  }
+
+  function handleClearSelection() {
+    setSelectedIds(clearSelection());
+    setBulkPreview(null);
+  }
+
+  function chooseQuickAction(action: "activar" | "pausar" | "disponibleUno") {
+    setBulkAction(action);
+    setBulkPreview(null);
+    void requestBulkPreview(action);
+  }
+
+  async function requestBulkPreview(actionOverride?: BulkActionChoice) {
+    const action = actionOverride ?? bulkAction;
     if (selectedIds.size === 0) {
-      setError("Selecciona al menos un producto para la acción masiva.");
+      setBulkError("Selecciona al menos un producto para la acción masiva.");
       return;
     }
     setBulkLoading(true);
-    setError("");
+    setBulkError("");
     try {
       const data = await fetchJson("/api/admin/products/bulk-stock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "preview", productIds: [...selectedIds], operation: buildBulkOperation() })
+        body: JSON.stringify({
+          action: "preview",
+          productIds: [...selectedIds],
+          operation: buildBulkOperation(action, bulkValue)
+        })
       });
       setBulkPreview(data.preview);
       setBulkPreviewHash(data.previewHash);
+      setPauseAllAck(false);
+      setBulkConfirmOpen(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No fue posible calcular la acción masiva.");
+      setBulkError(err instanceof Error ? err.message : "No fue posible calcular la acción masiva.");
     } finally {
       setBulkLoading(false);
     }
   }
 
-  async function confirmBulk() {
+  function closeConfirmModal() {
+    if (bulkConfirming) return; // Escape/cerrar solo antes de comenzar la operacion
     setBulkConfirmOpen(false);
+    openerButtonRef.current?.focus();
+  }
+
+  async function confirmBulk() {
     setBulkConfirming(true);
-    setError("");
+    setBulkError("");
     try {
       const data = await fetchJson("/api/admin/products/bulk-stock", {
         method: "POST",
@@ -252,20 +357,35 @@ export function QuickStockPanel() {
         body: JSON.stringify({
           action: "confirm",
           productIds: [...selectedIds],
-          operation: buildBulkOperation(),
+          operation: buildBulkOperation(bulkAction, bulkValue),
           previewHash: bulkPreviewHash
         })
       });
-      setNotice(`Acción masiva aplicada: ${data.actualizados} productos actualizados.`);
+      setBulkResult({
+        actualizados: data.actualizados,
+        sinCambios: data.sinCambios,
+        bloqueados: data.bloqueados,
+        total: data.total
+      });
+      setBulkConfirmOpen(false);
       setBulkPreview(null);
       setBulkPreviewHash("");
-      setSelectedIds(new Set());
       await loadProducts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No fue posible aplicar la acción masiva.");
+      // No se limpia la seleccion: se puede reintentar sin repetir la eleccion.
+      setBulkError(err instanceof Error ? err.message : "No fue posible aplicar la acción masiva.");
     } finally {
       setBulkConfirming(false);
     }
+  }
+
+  function keepSelectionAfterResult() {
+    setBulkResult(null);
+  }
+
+  function clearSelectionAfterResult() {
+    setSelectedIds(clearSelection());
+    setBulkResult(null);
   }
 
   const quickFilters: Array<{ id: QuickFilter; label: string }> = [
@@ -275,6 +395,17 @@ export function QuickStockPanel() {
     { id: "activos", label: "Solo activos" },
     { id: "pausados", label: "Solo pausados" }
   ];
+
+  const requiresPauseAllAck = bulkAction === "pausar" && isWholeCatalogSelected;
+  const canConfirmBulk =
+    !!bulkPreview &&
+    bulkPreview.productos.some((p) => p.status !== "BLOQUEADO") &&
+    !bulkConfirming &&
+    (!requiresPauseAllAck || pauseAllAck);
+
+  const previewCambian = bulkPreview?.productos.filter((p) => p.status === "CAMBIA").length ?? 0;
+  const previewSinCambios = bulkPreview?.productos.filter((p) => p.status === "SIN_CAMBIOS").length ?? 0;
+  const previewBloqueados = bulkPreview?.productos.filter((p) => p.status === "BLOQUEADO").length ?? 0;
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
@@ -308,26 +439,19 @@ export function QuickStockPanel() {
           <span>{error}</span>
         </div>
       ) : null}
-      {notice ? (
-        <div className="flex items-start gap-2 rounded-xl border border-[#bfe6c6] bg-[#eefbf1] px-4 py-3 text-sm text-[#1f6d33]">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{notice}</span>
-        </div>
-      ) : null}
-
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <input
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => resetFilters({ query: event.target.value })}
             placeholder="Buscar por nombre, marca o SKU"
             aria-label="Buscar productos"
             className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
           />
           <select
             value={brandFilter}
-            onChange={(event) => setBrandFilter(event.target.value)}
+            onChange={(event) => resetFilters({ brandFilter: event.target.value })}
             aria-label="Filtrar por marca"
             className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
           >
@@ -345,7 +469,7 @@ export function QuickStockPanel() {
             <button
               key={filterOption.id}
               type="button"
-              onClick={() => setQuickFilter(filterOption.id)}
+              onClick={() => resetFilters({ quickFilter: filterOption.id })}
               className={`min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold ${
                 quickFilter === filterOption.id
                   ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
@@ -357,237 +481,434 @@ export function QuickStockPanel() {
           ))}
         </div>
 
-        <p className="text-sm text-[#667085]">
+        {/* Barra de controles de seleccion (seccion 3) */}
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5">
+          <button
+            type="button"
+            onClick={handleSelectVisible}
+            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#344054]"
+          >
+            Seleccionar visibles
+          </button>
+          <button
+            type="button"
+            onClick={handleSelectFiltered}
+            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#344054]"
+          >
+            Seleccionar resultados
+          </button>
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#344054]"
+          >
+            Seleccionar todo
+          </button>
+          <button
+            type="button"
+            onClick={handleClearSelection}
+            disabled={selectedIds.size === 0}
+            className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Limpiar selección
+          </button>
+        </div>
+
+        <p className="text-sm font-medium text-[#344054]" aria-live="polite">
           {filtered.length} producto(s) · {selectedIds.size} seleccionado(s)
+          {selectedIds.size > 0 && selectedIds.size !== visibleSelectedCount
+            ? ` · ${visibleSelectedCount} visibles en este filtro`
+            : ""}
         </p>
 
         {loading ? (
           <p className="text-sm text-[#667085]">Cargando catálogo...</p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((product) => {
-              const saving = savingId === product.id;
-              const disponible = product.stockActual - (product.stockReservado ?? 0);
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {visibleProducts.map((product) => {
+                const saving = savingId === product.id;
+                const disponible = product.stockActual - (product.stockReservado ?? 0);
+                const etiqueta = `${product.nombre}${product.contenido ? ` ${product.contenido}` : ""}`;
 
-              return (
-                <div key={product.id} className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(product.id)}
-                      onChange={() => toggleSelected(product.id)}
-                      aria-label={`Seleccionar ${product.nombre}`}
-                      className="mt-1 h-4 w-4"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
-                      <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
-                      <p className="text-xs text-[#98a2b3]">
-                        {product.contenido}
-                        {product.sku ? <span className="ml-1 font-mono text-[#c0c5cf]">· {product.sku}</span> : null}
-                      </p>
+                return (
+                  <div key={product.id} className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(product.id)}
+                        onChange={() => toggleSelected(product.id)}
+                        aria-label={`Seleccionar ${etiqueta}`}
+                        className="mt-1 h-5 w-5"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
+                        <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
+                        <p className="text-xs text-[#98a2b3]">
+                          {product.contenido}
+                          {product.sku ? <span className="ml-1 font-mono text-[#c0c5cf]">· {product.sku}</span> : null}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          product.activo ? "bg-[#eefbf1] text-[#1f6d33]" : "bg-[#f2f4f7] text-[#475467]"
+                        }`}
+                      >
+                        {product.activo ? "Activo" : "Pausado"}
+                      </span>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        product.activo ? "bg-[#eefbf1] text-[#1f6d33]" : "bg-[#f2f4f7] text-[#475467]"
-                      }`}
-                    >
-                      {product.activo ? "Activo" : "Pausado"}
-                    </span>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#667085]">
-                    <span
-                      className={`rounded-full px-2 py-0.5 font-semibold ${
-                        product.stockActual <= 0
-                          ? "bg-[#fdf1ef] text-[#8a2c22]"
-                          : product.stockActual <= (product.stockMinimo || 1)
-                            ? "bg-[#fff8ec] text-[#8a5a00]"
-                            : "bg-[#eefbf1] text-[#1f6d33]"
-                      }`}
-                    >
-                      {product.stockActual <= 0 ? "Sin stock" : product.stockActual <= (product.stockMinimo || 1) ? "Stock bajo" : "Disponible"}
-                    </span>
-                    {(product.stockReservado ?? 0) > 0 ? <span>Reservado: {product.stockReservado}</span> : null}
-                    <span>Disponible real: {Math.max(0, disponible)}</span>
-                  </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#667085]">
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-semibold ${
+                          product.stockActual <= 0
+                            ? "bg-[#fdf1ef] text-[#8a2c22]"
+                            : product.stockActual <= (product.stockMinimo || 1)
+                              ? "bg-[#fff8ec] text-[#8a5a00]"
+                              : "bg-[#eefbf1] text-[#1f6d33]"
+                        }`}
+                      >
+                        {product.stockActual <= 0 ? "Sin stock" : product.stockActual <= (product.stockMinimo || 1) ? "Stock bajo" : "Disponible"}
+                      </span>
+                      {(product.stockReservado ?? 0) > 0 ? <span>Reservado: {product.stockReservado}</span> : null}
+                      <span>Disponible real: {Math.max(0, disponible)}</span>
+                    </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => decrement(product)}
-                      disabled={saving || product.stockActual <= 0}
-                      aria-label={`Restar stock a ${product.nombre}`}
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={displayStock(product)}
-                      onChange={(event) => setStockDrafts((prev) => ({ ...prev, [product.id]: event.target.value }))}
-                      onBlur={() => commitDraft(product)}
-                      disabled={saving}
-                      aria-label={`Stock de ${product.nombre}`}
-                      className="h-11 w-20 rounded-xl border border-[#e4e7ec] px-2 text-center text-sm font-semibold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => increment(product)}
-                      disabled={saving}
-                      aria-label={`Sumar stock a ${product.nombre}`}
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => decrement(product)}
+                        disabled={saving || product.stockActual <= 0}
+                        aria-label={`Restar stock a ${etiqueta}`}
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={displayStock(product)}
+                        onChange={(event) => setStockDrafts((prev) => ({ ...prev, [product.id]: event.target.value }))}
+                        onBlur={() => commitDraft(product)}
+                        disabled={saving}
+                        aria-label={`Stock de ${etiqueta}`}
+                        className="h-11 w-20 rounded-xl border border-[#e4e7ec] px-2 text-center text-sm font-semibold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => increment(product)}
+                        disabled={saving}
+                        aria-label={`Sumar stock a ${etiqueta}`}
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => agotar(product)}
-                      disabled={saving || product.stockActual <= 0}
-                      className="min-h-9 rounded-lg border border-[#e4e7ec] px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Agotar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleActivo(product)}
-                      disabled={saving || (!product.activo && product.stockActual <= 0)}
-                      className="min-h-9 rounded-lg border border-[#e4e7ec] px-3 py-1.5 text-xs font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {product.activo ? "Pausar" : "Activar"}
-                    </button>
-                    {saving ? <span className="self-center text-xs text-[#98a2b3]">Guardando…</span> : null}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => agotar(product)}
+                        disabled={saving || product.stockActual <= 0}
+                        className="min-h-9 rounded-lg border border-[#e4e7ec] px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Agotar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleActivo(product)}
+                        disabled={saving || (!product.activo && product.stockActual <= 0)}
+                        className="min-h-9 rounded-lg border border-[#e4e7ec] px-3 py-1.5 text-xs font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {product.activo ? "Pausar" : "Activar"}
+                      </button>
+                      {saving ? <span className="self-center text-xs text-[#98a2b3]">Guardando…</span> : null}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-            {filtered.length === 0 ? (
-              <p className="col-span-full py-6 text-center text-sm text-[#667085]">
-                Sin productos que coincidan con la búsqueda.
-              </p>
+                );
+              })}
+              {filtered.length === 0 ? (
+                <p className="col-span-full py-6 text-center text-sm text-[#667085]">
+                  Sin productos que coincidan con la búsqueda.
+                </p>
+              ) : null}
+            </div>
+            {hasMore ? (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                  className="min-h-11 rounded-xl border border-[#e4e7ec] bg-white px-5 py-2.5 text-sm font-semibold text-[#5434e6] shadow-sm"
+                >
+                  Cargar más productos
+                </button>
+              </div>
             ) : null}
-          </div>
+          </>
         )}
       </section>
 
+      {/* Acciones rapidas destacadas (seccion 6) + selector completo (seccion 5) */}
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-[#111318]">Acción masiva ({selectedIds.size} seleccionados)</h2>
-        <div className="grid gap-3 sm:grid-cols-[auto_1fr_auto]">
-          <select
-            value={bulkAction}
-            onChange={(event) => {
-              setBulkAction(event.target.value as BulkActionChoice);
-              setBulkPreview(null);
-            }}
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
-          >
-            <option value="sumar">Sumar cantidad</option>
-            <option value="restar">Restar cantidad</option>
-            <option value="establecer">Establecer stock</option>
-            <option value="activar">Activar</option>
-            <option value="pausar">Pausar</option>
-          </select>
+        <h2 className="text-lg font-semibold text-[#111318]">Acciones sobre la selección</h2>
 
-          {bulkAction === "sumar" || bulkAction === "restar" || bulkAction === "establecer" ? (
-            <input
-              type="number"
-              value={bulkValue}
-              onChange={(event) => {
-                setBulkValue(event.target.value);
-                setBulkPreview(null);
-              }}
-              min={0}
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
-            />
-          ) : (
-            <div />
-          )}
-
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={requestBulkPreview}
+            onClick={() => chooseQuickAction("activar")}
             disabled={selectedIds.size === 0 || bulkLoading}
-            className="app-button-primary inline-flex min-h-11 items-center justify-center px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 rounded-xl border border-[#bfe6c6] bg-[#eefbf1] px-4 py-2.5 text-sm font-semibold text-[#1f6d33] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {bulkLoading ? "Calculando..." : "Vista previa"}
+            Activar seleccionados
+          </button>
+          <button
+            type="button"
+            onClick={() => chooseQuickAction("pausar")}
+            disabled={selectedIds.size === 0 || bulkLoading}
+            className="min-h-11 rounded-xl border border-[#e4e7ec] bg-[#f2f4f7] px-4 py-2.5 text-sm font-semibold text-[#475467] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Pausar seleccionados
+          </button>
+          <button
+            type="button"
+            onClick={() => chooseQuickAction("disponibleUno")}
+            disabled={selectedIds.size === 0 || bulkLoading}
+            className="min-h-11 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] px-4 py-2.5 text-sm font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Dejar stock disponible en 1
           </button>
         </div>
 
-        {bulkPreview ? (
-          <div className="space-y-3">
-            {bulkPreview.erroresGlobales.length > 0 ? (
-              <div className="space-y-1 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
-                {bulkPreview.erroresGlobales.map((message, index) => (
-                  <p key={index}>{message}</p>
-                ))}
-              </div>
-            ) : null}
+        <details className="rounded-xl border border-[#e4e7ec] p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-[#344054]">Más acciones</summary>
+          <div className="mt-3 grid gap-3 sm:grid-cols-[auto_1fr_auto]">
+            <select
+              value={bulkAction}
+              onChange={(event) => {
+                setBulkAction(event.target.value as BulkActionChoice);
+                setBulkPreview(null);
+              }}
+              aria-label="Elegir acción masiva"
+              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            >
+              {(Object.keys(ACTION_LABELS) as BulkActionChoice[]).map((action) => (
+                <option key={action} value={action}>
+                  {ACTION_LABELS[action]}
+                </option>
+              ))}
+            </select>
 
-            {bulkPreview.productos.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
-                <table className="w-full min-w-[600px] text-left text-sm">
-                  <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
-                    <tr>
-                      <th className="px-4 py-2.5">Producto</th>
-                      <th className="px-4 py-2.5">Stock anterior</th>
-                      <th className="px-4 py-2.5">Stock nuevo</th>
-                      <th className="px-4 py-2.5">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#eef0f3]">
-                    {bulkPreview.productos.map((row) => (
-                      <tr key={row.id}>
-                        <td className="px-4 py-2.5 text-[#111318]">{row.nombre}</td>
-                        <td className="px-4 py-2.5 text-[#667085]">{row.stockAnterior}</td>
-                        <td className="px-4 py-2.5 text-[#111318]">{row.stockNuevo}</td>
-                        <td className="px-4 py-2.5 text-[#667085]">{row.activoNuevo ? "Activo" : "Pausado"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
+            {bulkAction === "sumar" || bulkAction === "restar" || bulkAction === "establecer" ? (
+              <input
+                type="number"
+                value={bulkValue}
+                onChange={(event) => {
+                  setBulkValue(event.target.value);
+                  setBulkPreview(null);
+                }}
+                min={0}
+                aria-label="Valor de la acción masiva"
+                className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+              />
+            ) : (
+              <div />
+            )}
 
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setBulkConfirmOpen(true)}
-                disabled={bulkPreview.productos.length === 0 || bulkConfirming}
-                className="app-button-primary inline-flex min-h-11 items-center justify-center px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {bulkConfirming ? "Aplicando..." : `Aplicar a ${bulkPreview.productos.length} productos`}
-              </button>
-            </div>
+            <button
+              type="button"
+              ref={openerButtonRef}
+              onClick={() => requestBulkPreview()}
+              disabled={selectedIds.size === 0 || bulkLoading}
+              className="app-button-primary inline-flex min-h-11 items-center justify-center px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {bulkLoading ? "Calculando..." : "Vista previa"}
+            </button>
+          </div>
+        </details>
+
+        {bulkError && !bulkConfirmOpen ? (
+          <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{bulkError}</span>
           </div>
         ) : null}
       </section>
 
+      {/* Barra sticky de accion masiva (movil), seccion 5 */}
+      {selectedIds.size > 0 && !bulkConfirmOpen && !bulkResult ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-[#e4e7ec] bg-white px-3 py-2 shadow-[0_-4px_12px_rgba(17,19,24,0.08)] sm:hidden">
+          <span className="text-xs font-semibold text-[#344054]" aria-live="polite">
+            {selectedIds.size} seleccionado(s)
+          </span>
+          <button
+            type="button"
+            onClick={() => chooseQuickAction("activar")}
+            className="min-h-11 flex-1 rounded-lg bg-[#eefbf1] px-2 text-xs font-semibold text-[#1f6d33]"
+          >
+            Activar
+          </button>
+          <button
+            type="button"
+            onClick={() => chooseQuickAction("pausar")}
+            className="min-h-11 flex-1 rounded-lg bg-[#f2f4f7] px-2 text-xs font-semibold text-[#475467]"
+          >
+            Pausar
+          </button>
+          <button
+            type="button"
+            onClick={handleClearSelection}
+            aria-label="Limpiar selección"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#e4e7ec]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+      {selectedIds.size > 0 && !bulkConfirmOpen && !bulkResult ? <div className="h-16 sm:hidden" aria-hidden="true" /> : null}
+
+      {/* Vista previa obligatoria (seccion 7-8) */}
       {bulkConfirmOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-[#111318]">Aplicar acción masiva</h3>
-            <p className="mt-2 text-sm text-[#667085]">
-              Esta acción actualizará {bulkPreview?.productos.length ?? 0} productos. ¿Confirmas?
-            </p>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") closeConfirmModal();
+          }}
+        >
+          <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-preview-title"
+            tabIndex={-1}
+            className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <h3 id="bulk-preview-title" className="text-lg font-semibold text-[#111318]">
+              {actionTitle(bulkAction, bulkPreview?.totalSeleccionados ?? selectedIds.size)}
+            </h3>
+            <p className="mt-2 text-sm text-[#667085]">{actionConsequence(bulkAction)}</p>
+
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="rounded-lg bg-[#eeebff] px-2 py-2">
+                <div className="font-bold text-[#5434e6]">{previewCambian}</div>
+                <div className="text-[#5434e6]">cambiarán</div>
+              </div>
+              <div className="rounded-lg bg-[#f2f4f7] px-2 py-2">
+                <div className="font-bold text-[#475467]">{previewSinCambios}</div>
+                <div className="text-[#475467]">ya cumplen</div>
+              </div>
+              <div className="rounded-lg bg-[#fdf1ef] px-2 py-2">
+                <div className="font-bold text-[#8a2c22]">{previewBloqueados}</div>
+                <div className="text-[#8a2c22]">bloqueados</div>
+              </div>
+            </div>
+
+            {previewBloqueados > 0 ? (
+              <ul className="mt-3 max-h-32 space-y-1 overflow-y-auto rounded-lg border border-[#f3c6c0] bg-[#fdf1ef] p-3 text-xs text-[#8a2c22]">
+                {bulkPreview?.productos
+                  .filter((p) => p.status === "BLOQUEADO")
+                  .map((p) => (
+                    <li key={p.id}>
+                      {p.nombre}: {p.motivo}
+                    </li>
+                  ))}
+              </ul>
+            ) : null}
+
+            {requiresPauseAllAck ? (
+              <div className="mt-4 space-y-2 rounded-lg border border-[#f3c6c0] bg-[#fdf1ef] p-3">
+                <p className="text-sm font-semibold text-[#8a2c22]">Estás por pausar todo el catálogo.</p>
+                <label className="flex items-start gap-2 text-xs text-[#8a2c22]">
+                  <input
+                    type="checkbox"
+                    checked={pauseAllAck}
+                    onChange={(event) => setPauseAllAck(event.target.checked)}
+                    className="mt-0.5 h-4 w-4"
+                  />
+                  Entiendo que ningún perfume activo aparecerá públicamente.
+                </label>
+              </div>
+            ) : null}
+
+            {bulkError ? (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#f3c6c0] bg-[#fdf1ef] px-3 py-2 text-xs text-[#8a2c22]">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{bulkError}</span>
+              </div>
+            ) : null}
+
+            {bulkConfirming ? (
+              <div className="mt-3 space-y-2 rounded-lg border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2">
+                <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la acción masiva">
+                  <div className="indeterminate-progress-fill" />
+                </div>
+                <p aria-live="polite" role="status" className="text-xs font-medium text-[#344054]">
+                  Actualizando {bulkPreview?.totalSeleccionados ?? selectedIds.size} productos…
+                </p>
+              </div>
+            ) : null}
+
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setBulkConfirmOpen(false)}
-                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054]"
+                onClick={closeConfirmModal}
+                disabled={bulkConfirming}
+                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmBulk}
-                className="app-button-primary rounded-xl px-4 py-2 text-sm font-semibold"
+                disabled={!canConfirmBulk}
+                className="app-button-primary inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Confirmar
+                {bulkConfirming ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                ) : null}
+                Confirmar acción
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Resultado final (seccion 10) */}
+      {bulkResult ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="bulk-result-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-[#1f6d33]" />
+              <h3 id="bulk-result-title" className="text-lg font-semibold text-[#111318]">
+                Acción completada
+              </h3>
+            </div>
+            <div className="mt-4 space-y-1 text-sm text-[#344054]" aria-live="polite">
+              <p>{bulkResult.total} seleccionados</p>
+              <p>{bulkResult.actualizados} modificados</p>
+              <p>{bulkResult.sinCambios} ya estaban en ese estado</p>
+              <p>{bulkResult.bloqueados} bloqueados</p>
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={keepSelectionAfterResult}
+                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054]"
+              >
+                Mantener selección
+              </button>
+              <button
+                type="button"
+                onClick={clearSelectionAfterResult}
+                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054]"
+              >
+                Limpiar selección
+              </button>
+              <Link
+                href="/"
+                className="app-button-primary inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold"
+              >
+                Ver catálogo público
+              </Link>
             </div>
           </div>
         </div>

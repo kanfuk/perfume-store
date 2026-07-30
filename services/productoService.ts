@@ -817,8 +817,11 @@ export class ProductoService {
   }
 
   /**
-   * Stock rapido - edicion masiva: dry-run. Nunca escribe. Re-deriva el
-   * resultado desde el estado ACTUAL de cada producto.
+   * Stock rapido - edicion masiva (Fase 2B.9): dry-run. Nunca escribe.
+   * Re-deriva el resultado desde el estado ACTUAL de cada producto y
+   * clasifica cada uno en CAMBIA/SIN_CAMBIOS/BLOQUEADO -- un bloqueo nunca
+   * queda oculto dentro de un mensaje generico, cada fila trae su propio
+   * motivo cuando corresponde.
    */
   async previsualizarAjusteMasivoStock(
     productIds: string[],
@@ -826,60 +829,84 @@ export class ProductoService {
   ): Promise<BulkStockPreview> {
     const operationError = validateBulkStockOperation(operation);
     if (operationError) {
-      return { operation, productos: [], erroresGlobales: [operationError] };
+      return { operation, totalSeleccionados: productIds.length, productos: [], erroresGlobales: [operationError] };
     }
 
     const productos: BulkStockPreviewRow[] = [];
-    const erroresGlobales: string[] = [];
 
     for (const id of productIds) {
       const current = await this.productRepository.buscarProductoPorId(id);
       if (!current) {
-        erroresGlobales.push(`Producto ${id} no encontrado.`);
+        productos.push({
+          id,
+          sku: "",
+          nombre: id,
+          stockAnterior: 0,
+          stockNuevo: 0,
+          activoAnterior: false,
+          activoNuevo: false,
+          status: "BLOQUEADO",
+          motivo: "Producto no encontrado (pudo haber sido eliminado)."
+        });
         continue;
       }
 
-      const computed = computeBulkNewStock(current, operation);
-      if (!computed) {
-        erroresGlobales.push(
-          `${current.nombre || id}: la operación dejaría el stock por debajo de lo permitido.`
-        );
-        continue;
-      }
+      const computed = computeBulkStockResult(current, operation);
+      const stockAnterior = current.stockActual ?? 0;
+      const activoAnterior = current.activo ?? true;
 
       productos.push({
         id,
         sku: current.sku ?? "",
         nombre: current.nombre,
-        stockAnterior: current.stockActual ?? 0,
-        stockNuevo: computed.stockNuevo,
-        activoAnterior: current.activo ?? true,
-        activoNuevo: computed.activoNuevo
+        stockAnterior,
+        stockNuevo: computed.status === "BLOQUEADO" ? stockAnterior : computed.stockNuevo,
+        activoAnterior,
+        activoNuevo: computed.status === "BLOQUEADO" ? activoAnterior : computed.activoNuevo,
+        status: computed.status,
+        motivo: computed.status === "BLOQUEADO" ? computed.motivo : undefined
       });
     }
 
-    return { operation, productos, erroresGlobales };
+    return { operation, totalSeleccionados: productIds.length, productos, erroresGlobales: [] };
   }
 
   /**
    * Stock rapido - edicion masiva: confirmacion. Re-deriva igual que el
-   * preview. Activar/pausar toca UNICAMENTE activo; el resto toca UNICAMENTE
-   * stock_actual/stock_agenda.
+   * preview (nunca confia en el navegador). Activar/pausar toca UNICAMENTE
+   * activo; el resto toca UNICAMENTE stock_actual/stock_agenda. Se procesa
+   * producto por producto -- no hay una transaccion de base de datos real
+   * que envuelva todas las escrituras (ver limitacion documentada en
+   * docs/SMELLME_BULK_STOCK_ACTIONS.md) -- y se reporta el resultado
+   * detallado (modificados/sin cambios/bloqueados), nunca solo un conteo
+   * agregado que oculte fallos parciales.
    */
-  async confirmarAjusteMasivoStock(productIds: string[], operation: BulkStockOperation) {
+  async confirmarAjusteMasivoStock(productIds: string[], operation: BulkStockOperation): Promise<BulkStockConfirmResult> {
     const operationError = validateBulkStockOperation(operation);
     if (operationError) {
       throw new Error(operationError);
     }
 
     let actualizados = 0;
+    let sinCambios = 0;
+    let bloqueados = 0;
 
     for (const id of productIds) {
       const current = await this.productRepository.buscarProductoPorId(id);
-      if (!current) continue;
+      if (!current) {
+        bloqueados += 1;
+        continue;
+      }
 
-      const computed = computeBulkNewStock(current, operation);
-      if (!computed) continue;
+      const computed = computeBulkStockResult(current, operation);
+      if (computed.status === "BLOQUEADO") {
+        bloqueados += 1;
+        continue;
+      }
+      if (computed.status === "SIN_CAMBIOS") {
+        sinCambios += 1;
+        continue;
+      }
 
       if (operation.type === "activar" || operation.type === "pausar") {
         await this.productRepository.actualizarProducto(id, { activo: computed.activoNuevo });
@@ -892,7 +919,7 @@ export class ProductoService {
       actualizados += 1;
     }
 
-    return { actualizados };
+    return { actualizados, sinCambios, bloqueados, total: productIds.length };
   }
 
   /**
@@ -1015,7 +1042,22 @@ export type BulkStockOperation =
   | { type: "restar"; cantidad: number }
   | { type: "establecer"; valor: number }
   | { type: "activar" }
-  | { type: "pausar" };
+  | { type: "pausar" }
+  | { type: "disponibleUno" }
+  | { type: "agotar" };
+
+/** Lista blanca de tipos de operacion masiva de stock; usada por la ruta API para rechazar acciones desconocidas. */
+export const BULK_STOCK_OPERATION_TYPES = [
+  "sumar",
+  "restar",
+  "establecer",
+  "activar",
+  "pausar",
+  "disponibleUno",
+  "agotar"
+] as const;
+
+export type BulkStockRowStatus = "CAMBIA" | "SIN_CAMBIOS" | "BLOQUEADO";
 
 export type BulkStockPreviewRow = {
   id: string;
@@ -1025,12 +1067,23 @@ export type BulkStockPreviewRow = {
   stockNuevo: number;
   activoAnterior: boolean;
   activoNuevo: boolean;
+  status: BulkStockRowStatus;
+  /** Presente solo cuando status === "BLOQUEADO". */
+  motivo?: string;
 };
 
 export type BulkStockPreview = {
   operation: BulkStockOperation;
+  totalSeleccionados: number;
   productos: BulkStockPreviewRow[];
   erroresGlobales: string[];
+};
+
+export type BulkStockConfirmResult = {
+  actualizados: number;
+  sinCambios: number;
+  bloqueados: number;
+  total: number;
 };
 
 function validateBulkStockOperation(operation: BulkStockOperation): string | null {
@@ -1047,35 +1100,77 @@ function validateBulkStockOperation(operation: BulkStockOperation): string | nul
   return null;
 }
 
-function computeBulkNewStock(
+type BulkStockComputed =
+  | { status: "CAMBIA"; stockNuevo: number; activoNuevo: boolean }
+  | { status: "SIN_CAMBIOS"; stockNuevo: number; activoNuevo: boolean }
+  | { status: "BLOQUEADO"; motivo: string };
+
+/**
+ * Calcula el resultado de una operacion masiva sobre UN producto, sin
+ * escribir nada. Nunca deja el stock total por debajo del reservado.
+ * "activar"/"pausar" (Fase 2B.9) NUNCA se bloquean por falta de stock: un
+ * producto activo sin stock simplemente no aparece en el catalogo publico
+ * (la familia solo se oculta si NINGUNA variante tiene stock, Fase 2B.8),
+ * asi que activar en masa no debe exigir que cada producto ya tenga stock.
+ * "disponibleUno"/"agotar" siempre derivan del stock reservado, por lo que
+ * nunca pueden violar la regla de no bajar del reservado.
+ */
+function computeBulkStockResult(
   current: { stockActual?: number; stockReservado?: number; activo?: boolean },
   operation: BulkStockOperation
-): { stockNuevo: number; activoNuevo: boolean } | null {
+): BulkStockComputed {
   const stockActual = current.stockActual ?? 0;
   const stockReservado = current.stockReservado ?? 0;
   const activoActual = current.activo ?? true;
 
   if (operation.type === "sumar") {
-    return { stockNuevo: stockActual + operation.cantidad, activoNuevo: activoActual };
+    return { status: "CAMBIA", stockNuevo: stockActual + operation.cantidad, activoNuevo: activoActual };
   }
 
   if (operation.type === "restar") {
     const nuevo = stockActual - operation.cantidad;
-    if (nuevo < 0 || nuevo < stockReservado) return null;
-    return { stockNuevo: nuevo, activoNuevo: activoActual };
+    if (nuevo < 0 || nuevo < stockReservado) {
+      return {
+        status: "BLOQUEADO",
+        motivo: `Restar dejaría el stock (${nuevo}) por debajo del reservado (${stockReservado}).`
+      };
+    }
+    return { status: "CAMBIA", stockNuevo: nuevo, activoNuevo: activoActual };
   }
 
   if (operation.type === "establecer") {
-    if (operation.valor < stockReservado) return null;
-    return { stockNuevo: operation.valor, activoNuevo: activoActual };
+    if (operation.valor < stockReservado) {
+      return {
+        status: "BLOQUEADO",
+        motivo: `El valor (${operation.valor}) es menor que el stock reservado (${stockReservado}).`
+      };
+    }
+    if (operation.valor === stockActual) {
+      return { status: "SIN_CAMBIOS", stockNuevo: stockActual, activoNuevo: activoActual };
+    }
+    return { status: "CAMBIA", stockNuevo: operation.valor, activoNuevo: activoActual };
+  }
+
+  if (operation.type === "disponibleUno") {
+    const nuevo = stockReservado + 1;
+    if (nuevo === stockActual) return { status: "SIN_CAMBIOS", stockNuevo: stockActual, activoNuevo: activoActual };
+    return { status: "CAMBIA", stockNuevo: nuevo, activoNuevo: activoActual };
+  }
+
+  if (operation.type === "agotar") {
+    const nuevo = stockReservado;
+    if (nuevo === stockActual) return { status: "SIN_CAMBIOS", stockNuevo: stockActual, activoNuevo: activoActual };
+    return { status: "CAMBIA", stockNuevo: nuevo, activoNuevo: activoActual };
   }
 
   if (operation.type === "activar") {
-    if (stockActual <= 0) return null;
-    return { stockNuevo: stockActual, activoNuevo: true };
+    if (activoActual) return { status: "SIN_CAMBIOS", stockNuevo: stockActual, activoNuevo: true };
+    return { status: "CAMBIA", stockNuevo: stockActual, activoNuevo: true };
   }
 
-  return { stockNuevo: stockActual, activoNuevo: false };
+  // pausar
+  if (!activoActual) return { status: "SIN_CAMBIOS", stockNuevo: stockActual, activoNuevo: false };
+  return { status: "CAMBIA", stockNuevo: stockActual, activoNuevo: false };
 }
 
 export type BulkPriceOperation =

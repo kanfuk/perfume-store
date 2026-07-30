@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import type { BulkStockPreview } from "@/services/productoService";
 
 const { isAdminAuthenticated } = vi.hoisted(() => ({
   isAdminAuthenticated: vi.fn(async () => true)
@@ -24,14 +25,26 @@ const {
   ajustarStockRapido: vi.fn(async () => ({ id: "prod-1", stockActual: 8, activo: true })),
   establecerStockRapido: vi.fn(async () => ({ id: "prod-1", stockActual: 20, activo: true })),
   agotarProductoRapido: vi.fn(async () => ({ id: "prod-1", stockActual: 2, activo: true })),
-  previsualizarAjusteMasivoStock: vi.fn(async () => ({
-    operation: { type: "sumar", cantidad: 1 },
-    productos: [
-      { id: "prod-1", sku: "SML-A", nombre: "La Bomba", stockAnterior: 5, stockNuevo: 6, activoAnterior: true, activoNuevo: true }
-    ],
-    erroresGlobales: [] as string[]
-  })),
-  confirmarAjusteMasivoStock: vi.fn(async () => ({ actualizados: 1 })),
+  previsualizarAjusteMasivoStock: vi.fn(
+    async (): Promise<BulkStockPreview> => ({
+      operation: { type: "sumar", cantidad: 1 },
+      totalSeleccionados: 1,
+      productos: [
+        {
+          id: "prod-1",
+          sku: "SML-A",
+          nombre: "La Bomba",
+          stockAnterior: 5,
+          stockNuevo: 6,
+          activoAnterior: true,
+          activoNuevo: true,
+          status: "CAMBIA"
+        }
+      ],
+      erroresGlobales: [] as string[]
+    })
+  ),
+  confirmarAjusteMasivoStock: vi.fn(async () => ({ actualizados: 1, sinCambios: 0, bloqueados: 0, total: 1 })),
   asignarImagenProducto: vi.fn(async () => ({ id: "prod-1", imageUrl: "https://cdn.example.com/x.webp" })),
   obtenerEstadoTop12: vi.fn(async () =>
     Array.from({ length: 12 }, (_, i) => ({ rank: i + 1, producto: null }))
@@ -41,6 +54,10 @@ const {
 }));
 
 vi.mock("@/services/productoService", () => ({
+  // Constante real (no una funcion del servicio): se declara aqui tal cual
+  // porque este mock reemplaza el modulo completo y la ruta bulk-stock la
+  // usa para validar la lista blanca de acciones permitidas.
+  BULK_STOCK_OPERATION_TYPES: ["sumar", "restar", "establecer", "activar", "pausar", "disponibleUno", "agotar"],
   createProductoService: () => ({
     ajustarStockRapido,
     establecerStockRapido,
@@ -188,6 +205,129 @@ describe("POST /api/admin/products/bulk-stock", () => {
       })
     );
     expect(response.status).toBe(409);
+    expect(confirmarAjusteMasivoStock).not.toHaveBeenCalled();
+  });
+
+  it("rechaza arreglo vacio con 400", async () => {
+    const response = await bulkStockPost(
+      makeRequest("http://localhost/api/admin/products/bulk-stock", {
+        action: "preview",
+        productIds: [],
+        operation: { type: "sumar", cantidad: 1 }
+      })
+    );
+    expect(response.status).toBe(400);
+    expect(previsualizarAjusteMasivoStock).not.toHaveBeenCalled();
+  });
+
+  it("rechaza accion desconocida con 400 (Fase 2B.9)", async () => {
+    const response = await bulkStockPost(
+      makeRequest("http://localhost/api/admin/products/bulk-stock", {
+        action: "preview",
+        productIds: ["prod-1"],
+        operation: { type: "volar" }
+      })
+    );
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toMatch(/no es válida/i);
+    expect(previsualizarAjusteMasivoStock).not.toHaveBeenCalled();
+  });
+
+  it("rechaza mas de 500 productIds con 400 (Fase 2B.9)", async () => {
+    const ids = Array.from({ length: 501 }, (_, i) => `p${i}`);
+    const response = await bulkStockPost(
+      makeRequest("http://localhost/api/admin/products/bulk-stock", {
+        action: "preview",
+        productIds: ids,
+        operation: { type: "activar" }
+      })
+    );
+    expect(response.status).toBe(400);
+    expect(previsualizarAjusteMasivoStock).not.toHaveBeenCalled();
+  });
+
+  it("deduplica IDs repetidos antes de procesar en vez de rechazarlos (Fase 2B.9)", async () => {
+    const response = await bulkStockPost(
+      makeRequest("http://localhost/api/admin/products/bulk-stock", {
+        action: "preview",
+        productIds: ["prod-1", "prod-1", "prod-1"],
+        operation: { type: "sumar", cantidad: 1 }
+      })
+    );
+    expect(response.status).toBe(200);
+    expect(previsualizarAjusteMasivoStock).toHaveBeenCalledWith(["prod-1"], { type: "sumar", cantidad: 1 });
+  });
+
+  it("acepta las nuevas acciones activar/pausar/disponibleUno/agotar (Fase 2B.9)", async () => {
+    for (const type of ["activar", "pausar", "disponibleUno", "agotar"] as const) {
+      const response = await bulkStockPost(
+        makeRequest("http://localhost/api/admin/products/bulk-stock", {
+          action: "preview",
+          productIds: ["prod-1"],
+          operation: { type }
+        })
+      );
+      expect(response.status).toBe(200);
+    }
+  });
+
+  it("confirm se bloquea con 400 cuando TODOS los productos del preview quedan bloqueados (Fase 2B.9)", async () => {
+    previsualizarAjusteMasivoStock.mockResolvedValueOnce({
+      operation: { type: "restar", cantidad: 5 },
+      totalSeleccionados: 1,
+      productos: [
+        {
+          id: "prod-1",
+          sku: "SML-A",
+          nombre: "La Bomba",
+          stockAnterior: 2,
+          stockNuevo: 2,
+          activoAnterior: true,
+          activoNuevo: true,
+          status: "BLOQUEADO",
+          motivo: "Restar dejaría el stock por debajo del reservado."
+        }
+      ],
+      erroresGlobales: []
+    });
+    const previewResponse = await bulkStockPost(
+      makeRequest("http://localhost/api/admin/products/bulk-stock", {
+        action: "preview",
+        productIds: ["prod-1"],
+        operation: { type: "restar", cantidad: 5 }
+      })
+    );
+    const { previewHash } = await previewResponse.json();
+
+    previsualizarAjusteMasivoStock.mockResolvedValueOnce({
+      operation: { type: "restar", cantidad: 5 },
+      totalSeleccionados: 1,
+      productos: [
+        {
+          id: "prod-1",
+          sku: "SML-A",
+          nombre: "La Bomba",
+          stockAnterior: 2,
+          stockNuevo: 2,
+          activoAnterior: true,
+          activoNuevo: true,
+          status: "BLOQUEADO",
+          motivo: "Restar dejaría el stock por debajo del reservado."
+        }
+      ],
+      erroresGlobales: []
+    });
+
+    const response = await bulkStockPost(
+      makeRequest("http://localhost/api/admin/products/bulk-stock", {
+        action: "confirm",
+        productIds: ["prod-1"],
+        operation: { type: "restar", cantidad: 5 },
+        previewHash
+      })
+    );
+    expect(response.status).toBe(400);
     expect(confirmarAjusteMasivoStock).not.toHaveBeenCalled();
   });
 });
