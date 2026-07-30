@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { AppFooter } from "@/components/AppFooter";
 import { CartSummary } from "@/components/shared/CartSummary";
-import { ProductCatalog } from "@/components/shared/ProductCatalog";
+import { TopProductsSection } from "@/components/shared/TopProductsSection";
+import { OffersSection } from "@/components/shared/OffersSection";
+import { CatalogExplorer } from "@/components/shared/CatalogExplorer";
 import { AppToast } from "@/components/shared/AppToast";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import {
@@ -268,6 +270,22 @@ export function OrderForm() {
     () => normalizarProductoParaCarrito(form.items, products),
     [form.items, products]
   );
+
+  const catalogQuantities = useMemo(
+    () => Object.fromEntries(form.items.map((item) => [item.productoId, item.cantidad])),
+    [form.items]
+  );
+
+  function handleAddToCatalog(productId: string) {
+    const product = products.find((item) => item.id === productId);
+    const existing = form.items.find((item) => item.productoId === productId);
+
+    if (product && existing) {
+      incrementItem(productId);
+    } else if (product) {
+      addItem(product);
+    }
+  }
 
   function getCartItemCount() {
     return form.items.reduce((sum, item) => sum + item.cantidad, 0);
@@ -765,22 +783,32 @@ export function OrderForm() {
               </div>
               {loadingProducts ? <span className="text-sm text-[#667085]">Cargando...</span> : null}
             </div>
-            <ProductCatalog
-              products={products}
-              quantities={Object.fromEntries(form.items.map((item) => [item.productoId, item.cantidad]))}
-              onAdd={(productId) => {
-                const product = products.find((item) => item.id === productId);
-                const existing = form.items.find((item) => item.productoId === productId);
-
-                if (product && existing) {
-                  incrementItem(productId);
-                } else if (product) {
-                  addItem(product);
-                }
-              }}
-              onDecrease={decrementItem}
-              onRemove={removeItem}
-            />
+            <div className="space-y-8">
+              <TopProductsSection
+                products={products}
+                quantities={catalogQuantities}
+                onAdd={handleAddToCatalog}
+                onDecrease={decrementItem}
+                onRemove={removeItem}
+              />
+              <OffersSection
+                products={products}
+                quantities={catalogQuantities}
+                onAdd={handleAddToCatalog}
+                onDecrease={decrementItem}
+                onRemove={removeItem}
+              />
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-[#111318]">Catálogo completo</h3>
+                <CatalogExplorer
+                  products={products}
+                  quantities={catalogQuantities}
+                  onAdd={handleAddToCatalog}
+                  onDecrease={decrementItem}
+                  onRemove={removeItem}
+                />
+              </div>
+            </div>
             {validation.errors.items ? (
               <p className="text-sm text-danger">{validation.errors.items}</p>
             ) : null}

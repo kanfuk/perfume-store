@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "clean:local": "node scripts/clean-local-artifacts.mjs",
+    "catalog:build": "node scripts/catalog/build-smellme-catalog.mjs",
+    "catalog:optimize-images": "node scripts/catalog/optimize-top12-images.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -35,6 +37,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.9",
     "postcss": "8.5.15",
+    "sharp": "0.34.5",
     "tailwindcss": "^3.4.17",
     "typescript": "6.0.3",
     "vitest": "4.1.8"

@@ -16,6 +16,7 @@ export interface ProductRepository {
   buscarProductosActivos(): Promise<ProductoProps[]>;
   buscarTodosProductos(): Promise<ProductoProps[]>;
   buscarProductoPorId(id: string): Promise<ProductoProps | null>;
+  buscarProductoPorSku(sku: string): Promise<ProductoProps | null>;
   crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }): Promise<ProductoProps>;
   eliminarProducto(id: string): Promise<void>;
   actualizarProducto(
@@ -36,6 +37,11 @@ class MockProductRepository implements ProductRepository {
 
   async buscarProductoPorId(id: string) {
     return localStore.products.find((product) => product.id === id) ?? null;
+  }
+
+  async buscarProductoPorSku(sku: string) {
+    if (!sku) return null;
+    return localStore.products.find((product) => product.sku === sku) ?? null;
   }
 
   async crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }) {
@@ -160,6 +166,26 @@ class SupabaseProductRepository implements ProductRepository {
     if (error) {
       throw new Error(
         `No fue posible obtener el producto solicitado. ${error.message}${
+          error.details ? ` Detalle: ${error.details}` : ""
+        }${error.hint ? ` Hint: ${error.hint}` : ""}`
+      );
+    }
+
+    return data ? mapSupabaseProduct(data) : null;
+  }
+
+  async buscarProductoPorSku(sku: string) {
+    if (!sku) return null;
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("productos")
+      .select("*")
+      .eq("sku", sku)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        `No fue posible obtener el producto por SKU. ${error.message}${
           error.details ? ` Detalle: ${error.details}` : ""
         }${error.hint ? ` Hint: ${error.hint}` : ""}`
       );

@@ -132,3 +132,9 @@ export function calcularCostoDespacho(metodoDespacho: MetodoDespacho): number {
 }
 
 export const HORAS_EXPIRACION_PEDIDO = 72;
+
+/**
+ * Cantidad maxima de productos destacados en la seccion Top del catalogo
+ * publico. Las posiciones validas de orden_destacado son 1..TOP_PRODUCTS_LIMIT.
+ */
+export const TOP_PRODUCTS_LIMIT = 12;

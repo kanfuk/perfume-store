@@ -12,6 +12,14 @@ import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import type { AdminProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
+import {
+  buildAdminImportPreview,
+  validateFileSize,
+  validateFileNameExtension,
+  validateBinaryContent,
+  type AdminImportPreview,
+  type AdminImportRow
+} from "@/lib/catalog-import/admin-import.ts";
 
 export type ProductoAdminInput = {
   sku?: string;
@@ -246,6 +254,118 @@ export class ProductoService {
     }
 
     await this.productRepository.eliminarProducto(id);
+  }
+
+  /**
+   * Genera un preview (dry-run) del CSV de importacion masiva: no escribe
+   * nada. Devuelve filas validas/bloqueadas y el plan crear/actualizar.
+   */
+  async previsualizarImportacionCsv(
+    buffer: Buffer,
+    fileName: string,
+    sizeBytes: number
+  ): Promise<AdminImportPreview> {
+    const sizeError = validateFileSize(sizeBytes);
+    if (sizeError) {
+      return {
+        totalFilas: 0,
+        filasValidas: [],
+        erroresFila: [],
+        plan: [],
+        resumen: { crear: 0, actualizar: 0, bloqueado: 0 },
+        erroresGlobales: [sizeError]
+      };
+    }
+
+    const extensionError = validateFileNameExtension(fileName);
+    if (extensionError) {
+      return {
+        totalFilas: 0,
+        filasValidas: [],
+        erroresFila: [],
+        plan: [],
+        resumen: { crear: 0, actualizar: 0, bloqueado: 0 },
+        erroresGlobales: [extensionError]
+      };
+    }
+
+    const binaryError = validateBinaryContent(buffer);
+    if (binaryError) {
+      return {
+        totalFilas: 0,
+        filasValidas: [],
+        erroresFila: [],
+        plan: [],
+        resumen: { crear: 0, actualizar: 0, bloqueado: 0 },
+        erroresGlobales: [binaryError]
+      };
+    }
+
+    const existingProducts = await this.productRepository.buscarTodosProductos();
+    const existingSkus = new Set(existingProducts.map((p) => p.sku).filter(Boolean) as string[]);
+
+    return buildAdminImportPreview(buffer, existingSkus);
+  }
+
+  /**
+   * Ejecuta el upsert por SKU de las filas ya validadas (crear/actualizar).
+   * NUNCA elimina productos ausentes del archivo. Requiere confirmacion
+   * explicita desde el llamador (no se invoca automaticamente tras preview).
+   */
+  async confirmarImportacionCsv(rows: AdminImportRow[]) {
+    let creados = 0;
+    let actualizados = 0;
+
+    for (const row of rows) {
+      const existing = await this.productRepository.buscarProductoPorSku(row.sku);
+      const stock = normalizeStockValue(row.stock ?? 0);
+      const payload = {
+        sku: row.sku,
+        nombre: row.nombre,
+        marca: row.marca,
+        contenido: row.contenido,
+        precioVenta: row.precioVenta ?? 0,
+        precioAnterior: row.precioAnterior ?? undefined,
+        imageUrl: row.imageUrl || undefined,
+        costoUnitario: row.costoUnitario ?? 0,
+        stockActual: stock,
+        stockAgenda: stock,
+        activo: row.activo,
+        esTop: row.esTop,
+        esOfertaSemana: row.esOfertaSemana,
+        ordenDestacado: row.ordenDestacado ?? undefined,
+        tipoProducto: "simple"
+      };
+
+      if (existing) {
+        await this.productRepository.actualizarProducto(existing.id, payload);
+        actualizados += 1;
+      } else {
+        const domainProduct = new Producto({ id: crypto.randomUUID(), ...payload });
+        await this.productRepository.crearProducto({
+          id: domainProduct.id,
+          sku: domainProduct.sku,
+          nombre: domainProduct.nombre,
+          marca: domainProduct.marca,
+          contenido: domainProduct.contenido,
+          descripcion: domainProduct.descripcion,
+          precioVenta: domainProduct.precioVenta,
+          precioAnterior: domainProduct.precioAnterior,
+          imageUrl: domainProduct.imageUrl,
+          costoUnitario: domainProduct.costoUnitario,
+          stockActual: domainProduct.stockActual,
+          stockAgenda: domainProduct.stockAgenda,
+          activo: domainProduct.activo,
+          esTop: domainProduct.esTop,
+          esOfertaSemana: domainProduct.esOfertaSemana,
+          ordenDestacado: domainProduct.ordenDestacado,
+          tipoProducto: domainProduct.tipoProducto
+        });
+        creados += 1;
+      }
+    }
+
+    return { creados, actualizados };
   }
 }
 

@@ -81,6 +81,10 @@ class ProductRepositoryStub implements ProductRepository {
     return null;
   }
 
+  async buscarProductoPorSku() {
+    return null;
+  }
+
   async buscarTodosProductos() {
     return this.buscarProductosActivos();
   }

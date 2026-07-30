@@ -33,7 +33,7 @@ export function ProductCatalog({
           El catálogo estará disponible muy pronto
         </h4>
         <p className="mt-2 max-w-md text-sm leading-6 text-[#667085]">
-          Estamos preparando Top 10, ofertas y el catálogo completo de Smellme.cl.
+          Estamos preparando Top 12, ofertas y el catálogo completo de Smellme.cl.
         </p>
       </div>
     );

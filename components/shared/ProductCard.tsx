@@ -16,6 +16,10 @@ type ProductCardProps = {
   actionLabel?: string;
   footerLabel?: string;
   showStockCount?: boolean;
+  /** "contain" muestra la imagen completa sin recortar (usado en el Top 12). */
+  imageFit?: "cover" | "contain";
+  /** Numero de posicion a mostrar como insignia (Top 12). */
+  rank?: number;
 };
 
 export function ProductCard({
@@ -26,27 +30,50 @@ export function ProductCard({
   onRemove,
   actionLabel,
   footerLabel = "Disponibilidad",
-  showStockCount = false
+  showStockCount = false,
+  imageFit = "cover",
+  rank
 }: ProductCardProps) {
   const availableStock = getAvailableProductStock(product);
   const isOutOfStock = availableStock <= 0;
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const hasLongDescription = (product.descripcion?.trim().length ?? 0) > 96;
+  const hasPreviousPrice =
+    typeof product.precioAnterior === "number" && product.precioAnterior > product.precioVenta;
 
   return (
     <article className="interactive-card flex h-full max-w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-[#e4e7ec] bg-white shadow-sm">
-      <div className="relative aspect-[4/3] min-w-0 bg-[#f7f8fa]">
+      <div
+        className={`relative min-w-0 ${
+          imageFit === "contain" ? "aspect-[3/4] bg-white" : "aspect-[4/3] bg-[#f7f8fa]"
+        }`}
+      >
         <ProductImage
           src={product.imageUrl}
           alt={product.nombre}
           sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
-          className="object-cover"
+          className={imageFit === "contain" ? "object-contain" : "object-cover"}
         />
-        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
+        {imageFit !== "contain" ? (
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
+        ) : null}
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
-          <span className="rounded-full border border-white/15 bg-[#111318]/82 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-md">
-            {product.badgeLabel || product.tipoProducto || "PERFUME"}
-          </span>
+          <div className="flex items-center gap-2">
+            {typeof rank === "number" ? (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7357ff] text-sm font-bold text-white shadow-sm">
+                {rank}
+              </span>
+            ) : null}
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-sm backdrop-blur-md ${
+                imageFit === "contain"
+                  ? "border-[#e4e7ec] bg-white/90 text-[#111318]"
+                  : "border-white/15 bg-[#111318]/82 text-white"
+              }`}
+            >
+              {product.badgeLabel || product.tipoProducto || "PERFUME"}
+            </span>
+          </div>
           {quantity > 0 ? (
             <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#392694] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
               En carrito x{quantity}
@@ -82,8 +109,15 @@ export function ProductCard({
             <div className="text-xs font-semibold uppercase tracking-wide text-[#667085]">
               Valor unitario
             </div>
-            <div className="mt-1 text-2xl font-bold text-[#111318]">
-              {formatCurrency(product.precioVenta)}
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-[#111318]">
+                {formatCurrency(product.precioVenta)}
+              </span>
+              {hasPreviousPrice ? (
+                <span className="text-sm font-medium text-[#98a2b3] line-through">
+                  {formatCurrency(product.precioAnterior as number)}
+                </span>
+              ) : null}
             </div>
           </div>
 
