@@ -3,7 +3,8 @@
 import { Sparkles } from "lucide-react";
 import type { ProductRecord } from "@/lib/types";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
-import { ProductCard } from "@/components/shared/ProductCard";
+import { ProductFamilyCard } from "@/components/shared/ProductFamilyCard";
+import { groupProductsIntoFamilies, getTopFamilies } from "@/lib/product-families";
 
 type TopProductsSectionProps = {
   products: ProductRecord[];
@@ -13,7 +14,14 @@ type TopProductsSectionProps = {
   onRemove?: (productId: string) => void;
 };
 
-/** Ranking 1..12 de productos destacados (es_top + orden_destacado). */
+/**
+ * Ranking 1..12 de familias destacadas (es_top + orden_destacado). Si dos
+ * variantes de la MISMA familia estan vinculadas a posiciones distintas del
+ * Top 12 (ej. Lady Million 30ML en la posicion 3 y 80ML en la 7), se
+ * muestra UNA sola tarjeta publica: la posicion mas alta (numero menor) gana
+ * el ranking mostrado, y esa variante queda preseleccionada en el selector
+ * de tamano (conservando su imagen Top 12 propia).
+ */
 export function TopProductsSection({
   products,
   quantities,
@@ -21,12 +29,10 @@ export function TopProductsSection({
   onDecrease,
   onRemove
 }: TopProductsSectionProps) {
-  const topProducts = products
-    .filter((product) => product.esTop && typeof product.ordenDestacado === "number")
-    .sort((a, b) => (a.ordenDestacado ?? 0) - (b.ordenDestacado ?? 0))
-    .slice(0, TOP_PRODUCTS_LIMIT);
+  const families = groupProductsIntoFamilies(products);
+  const topFamilies = getTopFamilies(families, TOP_PRODUCTS_LIMIT);
 
-  if (topProducts.length === 0) {
+  if (topFamilies.length === 0) {
     return (
       <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eeebff] text-[#7357ff]">
@@ -54,16 +60,17 @@ export function TopProductsSection({
         </div>
       </div>
       <div className="grid w-full max-w-full min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {topProducts.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            rank={product.ordenDestacado}
+        {topFamilies.map(({ family, rank, initialVariantId }) => (
+          <ProductFamilyCard
+            key={family.key}
+            family={family}
+            rank={rank}
+            initialVariantId={initialVariantId}
             imageFit="contain"
-            quantity={quantities[product.id] ?? 0}
-            onAdd={() => onAdd(product.id)}
-            onDecrease={onDecrease ? () => onDecrease(product.id) : undefined}
-            onRemove={onRemove ? () => onRemove(product.id) : undefined}
+            quantities={quantities}
+            onAdd={onAdd}
+            onDecrease={onDecrease}
+            onRemove={onRemove}
           />
         ))}
       </div>

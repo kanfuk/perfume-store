@@ -20,6 +20,8 @@ type ProductCardProps = {
   imageFit?: "cover" | "contain";
   /** Numero de posicion a mostrar como insignia (Top 12). */
   rank?: number;
+  /** Selector de tamano de una familia de producto (reemplaza la linea estatica de `contenido`). */
+  sizeSelector?: React.ReactNode;
 };
 
 export function ProductCard({
@@ -32,7 +34,8 @@ export function ProductCard({
   footerLabel = "Disponibilidad",
   showStockCount = false,
   imageFit = "cover",
-  rank
+  rank,
+  sizeSelector
 }: ProductCardProps) {
   const availableStock = getAvailableProductStock(product);
   const isOutOfStock = availableStock <= 0;
@@ -92,7 +95,7 @@ export function ProductCard({
           <h4 className="line-clamp-2 text-base font-semibold leading-tight text-[#111318] sm:text-[1.1rem]">
             {product.nombre}
           </h4>
-          {product.contenido ? <p className="text-xs text-[#98a2b3]">{product.contenido}</p> : null}
+          {sizeSelector ?? (product.contenido ? <p className="text-xs text-[#98a2b3]">{product.contenido}</p> : null)}
         </div>
         <div className="space-y-2">
           <p

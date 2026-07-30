@@ -9,6 +9,7 @@
 import { Producto } from "@/domain/Producto";
 import type { ProductoProps } from "@/domain/Producto";
 import { getProductVisualMeta } from "@/lib/product-catalog";
+import { buildFamilyKey } from "@/lib/product-families";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import { validateImageUrlInput } from "@/lib/image-url";
@@ -73,14 +74,28 @@ export type ProductoAdminInput = {
 export class ProductoService {
   constructor(private readonly productRepository: ProductRepository) {}
 
+  /**
+   * Catalogo publico (Fase 2B.8, familias de producto): ya NO filtra
+   * producto por producto. Una FAMILIA (marca+nombre) es visible si al
+   * menos una de sus variantes es vendible (activa, con stock y precio);
+   * si lo es, se exponen TODAS sus variantes (incluidas las agotadas o
+   * pausadas) para que el selector de tamano pueda mostrarlas como "Sin
+   * stock" en vez de ocultarlas. Un producto sin familia visible (el o
+   * todos sus hermanos bloqueados) sigue sin aparecer, igual que antes.
+   */
   async obtenerProductosActivos() {
-    const products = await this.productRepository.buscarProductosActivos();
+    const products = await this.productRepository.buscarTodosProductos();
+    const domainProducts = products.map((product) => new Producto(product));
 
-    return products
-      .map((product) => new Producto(product))
-      .filter(
-        (product) => product.activo && getUnifiedProductStock(product) > 0 && product.precioVenta > 0
-      )
+    const esVendible = (product: Producto) =>
+      product.activo && getUnifiedProductStock(product) > 0 && product.precioVenta > 0;
+
+    const familiasVisibles = new Set(
+      domainProducts.filter(esVendible).map((product) => buildFamilyKey(product.marca, product.nombre))
+    );
+
+    return domainProducts
+      .filter((product) => familiasVisibles.has(buildFamilyKey(product.marca, product.nombre)))
       .map((product) => {
         const visual = getProductVisualMeta(product);
 
@@ -99,6 +114,7 @@ export class ProductoService {
             visual.badgeLabel ||
             product.tipoProducto ||
             "PERFUME",
+          activo: product.activo,
           stockActual: getUnifiedProductStock(product),
           stockAgenda: getUnifiedProductStock(product),
           stockReservado: product.stockReservado,

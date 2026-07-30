@@ -68,6 +68,11 @@ export function CartSummary({
                   <div className="min-w-0">
                     <div className="break-words font-medium text-[#111318]">
                       {item.product?.nombre}
+                      {item.product?.contenido ? (
+                        <span className="ml-1.5 text-sm font-normal text-[#667085]">
+                          · {item.product.contenido}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-1 text-sm text-[#667085]">
                       Valor unitario: {formatCurrency(item.product?.precioVenta ?? 0)}

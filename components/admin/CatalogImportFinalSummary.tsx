@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import { groupByFamilyKey } from "@/lib/product-families";
 import type { FinalPlanRow, QualityReviewSummary } from "@/lib/catalog-import/quality-review.ts";
 
 type Props = {
@@ -21,6 +22,7 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
   const filasOriginales = summary.filasUtiles;
   const filasFinales = plan.reduce((acc, p) => acc + p.rowNumbers.length, 0);
   const filasExcluidas = Math.max(filasOriginales - filasFinales, 0);
+  const familiasConVariantes = groupByFamilyKey(plan).filter((group) => group.items.length > 1);
 
   return (
     <div className="space-y-4">
@@ -55,6 +57,23 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
         Precio de venta calculado con el recargo vigente (salvo productos con precio manual, que se preservan).
         Stock inicial para productos nuevos: 1.
       </p>
+
+      {familiasConVariantes.length > 0 ? (
+        <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">Variantes agrupadas</p>
+          {familiasConVariantes.map((family) => (
+            <div key={family.key} className="text-sm">
+              <span className="font-semibold text-[#111318]">{family.nombre}</span>
+              <span className="ml-2 text-[#667085]">
+                {family.items.length} presentaciones: {family.items.map((r) => r.contenido).join(", ")}
+              </span>
+              <p className="text-xs text-[#667085]">
+                Se crearán {family.items.length} productos internos y una sola tarjeta en el catálogo público.
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <button
         type="button"

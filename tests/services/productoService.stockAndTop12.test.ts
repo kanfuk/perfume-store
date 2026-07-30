@@ -368,16 +368,57 @@ describe("ProductoService - Top 12 editorial", () => {
 });
 
 describe("ProductoService - visibilidad publica del catalogo", () => {
-  it("obtenerProductosActivos excluye productos sin stock o sin precio, aunque esten activos", async () => {
+  it("obtenerProductosActivos excluye productos (sin familia visible) sin stock o sin precio, aunque esten activos", async () => {
     const repository = new FullProductRepositoryStub();
-    seedProduct(repository, { id: "prod-1", sku: "SML-A", activo: true, stockActual: 5, precioVenta: 10000 });
-    seedProduct(repository, { id: "prod-2", sku: "SML-B", activo: true, stockActual: 0, precioVenta: 10000 });
-    seedProduct(repository, { id: "prod-3", sku: "SML-C", activo: true, stockActual: 5, precioVenta: 0 });
-    seedProduct(repository, { id: "prod-4", sku: "SML-D", activo: false, stockActual: 5, precioVenta: 10000 });
+    // Cada uno es su propia familia (nombre distinto): sin variantes hermanas
+    // vendibles, deben quedar completamente excluidos del catalogo publico.
+    seedProduct(repository, { id: "prod-1", sku: "SML-A", nombre: "Producto A", activo: true, stockActual: 5, precioVenta: 10000 });
+    seedProduct(repository, { id: "prod-2", sku: "SML-B", nombre: "Producto B", activo: true, stockActual: 0, precioVenta: 10000 });
+    seedProduct(repository, { id: "prod-3", sku: "SML-C", nombre: "Producto C", activo: true, stockActual: 5, precioVenta: 0 });
+    seedProduct(repository, { id: "prod-4", sku: "SML-D", nombre: "Producto D", activo: false, stockActual: 5, precioVenta: 10000 });
     const service = new ProductoService(repository);
 
     const activos = await service.obtenerProductosActivos();
     expect(activos.map((p) => p.id)).toEqual(["prod-1"]);
+  });
+
+  it("familia con al menos una variante vendible expone TODAS sus variantes (incluida la agotada) para el selector", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      id: "lm-30",
+      sku: "SML-PACO-RABANNE-LADY-MILLION-30ML",
+      nombre: "Lady Million",
+      marca: "Paco Rabanne",
+      contenido: "30ML",
+      activo: true,
+      stockActual: 3,
+      precioVenta: 33750
+    });
+    seedProduct(repository, {
+      id: "lm-80",
+      sku: "SML-PACO-RABANNE-LADY-MILLION-80ML",
+      nombre: "Lady Million",
+      marca: "Paco Rabanne",
+      contenido: "80ML",
+      activo: true,
+      stockActual: 0, // agotada, pero es hermana de una variante vendible
+      precioVenta: 67500
+    });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    expect(activos.map((p) => p.id).sort()).toEqual(["lm-30", "lm-80"]);
+    expect(activos.find((p) => p.id === "lm-80")?.stockActual).toBe(0);
+  });
+
+  it("familia sin NINGUNA variante vendible queda completamente excluida", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { id: "x-30", nombre: "X", contenido: "30ML", stockActual: 0 });
+    seedProduct(repository, { id: "x-50", nombre: "X", contenido: "50ML", activo: false });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    expect(activos).toHaveLength(0);
   });
 });
 

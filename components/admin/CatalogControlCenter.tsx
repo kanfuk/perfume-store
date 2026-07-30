@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Boxes,
+  ChevronDown,
+  ChevronUp,
   CircleDollarSign,
   Home,
   ImageOff,
@@ -13,9 +15,12 @@ import {
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableBrands, filterAndSortProducts } from "@/lib/catalog-search";
+import { groupByFamilyKey, type GenericFamilyGroup } from "@/lib/product-families";
 import type { AdminProductRecord } from "@/lib/types";
 
 type ChipFilter = "todos" | "activos" | "pausados" | "sin-stock" | "stock-bajo" | "top12" | "sin-imagen";
+
+type AdminFamilyGroup = GenericFamilyGroup<AdminProductRecord>;
 
 async function fetchJson(url: string, init?: RequestInit) {
   const response = await fetch(url, init);
@@ -38,6 +43,16 @@ export function CatalogControlCenter() {
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [imageDraft, setImageDraft] = useState("");
   const [savingImage, setSavingImage] = useState(false);
+  const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
+
+  function toggleFamily(key: string) {
+    setExpandedFamilies((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +115,8 @@ export function CatalogControlCenter() {
     () => filterAndSortProducts(chipFiltered, { query, brand: brandFilter, sort: "nombre-asc" }) as AdminProductRecord[],
     [chipFiltered, query, brandFilter]
   );
+
+  const familyGroups = useMemo(() => groupByFamilyKey(filtered), [filtered]);
 
   function startEditingImage(product: AdminProductRecord) {
     setEditingImageId(product.id);
@@ -276,56 +293,35 @@ export function CatalogControlCenter() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#eef0f3]">
-                  {filtered.map((product) => (
-                    <tr key={product.id}>
-                      <td className="px-4 py-2.5 text-[#111318]">{product.nombre}</td>
-                      <td className="px-4 py-2.5 text-[#667085]">{product.marca}</td>
-                      <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(product.precioVenta)}</td>
-                      <td className="px-4 py-2.5 text-[#667085]">{product.stockActual}</td>
-                      <td className="px-4 py-2.5">
-                        <EstadoBadge product={product} />
-                      </td>
-                      <td className="px-4 py-2.5 text-[#667085]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
-                      <td className="px-4 py-2.5 text-[#667085]">
-                        {editingImageId === product.id ? (
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={imageDraft}
-                              onChange={(event) => setImageDraft(event.target.value)}
-                              placeholder="https://... o /images/..."
-                              className="w-48 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveImage(product)}
-                              disabled={savingImage}
-                              className="rounded-lg bg-[#5434e6] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
-                            >
-                              Guardar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEditingImage}
-                              className="rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054]"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        ) : product.imageUrl ? (
-                          "Sí"
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => startEditingImage(product)}
-                            className="rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#5434e6]"
-                          >
-                            Asignar imagen
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {familyGroups.map((group) =>
+                    group.items.length > 1 ? (
+                      <FamilyGroupRows
+                        key={group.key}
+                        group={group}
+                        expanded={expandedFamilies.has(group.key)}
+                        onToggle={() => toggleFamily(group.key)}
+                        editingImageId={editingImageId}
+                        imageDraft={imageDraft}
+                        savingImage={savingImage}
+                        onStartEditingImage={startEditingImage}
+                        onCancelEditingImage={cancelEditingImage}
+                        onImageDraftChange={setImageDraft}
+                        onSaveImage={saveImage}
+                      />
+                    ) : (
+                      <AdminProductRow
+                        key={group.items[0].id}
+                        product={group.items[0]}
+                        editingImageId={editingImageId}
+                        imageDraft={imageDraft}
+                        savingImage={savingImage}
+                        onStartEditingImage={startEditingImage}
+                        onCancelEditingImage={cancelEditingImage}
+                        onImageDraftChange={setImageDraft}
+                        onSaveImage={saveImage}
+                      />
+                    )
+                  )}
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-6 text-center text-sm text-[#667085]">
@@ -338,58 +334,35 @@ export function CatalogControlCenter() {
             </div>
 
             <div className="grid gap-3 md:hidden">
-              {filtered.map((product) => (
-                <div key={product.id} className="rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
-                      <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
-                    </div>
-                    <EstadoBadge product={product} />
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#667085]">
-                    <span className="font-semibold text-[#111318]">{formatCurrency(product.precioVenta)}</span>
-                    <span>Stock: {product.stockActual}</span>
-                    {product.esTop ? <span>Top #{product.ordenDestacado}</span> : null}
-                  </div>
-                  {!product.imageUrl ? (
-                    editingImageId === product.id ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={imageDraft}
-                          onChange={(event) => setImageDraft(event.target.value)}
-                          placeholder="https://... o /images/..."
-                          className="min-h-9 flex-1 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => saveImage(product)}
-                          disabled={savingImage}
-                          className="min-h-9 rounded-lg bg-[#5434e6] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
-                        >
-                          Guardar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={cancelEditingImage}
-                          className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054]"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => startEditingImage(product)}
-                        className="mt-2 min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#5434e6]"
-                      >
-                        Asignar imagen
-                      </button>
-                    )
-                  ) : null}
-                </div>
-              ))}
+              {familyGroups.map((group) =>
+                group.items.length > 1 ? (
+                  <FamilyGroupMobileCard
+                    key={group.key}
+                    group={group}
+                    expanded={expandedFamilies.has(group.key)}
+                    onToggle={() => toggleFamily(group.key)}
+                    editingImageId={editingImageId}
+                    imageDraft={imageDraft}
+                    savingImage={savingImage}
+                    onStartEditingImage={startEditingImage}
+                    onCancelEditingImage={cancelEditingImage}
+                    onImageDraftChange={setImageDraft}
+                    onSaveImage={saveImage}
+                  />
+                ) : (
+                  <AdminProductMobileCard
+                    key={group.items[0].id}
+                    product={group.items[0]}
+                    editingImageId={editingImageId}
+                    imageDraft={imageDraft}
+                    savingImage={savingImage}
+                    onStartEditingImage={startEditingImage}
+                    onCancelEditingImage={cancelEditingImage}
+                    onImageDraftChange={setImageDraft}
+                    onSaveImage={saveImage}
+                  />
+                )
+              )}
               {filtered.length === 0 ? (
                 <p className="py-6 text-center text-sm text-[#667085]">Sin productos que coincidan con la búsqueda.</p>
               ) : null}
@@ -398,6 +371,208 @@ export function CatalogControlCenter() {
         )}
       </section>
     </main>
+  );
+}
+
+type ImageEditorProps = {
+  editingImageId: string | null;
+  imageDraft: string;
+  savingImage: boolean;
+  onStartEditingImage: (product: AdminProductRecord) => void;
+  onCancelEditingImage: () => void;
+  onImageDraftChange: (value: string) => void;
+  onSaveImage: (product: AdminProductRecord) => void;
+};
+
+function ImageCellEditor({
+  product,
+  editingImageId,
+  imageDraft,
+  savingImage,
+  onStartEditingImage,
+  onCancelEditingImage,
+  onImageDraftChange,
+  onSaveImage
+}: ImageEditorProps & { product: AdminProductRecord }) {
+  if (editingImageId === product.id) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <input
+          type="text"
+          value={imageDraft}
+          onChange={(event) => onImageDraftChange(event.target.value)}
+          placeholder="https://... o /images/..."
+          className="w-48 min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs"
+        />
+        <button
+          type="button"
+          onClick={() => onSaveImage(product)}
+          disabled={savingImage}
+          className="min-h-9 rounded-lg bg-[#5434e6] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
+        >
+          Guardar
+        </button>
+        <button
+          type="button"
+          onClick={onCancelEditingImage}
+          className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054]"
+        >
+          Cancelar
+        </button>
+      </div>
+    );
+  }
+  if (product.imageUrl) return <>Sí</>;
+  return (
+    <button
+      type="button"
+      onClick={() => onStartEditingImage(product)}
+      className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#5434e6]"
+    >
+      Asignar imagen
+    </button>
+  );
+}
+
+function AdminProductRow({ product, ...imageProps }: ImageEditorProps & { product: AdminProductRecord }) {
+  return (
+    <tr>
+      <td className="px-4 py-2.5 text-[#111318]">{product.nombre}</td>
+      <td className="px-4 py-2.5 text-[#667085]">{product.marca}</td>
+      <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(product.precioVenta)}</td>
+      <td className="px-4 py-2.5 text-[#667085]">{product.stockActual}</td>
+      <td className="px-4 py-2.5">
+        <EstadoBadge product={product} />
+      </td>
+      <td className="px-4 py-2.5 text-[#667085]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
+      <td className="px-4 py-2.5 text-[#667085]">
+        <ImageCellEditor product={product} {...imageProps} />
+      </td>
+    </tr>
+  );
+}
+
+/** Fila de encabezado de familia + filas de cada variante cuando esta expandida (tabla desktop). */
+function FamilyGroupRows({
+  group,
+  expanded,
+  onToggle,
+  ...imageProps
+}: ImageEditorProps & { group: AdminFamilyGroup; expanded: boolean; onToggle: () => void }) {
+  return (
+    <>
+      <tr className="bg-[#f7f8fa]/70">
+        <td colSpan={7} className="px-4 py-2.5">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex min-h-9 w-full items-center justify-between gap-2 text-left"
+          >
+            <span className="flex items-center gap-2">
+              <span className="font-semibold text-[#111318]">{group.nombre}</span>
+              <span className="text-xs text-[#98a2b3]">{group.marca}</span>
+              <span className="rounded-full bg-[#eeebff] px-2 py-0.5 text-xs font-semibold text-[#5434e6]">
+                {group.items.length} presentaciones
+              </span>
+            </span>
+            {expanded ? <ChevronUp className="h-4 w-4 text-[#667085]" /> : <ChevronDown className="h-4 w-4 text-[#667085]" />}
+          </button>
+        </td>
+      </tr>
+      {expanded
+        ? group.items.map((product) => (
+            <tr key={product.id} className="bg-white">
+              <td className="px-4 py-2.5 pl-8 text-[#111318]">
+                {product.contenido || "—"}
+                <span className="ml-2 font-mono text-[10px] text-[#98a2b3]">{product.sku}</span>
+              </td>
+              <td className="px-4 py-2.5 text-[#667085]">{product.marca}</td>
+              <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(product.precioVenta)}</td>
+              <td className="px-4 py-2.5 text-[#667085]">{product.stockActual}</td>
+              <td className="px-4 py-2.5">
+                <EstadoBadge product={product} />
+              </td>
+              <td className="px-4 py-2.5 text-[#667085]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
+              <td className="px-4 py-2.5 text-[#667085]">
+                <ImageCellEditor product={product} {...imageProps} />
+              </td>
+            </tr>
+          ))
+        : null}
+    </>
+  );
+}
+
+function AdminProductMobileCard({ product, ...imageProps }: ImageEditorProps & { product: AdminProductRecord }) {
+  return (
+    <div className="rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
+          <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
+        </div>
+        <EstadoBadge product={product} />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#667085]">
+        <span className="font-semibold text-[#111318]">{formatCurrency(product.precioVenta)}</span>
+        <span>Stock: {product.stockActual}</span>
+        {product.esTop ? <span>Top #{product.ordenDestacado}</span> : null}
+      </div>
+      {!product.imageUrl || imageProps.editingImageId === product.id ? (
+        <div className="mt-2">
+          <ImageCellEditor product={product} {...imageProps} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Tarjeta de encabezado de familia + tarjetas de cada variante cuando esta expandida (mobile). */
+function FamilyGroupMobileCard({
+  group,
+  expanded,
+  onToggle,
+  ...imageProps
+}: ImageEditorProps & { group: AdminFamilyGroup; expanded: boolean; onToggle: () => void }) {
+  return (
+    <div className="rounded-2xl border border-[#e4e7ec] bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex min-h-11 w-full items-center justify-between gap-2 p-4 text-left"
+      >
+        <span className="min-w-0">
+          <span className="block text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{group.marca}</span>
+          <span className="block truncate text-sm font-semibold text-[#111318]">{group.nombre}</span>
+          <span className="mt-1 inline-block rounded-full bg-[#eeebff] px-2 py-0.5 text-xs font-semibold text-[#5434e6]">
+            {group.items.length} presentaciones
+          </span>
+        </span>
+        {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-[#667085]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#667085]" />}
+      </button>
+      {expanded ? (
+        <div className="space-y-2 border-t border-[#e4e7ec] p-4 pt-3">
+          {group.items.map((product) => (
+            <div key={product.id} className="rounded-xl bg-[#f7f8fa] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-semibold text-[#111318]">{product.contenido || "—"}</span>
+                <EstadoBadge product={product} />
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#667085]">
+                <span className="font-semibold text-[#111318]">{formatCurrency(product.precioVenta)}</span>
+                <span>Stock: {product.stockActual}</span>
+                <span className="font-mono text-[10px] text-[#98a2b3]">{product.sku}</span>
+              </div>
+              {!product.imageUrl || imageProps.editingImageId === product.id ? (
+                <div className="mt-2">
+                  <ImageCellEditor product={product} {...imageProps} />
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

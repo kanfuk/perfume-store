@@ -3,10 +3,16 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { ProductRecord } from "@/lib/types";
-import { ProductCatalog } from "@/components/shared/ProductCatalog";
-import { filterAndSortProducts, getAvailableBrands, type CatalogSortOption } from "@/lib/catalog-search";
+import { FamilyCatalog } from "@/components/shared/FamilyCatalog";
+import {
+  groupProductsIntoFamilies,
+  getVisibleFamilies,
+  filterAndSortFamilies,
+  getAvailableFamilyBrands,
+  type FamilySortOption
+} from "@/lib/product-families";
 
-type SortOption = CatalogSortOption;
+type SortOption = FamilySortOption;
 
 type CatalogExplorerProps = {
   products: ProductRecord[];
@@ -25,14 +31,15 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
   const [sort, setSort] = useState<SortOption>("recomendados");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const brands = useMemo(() => getAvailableBrands(products), [products]);
+  const families = useMemo(() => getVisibleFamilies(groupProductsIntoFamilies(products)), [products]);
+  const brands = useMemo(() => getAvailableFamilyBrands(families), [families]);
 
   const filtered = useMemo(
-    () => filterAndSortProducts(products, { query, brand: brandFilter, sort }),
-    [products, query, brandFilter, sort]
+    () => filterAndSortFamilies(families, { query, brand: brandFilter, sort }),
+    [families, query, brandFilter, sort]
   );
 
-  const visibleProducts = filtered.slice(0, visibleCount);
+  const visibleFamilies = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
   const hasActiveFilters = query.trim() !== "" || brandFilter !== "" || sort !== "recomendados";
 
@@ -108,8 +115,8 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-[#667085]">
-          {filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}
+        <p className="text-sm text-[#667085]" aria-live="polite">
+          {filtered.length} {filtered.length === 1 ? "perfume" : "perfumes"}
         </p>
         {hasActiveFilters ? (
           <button
@@ -122,7 +129,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
         ) : null}
       </div>
 
-      {filtered.length === 0 && products.length > 0 ? (
+      {filtered.length === 0 && families.length > 0 ? (
         <div className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
           <h4 className="text-base font-semibold text-[#111318]">Sin resultados</h4>
           <p className="max-w-md text-sm leading-6 text-[#667085]">
@@ -131,8 +138,8 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
         </div>
       ) : (
         <>
-          <ProductCatalog
-            products={visibleProducts}
+          <FamilyCatalog
+            families={visibleFamilies}
             quantities={quantities}
             onAdd={onAdd}
             onDecrease={onDecrease}
