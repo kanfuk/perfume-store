@@ -1,4 +1,3 @@
-import { paymentInfo } from "@/config/paymentInfo";
 import { formatCurrency } from "@/lib/format";
 
 type DebtCollectionItem = {
@@ -43,22 +42,15 @@ export function buildDebtCollectionMessage(input: BuildDebtCollectionMessageInpu
     `Buenas tardes! ${waSunEmoji()}`,
     "",
     ...greetingLines,
-    `Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos ${waHeartEmoji()}`,
+    `Muchas gracias por preferir Smellme.cl ${waHeartEmoji()}`,
     "Le env\u00EDo el detalle de su cuenta:",
     "",
     `${waSparklesEmoji()}Monto total: ${formatCurrency(input.amount)}`,
     `${waMemoEmoji()}Detalle:`,
     ...detailLines,
     "",
-    "Le dejo mis datos para transferencia.",
+    "Escríbeme por este mismo medio para coordinar la forma de pago.",
     "",
-    `¡Muchas gracias nuevamente! ${waHugEmoji()}`,
-    "",
-    paymentInfo.accountHolder,
-    paymentInfo.rut,
-    paymentInfo.bank,
-    paymentInfo.accountType,
-    paymentInfo.accountNumber,
-    paymentInfo.email
+    `¡Muchas gracias nuevamente! ${waHugEmoji()}`
   ].join("\n");
 }

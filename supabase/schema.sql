@@ -604,6 +604,31 @@ to authenticated
 using (public.is_active_admin())
 with check (public.is_active_admin());
 
+-- Fase 3B.1A: el repositorio servidor lee la fila singleton y actualiza
+-- exclusivamente las seis columnas de pago. No hay acceso directo publico.
+revoke all on table public.business_settings from anon;
+revoke all on table public.business_settings from authenticated;
+revoke truncate, references, trigger
+on table public.business_settings
+from service_role;
+grant select (
+  id,
+  banco,
+  tipo_cuenta,
+  numero_cuenta,
+  titular_cuenta,
+  rut_titular,
+  correo
+) on table public.business_settings to service_role;
+grant update (
+  banco,
+  tipo_cuenta,
+  numero_cuenta,
+  titular_cuenta,
+  rut_titular,
+  correo
+) on table public.business_settings to service_role;
+
 -- pedidos: sin politica publica de insercion ni lectura en esta fase. La
 -- creacion publica de pedidos se hace mediante create_perfume_order_v1
 -- (SECURITY DEFINER, solo service_role), llamada desde una ruta de servidor
@@ -711,9 +736,9 @@ with check (user_id = auth.uid() and public.is_active_admin());
 -- 20260728010000_runtime_table_privileges.sql). RLS y las politicas de
 -- arriba no alcanzan sin este GRANT: Postgres exige el privilegio de tabla
 -- antes de evaluar RLS, para cualquier rol -- incluido service_role, que
--- ignora RLS pero no el grant de tabla. business_settings,
--- operaciones_admin_log y los archivo_* no se tocan: ningun codigo
--- TypeScript los consulta (solo funciones SECURITY DEFINER).
+-- ignora RLS pero no el grant de tabla. business_settings se configura
+-- arriba con privilegios de columna minimos; operaciones_admin_log y los
+-- archivo_* no se tocan porque solo se usan en funciones SECURITY DEFINER.
 -- ============================================================
 
 revoke all on table public.pedidos from public;

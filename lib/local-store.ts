@@ -103,6 +103,17 @@ export type LocalArchivedRecord<T> = {
   createdAt: string;
 };
 
+/** Espejo en memoria de las columnas de pago de business_settings (fila singleton). */
+export type LocalBusinessSettingsRecord = {
+  banco: string | null;
+  tipoCuenta: string | null;
+  numeroCuenta: string | null;
+  titularCuenta: string | null;
+  rutTitular: string | null;
+  correo: string | null;
+  updatedAt: string;
+};
+
 export const localStore = {
   customers: [] as LocalCustomerRecord[],
   orders: [] as LocalOrderRecord[],
@@ -111,6 +122,15 @@ export const localStore = {
   fiados: [] as LocalFiadoRecord[],
   products: [...mockProducts],
   adminOperationLogs: [] as LocalAdminOperationLog[],
+  businessSettings: {
+    banco: null,
+    tipoCuenta: null,
+    numeroCuenta: null,
+    titularCuenta: null,
+    rutTitular: null,
+    correo: null,
+    updatedAt: new Date(0).toISOString()
+  } as LocalBusinessSettingsRecord,
   archivedCustomers: [] as LocalArchivedRecord<LocalCustomerRecord>[],
   archivedOrders: [] as LocalArchivedRecord<LocalOrderRecord>[],
   archivedOrderItems: [] as LocalArchivedRecord<LocalOrderItemRecord>[],

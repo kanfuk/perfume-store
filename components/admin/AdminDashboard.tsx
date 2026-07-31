@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Archive,
   BarChart3,
-  BellRing,
   Box,
   Boxes,
   CalendarClock,
@@ -31,10 +30,10 @@ import {
   PencilLine,
   Phone,
   Plus,
-  KeyRound,
   ReceiptText,
   RefreshCcw,
   Search,
+  Settings,
   ShoppingBag,
   Sparkles,
   Store,
@@ -46,7 +45,6 @@ import { AppFooter } from "@/components/AppFooter";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
-import { paymentInfo } from "@/config/paymentInfo";
 import {
   ADMIN_VIEW_META,
   ADMIN_VIEW_ROUTES,
@@ -156,7 +154,6 @@ import {
   getProductDeleteConfirmationDescription
 } from "@/lib/ui/feedback-messages";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
-import { buildOrderConfirmationMessage } from "@/lib/whatsapp/buildOrderConfirmationMessage";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
 import { buildWhatsAppManualUrl } from "@/lib/whatsapp/buildWhatsAppManualUrl";
 import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
@@ -194,6 +191,9 @@ export function AdminDashboard({
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [whatsAppFallback, setWhatsAppFallback] = useState<WhatsAppFallbackState | null>(null);
+  const [paymentSettingsComplete, setPaymentSettingsComplete] = useState<boolean | null>(
+    null
+  );
   const [busyOrderId, setBusyOrderId] = useState("");
   const [busyProductId, setBusyProductId] = useState("");
   const [busyMaintenanceAction, setBusyMaintenanceAction] = useState("");
@@ -233,6 +233,35 @@ export function AdminDashboard({
     isRunningAsInstalledPwa,
     getFalseClientSnapshot
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPaymentSettingsStatus() {
+      try {
+        const response = await fetch("/api/admin/settings/payment?summary=1", {
+          cache: "no-store"
+        });
+        const payload = (await response.json()) as {
+          completa?: boolean;
+        };
+
+        if (!cancelled && response.ok) {
+          setPaymentSettingsComplete(payload.completa === true);
+        }
+      } catch {
+        if (!cancelled) {
+          setPaymentSettingsComplete(null);
+        }
+      }
+    }
+
+    void loadPaymentSettingsStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const badgeSupported = useSyncExternalStore(
     subscribeToClientSnapshot,
     isAppBadgeSupported,
@@ -1080,9 +1109,22 @@ export function AdminDashboard({
         visible: statusFilter === "pendientes",
         emptyText: "No hay pedidos pendientes.",
         actions: [
-          { key: "visto" as const, label: "Marcar visto", tone: "muted" as const },
-          { key: "agendar" as const, label: "Agendar fecha", tone: "primary" as const },
-          { key: "cancelar" as const, label: "Cancelar", tone: "muted" as const }
+          {
+            key: "agendar" as const,
+            label: "Atender y solicitar transferencia",
+            tone: "primary" as const
+          },
+          {
+            key: "pagado" as const,
+            label: "Confirmar pago",
+            tone: "muted" as const,
+            disabled: true
+          },
+          {
+            key: "cancelar" as const,
+            label: "Cancelar pedido",
+            tone: "muted" as const
+          }
         ]
       },
       {
@@ -1093,8 +1135,17 @@ export function AdminDashboard({
         visible: statusFilter === "agendados",
         emptyText: "No hay pedidos agendados.",
         actions: [
-          { key: "pagado" as const, label: "Marcar pagado", tone: "primary" as const },
-          { key: "cancelar" as const, label: "Cancelar", tone: "muted" as const }
+          { key: "pagado" as const, label: "Confirmar pago", tone: "primary" as const },
+          {
+            key: "reenviar-transferencia" as const,
+            label: "Reenviar datos de pago",
+            tone: "muted" as const
+          },
+          {
+            key: "cancelar" as const,
+            label: "Cancelar pedido",
+            tone: "muted" as const
+          }
         ]
       },
     ],
@@ -1463,39 +1514,6 @@ export function AdminDashboard({
     }
   }
 
-  function handleOrderAgendaWhatsApp(order: AdminOrderSummary) {
-    const message = buildScheduledOrderMessage(order);
-    const openResult = openWhatsAppSafe(order.clienteTelefono, message);
-
-    if (openResult.status === "invalid-phone") {
-      setSuccessMessage(
-        openResult.error === "Sin telefono"
-          ? "Pedido agendado, pero el cliente no tiene telefono valido para WhatsApp."
-          : "Pedido agendado, pero el telefono del cliente no es valido para WhatsApp."
-      );
-      setWhatsAppFallback({
-        message,
-        reason: "invalid-phone"
-      });
-      return;
-    }
-
-    if (openResult.status === "blocked") {
-      setSuccessMessage(
-        "Pedido agendado. Si WhatsApp no se abrio, puedes copiar o reintentar el mensaje."
-      );
-      setWhatsAppFallback({
-        message,
-        url: openResult.url,
-        reason: "open-failed"
-      });
-      return;
-    }
-
-    setWhatsAppFallback(null);
-    setSuccessMessage("Pedido agendado correctamente.");
-  }
-
   function returnToOrdersListAfterSchedule() {
     setOrderModalState(null);
     setSelectedOrderId("");
@@ -1523,17 +1541,18 @@ export function AdminDashboard({
       return;
     }
 
-    const opened = window.open(whatsAppFallback.url, "_blank", "noopener,noreferrer");
+    const opened = window.open(whatsAppFallback.url, "_blank");
 
     if (!opened) {
       setSuccessMessage(
-        "Pedido agendado, pero el navegador sigue bloqueando WhatsApp. Puedes copiar el mensaje manualmente."
+        "El navegador sigue bloqueando WhatsApp. Puedes copiar el mensaje manualmente."
       );
       return;
     }
 
+    opened.opener = null;
     setWhatsAppFallback(null);
-    setSuccessMessage("WhatsApp abierto con el mensaje del pedido agendado.");
+    setSuccessMessage("WhatsApp abierto con el mensaje preparado.");
   }
 
   async function runAction(
@@ -1546,7 +1565,17 @@ export function AdminDashboard({
       metodoPago?: string;
     }
     ) {
-    let scheduledOrderData: { order: AdminOrderSummary } | null = null;
+    const opensWhatsApp = new Set<AdminOrdersAction>([
+      "agendar",
+      "reenviar-transferencia",
+      "pagado",
+      "coordinar-entrega"
+    ]).has(action);
+    const normalizedPhone = order
+      ? normalizeChilePhone(order.clienteTelefono ?? "")
+      : null;
+    const whatsAppWindow =
+      opensWhatsApp && normalizedPhone ? openWhatsAppPlaceholder() : null;
 
     try {
       setBusyOrderId(pedidoId);
@@ -1564,20 +1593,77 @@ export function AdminDashboard({
         })
       });
 
-      const currentData = (await response.json()) as { error?: string };
+      const currentData = (await response.json()) as {
+        error?: string;
+        code?: string;
+        configuracionUrl?: string;
+        pedido?: AdminOrderSummary;
+        whatsapp?: { message?: string };
+      };
 
       if (!response.ok) {
+        closeWhatsAppPlaceholder(whatsAppWindow);
+
+        if (
+          currentData.code === "CONFIG_INCOMPLETA" &&
+          currentData.configuracionUrl
+        ) {
+          feedback.notify({
+            message:
+              currentData.error ??
+              "Configura los datos bancarios antes de continuar.",
+            tone: "warning",
+            actionLabel: "Configurar ahora",
+            onAction: () => router.push(currentData.configuracionUrl!)
+          });
+        }
+
         throw new Error(currentData.error ?? "No fue posible actualizar el pedido.");
       }
 
       setOrderModalState(null);
-      await loadOrders();
+      if (action !== "reenviar-transferencia" && action !== "coordinar-entrega") {
+        await loadOrders();
+      }
 
-      if (action === "agendar" && order) {
+      if (action === "agendar") {
         returnToOrdersListAfterSchedule();
-        scheduledOrderData = { order };
+      }
+
+      if (action === "pagado") {
+        setOrderModalState(null);
+      }
+
+      if (opensWhatsApp && order && currentData.whatsapp?.message) {
+        const message = currentData.whatsapp.message;
+
+        if (!normalizedPhone) {
+          closeWhatsAppPlaceholder(whatsAppWindow);
+          setWhatsAppFallback({ message, reason: "invalid-phone" });
+          setSuccessMessage(
+            "La operación terminó, pero el cliente no tiene un teléfono válido para WhatsApp."
+          );
+        } else {
+          const url = buildWhatsAppManualUrl(normalizedPhone, message);
+
+          if (whatsAppWindow && !whatsAppWindow.closed) {
+            whatsAppWindow.location.replace(url);
+            setWhatsAppFallback(null);
+          } else {
+            setWhatsAppFallback({
+              message,
+              url,
+              reason: "open-failed"
+            });
+          }
+
+          setSuccessMessage(getOrderActionSuccessMessage(action));
+        }
+      } else {
+        closeWhatsAppPlaceholder(whatsAppWindow);
       }
     } catch (currentError) {
+      closeWhatsAppPlaceholder(whatsAppWindow);
       setError(
         currentError instanceof Error
           ? currentError.message
@@ -1586,14 +1672,6 @@ export function AdminDashboard({
       return;
     } finally {
       setBusyOrderId("");
-    }
-
-    if (scheduledOrderData) {
-      window.requestAnimationFrame(() => {
-        window.setTimeout(() => {
-          handleOrderAgendaWhatsApp(scheduledOrderData.order);
-        }, 0);
-      });
     }
   }
 
@@ -1772,12 +1850,6 @@ export function AdminDashboard({
     }));
   }
 
-  async function logout() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    window.location.href = "/admin/login";
-  }
-
   function navigateToView(nextView: AdminView) {
     setView(nextView);
     router.push(ADMIN_VIEW_ROUTES[nextView]);
@@ -1876,14 +1948,6 @@ export function AdminDashboard({
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-            {view !== "home" ? (
-              <HeaderIconButton
-                label="Ir al inicio"
-                title="Ir al inicio"
-                onClick={() => navigateToView("home")}
-                icon={<Home className="h-5 w-5" />}
-              />
-            ) : null}
             <BadgeStatusChip
               badgeEnabled={badgeDeviceSetting?.badgeEnabled === true}
               badgeSupported={badgeSupported}
@@ -1895,16 +1959,8 @@ export function AdminDashboard({
                   : () => void enableHomeScreenBadge()
               }
               pendingCount={attentionCount}
+              accessibilityLabel="Notificaciones"
             />
-            {badgeDeviceSetting?.badgeEnabled ? (
-              <HeaderIconButton
-                label="Probar badge"
-                title="Probar badge"
-                onClick={() => void testBadgeOnCurrentDevice()}
-                disabled={badgeActionLoading}
-                icon={<BellRing className="h-5 w-5" />}
-              />
-            ) : null}
             <HeaderIconButton
               label="Actualizar"
               title="Actualizar"
@@ -1913,10 +1969,10 @@ export function AdminDashboard({
               accent="soft"
             />
             <HeaderIconButton
-              label="Cerrar sesion"
-              title="Cerrar sesion"
-              onClick={logout}
-              icon={<KeyRound className="h-5 w-5" />}
+              label="Configuración"
+              title="Configuración del negocio"
+              onClick={() => router.push("/admin/configuracion")}
+              icon={<Settings className="h-5 w-5" />}
             />
           </div>
         </div>
@@ -2005,7 +2061,7 @@ export function AdminDashboard({
       {whatsAppFallback ? (
         <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
           <div className="font-semibold">
-            Pedido agendado, pero WhatsApp no se pudo abrir automaticamente.
+            WhatsApp no se pudo abrir automáticamente.
           </div>
           <p className="mt-2 text-amber-900/85">
             Puedes copiar el mensaje y enviarlo manualmente. Si el navegador lo permite,
@@ -2030,7 +2086,7 @@ export function AdminDashboard({
                 onClick={retryWhatsAppFallback}
                 className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-amber-300 bg-white px-4 py-3 text-sm font-semibold text-amber-950"
               >
-                Reintentar WhatsApp
+                Abrir WhatsApp manualmente
               </button>
             ) : null}
             <button
@@ -2061,6 +2117,7 @@ export function AdminDashboard({
           isInstalledPwa={isInstalledPwa}
           notificationPermission={notificationPermission}
           pendingUnseenOrders={pendingUnseenOrders}
+          paymentSettingsComplete={paymentSettingsComplete}
           products={products}
           pushSubscriptionActive={pushSubscriptionActive}
           pushSupported={pushSupported}
@@ -2184,6 +2241,11 @@ export function AdminDashboard({
                         return;
                       }
 
+                      if (action === "pagado") {
+                        setOrderModalState({ type: "pagado", order });
+                        return;
+                      }
+
                       if (action === "cancelar") {
                         setOrderModalState({ type: "cancelar", order });
                         return;
@@ -2194,6 +2256,11 @@ export function AdminDashboard({
                         return;
                       }
 
+                      if (action === "reenviar-transferencia") {
+                        void runAction(order.id, action, order);
+                        return;
+                      }
+
                       void runAction(order.id, action, order);
                     }}
                   />
@@ -2201,10 +2268,42 @@ export function AdminDashboard({
 
               {statusFilter === "historial" ? (
                 <div className="grid gap-5">
+                  <OrderSection
+                    title="Pagados"
+                    subtitle="Pedidos con pago confirmado y entrega por coordinar."
+                    orders={ordersByFilter.finalizados.filter(
+                      (order) => order.estadoPedido === "PAGADO"
+                    )}
+                    loading={loading}
+                    emptyText="No hay pedidos pagados pendientes de coordinación."
+                    busyOrderId={busyOrderId}
+                    selectedOrderId={selectedOrderId}
+                    actions={[
+                      {
+                        key: "coordinar-entrega",
+                        label: "Coordinar entrega por WhatsApp",
+                        tone: "primary"
+                      },
+                      {
+                        key: "pagado",
+                        label: "Pago confirmado",
+                        tone: "muted",
+                        disabled: true
+                      }
+                    ]}
+                    onSelect={setSelectedOrderId}
+                    onAction={(order, action) => {
+                      if (action === "coordinar-entrega") {
+                        void runAction(order.id, action, order);
+                      }
+                    }}
+                  />
                   <CompactHistorySection
                     title="Pedidos cerrados"
                     subtitle="Ventas ya resueltas."
-                    orders={ordersByFilter.finalizados}
+                    orders={ordersByFilter.finalizados.filter(
+                      (order) => order.estadoPedido !== "PAGADO"
+                    )}
                     emptyText="No hay pedidos cerrados."
                   />
                   <CompactHistorySection
@@ -2403,7 +2502,7 @@ export function AdminDashboard({
                     key={order.id}
                     order={order}
                     busy={busyOrderId === order.id}
-                    onPaid={() => void runAction(order.id, "pagado")}
+                    onPaid={() => setOrderModalState({ type: "pagado", order })}
                   />
                 ))}
               </div>
@@ -3413,20 +3512,19 @@ function OrderSection({
               ) : null}
             </button>
 
-            {actions.length > 0 || shouldShowOrderWhatsAppAction(order) ? (
+            {actions.length > 0 ? (
               <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
                 {actions.map((action) => (
                   <button
                     key={action.key}
                     type="button"
-                    disabled={busyOrderId === order.id}
+                    disabled={busyOrderId === order.id || action.disabled}
                     onClick={() => onAction(order, action.key)}
-                    className={`${buttonToneClass(action.tone)} w-full justify-center sm:w-auto`}
+                    className={`${buttonToneClass(action.tone)} w-full justify-center disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto`}
                   >
                     {busyOrderId === order.id ? "Procesando..." : action.label}
                   </button>
                 ))}
-                <OrderWhatsAppButton order={order} />
               </div>
             ) : null}
           </article>
@@ -3757,7 +3855,7 @@ function PaymentOrderCard({
             onClick={onPaid}
             className={`${buttonToneClass("primary")} w-full justify-center`}
           >
-            {busy ? "Procesando..." : "Marcar transferencia pagada"}
+            {busy ? "Procesando..." : "Confirmar pago"}
           </button>
         </div>
         <DebtCollectionButton order={order} />
@@ -3796,6 +3894,8 @@ function AdminActionModal({
           <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700">
             {state.type === "agendar" ? (
               <CalendarClock className="h-5 w-5" />
+            ) : state.type === "pagado" ? (
+              <CircleDollarSign className="h-5 w-5" />
             ) : state.type === "cancelar" ? (
               <AlertCircle className="h-5 w-5" />
             ) : (
@@ -3805,9 +3905,11 @@ function AdminActionModal({
           <h3 className="pt-2 text-xl font-bold text-brand-950">
             {state.type === "agendar"
               ? "Agendar pedido"
-              : state.type === "cancelar"
-                ? "Cancelar pedido"
-                : "Registrar abono"}
+              : state.type === "pagado"
+                ? "Confirmar pago"
+                : state.type === "cancelar"
+                  ? "Cancelar pedido"
+                  : "Registrar abono"}
           </h3>
           <p className="text-sm text-brand-900/70">{state.order.clienteNombre}</p>
         </div>
@@ -3818,6 +3920,18 @@ function AdminActionModal({
               El pedido pasa a AGENDADO. La fecha y sucursal de despacho se coordinan por
               WhatsApp, no se elige aqui.
             </p>
+          ) : null}
+
+          {state.type === "pagado" ? (
+            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+              <p className="text-sm font-semibold text-brand-950">
+                Total a confirmar: {formatCurrency(state.order.total)}
+              </p>
+              <p className="text-sm text-brand-900/70">
+                Esto registra la venta y convierte la reserva de stock en una salida definitiva.
+                Esta accion no se puede deshacer desde aqui.
+              </p>
+            </div>
           ) : null}
 
           {state.type === "cancelar" ? (
@@ -4660,30 +4774,6 @@ function getGroupedDebtCollectionAction(customer: GroupedFiadoCustomer) {
     normalizedPhone.e164.replace(/\D/g, ""),
     buildGroupedDebtCollectionMessage(customer.nombre, total, detail)
   );
-
-  void [
-    "Buenas tardes! ☀️",
-    "",
-    "Muchas gracias por preferirme esta semana para acompanar sus desayunos 💛",
-    "Le envio el detalle de su cuenta:",
-    "",
-    `✨Monto total: ${total}`,
-    "📝Detalle:",
-    detail,
-    "",
-    "Le dejo mis datos para transferencia.",
-    "",
-    "Muchas gracias nuevamente! 🤗",
-    "",
-    paymentInfo.accountHolder,
-    paymentInfo.rut,
-    paymentInfo.bank,
-    paymentInfo.accountType,
-    paymentInfo.accountNumber,
-    paymentInfo.email
-  ].join("\n");
-
-  return "";
 }
 
 function getDebtCollectionAction(order: AdminOrderSummary) {
@@ -4749,23 +4839,16 @@ function buildGroupedDebtCollectionMessage(name: string, total: string, detail: 
     "",
     `Hola ${name},`,
     "",
-    `Muchas gracias por preferirme esta semana para acompa\u00F1ar sus desayunos ${waHeartEmoji()}`,
+    `Muchas gracias por preferir Smellme.cl ${waHeartEmoji()}`,
     "Le env\u00EDo el detalle de su cuenta:",
     "",
     `${waSparklesEmoji()}Monto total: ${total}`,
     `${waMemoEmoji()}Detalle:`,
     detail,
     "",
-    "Le dejo mis datos para transferencia.",
+    "Escríbeme por este mismo medio para coordinar la forma de pago.",
     "",
-    `¡Muchas gracias nuevamente! ${waHugEmoji()}`,
-    "",
-    paymentInfo.accountHolder,
-    paymentInfo.rut,
-    paymentInfo.bank,
-    paymentInfo.accountType,
-    paymentInfo.accountNumber,
-    paymentInfo.email
+    `¡Muchas gracias nuevamente! ${waHugEmoji()}`
   ].join("\n");
 }
 
@@ -4806,46 +4889,38 @@ function getOrderWhatsAppNotification(order: AdminOrderSummary) {
   });
 }
 
-function buildScheduledOrderMessage(order: AdminOrderSummary) {
-  return buildOrderConfirmationMessage({
-    customerName: order.clienteNombre,
-    codigo: order.codigo,
-    items: order.items.map((item) => ({
-      name: item.productoNombre,
-      quantity: item.cantidad
-    })),
-    subtotal: order.total - (order.costoDespacho ?? 0),
-    costoDespacho: order.costoDespacho,
-    total: order.total,
-    metodoDespacho: order.metodoDespacho as MetodoDespacho | undefined,
-    direccion: order.clienteDireccion
-  });
+function openWhatsAppPlaceholder() {
+  const placeholder = window.open("about:blank", "_blank");
+
+  if (placeholder) {
+    placeholder.opener = null;
+    placeholder.document.title = "Preparando WhatsApp…";
+    placeholder.document.body.textContent =
+      "Preparando el mensaje seguro para WhatsApp…";
+  }
+
+  return placeholder;
 }
 
-function openWhatsAppSafe(phone: string, message: string) {
-  const normalizedPhone = normalizeChilePhone(phone ?? "");
-
-  if (!normalizedPhone) {
-    return {
-      status: "invalid-phone" as const,
-      error: phone?.trim() ? "Telefono invalido" : "Sin telefono"
-    };
+function closeWhatsAppPlaceholder(placeholder: Window | null) {
+  if (placeholder && !placeholder.closed) {
+    placeholder.close();
   }
+}
 
-  const url = buildWhatsAppManualUrl(normalizedPhone, message);
-  const opened = window.open(url, "_blank", "noopener,noreferrer");
-
-  if (!opened) {
-    return {
-      status: "blocked" as const,
-      url
-    };
+function getOrderActionSuccessMessage(action: AdminOrdersAction) {
+  switch (action) {
+    case "agendar":
+      return "Pedido atendido. Se preparó la solicitud de transferencia en WhatsApp.";
+    case "reenviar-transferencia":
+      return "Datos de pago preparados nuevamente en WhatsApp.";
+    case "pagado":
+      return "Pago confirmado. Se preparó la coordinación de entrega en WhatsApp.";
+    case "coordinar-entrega":
+      return "Coordinación de entrega preparada en WhatsApp.";
+    default:
+      return "Operación completada.";
   }
-
-  return {
-    status: "opened" as const,
-    url
-  };
 }
 
 function subscribeToClientSnapshot() {

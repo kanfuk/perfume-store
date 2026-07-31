@@ -27,9 +27,18 @@ export type ReportSalesFilter =
 
 export type OrderModalState =
   | { type: "agendar"; order: AdminOrderSummary }
+  | { type: "pagado"; order: AdminOrderSummary }
   | { type: "cancelar"; order: AdminOrderSummary }
   | { type: "abonar"; order: AdminOrderSummary }
   | null;
+
+/**
+ * "reenviar-transferencia" y "coordinar-entrega" son acciones de solo
+ * lectura del contrato de la API (nunca mutan el pedido, solo reconstruyen
+ * un mensaje de WhatsApp desde el snapshot persistido) - ver
+ * AdminOrdersAction en lib/types.ts.
+ */
+export type OrderSectionActionKey = AdminOrdersAction;
 
 export type ProductModalState =
   | { mode: "create" }
@@ -105,10 +114,11 @@ export type OrderSectionProps = {
   busyOrderId: string;
   selectedOrderId: string;
   actions: Array<{
-    key: AdminOrdersAction;
+    key: OrderSectionActionKey;
     label: string;
     tone: "primary" | "warning" | "muted";
+    disabled?: boolean;
   }>;
   onSelect: (orderId: string) => void;
-  onAction: (order: AdminOrderSummary, action: AdminOrdersAction) => void;
+  onAction: (order: AdminOrderSummary, action: OrderSectionActionKey) => void;
 };

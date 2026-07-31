@@ -42,6 +42,7 @@ import {
   type MetodoDespacho
 } from "@/lib/constants";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
+import { PerfumeOrderError } from "@/lib/perfumeOrderErrors";
 import { parseChileanRut } from "@/lib/rut";
 import type {
   AdminDirectSaleRequest,
@@ -411,6 +412,35 @@ export class PedidoService {
     return this.enriquecerPedidosAdmin(orders);
   }
 
+  /**
+   * Busca un pedido por id sin asumir su estado (a diferencia de
+   * obtenerPedidoUnico, que exige el estado esperado). Usado por acciones
+   * de solo lectura ("reenviar-transferencia", "coordinar-entrega") que
+   * necesitan el snapshot actual del pedido para reconstruir un mensaje de
+   * WhatsApp sin mutar nada.
+   */
+  async obtenerPedidoAdminPorId(pedidoId: string): Promise<AdminOrderSummary> {
+    const resultadosPorEstado = await Promise.all(
+      [
+        ESTADO_PEDIDO_NUEVO,
+        ESTADO_PEDIDO_AGENDADO,
+        ESTADO_PEDIDO_PAGADO,
+        ESTADO_PEDIDO_PREPARANDO,
+        ESTADO_PEDIDO_DESPACHADO,
+        ESTADO_PEDIDO_ENTREGADO,
+        ESTADO_PEDIDO_CANCELADO
+      ].map((estado) => this.obtenerPedidosPorEstado(estado))
+    );
+
+    const pedido = resultadosPorEstado.flat().find((order) => order.id === pedidoId);
+
+    if (!pedido) {
+      throw new Error("Pedido no encontrado.");
+    }
+
+    return pedido;
+  }
+
   async obtenerDashboardAdmin(): Promise<AdminDashboardData> {
     const [nuevos, agendados, pagados, preparando, despachados, entregados, cancelados] =
       await Promise.all([
@@ -497,12 +527,40 @@ export class PedidoService {
    * (stock_actual y stock_reservado) y registra el pago, todo en una sola
    * transaccion. Este metodo ya no hace escrituras de stock ni de pagos por
    * su cuenta.
+   *
+   * Idempotente a proposito: la RPC en si NO lo es. Un segundo llamado sobre
+   * un pedido ya PAGADO responde PF012 ("no admite marcar pagado en su
+   * estado actual" - ese chequeo de estado_pedido corre antes que el de
+   * estado_pago, asi que PF010 en la practica no se alcanza en este caso
+   * puntual). Por eso, ante PF010 o PF012 se verifica si el pedido ya esta
+   * PAGADO: si lo esta, es un doble clic del admin y se retorna con exito
+   * sin repetir ningun efecto (ni venta duplicada ni descuento de stock
+   * adicional). Si no lo esta (p.ej. intento de pagar un pedido CANCELADO o
+   * ENTREGADO), el error se propaga tal cual: eso si es una transicion
+   * invalida real. Ver docs/SMELLME_ORDER_OPERATIONS_FLOW.md.
    */
   async marcarPedidoPagado(pedidoId: string, metodoPago = "TRANSFERENCIA") {
-    const resultado = await this.pedidoRepository.marcarPedidoPagadoTransaccional(
-      pedidoId,
-      metodoPago
-    );
+    let resultado;
+
+    try {
+      resultado = await this.pedidoRepository.marcarPedidoPagadoTransaccional(
+        pedidoId,
+        metodoPago
+      );
+    } catch (error) {
+      if (error instanceof PerfumeOrderError && (error.code === "PF010" || error.code === "PF012")) {
+        const pedidosPagados = await this.pedidoRepository.buscarPedidosPorEstado(
+          ESTADO_PEDIDO_PAGADO
+        );
+        const yaPagado = pedidosPagados.some((pedido) => pedido.id === pedidoId);
+
+        if (yaPagado) {
+          return;
+        }
+      }
+
+      throw error;
+    }
 
     // Segunda escritura, solo de metadata admin (admin_seen); el estado y
     // el pago ya quedaron fijados atomicamente por la RPC, aqui unicamente
@@ -538,17 +596,30 @@ export class PedidoService {
    * pagado; cualquier otro valor (undefined, false) se envia como `false` y
    * la RPC rechaza la cancelacion de un pedido pagado sin confirmacion
    * (PF013).
+   *
+   * Idempotente a proposito: si el pedido ya estaba CANCELADO, la RPC
+   * responde PF011; aca se atrapa ese caso puntual y se retorna con exito
+   * sin liberar la reserva ni reponer stock una segunda vez. Ver
+   * docs/SMELLME_ORDER_OPERATIONS_FLOW.md.
    */
   async cancelarPedido(
     pedidoId: string,
     motivoCancelacion: string,
     options: { confirmarPagoPerdido?: boolean } = {}
   ) {
-    await this.pedidoRepository.cancelarPedidoTransaccional(
-      pedidoId,
-      motivoCancelacion,
-      options.confirmarPagoPerdido === true
-    );
+    try {
+      await this.pedidoRepository.cancelarPedidoTransaccional(
+        pedidoId,
+        motivoCancelacion,
+        options.confirmarPagoPerdido === true
+      );
+    } catch (error) {
+      if (error instanceof PerfumeOrderError && error.code === "PF011") {
+        return;
+      }
+
+      throw error;
+    }
   }
 
   async registrarAbonoFiado(

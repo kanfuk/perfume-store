@@ -252,7 +252,11 @@ export type AdminOrdersAction =
   | "entregado"
   | "cancelar"
   | "abonar"
-  | "visto";
+  | "visto"
+  /** Solo lectura: reconstruye y devuelve el mensaje de transferencia de un pedido ya AGENDADO, sin mutarlo. */
+  | "reenviar-transferencia"
+  /** Solo lectura: reconstruye y devuelve el mensaje de coordinacion de entrega de un pedido PAGADO+, sin mutarlo. */
+  | "coordinar-entrega";
 
 export type AdminPageData = {
   dashboard: AdminDashboardData;

@@ -195,7 +195,14 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
   }
 
   async buscarPedidosPorEstado(estadoPedido: string) {
-    return this.ordersByState[estadoPedido] ?? [];
+    // Filtra por el estado "vivo" en this.pedidos (mutado por
+    // marcarPedidoPagadoTransaccional/cancelarPedidoTransaccional), no por
+    // el bucket original con el que se construyo el stub: asi una consulta
+    // posterior a una transicion refleja el estado real, igual que la RPC.
+    const allOrders = Object.values(this.ordersByState).flat();
+    return allOrders.filter(
+      (order) => this.pedidos.get(order.id)?.estadoPedido === estadoPedido
+    );
   }
 
   async actualizarEstadoPedido(args: {
@@ -645,7 +652,7 @@ describe("PedidoService admin transitions", () => {
     expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
   });
 
-  it("impide cancelar dos veces el mismo pedido (la RPC rechaza con PF011)", async () => {
+  it("cancelar dos veces el mismo pedido es idempotente (la RPC rechaza con PF011, el servicio no repite efectos)", async () => {
     const repository = new AdminPedidoRepositoryStub({
       AGENDADO: [buildOrder("AGENDADO")]
     });
@@ -657,10 +664,12 @@ describe("PedidoService admin transitions", () => {
 
     await service.cancelarPedido("pedido-1", "Cliente no confirma");
     expect(repository.actualizado?.estadoPedido).toBe("CANCELADO");
+    expect(repository.cancelarCalls).toHaveLength(1);
 
     await expect(
       service.cancelarPedido("pedido-1", "Cliente no confirma")
-    ).rejects.toThrow("Este pedido ya fue cancelado.");
+    ).resolves.toBeUndefined();
+    expect(repository.cancelarCalls).toHaveLength(2);
   });
 
   it("no permite marcar pagado si el pedido no existe (la RPC rechaza con PF009)", async () => {
@@ -676,6 +685,25 @@ describe("PedidoService admin transitions", () => {
     await expect(service.marcarPedidoPagado("pedido-1")).rejects.toThrow(
       "Pedido no encontrado."
     );
+  });
+
+  it("confirmar pago dos veces es idempotente (la RPC rechaza con PF010, el servicio no repite la venta ni el descuento de stock)", async () => {
+    const repository = new AdminPedidoRepositoryStub({
+      AGENDADO: [buildOrder("AGENDADO")]
+    });
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      repository
+    );
+
+    await service.marcarPedidoPagado("pedido-1");
+    expect(repository.marcarPagadoCalls).toHaveLength(1);
+    expect(repository.pagosRegistrados).toHaveLength(1);
+
+    await expect(service.marcarPedidoPagado("pedido-1")).resolves.toBeUndefined();
+    expect(repository.marcarPagadoCalls).toHaveLength(2);
+    expect(repository.pagosRegistrados).toHaveLength(1);
   });
 
   it("cuenta como pendientes reales solo los pedidos nuevos sin agendar", async () => {

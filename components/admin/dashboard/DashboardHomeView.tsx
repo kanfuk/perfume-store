@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   BarChart3,
@@ -77,6 +78,7 @@ type DashboardHomeViewProps = {
   isInstalledPwa: boolean;
   notificationPermission: NotificationPermission | "unsupported";
   pendingUnseenOrders: AdminOrderSummary[];
+  paymentSettingsComplete: boolean | null;
   products: AdminProductRecord[];
   pushSubscriptionActive: boolean;
   pushSupported: boolean;
@@ -111,6 +113,7 @@ export function DashboardHomeView({
   isInstalledPwa,
   notificationPermission,
   pendingUnseenOrders,
+  paymentSettingsComplete,
   products,
   pushSubscriptionActive,
   pushSupported,
@@ -132,6 +135,26 @@ export function DashboardHomeView({
 
   return (
     <section className="min-w-0 max-w-full overflow-x-hidden space-y-5">
+      {paymentSettingsComplete === false ? (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-soft">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <h2 className="font-bold">Faltan datos de transferencia</h2>
+              <p className="mt-1 text-sm">
+                Configura tus datos bancarios para atender pedidos por transferencia.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/configuracion?seccion=transferencia"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-amber-900 px-4 py-3 text-sm font-semibold text-white"
+          >
+            Configurar ahora
+          </Link>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <HeroMetric
           label="Pedidos por atender"

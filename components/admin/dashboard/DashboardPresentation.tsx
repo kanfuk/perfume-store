@@ -589,7 +589,8 @@ export function BadgeStatusChip({
   notificationPermission,
   isInstalledPwa,
   onClick,
-  pendingCount
+  pendingCount,
+  accessibilityLabel
 }: {
   badgeEnabled: boolean;
   badgeSupported: boolean;
@@ -597,6 +598,7 @@ export function BadgeStatusChip({
   isInstalledPwa: boolean;
   onClick?: () => void;
   pendingCount?: number;
+  accessibilityLabel?: string;
 }) {
   const label = badgeEnabled
     ? "Badge activo"
@@ -637,8 +639,8 @@ export function BadgeStatusChip({
       <button
         type="button"
         onClick={onClick}
-        title={label}
-        aria-label={label}
+        title={accessibilityLabel ?? label}
+        aria-label={accessibilityLabel ?? label}
         className={`relative inline-flex h-12 w-12 items-center justify-center rounded-[18px] border transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(16,24,40,0.08)] ${className}`}
       >
         {content}
@@ -648,8 +650,8 @@ export function BadgeStatusChip({
 
   return (
     <span
-      title={label}
-      aria-label={label}
+      title={accessibilityLabel ?? label}
+      aria-label={accessibilityLabel ?? label}
       className={`relative inline-flex h-12 w-12 items-center justify-center rounded-[18px] border ${className}`}
     >
       {content}
