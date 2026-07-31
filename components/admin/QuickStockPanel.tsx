@@ -78,6 +78,21 @@ function bulkProgressMessage(action: BulkActionChoice): string {
   return "Aplicando cambios masivos…";
 }
 
+/** Traduce el valor amigable de la URL (?stock=agotado) al id interno del filtro rapido. */
+function mapUrlStockToQuickFilter(stock?: string): QuickFilter {
+  switch (stock) {
+    case "agotado":
+      return "sin-stock";
+    case "uno":
+      return "stock-uno";
+    case "activos":
+    case "pausados":
+      return stock;
+    default:
+      return "todos";
+  }
+}
+
 function actionConsequence(action: BulkActionChoice): string {
   if (action === "activar") {
     return "Los productos quedarán activos. Los que no tengan stock seguirán sin aparecer en el catálogo público.";
@@ -94,15 +109,33 @@ function actionConsequence(action: BulkActionChoice): string {
   return "El stock total se recalcula respetando siempre el stock reservado de cada producto.";
 }
 
-export function QuickStockPanel() {
+type QuickStockPanelProps = {
+  /** True dentro del shell de /admin/catalogo/stock (Fase 3A): encabezado compacto, sin buscador propio duplicado. */
+  embedded?: boolean;
+  /** Termino de busqueda inicial (sincronizado con `?q=` del shell cuando embedded=true). */
+  initialSearch?: string;
+  /** Filtro inicial (valor amigable de `?stock=`, ver mapUrlStockToQuickFilter). */
+  initialFilter?: string;
+};
+
+export function QuickStockPanel({ embedded = false, initialSearch = "", initialFilter }: QuickStockPanelProps = {}) {
   const [products, setProducts] = useState<AdminProductRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialSearch);
   const [brandFilter, setBrandFilter] = useState("");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("todos");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(() => mapUrlStockToQuickFilter(initialFilter));
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Sincroniza `query` cuando `initialSearch` cambia (el buscador comun del
+  // shell actualiza `?q=` sin desmontar esta pagina). `query` sigue siendo
+  // editable de forma independiente despues del primer render.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQuery(initialSearch);
+    setVisibleCount(PAGE_SIZE);
+  }, [initialSearch]);
 
   const [savingId, setSavingId] = useState<string | null>(null);
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
@@ -458,7 +491,13 @@ export function QuickStockPanel() {
   const previewBloqueados = bulkPreview?.productos.filter((p) => p.status === "BLOQUEADO").length ?? 0;
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+    <main
+      className={
+        embedded
+          ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden pb-[calc(88px+env(safe-area-inset-bottom))]"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+      }
+    >
       {toast ? (
         <AppToast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />
       ) : null}
@@ -480,29 +519,31 @@ export function QuickStockPanel() {
         />
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
-                <ShoppingBag className="h-3.5 w-3.5" />
-                Admin Smellme.cl
-              </span>
-              <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Stock rápido</h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                Revisa y ajusta stock y estado sin abrir cada producto. No modifica precio, imagen ni Top 12.
-              </p>
+      {!embedded ? (
+        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-2">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  Admin Smellme.cl
+                </span>
+                <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Stock rápido</h1>
+                <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
+                  Revisa y ajusta stock y estado sin abrir cada producto. No modifica precio, imagen ni Top 12.
+                </p>
+              </div>
+              <Link
+                href="/admin"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Inicio</span>
+              </Link>
             </div>
-            <Link
-              href="/admin"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
-            >
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Inicio</span>
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {error ? (
         <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
@@ -511,15 +552,17 @@ export function QuickStockPanel() {
         </div>
       ) : null}
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => resetFilters({ query: event.target.value })}
-            placeholder="Buscar por nombre, marca o SKU"
-            aria-label="Buscar productos"
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
-          />
+        <div className={embedded ? "grid gap-3" : "grid gap-3 sm:grid-cols-[1fr_auto]"}>
+          {!embedded ? (
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => resetFilters({ query: event.target.value })}
+              placeholder="Buscar por nombre, marca o SKU"
+              aria-label="Buscar productos"
+              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            />
+          ) : null}
           <select
             value={brandFilter}
             onChange={(event) => resetFilters({ brandFilter: event.target.value })}
@@ -554,7 +597,13 @@ export function QuickStockPanel() {
 
         {/* Checkbox maestro siempre visible (seccion 3-5): selecciona TODO el catalogo con un toque, */}
         {/* sin depender de filtros, scroll ni de encontrar un boton perdido entre otros controles. */}
-        <div className="sticky top-0 z-20 space-y-2 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] px-4 py-3 shadow-sm">
+        {/* No sticky cuando embedded=true: el shell de /admin/catalogo ya tiene su propia */}
+        {/* navegacion sticky (z-10) y apilar dos barras "top-0" pelearia por el mismo espacio. */}
+        <div
+          className={`space-y-2 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] px-4 py-3 shadow-sm ${
+            embedded ? "" : "sticky top-0 z-20"
+          }`}
+        >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label className="flex min-h-11 w-fit cursor-pointer items-center gap-3 rounded-xl border-2 border-[#7357ff] bg-white px-3.5 py-2 shadow-sm">
               <input

@@ -1978,7 +1978,7 @@ export function AdminDashboard({
             className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
           >
             <LayoutGrid className="h-4 w-4 text-[#7357ff]" />
-            Catálogo
+            Gestión de catálogo
           </Link>
           <Link
             href="/admin/importar-catalogo"
@@ -1986,20 +1986,6 @@ export function AdminDashboard({
           >
             <Boxes className="h-4 w-4 text-[#7357ff]" />
             Importar catálogo
-          </Link>
-          <Link
-            href="/admin/precios"
-            className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
-          >
-            <CircleDollarSign className="h-4 w-4 text-[#7357ff]" />
-            Edición de precios
-          </Link>
-          <Link
-            href="/admin/top12"
-            className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
-          >
-            <Sparkles className="h-4 w-4 text-[#7357ff]" />
-            Top 12
           </Link>
         </StableHorizontalRail>
       </section>

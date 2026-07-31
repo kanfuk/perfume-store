@@ -11,6 +11,7 @@ import type { ProductoProps } from "@/domain/Producto";
 import { getProductVisualMeta } from "@/lib/product-catalog";
 import { buildFamilyKey } from "@/lib/product-families";
 import { isProductMetadataComplete } from "@/lib/catalog-completeness";
+import { computeCatalogSummary, type CatalogSummary } from "@/lib/catalog-summary";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import { validateImageUrlInput } from "@/lib/image-url";
@@ -178,6 +179,31 @@ export class ProductoService {
         modoPrecio: domainProduct.modoPrecio
       };
     });
+  }
+
+  /**
+   * Resumen liviano para "Gestion de catalogo" (Fase 3A, /admin/catalogo):
+   * solo conteos, nunca listas de productos ni datos individuales. Reutiliza
+   * el mismo repositorio que `obtenerCatalogoAdmin`, pero no serializa cada
+   * producto -- evita que el resumen tenga que descargar el catalogo
+   * completo solo para contar.
+   */
+  async obtenerResumenCatalogo(): Promise<CatalogSummary> {
+    const products = await this.productRepository.buscarTodosProductos();
+    const domainProducts = products.map((product) => new Producto(product));
+
+    return computeCatalogSummary(
+      domainProducts.map((product) => ({
+        nombre: product.nombre,
+        marca: product.marca,
+        contenido: product.contenido,
+        precioVenta: product.precioVenta,
+        activo: product.activo,
+        stockActual: getUnifiedProductStock(product),
+        modoPrecio: product.modoPrecio,
+        esTop: product.esTop
+      }))
+    );
   }
 
   async crearProductoAdmin(input: ProductoAdminInput) {

@@ -32,7 +32,20 @@ async function fetchJson(url: string, init?: RequestInit) {
   return data;
 }
 
-export function Top12AdminPanel() {
+type Top12FilterChoice = "todos" | "pendiente" | "asignado";
+
+function mapUrlEstadoToTop12Filter(estado?: string): Top12FilterChoice {
+  return estado === "pendiente" || estado === "asignado" ? estado : "todos";
+}
+
+type Top12AdminPanelProps = {
+  /** True dentro del shell de /admin/catalogo/top12 (Fase 3A): encabezado compacto. */
+  embedded?: boolean;
+  /** Filtro inicial (`?estado=pendiente|asignado`), ver mapUrlEstadoToTop12Filter. */
+  initialFilter?: string;
+};
+
+export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminPanelProps = {}) {
   const [slots, setSlots] = useState<Top12Slot[]>([]);
   const [products, setProducts] = useState<AdminProductRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +56,7 @@ export function Top12AdminPanel() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [unlinkingRank, setUnlinkingRank] = useState<number | null>(null);
+  const [slotFilter, setSlotFilter] = useState<Top12FilterChoice>(() => mapUrlEstadoToTop12Filter(initialFilter));
 
   async function loadAll() {
     setLoading(true);
@@ -90,6 +104,12 @@ export function Top12AdminPanel() {
       cancelled = true;
     };
   }, []);
+
+  const visibleSlots = useMemo(() => {
+    if (slotFilter === "pendiente") return slots.filter((slot) => !slot.producto);
+    if (slotFilter === "asignado") return slots.filter((slot) => !!slot.producto);
+    return slots;
+  }, [slots, slotFilter]);
 
   const linkedProductIds = useMemo(
     () => new Set(slots.map((slot) => slot.producto?.id).filter((id): id is string => !!id)),
@@ -152,31 +172,39 @@ export function Top12AdminPanel() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
-                <Sparkles className="h-3.5 w-3.5" />
-                Admin Smellme.cl
-              </span>
-              <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Top 12 editorial</h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                Elige a mano los 12 perfumes destacados de la portada. No se calcula por ventas: cada
-                posición usa siempre la misma fotografía y tú eliges qué producto va en cada una.
-              </p>
+    <main
+      className={
+        embedded
+          ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+      }
+    >
+      {!embedded ? (
+        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-2">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Admin Smellme.cl
+                </span>
+                <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Top 12 editorial</h1>
+                <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
+                  Elige a mano los 12 perfumes destacados de la portada. No se calcula por ventas: cada
+                  posición usa siempre la misma fotografía y tú eliges qué producto va en cada una.
+                </p>
+              </div>
+              <Link
+                href="/admin"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Inicio</span>
+              </Link>
             </div>
-            <Link
-              href="/admin"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
-            >
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Inicio</span>
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {error ? (
         <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
@@ -191,11 +219,39 @@ export function Top12AdminPanel() {
         </div>
       ) : null}
 
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            { id: "todos", label: `Todas (${slots.length})` },
+            { id: "pendiente", label: `Pendientes (${slots.filter((s) => !s.producto).length})` },
+            { id: "asignado", label: `Asignadas (${slots.filter((s) => !!s.producto).length})` }
+          ] as Array<{ id: Top12FilterChoice; label: string }>
+        ).map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => setSlotFilter(option.id)}
+            className={`min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              slotFilter === option.id
+                ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
+                : "border-[#e4e7ec] bg-white text-[#667085]"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <p className="text-sm text-[#667085]">Cargando Top 12...</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {slots.map((slot) => {
+          {visibleSlots.length === 0 ? (
+            <p className="col-span-full py-6 text-center text-sm text-[#667085]">
+              Sin posiciones en esta categoría.
+            </p>
+          ) : null}
+          {visibleSlots.map((slot) => {
             const producto = slot.producto;
             const sinStock = !!producto && (producto.stockActual ?? 0) <= 0;
             const pausado = !!producto && producto.activo === false;

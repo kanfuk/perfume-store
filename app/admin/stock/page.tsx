@@ -1,11 +1,17 @@
 import { redirect } from "next/navigation";
-import { QuickStockPanel } from "@/components/admin/QuickStockPanel";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { resolveLegacyCatalogRedirect, buildQueryStringFromParams } from "@/lib/admin-catalog-routes";
 
-export default async function AdminStockPage() {
-  if (!(await isAdminAuthenticated())) {
-    redirect("/admin/login");
-  }
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return <QuickStockPanel />;
+/**
+ * Fase 3A: /admin/stock ahora vive dentro de "Gestion de catalogo". Esta
+ * ruta solo redirige, preservando busqueda/filtros; la sesion la valida
+ * app/admin/catalogo/layout.tsx en el destino (no hace falta repetirla aqui).
+ */
+export default async function AdminStockLegacyRedirectPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const target = resolveLegacyCatalogRedirect("/admin/stock", buildQueryStringFromParams(params));
+  redirect(target ?? "/admin/catalogo/stock");
 }

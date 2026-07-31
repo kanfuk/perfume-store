@@ -46,17 +46,72 @@ function isStockBajo(product: AdminProductRecord) {
   return product.stockActual > 0 && product.stockActual <= (product.stockMinimo || 1);
 }
 
-export function CatalogControlCenter() {
+/** Chips cuyo significado es una advertencia (reciben un detalle ambar sutil solo cuando estan activos). */
+function isWarningChip(id: ChipFilter): boolean {
+  return id === "sin-stock" || id === "stock-bajo" || id === "ficha-incompleta";
+}
+
+/** Mismo sistema visual sobrio para toda la grilla de filtros (chips y selector de marca comparten borde/radio/altura). */
+function filterChipClass(active: boolean): string {
+  return `flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border px-2.5 text-center text-xs font-semibold transition ${
+    active
+      ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
+      : "border-[#e4e7ec] bg-white text-[#667085] hover:border-[#c9bdff]"
+  }`;
+}
+
+/** Traduce el valor amigable de la URL (?estado=incompleto) al id interno del chip. */
+function mapUrlEstadoToChipFilter(estado?: string): ChipFilter {
+  switch (estado) {
+    case "incompleto":
+      return "ficha-incompleta";
+    case "activos":
+    case "pausados":
+    case "sin-stock":
+    case "stock-bajo":
+    case "top12":
+    case "sin-imagen":
+    case "ficha-incompleta":
+      return estado;
+    default:
+      return "todos";
+  }
+}
+
+type CatalogControlCenterProps = {
+  /**
+   * True cuando se monta dentro del shell de /admin/catalogo (Fase 3A):
+   * oculta el encabezado grande y los accesos directos que ya provee la
+   * navegacion compartida, sin cambiar ninguna logica operativa.
+   */
+  embedded?: boolean;
+  /** Termino de busqueda inicial (sincronizado con `?q=` del shell cuando embedded=true). */
+  initialSearch?: string;
+  /** Filtro inicial (valor amigable de `?estado=`, ver mapUrlEstadoToChipFilter). */
+  initialFilter?: string;
+};
+
+export function CatalogControlCenter({ embedded = false, initialSearch = "", initialFilter }: CatalogControlCenterProps = {}) {
   const [products, setProducts] = useState<AdminProductRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialSearch);
   const [brandFilter, setBrandFilter] = useState("");
-  const [chip, setChip] = useState<ChipFilter>("todos");
+  const [chip, setChip] = useState<ChipFilter>(() => mapUrlEstadoToChipFilter(initialFilter));
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [imageDraft, setImageDraft] = useState("");
   const [savingImage, setSavingImage] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
+
+  // Sincroniza `query` cuando `initialSearch` cambia (el buscador comun del
+  // shell actualiza `?q=` sin desmontar esta pagina, ya que sigue siendo la
+  // misma ruta). No es un simple "estado derivado de props": despues del
+  // primer render, `query` tambien debe poder cambiar de forma independiente
+  // si en algun momento se muestra el buscador propio (embedded=false).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQuery(initialSearch);
+  }, [initialSearch]);
 
   function toggleFamily(key: string) {
     setExpandedFamilies((prev) => {
@@ -174,63 +229,85 @@ export function CatalogControlCenter() {
     { id: "ficha-incompleta", label: "Ficha incompleta", count: indicators.fichaIncompleta }
   ];
 
-  return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
-                <Sparkles className="h-3.5 w-3.5" />
-                Admin Smellme.cl
-              </span>
-              <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Catálogo</h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                Centro de control: mira el estado general del catálogo y salta directo a la tarea que
-                necesitas.
-              </p>
-            </div>
-            <Link
-              href="/admin"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
-            >
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Inicio</span>
-            </Link>
-          </div>
+  // Filtros activos (chip + marca) y su limpieza (seccion 5, Fase 3A.1). Nunca
+  // incluye `query`: la busqueda comun del shell es un concepto distinto y no
+  // se toca aqui (no hay evidencia de que la implementacion actual la fusione).
+  const hasActiveChipOrBrandFilter = chip !== "todos" || brandFilter !== "";
+  const activeFilterLabels = [
+    chip !== "todos" ? chips.find((option) => option.id === chip)?.label : undefined,
+    brandFilter || undefined
+  ].filter((label): label is string => Boolean(label));
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link
-              href="/admin/importar-catalogo"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <UploadCloud className="h-4 w-4" />
-              Importar CSV
-            </Link>
-            <Link
-              href="/admin/stock"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <Boxes className="h-4 w-4" />
-              Stock rápido
-            </Link>
-            <Link
-              href="/admin/precios"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <CircleDollarSign className="h-4 w-4" />
-              Precios
-            </Link>
-            <Link
-              href="/admin/top12"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <Sparkles className="h-4 w-4" />
-              Top 12
-            </Link>
+  function clearChipAndBrandFilters() {
+    setChip("todos");
+    setBrandFilter("");
+  }
+
+  return (
+    <main
+      className={
+        embedded
+          ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+      }
+    >
+      {!embedded ? (
+        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-2">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Admin Smellme.cl
+                </span>
+                <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Catálogo</h1>
+                <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
+                  Centro de control: mira el estado general del catálogo y salta directo a la tarea que
+                  necesitas.
+                </p>
+              </div>
+              <Link
+                href="/admin"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Inicio</span>
+              </Link>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                href="/admin/importar-catalogo"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <UploadCloud className="h-4 w-4" />
+                Importar CSV
+              </Link>
+              <Link
+                href="/admin/catalogo/stock"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <Boxes className="h-4 w-4" />
+                Stock rápido
+              </Link>
+              <Link
+                href="/admin/catalogo/precios"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <CircleDollarSign className="h-4 w-4" />
+                Precios
+              </Link>
+              <Link
+                href="/admin/catalogo/top12"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <Sparkles className="h-4 w-4" />
+                Top 12
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {error ? (
         <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
@@ -250,37 +327,50 @@ export function CatalogControlCenter() {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap gap-2">
-          {chips.map((chipOption) => (
-            <button
-              key={chipOption.id}
-              type="button"
-              onClick={() => setChip(chipOption.id)}
-              className={`min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                chip === chipOption.id
-                  ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                  : "border-[#e4e7ec] bg-white text-[#667085]"
-              }`}
-            >
-              {chipOption.label} ({chipOption.count})
-            </button>
-          ))}
+        {/* Fase 3A.1: grilla controlada (2/3/4 columnas) en vez de wrap libre -- */}
+        {/* cada chip ocupa el ancho completo de su celda, misma altura, texto centrado. */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {chips.map((chipOption) => {
+            const active = chip === chipOption.id;
+            return (
+              <button
+                key={chipOption.id}
+                type="button"
+                onClick={() => setChip(chipOption.id)}
+                aria-pressed={active}
+                className={filterChipClass(active)}
+              >
+                {isWarningChip(chipOption.id) && active ? (
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e3a008]" aria-hidden="true" />
+                ) : null}
+                <span className="truncate">{chipOption.label}</span>
+                <span className="shrink-0 opacity-70">({chipOption.count})</span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        {!embedded ? (
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar por nombre, marca o SKU"
             aria-label="Buscar productos"
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            className="w-full rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
           />
+        ) : null}
+
+        {/* Selector de marca integrado al mismo contenedor y sistema visual que los chips (seccion 4). */}
+        <div className="space-y-1.5">
+          <label htmlFor="catalog-brand-filter" className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
+            Marca
+          </label>
           <select
+            id="catalog-brand-filter"
             value={brandFilter}
             onChange={(event) => setBrandFilter(event.target.value)}
-            aria-label="Filtrar por marca"
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            className="h-11 w-full rounded-xl border border-[#e4e7ec] bg-white px-3 text-sm font-medium text-[#344054]"
           >
             <option value="">Todas las marcas</option>
             {brands.map((brand) => (
@@ -290,6 +380,27 @@ export function CatalogControlCenter() {
             ))}
           </select>
         </div>
+
+        {/* Filtros activos y limpieza (seccion 5): solo estado local de chip/marca -- */}
+        {/* nunca toca `query`/`q`, que es la busqueda comun del shell y sigue distinta. */}
+        {hasActiveChipOrBrandFilter ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#f7f8fa] px-3 py-2 text-xs">
+            {activeFilterLabels.length > 1 ? (
+              <span className="text-[#667085]">
+                Filtros activos: <span className="font-semibold text-[#344054]">{activeFilterLabels.join(" · ")}</span>
+              </span>
+            ) : (
+              <span />
+            )}
+            <button
+              type="button"
+              onClick={clearChipAndBrandFilters}
+              className="shrink-0 text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        ) : null}
 
         <p className="text-sm text-[#667085]">{filtered.length} producto(s)</p>
 
@@ -343,7 +454,16 @@ export function CatalogControlCenter() {
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-6 text-center text-sm text-[#667085]">
-                        Sin productos que coincidan con la búsqueda.
+                        <p>Sin productos que coincidan con la búsqueda.</p>
+                        {hasActiveChipOrBrandFilter ? (
+                          <button
+                            type="button"
+                            onClick={clearChipAndBrandFilters}
+                            className="mt-2 text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+                          >
+                            Limpiar filtros
+                          </button>
+                        ) : null}
                       </td>
                     </tr>
                   ) : null}
@@ -382,7 +502,18 @@ export function CatalogControlCenter() {
                 )
               )}
               {filtered.length === 0 ? (
-                <p className="py-6 text-center text-sm text-[#667085]">Sin productos que coincidan con la búsqueda.</p>
+                <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-[#667085]">
+                  <p>Sin productos que coincidan con la búsqueda.</p>
+                  {hasActiveChipOrBrandFilter ? (
+                    <button
+                      type="button"
+                      onClick={clearChipAndBrandFilters}
+                      className="text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+                    >
+                      Limpiar filtros
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </>

@@ -1,11 +1,17 @@
 import { redirect } from "next/navigation";
-import { QuickPriceEditPanel } from "@/components/admin/QuickPriceEditPanel";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { resolveLegacyCatalogRedirect, buildQueryStringFromParams } from "@/lib/admin-catalog-routes";
 
-export default async function AdminPreciosPage() {
-  if (!(await isAdminAuthenticated())) {
-    redirect("/admin/login");
-  }
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return <QuickPriceEditPanel />;
+/**
+ * Fase 3A: /admin/precios ahora vive dentro de "Gestion de catalogo". Esta
+ * ruta solo redirige, preservando busqueda/filtros; la sesion la valida
+ * app/admin/catalogo/layout.tsx en el destino (no hace falta repetirla aqui).
+ */
+export default async function AdminPreciosLegacyRedirectPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const target = resolveLegacyCatalogRedirect("/admin/precios", buildQueryStringFromParams(params));
+  redirect(target ?? "/admin/catalogo/precios");
 }

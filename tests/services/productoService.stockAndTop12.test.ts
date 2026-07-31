@@ -662,3 +662,40 @@ describe("ProductoService - asignacion manual de imagen", () => {
     await expect(service.asignarImagenProducto("prod-1", "")).rejects.toThrow();
   });
 });
+
+describe("ProductoService - obtenerResumenCatalogo (Fase 3A, resumen de Gestion de catalogo)", () => {
+  it("cuenta correctamente sobre un catalogo mixto (activos/pausados/sin stock/incompletos/AUTO-MANUAL/Top12)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { id: "p1", sku: "SML-A", activo: true, stockActual: 5, modoPrecio: "AUTO", esTop: true, ordenDestacado: 1 });
+    seedProduct(repository, { id: "p2", sku: "SML-B", nombre: "Otro", activo: false, stockActual: 3, modoPrecio: "MANUAL" });
+    seedProduct(repository, { id: "p3", sku: "SML-C", nombre: "Otro2", activo: true, stockActual: 0, modoPrecio: "AUTO" });
+    seedProduct(repository, { id: "p4", sku: "SML-D", nombre: "Otro3", marca: "", activo: true, stockActual: 5 }); // incompleto: sin marca
+    const service = new ProductoService(repository);
+
+    const summary = await service.obtenerResumenCatalogo();
+
+    expect(summary.total).toBe(4);
+    expect(summary.activos).toBe(3);
+    expect(summary.pausados).toBe(1);
+    expect(summary.disponibles).toBe(2); // p1 y p4 (activos con stock); p3 activo sin stock no cuenta
+    expect(summary.sinStock).toBe(1); // p3
+    expect(summary.incompletos).toBe(1); // p4
+    expect(summary.preciosManual).toBe(1); // p2
+    expect(summary.preciosAuto).toBe(3);
+    expect(summary.top12Asignados).toBe(1); // p1
+    expect(summary.top12Pendientes).toBe(11);
+  });
+
+  it("nunca retorna una lista de productos (solo conteos numericos)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const summary = await service.obtenerResumenCatalogo();
+    expect(Array.isArray(summary)).toBe(false);
+    expect((summary as unknown as { products?: unknown }).products).toBeUndefined();
+    for (const value of Object.values(summary)) {
+      expect(typeof value).toBe("number");
+    }
+  });
+});

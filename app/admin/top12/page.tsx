@@ -1,11 +1,17 @@
 import { redirect } from "next/navigation";
-import { Top12AdminPanel } from "@/components/admin/Top12AdminPanel";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { resolveLegacyCatalogRedirect, buildQueryStringFromParams } from "@/lib/admin-catalog-routes";
 
-export default async function AdminTop12Page() {
-  if (!(await isAdminAuthenticated())) {
-    redirect("/admin/login");
-  }
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return <Top12AdminPanel />;
+/**
+ * Fase 3A: /admin/top12 ahora vive dentro de "Gestion de catalogo". Esta
+ * ruta solo redirige, preservando busqueda/filtros; la sesion la valida
+ * app/admin/catalogo/layout.tsx en el destino (no hace falta repetirla aqui).
+ */
+export default async function AdminTop12LegacyRedirectPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const target = resolveLegacyCatalogRedirect("/admin/top12", buildQueryStringFromParams(params));
+  redirect(target ?? "/admin/catalogo/top12");
 }

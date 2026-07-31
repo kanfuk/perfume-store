@@ -27,15 +27,36 @@ async function fetchJson(url: string, init?: RequestInit) {
   return data;
 }
 
-export function QuickPriceEditPanel() {
+function mapUrlModoToModoFilter(modo?: string): ModoFilter {
+  return modo === "AUTO" || modo === "MANUAL" ? modo : "todos";
+}
+
+type QuickPriceEditPanelProps = {
+  /** True dentro del shell de /admin/catalogo/precios (Fase 3A): encabezado compacto, sin buscador propio duplicado. */
+  embedded?: boolean;
+  /** Termino de busqueda inicial (sincronizado con `?q=` del shell cuando embedded=true). */
+  initialSearch?: string;
+  /** Filtro inicial de modo de precio (`?modo=AUTO|MANUAL`). */
+  initialFilter?: string;
+};
+
+export function QuickPriceEditPanel({ embedded = false, initialSearch = "", initialFilter }: QuickPriceEditPanelProps = {}) {
   const [products, setProducts] = useState<AdminProductRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialSearch);
   const [brandFilter, setBrandFilter] = useState("");
-  const [modoFilter, setModoFilter] = useState<ModoFilter>("todos");
+  const [modoFilter, setModoFilter] = useState<ModoFilter>(() => mapUrlModoToModoFilter(initialFilter));
+
+  // Sincroniza `query` cuando `initialSearch` cambia (el buscador comun del
+  // shell actualiza `?q=` sin desmontar esta pagina). `query` sigue siendo
+  // editable de forma independiente despues del primer render.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQuery(initialSearch);
+  }, [initialSearch]);
 
   // Ediciones pendientes: id -> nuevo precio (string, tal como lo escribe el admin)
   const [pendingEdits, setPendingEdits] = useState<Record<string, string>>({});
@@ -261,32 +282,40 @@ export function QuickPriceEditPanel() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
-                <ShoppingBag className="h-3.5 w-3.5" />
-                Admin Smellme.cl
-              </span>
-              <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
-                Edición rápida de precios
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                Ajusta precios sin abrir cada producto. No modifica stock, imágenes, Top 12 ni ofertas.
-              </p>
+    <main
+      className={
+        embedded
+          ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden pb-[calc(88px+env(safe-area-inset-bottom))]"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+      }
+    >
+      {!embedded ? (
+        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-2">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  Admin Smellme.cl
+                </span>
+                <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
+                  Edición rápida de precios
+                </h1>
+                <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
+                  Ajusta precios sin abrir cada producto. No modifica stock, imágenes, Top 12 ni ofertas.
+                </p>
+              </div>
+              <Link
+                href="/admin"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Inicio</span>
+              </Link>
             </div>
-            <Link
-              href="/admin"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-center text-sm font-semibold text-white"
-            >
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Inicio</span>
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {error ? (
         <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
@@ -302,15 +331,17 @@ export function QuickPriceEditPanel() {
       ) : null}
 
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar por nombre, marca o SKU"
-            aria-label="Buscar productos"
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
-          />
+        <div className={embedded ? "grid gap-3 sm:grid-cols-2" : "grid gap-3 sm:grid-cols-[1fr_auto_auto]"}>
+          {!embedded ? (
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar por nombre, marca o SKU"
+              aria-label="Buscar productos"
+              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            />
+          ) : null}
           <select
             value={brandFilter}
             onChange={(event) => setBrandFilter(event.target.value)}
