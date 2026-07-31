@@ -16,7 +16,8 @@ import {
   normalizeMatchKey,
   normalizeContenido,
   buildReconciliationKey,
-  levenshteinDistance
+  levenshteinDistance,
+  isStandardVolumeContent
 } from "./normalization.ts";
 import { buildSkuBase, assignDeterministicSkus } from "./sku.ts";
 import { calculateSalePrice } from "./supplier-import.ts";
@@ -34,7 +35,11 @@ export type QualityFindingType =
   | "BRAND_INCONSISTENCY"
   | "NAME_INCONSISTENCY"
   | "EXISTING_CATALOG_MATCH"
-  | "PRICE_ANOMALY";
+  | "PRICE_ANOMALY"
+  | "MISSING_NAME"
+  | "MISSING_BRAND"
+  | "MISSING_CONTENT"
+  | "INVALID_CONTENT";
 
 export type QualityFindingSeverity = "INFO" | "WARNING" | "BLOCKER";
 
@@ -349,6 +354,95 @@ function makeId(type: QualityFindingType, parts: Array<string | number>): string
 
 function formatMoney(value: number): string {
   return `$${Math.round(value).toLocaleString("es-CL")}`;
+}
+
+// ---------------------------------------------------------------------------
+// 0. Datos obligatorios faltantes o invalidos (Fase 2B.13)
+// ---------------------------------------------------------------------------
+
+/**
+ * Detecta filas sin nombre, marca o contenido (bloqueante: no se puede
+ * importar ni publicar un producto sin esos datos, y nunca se inventan), y
+ * filas con contenido no vacio pero que no matchea un volumen estandar
+ * reconocido (advertencia: puede ser un formato especial legitimo -- set,
+ * estuche, tester -- que requiere confirmacion explicita, no un bloqueo
+ * automatico). El costo faltante/invalido NO se trata aqui: ya lo cubre
+ * `detectPriceAnomalies` (severidad BLOCKER cuando costo <= 0), evitando
+ * duplicar el mismo hallazgo con dos tipos distintos.
+ */
+export function detectMissingOrInvalidFields(rows: NormalizedRow[]): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+
+  for (const row of rows) {
+    const nombreVacio = row.originalNombre.trim() === "";
+    const marcaVacia = row.originalMarca.trim() === "";
+    const contenidoVacio = row.originalContenido.trim() === "";
+
+    if (nombreVacio) {
+      findings.push({
+        id: makeId("MISSING_NAME", [row.rowNumber]),
+        type: "MISSING_NAME",
+        severity: "BLOCKER",
+        rowNumbers: [row.rowNumber],
+        explanation: `La fila ${row.rowNumber} no tiene nombre de perfume. No se puede importar ni publicar sin un nombre; escríbelo o excluye la fila.`,
+        rows: [toSnapshot(row)],
+        original: { nombre: row.originalNombre },
+        options: [
+          { id: "EDIT_NAME", label: "Escribir nombre" },
+          { id: "EXCLUDE_FIRST", label: `Excluir fila ${row.rowNumber} de esta importación` }
+        ]
+      });
+    }
+
+    if (marcaVacia) {
+      findings.push({
+        id: makeId("MISSING_BRAND", [row.rowNumber]),
+        type: "MISSING_BRAND",
+        severity: "BLOCKER",
+        rowNumbers: [row.rowNumber],
+        explanation: `La fila ${row.rowNumber} no tiene marca. No se puede importar ni publicar sin una marca; escríbela o excluye la fila.`,
+        rows: [toSnapshot(row)],
+        original: { marca: row.originalMarca },
+        options: [
+          { id: "SET_BRAND_MANUAL", label: "Escribir marca" },
+          { id: "EXCLUDE_FIRST", label: `Excluir fila ${row.rowNumber} de esta importación` }
+        ]
+      });
+    }
+
+    if (contenidoVacio) {
+      findings.push({
+        id: makeId("MISSING_CONTENT", [row.rowNumber]),
+        type: "MISSING_CONTENT",
+        severity: "BLOCKER",
+        rowNumbers: [row.rowNumber],
+        explanation: `La fila ${row.rowNumber} no tiene contenido/formato. No se puede importar ni publicar sin un contenido; escríbelo (ej. "50ML") o excluye la fila.`,
+        rows: [toSnapshot(row)],
+        original: { contenido: row.originalContenido },
+        options: [
+          { id: "EDIT_CONTENT", label: "Escribir contenido" },
+          { id: "EXCLUDE_FIRST", label: `Excluir fila ${row.rowNumber} de esta importación` }
+        ]
+      });
+    } else if (!isStandardVolumeContent(row.originalContenido)) {
+      findings.push({
+        id: makeId("INVALID_CONTENT", [row.rowNumber]),
+        type: "INVALID_CONTENT",
+        severity: "WARNING",
+        rowNumbers: [row.rowNumber],
+        explanation: `La fila ${row.rowNumber} tiene un contenido ("${row.originalContenido}") que no se reconoce como un volumen estándar (ej. 50ML, 100ML). Confirma si es un formato especial (set, estuche, tester...) o corrígelo.`,
+        rows: [toSnapshot(row)],
+        original: { contenido: row.originalContenido },
+        options: [
+          { id: "ACCEPT_SPECIAL_FORMAT", label: `Aceptar "${row.contenido}" como formato especial` },
+          { id: "EDIT_CONTENT", label: "Editar contenido" },
+          { id: "IGNORE_WARNING", label: "Ignorar advertencia" }
+        ]
+      });
+    }
+  }
+
+  return findings;
 }
 
 // ---------------------------------------------------------------------------
@@ -865,6 +959,8 @@ export type QualityReviewSummary = {
   coincidenciasCatalogoExistente: number;
   incoherenciasNombreOMarca: number;
   advertenciasCosto: number;
+  /** Filas con nombre/marca/contenido faltante o contenido no estandar (Fase 2B.13). */
+  datosIncompletos: number;
   conflictosPendientes: number;
 };
 
@@ -881,6 +977,7 @@ export function runQualityReview(
 ): QualityReviewResult {
   const normalizedRows = buildNormalizedRows(rows);
 
+  const missingOrInvalidFields = detectMissingOrInvalidFields(normalizedRows);
   const safeNormalizations = detectSafeNormalizations(normalizedRows);
   const { findings: exactDuplicates, involvedRows } = detectExactDuplicates(normalizedRows);
   const variants = detectVariants(normalizedRows, involvedRows);
@@ -890,6 +987,7 @@ export function runQualityReview(
   const priceAnomalies = detectPriceAnomalies(normalizedRows, existingProducts, existingMatches);
 
   const findings = [
+    ...missingOrInvalidFields,
     ...exactDuplicates,
     ...possibleDuplicatesAndNames.filter((f) => f.type === "POSSIBLE_DUPLICATE"),
     ...priceAnomalies,
@@ -913,6 +1011,7 @@ export function runQualityReview(
     incoherenciasNombreOMarca:
       brandInconsistencies.length + possibleDuplicatesAndNames.filter((f) => f.type === "NAME_INCONSISTENCY").length,
     advertenciasCosto: priceAnomalies.length,
+    datosIncompletos: missingOrInvalidFields.length,
     conflictosPendientes
   };
 
@@ -922,6 +1021,13 @@ export function runQualityReview(
 // ---------------------------------------------------------------------------
 // Aplicacion de decisiones -> plan final (SKU regenerado al final)
 // ---------------------------------------------------------------------------
+
+/** Correccion de un campo obligatorio aplicada durante la revision guiada (para el resumen final "antes/despues"). */
+export type FieldCorrection = {
+  field: "nombre" | "marca" | "contenido";
+  before: string;
+  after: string;
+};
 
 export type FinalPlanRow = {
   rowNumbers: number[];
@@ -935,6 +1041,8 @@ export type FinalPlanRow = {
   modoPrecio: SupplierModoPrecio;
   action: "CREAR" | "ACTUALIZAR";
   targetProductId?: string;
+  /** Presente solo si esta fila tenia nombre/marca/contenido faltante o invalido y se corrigio durante la revision. */
+  corrections?: FieldCorrection[];
 };
 
 export type ApplyDecisionsResult = {
@@ -964,15 +1072,76 @@ export function applyQualityDecisions(
   const excludedRows = new Set<number>();
   const nameOverrides = new Map<number, string>();
   const brandOverrides = new Map<number, string>();
+  const contentOverrides = new Map<number, string>();
   const costOverrides = new Map<number, number>();
   const productBindings = new Map<number, string>();
   /** Fila sobreviviente -> todas las filas originales que fusiono (para auditoria en el resumen final). */
   const unionOrigins = new Map<number, number[]>();
+  /** Fila -> correcciones de campos obligatorios aplicadas (para el "antes/despues" del resumen final, seccion 11). */
+  const fieldCorrections = new Map<number, FieldCorrection[]>();
+
+  function recordCorrection(rowNumber: number, field: FieldCorrection["field"], before: string, after: string) {
+    const list = fieldCorrections.get(rowNumber) ?? [];
+    list.push({ field, before, after });
+    fieldCorrections.set(rowNumber, list);
+  }
 
   const unresolvedBlockers: QualityFinding[] = [];
 
   for (const finding of findings) {
     const decision = decisionByFindingId.get(finding.id);
+
+    if (finding.type === "MISSING_NAME") {
+      if (!decision) {
+        unresolvedBlockers.push(finding);
+        continue;
+      }
+      if (decision.optionId === "EXCLUDE_FIRST") {
+        excludedRows.add(finding.rowNumbers[0]);
+      } else if (decision.optionId === "EDIT_NAME" && decision.textValue && decision.textValue.trim() !== "") {
+        const rn = finding.rowNumbers[0];
+        nameOverrides.set(rn, decision.textValue.trim());
+        recordCorrection(rn, "nombre", "", decision.textValue.trim());
+      } else {
+        unresolvedBlockers.push(finding);
+      }
+      continue;
+    }
+
+    if (finding.type === "MISSING_BRAND") {
+      if (!decision) {
+        unresolvedBlockers.push(finding);
+        continue;
+      }
+      if (decision.optionId === "EXCLUDE_FIRST") {
+        excludedRows.add(finding.rowNumbers[0]);
+      } else if (decision.optionId === "SET_BRAND_MANUAL" && decision.textValue && decision.textValue.trim() !== "") {
+        const rn = finding.rowNumbers[0];
+        brandOverrides.set(rn, decision.textValue.trim());
+        recordCorrection(rn, "marca", "", decision.textValue.trim());
+      } else {
+        unresolvedBlockers.push(finding);
+      }
+      continue;
+    }
+
+    if (finding.type === "MISSING_CONTENT") {
+      if (!decision) {
+        unresolvedBlockers.push(finding);
+        continue;
+      }
+      if (decision.optionId === "EXCLUDE_FIRST") {
+        excludedRows.add(finding.rowNumbers[0]);
+      } else if (decision.optionId === "EDIT_CONTENT" && decision.textValue && decision.textValue.trim() !== "") {
+        const rn = finding.rowNumbers[0];
+        const normalized = normalizeContenido(decision.textValue.trim());
+        contentOverrides.set(rn, normalized);
+        recordCorrection(rn, "contenido", "", normalized);
+      } else {
+        unresolvedBlockers.push(finding);
+      }
+      continue;
+    }
 
     if (finding.type === "EXACT_DUPLICATE") {
       if (!decision) {
@@ -1072,6 +1241,16 @@ export function applyQualityDecisions(
         } else if (decision.optionId === "EXCLUDE_FIRST") {
           excludedRows.add(finding.rowNumbers[0]);
         }
+      } else if (finding.type === "INVALID_CONTENT") {
+        // ACCEPT_SPECIAL_FORMAT / IGNORE_WARNING: nunca bloquean, no requieren
+        // override (el contenido normalizado ya quedo como texto tal cual).
+        if (decision.optionId === "EDIT_CONTENT" && decision.textValue && decision.textValue.trim() !== "") {
+          const rn = finding.rowNumbers[0];
+          const before = byRowNumber.get(rn)?.contenido ?? "";
+          const normalized = normalizeContenido(decision.textValue.trim());
+          contentOverrides.set(rn, normalized);
+          recordCorrection(rn, "contenido", before, normalized);
+        }
       }
     }
   }
@@ -1131,7 +1310,7 @@ export function applyQualityDecisions(
       rowNumber: r.rowNumber,
       marca: brandOverrides.get(r.rowNumber) ?? r.marca,
       nombre: nameOverrides.get(r.rowNumber) ?? r.nombre,
-      contenido: r.contenido,
+      contenido: contentOverrides.get(r.rowNumber) ?? r.contenido,
       costo: costOverrides.get(r.rowNumber) ?? r.costo,
       targetProductId: productBindings.get(r.rowNumber)
     }));
@@ -1180,8 +1359,11 @@ export function applyQualityDecisions(
     const precioVentaSugerido = calculateSalePrice(row.costo, markupPercentage);
     const esManualExistente = existing?.modoPrecio === "MANUAL";
 
+    const rowNumbers = unionOrigins.get(row.rowNumber) ?? [row.rowNumber];
+    const corrections = rowNumbers.flatMap((rn) => fieldCorrections.get(rn) ?? []);
+
     return {
-      rowNumbers: unionOrigins.get(row.rowNumber) ?? [row.rowNumber],
+      rowNumbers,
       sku,
       nombre: row.nombre,
       marca: row.marca,
@@ -1191,7 +1373,8 @@ export function applyQualityDecisions(
       precioVentaFinal: esManualExistente ? (existing as ExistingProductForReview).precioVenta : precioVentaSugerido,
       modoPrecio: esManualExistente ? "MANUAL" : "AUTO",
       action: existing ? "ACTUALIZAR" : "CREAR",
-      targetProductId: existing?.productId
+      targetProductId: existing?.productId,
+      corrections: corrections.length > 0 ? corrections : undefined
     };
   });
 

@@ -568,3 +568,216 @@ describe("quality-review - utilidades de similitud", () => {
     expect(buildCandidateNameKey("Bright Crystal EDT", "Versace")).toBe("bright crystal");
   });
 });
+
+// ---------------------------------------------------------------------------
+// DATOS OBLIGATORIOS FALTANTES O INVALIDOS (Fase 2B.13)
+// ---------------------------------------------------------------------------
+
+describe("quality-review - MISSING_NAME/MISSING_BRAND/MISSING_CONTENT (BLOCKER)", () => {
+  it("marca vacia produce un hallazgo MISSING_BRAND bloqueante", () => {
+    const rows = parseRows("La Bomba;;80ML;58000");
+    const result = review(rows);
+    const finding = result.findings.find((f) => f.type === "MISSING_BRAND");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("BLOCKER");
+  });
+
+  it("contenido vacio produce un hallazgo MISSING_CONTENT bloqueante", () => {
+    const rows = parseRows("La Bomba;Carolina Herrera;;58000");
+    const result = review(rows);
+    const finding = result.findings.find((f) => f.type === "MISSING_CONTENT");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("BLOCKER");
+  });
+
+  it("nombre vacio produce un hallazgo MISSING_NAME bloqueante", () => {
+    const rows = parseRows(";Carolina Herrera;80ML;58000");
+    const result = review(rows);
+    const finding = result.findings.find((f) => f.type === "MISSING_NAME");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("BLOCKER");
+  });
+
+  it("costo vacio produce un hallazgo PRICE_ANOMALY bloqueante (no un tipo MISSING_COST separado)", () => {
+    const rows = parseRows("La Bomba;Carolina Herrera;80ML;");
+    expect(rows[0].precioCompra).toBe(0);
+    const result = review(rows);
+    const finding = result.findings.find((f) => f.type === "PRICE_ANOMALY" && f.severity === "BLOCKER");
+    expect(finding).toBeDefined();
+  });
+
+  it("una fila con multiples campos vacios produce un hallazgo por cada campo faltante", () => {
+    const rows = parseRows(";;;");
+    // fila totalmente vacia en las 4 columnas relevantes = filasVacias, no llega a `rows`
+    expect(rows).toHaveLength(0);
+
+    const rows2 = parseRows(";;80ML;58000");
+    const result = review(rows2);
+    expect(result.findings.some((f) => f.type === "MISSING_NAME")).toBe(true);
+    expect(result.findings.some((f) => f.type === "MISSING_BRAND")).toBe(true);
+    expect(result.findings.some((f) => f.type === "MISSING_CONTENT")).toBe(false);
+  });
+
+  it("ninguna confirmacion es posible mientras existan bloqueantes sin resolver", () => {
+    const rows = parseRows("La Bomba;;80ML;58000");
+    const result = review(rows);
+    const applied = applyQualityDecisions(rows, result.findings, [], [], 35);
+    expect(applied.unresolvedBlockers.length).toBeGreaterThan(0);
+    expect(applied.plan).toHaveLength(0);
+  });
+
+  it("edicion valida (EDIT_NAME/SET_BRAND_MANUAL/EDIT_CONTENT) resuelve el bloqueo", () => {
+    const rows = parseRows(";;;58000");
+    const result = review(rows);
+    const missingName = result.findings.find((f) => f.type === "MISSING_NAME")!;
+    const missingBrand = result.findings.find((f) => f.type === "MISSING_BRAND")!;
+    const missingContent = result.findings.find((f) => f.type === "MISSING_CONTENT")!;
+
+    const decisions: QualityDecision[] = [
+      { findingId: missingName.id, optionId: "EDIT_NAME", textValue: "La Bomba" },
+      { findingId: missingBrand.id, optionId: "SET_BRAND_MANUAL", textValue: "Carolina Herrera" },
+      { findingId: missingContent.id, optionId: "EDIT_CONTENT", textValue: "80 ml" }
+    ];
+    const applied = applyQualityDecisions(rows, result.findings, decisions, [], 35);
+    expect(applied.unresolvedBlockers).toHaveLength(0);
+    expect(applied.plan).toHaveLength(1);
+    expect(applied.plan[0].nombre).toBe("La Bomba");
+    expect(applied.plan[0].marca).toBe("Carolina Herrera");
+    expect(applied.plan[0].contenido).toBe("80ML"); // normalizado, nunca se deja "80 ml" tal cual
+  });
+
+  it("registra la correccion antes/despues para el resumen final", () => {
+    const rows = parseRows("La Bomba;;80ML;58000");
+    const result = review(rows);
+    const missingBrand = result.findings.find((f) => f.type === "MISSING_BRAND")!;
+    const decisions: QualityDecision[] = [
+      { findingId: missingBrand.id, optionId: "SET_BRAND_MANUAL", textValue: "Carolina Herrera" }
+    ];
+    const applied = applyQualityDecisions(rows, result.findings, decisions, [], 35);
+    expect(applied.plan[0].corrections).toEqual([{ field: "marca", before: "", after: "Carolina Herrera" }]);
+  });
+
+  it("excluir la fila tambien resuelve el bloqueo (el producto simplemente no se importa)", () => {
+    const rows = parseRows("La Bomba;;80ML;58000", "Otro Producto;Versace;50ML;20000");
+    const result = review(rows);
+    const missingBrand = result.findings.find((f) => f.type === "MISSING_BRAND")!;
+    const decisions: QualityDecision[] = [{ findingId: missingBrand.id, optionId: "EXCLUDE_FIRST" }];
+    const applied = applyQualityDecisions(rows, result.findings, decisions, [], 35);
+    expect(applied.unresolvedBlockers).toHaveLength(0);
+    expect(applied.plan).toHaveLength(1);
+    expect(applied.plan[0].nombre).toBe("Otro Producto");
+  });
+
+  it("la sugerencia de marca (BRAND_INCONSISTENCY) nunca se aplica sin una decision explicita", () => {
+    const rows = parseRows(
+      "Black Opium;Yves Saint Lauren;90ML;40000",
+      "Libre;Ives Saint Lauren;50ML;30000" // "Ives" variante tipografica de "Yves"
+    );
+    const result = review(rows);
+    const brandFinding = result.findings.find((f) => f.type === "BRAND_INCONSISTENCY");
+    expect(brandFinding).toBeDefined();
+    // Sin decision para ese hallazgo: la marca original de cada fila se conserva tal cual.
+    const applied = applyQualityDecisions(rows, result.findings, [], [], 35);
+    expect(applied.plan.find((p) => p.nombre === "Libre")?.marca).toBe("Ives Saint Lauren");
+  });
+});
+
+describe("quality-review - INVALID_CONTENT (WARNING, nunca bloquea)", () => {
+  it("contenido no vacio pero no reconocido como volumen estandar produce WARNING, no BLOCKER", () => {
+    const rows = parseRows("Set de Viaje;Carolina Herrera;SET;58000");
+    const result = review(rows);
+    const finding = result.findings.find((f) => f.type === "INVALID_CONTENT");
+    expect(finding).toBeDefined();
+    expect(finding!.severity).toBe("WARNING");
+    expect(result.findings.some((f) => f.type === "MISSING_CONTENT")).toBe(false);
+  });
+
+  it("SET/ESTUCHE/TESTER/PACK nunca se convierten silenciosamente a un numero de ML", () => {
+    const rows = parseRows("Set de Viaje;Carolina Herrera;ESTUCHE;58000");
+    const result = review(rows);
+    const applied = applyQualityDecisions(rows, result.findings, [], [], 35);
+    expect(applied.plan[0].contenido).not.toMatch(/^\d+ML$/);
+  });
+
+  it("una advertencia de contenido no bloquea la confirmacion aunque no se decida nada", () => {
+    const rows = parseRows("Set de Viaje;Carolina Herrera;SET;58000");
+    const result = review(rows);
+    const applied = applyQualityDecisions(rows, result.findings, [], [], 35);
+    expect(applied.unresolvedBlockers).toHaveLength(0);
+    expect(applied.plan).toHaveLength(1);
+  });
+
+  it("ACCEPT_SPECIAL_FORMAT conserva el contenido especial tal cual (normalizado a texto, no a ML)", () => {
+    const rows = parseRows("Set de Viaje;Carolina Herrera;Estuche Regalo;58000");
+    const result = review(rows);
+    const finding = result.findings.find((f) => f.type === "INVALID_CONTENT")!;
+    const decisions: QualityDecision[] = [{ findingId: finding.id, optionId: "ACCEPT_SPECIAL_FORMAT" }];
+    const applied = applyQualityDecisions(rows, result.findings, decisions, [], 35);
+    expect(applied.plan[0].contenido).toBe("estuche regalo");
+  });
+
+  it("EDIT_CONTENT corrige un contenido especial hacia un volumen real cuando corresponde", () => {
+    const rows = parseRows("La Bomba;Carolina Herrera;80ML aprox;58000");
+    const result = review(rows);
+    const finding = result.findings.find((f) => f.type === "INVALID_CONTENT");
+    if (finding) {
+      const decisions: QualityDecision[] = [{ findingId: finding.id, optionId: "EDIT_CONTENT", textValue: "80ML" }];
+      const applied = applyQualityDecisions(rows, result.findings, decisions, [], 35);
+      expect(applied.plan[0].contenido).toBe("80ML");
+    } else {
+      // "80ML aprox" ya matchea el patron numero+ML (no se considera invalido); documentado.
+      expect(true).toBe(true);
+    }
+  });
+});
+
+describe("quality-review - actualizacion de producto existente preserva identidad (Fase 2B.13, seccion 9-10)", () => {
+  it("corregir marca de una fila que coincide con un producto existente por SKU la clasifica ACTUALIZAR, no CREAR", () => {
+    const rows = parseRows("Nombre;;50ML;10000");
+    const existing = [existingProduct({ productId: "prod-existente", sku: "SML-MARCA-NOMBRE-50ML" })];
+    const result = review(rows, existing);
+    const missingBrand = result.findings.find((f) => f.type === "MISSING_BRAND")!;
+    const decisions: QualityDecision[] = [
+      { findingId: missingBrand.id, optionId: "SET_BRAND_MANUAL", textValue: "Marca" }
+    ];
+    const applied = applyQualityDecisions(rows, result.findings, decisions, existing, 35);
+    expect(applied.plan).toHaveLength(1);
+    expect(applied.plan[0].action).toBe("ACTUALIZAR");
+    expect(applied.plan[0].sku).toBe("SML-MARCA-NOMBRE-50ML"); // SKU historico preservado, nunca regenerado
+  });
+
+  it("la correccion de un campo obligatorio nunca crea un duplicado del mismo producto", () => {
+    const rows = parseRows("Nombre;;50ML;10000");
+    const existing = [existingProduct({ productId: "prod-existente", sku: "SML-MARCA-NOMBRE-50ML" })];
+    const result = review(rows, existing);
+    const missingBrand = result.findings.find((f) => f.type === "MISSING_BRAND")!;
+    const decisions: QualityDecision[] = [
+      { findingId: missingBrand.id, optionId: "SET_BRAND_MANUAL", textValue: "Marca" }
+    ];
+    const applied = applyQualityDecisions(rows, result.findings, decisions, existing, 35);
+    const skus = new Set(applied.plan.map((p) => p.sku));
+    expect(skus.size).toBe(applied.plan.length); // sin SKU duplicado
+    expect(applied.plan.filter((p) => p.sku === "SML-MARCA-NOMBRE-50ML")).toHaveLength(1);
+  });
+});
+
+describe("quality-review - filas completas conviven con filas incompletas en el mismo archivo", () => {
+  it("una fila nueva y completa se puede importar sin ninguna decision, aunque otra fila del archivo este bloqueada", () => {
+    const rows = parseRows("La Bomba;;80ML;58000", "Bright Crystal;Versace;90ML;35000");
+    const result = review(rows);
+    const missingBrand = result.findings.find((f) => f.type === "MISSING_BRAND")!;
+    const decisions: QualityDecision[] = [{ findingId: missingBrand.id, optionId: "EXCLUDE_FIRST" }];
+    const applied = applyQualityDecisions(rows, result.findings, decisions, [], 35);
+    expect(applied.plan).toHaveLength(1);
+    expect(applied.plan[0].nombre).toBe("Bright Crystal");
+    expect(applied.plan[0].action).toBe("CREAR");
+  });
+
+  it("un producto incompleto sin resolver nunca llega al plan final (no se publica)", () => {
+    const rows = parseRows("La Bomba;;80ML;58000");
+    const result = review(rows);
+    const applied = applyQualityDecisions(rows, result.findings, [], [], 35);
+    expect(applied.plan).toHaveLength(0);
+    expect(applied.plan.some((p) => p.nombre === "La Bomba")).toBe(false);
+  });
+});

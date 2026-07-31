@@ -10,6 +10,7 @@ import { Producto } from "@/domain/Producto";
 import type { ProductoProps } from "@/domain/Producto";
 import { getProductVisualMeta } from "@/lib/product-catalog";
 import { buildFamilyKey } from "@/lib/product-families";
+import { isProductMetadataComplete } from "@/lib/catalog-completeness";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import { validateImageUrlInput } from "@/lib/image-url";
@@ -77,18 +78,30 @@ export class ProductoService {
   /**
    * Catalogo publico (Fase 2B.8, familias de producto): ya NO filtra
    * producto por producto. Una FAMILIA (marca+nombre) es visible si al
-   * menos una de sus variantes es vendible (activa, con stock y precio);
-   * si lo es, se exponen TODAS sus variantes (incluidas las agotadas o
-   * pausadas) para que el selector de tamano pueda mostrarlas como "Sin
-   * stock" en vez de ocultarlas. Un producto sin familia visible (el o
-   * todos sus hermanos bloqueados) sigue sin aparecer, igual que antes.
+   * menos una de sus variantes es vendible (activa, con stock, precio y
+   * metadatos completos); si lo es, se exponen TODAS sus variantes VENDIBLES
+   * o con metadatos completos (incluidas las agotadas o pausadas) para que
+   * el selector de tamano pueda mostrarlas como "Sin stock" en vez de
+   * ocultarlas. Un producto sin familia visible (el o todos sus hermanos
+   * bloqueados) sigue sin aparecer, igual que antes.
+   *
+   * Fase 2B.13: un producto activo pero con ficha incompleta (falta nombre,
+   * marca, contenido o precio valido) NUNCA se publica, ni siquiera como
+   * variante deshabilitada de una familia visible por otro hermano completo
+   * -- mostrarlo requeriria inventar los datos faltantes. Sigue existiendo
+   * y siendo administrable normalmente (services/productoService.ts no lo
+   * pausa, no le toca el stock ni el historial); solo se excluye del
+   * storefront hasta que se corrija (ver lib/catalog-completeness.ts).
    */
   async obtenerProductosActivos() {
     const products = await this.productRepository.buscarTodosProductos();
     const domainProducts = products.map((product) => new Producto(product));
 
     const esVendible = (product: Producto) =>
-      product.activo && getUnifiedProductStock(product) > 0 && product.precioVenta > 0;
+      product.activo &&
+      getUnifiedProductStock(product) > 0 &&
+      product.precioVenta > 0 &&
+      isProductMetadataComplete(product);
 
     const familiasVisibles = new Set(
       domainProducts.filter(esVendible).map((product) => buildFamilyKey(product.marca, product.nombre))
@@ -96,6 +109,7 @@ export class ProductoService {
 
     return domainProducts
       .filter((product) => familiasVisibles.has(buildFamilyKey(product.marca, product.nombre)))
+      .filter((product) => isProductMetadataComplete(product))
       .map((product) => {
         const visual = getProductVisualMeta(product);
 

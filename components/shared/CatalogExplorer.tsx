@@ -25,6 +25,16 @@ type CatalogExplorerProps = {
 };
 
 const PAGE_SIZE = 25;
+/** Catalogo sin busqueda/marca/orden aplicado: solo 5 por defecto (Fase 2B.12), para no desplegar un muro completo apenas se abre la pagina. */
+const DEFAULT_UNFILTERED_COUNT = 5;
+/** Chips de marca visibles antes de "+N marcas" (mantiene el bloque ordenado incluso con muchas marcas). */
+const INITIAL_BRAND_COUNT = 8;
+
+function brandChipClass(active: boolean): string {
+  return `flex h-9 w-full items-center justify-center truncate rounded-full border px-2.5 text-xs font-semibold transition ${
+    active ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]" : "border-[#e4e7ec] bg-white text-[#667085] hover:border-[#c9bdff]"
+  }`;
+}
 
 /**
  * Directorio "Encuentra tu perfume" (Fase 2B.10): search-first, compacto y
@@ -37,19 +47,39 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
   const [brandFilter, setBrandFilter] = useState("");
   const [sort, setSort] = useState<SortOption>("recomendados");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [showAllBrands, setShowAllBrands] = useState(false);
 
   const families = useMemo(() => getVisibleFamilies(groupProductsIntoFamilies(products)), [products]);
   const brands = useMemo(() => getAvailableFamilyBrands(families), [families]);
+
+  // Marcas visibles: ordenadas A-Z (ya lo hace getAvailableFamilyBrands), acotadas a
+  // INITIAL_BRAND_COUNT salvo que el usuario expanda o que la marca activa quede fuera
+  // de ese recorte inicial (nunca se oculta la marca actualmente seleccionada).
+  const visibleBrands = useMemo(() => {
+    if (showAllBrands || brands.length <= INITIAL_BRAND_COUNT) return brands;
+    const initial = brands.slice(0, INITIAL_BRAND_COUNT);
+    if (brandFilter && !initial.includes(brandFilter)) {
+      return [...initial, brandFilter].sort((a, b) => a.localeCompare(b));
+    }
+    return initial;
+  }, [brands, brandFilter, showAllBrands]);
+  const hiddenBrandCount = brands.length - visibleBrands.length;
 
   const filtered = useMemo(
     () => filterAndSortFamilies(families, { query, brand: brandFilter, sort }),
     [families, query, brandFilter, sort]
   );
 
-  const visibleFamilies = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
   const hasActiveFilters = query.trim() !== "" || brandFilter !== "" || sort !== "recomendados";
   const isSearching = query.trim() !== "";
+  // Sin busqueda/marca/orden aplicado, el listado dinamico queda acotado a
+  // DEFAULT_UNFILTERED_COUNT (seccion C, Fase 2B.12): la paginacion progresiva
+  // (25 + "Ver mas") solo se habilita una vez que el usuario busca, filtra por
+  // marca u ordena, para no desplegar el catalogo completo apenas se abre la pagina.
+  const effectiveVisibleCount = hasActiveFilters ? visibleCount : DEFAULT_UNFILTERED_COUNT;
+  const visibleFamilies = filtered.slice(0, effectiveVisibleCount);
+  const hasMore = hasActiveFilters && visibleCount < filtered.length;
+  const hiddenByDefaultCount = !hasActiveFilters ? Math.max(0, filtered.length - DEFAULT_UNFILTERED_COUNT) : 0;
 
   function clearQuery() {
     setQuery("");
@@ -61,6 +91,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
     setBrandFilter("");
     setSort("recomendados");
     setVisibleCount(PAGE_SIZE);
+    setShowAllBrands(false);
   }
 
   if (families.length === 0) {
@@ -103,69 +134,81 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2 overflow-x-auto pb-1 sm:flex-1">
+      <div className="space-y-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">
+            Filtrar por marca
+          </span>
+          <div className="flex items-center gap-3">
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as SortOption)}
+              aria-label="Ordenar catálogo"
+              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2 text-sm text-[#111318] shadow-sm outline-none transition focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
+            >
+              <option value="recomendados">Recomendados</option>
+              <option value="nombre-asc">Nombre A-Z</option>
+              <option value="precio-asc">Menor precio</option>
+              <option value="precio-desc">Mayor precio</option>
+            </select>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="shrink-0 text-sm font-semibold text-[#5434e6] hover:text-[#392694]"
+              >
+                Limpiar filtros
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           <button
             type="button"
             onClick={() => {
               setBrandFilter("");
               setVisibleCount(PAGE_SIZE);
             }}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
-              brandFilter === ""
-                ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                : "border-[#e4e7ec] bg-white text-[#667085]"
-            }`}
+            className={brandChipClass(brandFilter === "")}
           >
             Todas las marcas
           </button>
-          {brands.map((brand) => (
+          {visibleBrands.map((brand) => (
             <button
               key={brand}
               type="button"
               onClick={() => {
                 setBrandFilter(brand);
                 setVisibleCount(PAGE_SIZE);
+                setShowAllBrands(false);
               }}
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
-                brandFilter === brand
-                  ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                  : "border-[#e4e7ec] bg-white text-[#667085]"
-              }`}
+              className={brandChipClass(brandFilter === brand)}
+              title={brand}
             >
               {brand}
             </button>
           ))}
+          {brands.length > INITIAL_BRAND_COUNT ? (
+            <button
+              type="button"
+              onClick={() => setShowAllBrands((current) => !current)}
+              aria-expanded={showAllBrands}
+              className="flex h-9 w-full items-center justify-center truncate rounded-full border border-dashed border-[#c9bdff] bg-[#faf9ff] px-2.5 text-xs font-semibold text-[#5434e6] transition hover:border-[#7357ff]"
+            >
+              {showAllBrands ? "Ver menos" : `+${hiddenBrandCount} marcas`}
+            </button>
+          ) : null}
         </div>
-        <select
-          value={sort}
-          onChange={(event) => setSort(event.target.value as SortOption)}
-          aria-label="Ordenar catálogo"
-          className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#111318] shadow-sm outline-none transition focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
-        >
-          <option value="recomendados">Recomendados</option>
-          <option value="nombre-asc">Nombre A-Z</option>
-          <option value="precio-asc">Menor precio</option>
-          <option value="precio-desc">Mayor precio</option>
-        </select>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-[#667085]" aria-live="polite">
-          {isSearching
-            ? `${filtered.length} ${filtered.length === 1 ? "perfume encontrado" : "perfumes encontrados"}`
+      <p className="text-sm text-[#667085]" aria-live="polite">
+        {isSearching
+          ? `${filtered.length} ${filtered.length === 1 ? "perfume encontrado" : "perfumes encontrados"}`
+          : hiddenByDefaultCount > 0
+            ? `Mostrando ${DEFAULT_UNFILTERED_COUNT} de ${filtered.length} perfumes. Usa la búsqueda o los filtros para explorar el resto del catálogo.`
             : `${filtered.length} ${filtered.length === 1 ? "perfume" : "perfumes"}`}
-        </p>
-        {hasActiveFilters ? (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="text-sm font-semibold text-[#5434e6] hover:text-[#392694]"
-          >
-            Limpiar filtros
-          </button>
-        ) : null}
-      </div>
+      </p>
 
       {filtered.length === 0 ? (
         <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">

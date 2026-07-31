@@ -64,10 +64,19 @@ function parseChileanCurrency(value: string): number | null {
 }
 
 /**
- * Parsea el CSV de proveedor. Detecta encoding/delimitador, ignora filas
- * completamente vacias (solo en las columnas relevantes) y rechaza filas a
- * las que les falte Perfume, Marca, Contenido o un Precio Compra valido,
- * informando fila y motivo exacto.
+ * Parsea el CSV de proveedor. Detecta encoding/delimitador e ignora filas
+ * completamente vacias (solo en las columnas relevantes).
+ *
+ * Fase 2B.13: las filas a las que les falte Perfume, Marca, Contenido o un
+ * Precio Compra valido YA NO se descartan aqui de forma silenciosa/dura --
+ * antes de esta fase quedaban fuera de la revision guiada por completo (el
+ * admin solo veia un mensaje de error generico y debia corregir el CSV
+ * externamente). Ahora esas filas SI entran al motor de calidad
+ * (`runQualityReview`) como hallazgos MISSING_NAME/MISSING_BRAND/
+ * MISSING_CONTENT (bloqueantes, editables en pantalla) y el costo faltante o
+ * invalido llega como `precioCompra: 0`, que el hallazgo PRICE_ANOMALY ya
+ * trataba como bloqueante. `errors` se conserva en el tipo por compatibilidad
+ * pero para el perfil de proveedor ya no se puebla por estos motivos.
  */
 export function parseSupplierCsv(buffer: Buffer): SupplierParseResult {
   const encoding = detectEncoding(buffer);
@@ -125,21 +134,13 @@ export function parseSupplierCsv(buffer: Buffer): SupplierParseResult {
     const marca = normalizeDisplayText(fields[idxMarca] ?? "");
     const contenido = normalizeDisplayText(fields[idxContenido] ?? "");
     const precioCompraRaw = fields[idxPrecioCompra] ?? "";
-    const precioCompra = parseChileanCurrency(precioCompraRaw);
+    const precioCompraParsed = parseChileanCurrency(precioCompraRaw);
+    // 0 es el centinela de "costo faltante o invalido": nunca es un costo real
+    // valido (PRICE_ANOMALY ya bloquea costo <= 0), y evita que precioCompra
+    // deba volverse nullable en todo el resto del pipeline (SKU, plan, etc).
+    const precioCompra = precioCompraParsed !== null && precioCompraParsed > 0 ? precioCompraParsed : 0;
 
-    const reasons: string[] = [];
-    if (!perfume) reasons.push("Falta Perfume.");
-    if (!marca) reasons.push("Falta Marca.");
-    if (!contenido) reasons.push("Falta Contenido.");
-    if (precioCompra === null) reasons.push("Falta un Precio Compra válido.");
-    else if (precioCompra <= 0) reasons.push("Precio Compra debe ser mayor que 0.");
-
-    if (reasons.length > 0) {
-      errors.push({ rowNumber, sku: "", message: reasons.join(" ") });
-      return;
-    }
-
-    rows.push({ rowNumber, perfume, marca, contenido, precioCompra: precioCompra as number });
+    rows.push({ rowNumber, perfume, marca, contenido, precioCompra });
   });
 
   return { rows, errors, filasFisicas: dataLines.length, filasVacias, globalErrors: [] };

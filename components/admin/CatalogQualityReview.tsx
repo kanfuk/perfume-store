@@ -19,10 +19,11 @@ import type {
   QualityReviewSummary
 } from "@/lib/catalog-import/quality-review.ts";
 
-type TabId = "pendientes" | "duplicados" | "variantes" | "nombres" | "costos" | "resueltos";
+type TabId = "pendientes" | "datos" | "duplicados" | "variantes" | "nombres" | "costos" | "resueltos";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "pendientes", label: "Pendientes" },
+  { id: "datos", label: "Datos incompletos" },
   { id: "duplicados", label: "Duplicados" },
   { id: "variantes", label: "Variantes" },
   { id: "nombres", label: "Nombres y marcas" },
@@ -38,7 +39,11 @@ const TYPE_LABELS: Record<QualityFindingType, string> = {
   BRAND_INCONSISTENCY: "Marca inconsistente",
   NAME_INCONSISTENCY: "Posible inconsistencia de nombre",
   EXISTING_CATALOG_MATCH: "Posible producto existente",
-  PRICE_ANOMALY: "Advertencia de costo"
+  PRICE_ANOMALY: "Advertencia de costo",
+  MISSING_NAME: "Falta nombre",
+  MISSING_BRAND: "Falta marca",
+  MISSING_CONTENT: "Falta contenido",
+  INVALID_CONTENT: "Contenido no estándar"
 };
 
 function requiresDecision(finding: QualityFinding): boolean {
@@ -47,6 +52,14 @@ function requiresDecision(finding: QualityFinding): boolean {
 
 function tabsForFinding(finding: QualityFinding): TabId[] {
   const tabs: TabId[] = [];
+  if (
+    finding.type === "MISSING_NAME" ||
+    finding.type === "MISSING_BRAND" ||
+    finding.type === "MISSING_CONTENT" ||
+    finding.type === "INVALID_CONTENT"
+  ) {
+    tabs.push("datos");
+  }
   if (finding.type === "EXACT_DUPLICATE" || finding.type === "POSSIBLE_DUPLICATE") tabs.push("duplicados");
   if (finding.type === "VARIANT") tabs.push("variantes");
   if (
@@ -179,6 +192,7 @@ export function CatalogQualityReview({
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
         <SummaryStat label="Filas útiles" value={summary.filasUtiles} />
+        <SummaryStat label="Datos incompletos" value={summary.datosIncompletos} tone={summary.datosIncompletos > 0 ? "block" : "ok"} />
         <SummaryStat label="Normalizaciones" value={summary.normalizacionesSeguras} />
         <SummaryStat label="Variantes" value={summary.variantesDetectadas} />
         <SummaryStat label="Posibles duplicados" value={summary.posiblesDuplicados} />
@@ -332,10 +346,12 @@ function RowsComparison({ finding }: { finding: QualityFinding }) {
       {finding.rows.map((row) => (
         <div key={row.rowNumber} className="rounded-lg border border-[#e4e7ec] bg-[#f7f8fa] p-3 text-sm">
           <div className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">Fila {row.rowNumber}</div>
-          <div className="font-semibold text-[#111318]">{row.nombre}</div>
-          <div className="text-[#667085]">{row.marca}</div>
+          <div className="font-semibold text-[#111318]">
+            {row.nombre || <span className="italic text-[#b44b43]">(sin nombre)</span>}
+          </div>
+          <div className="text-[#667085]">{row.marca || <span className="italic text-[#b44b43]">(sin marca)</span>}</div>
           <div className="text-[#667085]">
-            {row.contenido} · {formatCurrency(row.costo)}
+            {row.contenido || <span className="italic text-[#b44b43]">(sin contenido)</span>} · {formatCurrency(row.costo)}
           </div>
         </div>
       ))}
@@ -380,6 +396,7 @@ function FindingCard({
   const needsBrandManual = optionId === "SET_BRAND_MANUAL";
   const needsNameEdit = optionId === "EDIT_NAME";
   const needsCostEdit = optionId === "EDIT_COST";
+  const needsContentEdit = optionId === "EDIT_CONTENT";
 
   function handleApply() {
     if (!optionId) return;
@@ -506,6 +523,16 @@ function FindingCard({
               value={numberValue}
               onChange={(event) => setNumberValue(event.target.value)}
               placeholder="Costo corregido"
+              className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
+            />
+          ) : null}
+
+          {needsContentEdit ? (
+            <input
+              type="text"
+              value={textValue}
+              onChange={(event) => setTextValue(event.target.value)}
+              placeholder="Contenido corregido (ej. 100ML)"
               className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
             />
           ) : null}

@@ -64,32 +64,41 @@ describe("supplier-import - parseSupplierCsv", () => {
     expect(result.rows[0]).not.toHaveProperty("precioVenta");
   });
 
-  it("rechaza fila sin Perfume, informando fila y motivo", () => {
+  // Fase 2B.13: las filas con campos obligatorios faltantes/invalidos YA NO se
+  // rechazan aqui (antes quedaban fuera de la revision guiada por completo).
+  // Ahora pasan como filas normales -- con el campo vacio o costo en 0 -- para
+  // que el asistente de calidad (quality-review.ts) las bloquee como
+  // MISSING_NAME/MISSING_BRAND/MISSING_CONTENT/PRICE_ANOMALY, editables en
+  // pantalla. Ver tests/lib/catalog-import/quality-review.test.ts.
+  it("acepta fila sin Perfume (el campo queda vacio, no se descarta)", () => {
     const result = parseSupplierCsv(csv(";Carolina Herrera;80ML;58000"));
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].rowNumber).toBe(2);
-    expect(result.errors[0].message).toMatch(/Falta Perfume/);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0].perfume).toBe("");
   });
 
-  it("rechaza fila sin Marca", () => {
+  it("acepta fila sin Marca (el campo queda vacio, no se descarta)", () => {
     const result = parseSupplierCsv(csv("La Bomba;;80ML;58000"));
-    expect(result.errors[0].message).toMatch(/Falta Marca/);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows[0].marca).toBe("");
   });
 
-  it("rechaza fila sin Contenido", () => {
+  it("acepta fila sin Contenido (el campo queda vacio, no se descarta)", () => {
     const result = parseSupplierCsv(csv("La Bomba;Carolina Herrera;;58000"));
-    expect(result.errors[0].message).toMatch(/Falta Contenido/);
+    expect(result.errors).toHaveLength(0);
+    expect(result.rows[0].contenido).toBe("");
   });
 
-  it("rechaza fila con Precio Compra invalido o ausente", () => {
+  it("acepta fila con Precio Compra invalido o ausente: precioCompra queda en 0 (centinela)", () => {
     const sinCosto = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;"));
-    expect(sinCosto.errors[0].message).toMatch(/Precio Compra válido/);
+    expect(sinCosto.errors).toHaveLength(0);
+    expect(sinCosto.rows[0].precioCompra).toBe(0);
 
     const costoTexto = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;no-es-numero"));
-    expect(costoTexto.errors[0].message).toMatch(/Precio Compra válido/);
+    expect(costoTexto.rows[0].precioCompra).toBe(0);
 
     const costoCero = parseSupplierCsv(csv("La Bomba;Carolina Herrera;80ML;0"));
-    expect(costoCero.errors[0].message).toMatch(/mayor que 0/);
+    expect(costoCero.rows[0].precioCompra).toBe(0);
   });
 
   it("ignora filas completamente vacias sin contarlas como utiles", () => {

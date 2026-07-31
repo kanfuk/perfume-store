@@ -5,6 +5,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableProductStock } from "@/lib/stock";
+import { resolveCardMetadata } from "@/lib/product-card-metadata";
 import type { ProductRecord } from "@/lib/types";
 
 type ProductCardProps = {
@@ -39,6 +40,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const availableStock = getAvailableProductStock(product);
   const isOutOfStock = availableStock <= 0;
+  const metadata = resolveCardMetadata(product);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const hasLongDescription = (product.descripcion?.trim().length ?? 0) > 96;
   const hasPreviousPrice =
@@ -48,7 +50,7 @@ export function ProductCard({
     <article className="interactive-card flex h-full max-w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-[#e4e7ec] bg-white shadow-sm">
       <div
         className={`relative min-w-0 ${
-          imageFit === "contain" ? "aspect-[3/4] bg-white" : "aspect-[4/3] bg-[#f7f8fa]"
+          imageFit === "contain" ? "aspect-square bg-white sm:aspect-[3/4]" : "aspect-[4/3] bg-[#f7f8fa]"
         }`}
       >
         <ProductImage
@@ -61,18 +63,26 @@ export function ProductCard({
         {imageFit !== "contain" ? (
           <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
         ) : null}
-        <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
+        <div
+          className={`absolute inset-x-0 top-0 flex items-start justify-between gap-3 ${
+            imageFit === "contain" ? "p-2.5 sm:p-4" : "p-4"
+          }`}
+        >
           <div className="flex items-center gap-2">
             {typeof rank === "number" ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7357ff] text-sm font-bold text-white shadow-sm">
+              <span
+                className={`flex items-center justify-center rounded-full bg-[#7357ff] font-bold text-white shadow-sm ${
+                  imageFit === "contain" ? "h-6 w-6 text-xs sm:h-8 sm:w-8 sm:text-sm" : "h-8 w-8 text-sm"
+                }`}
+              >
                 {rank}
               </span>
             ) : null}
             <span
-              className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide shadow-sm backdrop-blur-md ${
+              className={`rounded-full border font-semibold uppercase tracking-wide shadow-sm backdrop-blur-md ${
                 imageFit === "contain"
-                  ? "border-[#e4e7ec] bg-white/90 text-[#111318]"
-                  : "border-white/15 bg-[#111318]/82 text-white"
+                  ? "hidden border-[#e4e7ec] bg-white/90 px-3 py-1 text-xs text-[#111318] sm:inline-block"
+                  : "border-white/15 bg-[#111318]/82 px-3 py-1 text-xs text-white"
               }`}
             >
               {product.badgeLabel || product.tipoProducto || "PERFUME"}
@@ -85,40 +95,67 @@ export function ProductCard({
           ) : null}
         </div>
       </div>
-      <div className="flex flex-1 flex-col space-y-3 p-4">
+      <div
+        className={`flex flex-1 flex-col ${
+          imageFit === "contain" ? "space-y-2 p-3 sm:space-y-3 sm:p-4" : "space-y-3 p-4"
+        }`}
+      >
+        {/* Bloque de metadatos con altura reservada (Fase 2B.13): marca, nombre y */}
+        {/* contenido/selector SIEMPRE ocupan el mismo espacio, tenga o no el */}
+        {/* producto esos datos. Es la causa real del desalineamiento anterior: una */}
+        {/* tarjeta sin marca/contenido rendeaba menos lineas y "subia" el precio y */}
+        {/* el CTA. Nunca se muestra "undefined"/"null"/"0ML": el hueco queda en */}
+        {/* blanco (&nbsp; oculto a lectores de pantalla) pero conserva su altura. */}
         <div className="space-y-1">
-          {product.marca ? (
-            <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
-              {product.marca}
-            </p>
-          ) : null}
-          <h4 className="line-clamp-2 text-base font-semibold leading-tight text-[#111318] sm:text-[1.1rem]">
-            {product.nombre}
-          </h4>
-          {sizeSelector ?? (product.contenido ? <p className="text-xs text-[#98a2b3]">{product.contenido}</p> : null)}
-        </div>
-        <div className="space-y-2">
           <p
-            className={`product-description break-words text-sm leading-relaxed text-[#667085] ${
-              descriptionExpanded ? "" : "line-clamp-2"
+            className="truncate text-xs font-semibold uppercase tracking-wide text-[#98a2b3]"
+            aria-hidden={metadata.hasBrand ? undefined : true}
+          >
+            {metadata.hasBrand ? metadata.brandLabel : " "}
+          </p>
+          <h4
+            className={`line-clamp-2 font-semibold leading-tight text-[#111318] sm:min-h-11 sm:text-[1.1rem] ${
+              imageFit === "contain" ? "min-h-9 text-sm" : "min-h-10 text-base"
             }`}
           >
-            {product.descripcion}
-          </p>
-          {hasLongDescription ? (
-            <button
-              type="button"
-              onClick={() => setDescriptionExpanded((current) => !current)}
-              className="inline-flex text-sm font-semibold text-[#6547fa] transition-colors hover:text-[#5434e6]"
-            >
-              {descriptionExpanded ? "Ver menos" : "Ver más"}
-            </button>
-          ) : null}
+            {product.nombre}
+          </h4>
+          <div className={imageFit === "contain" ? "flex min-h-16 flex-col" : "flex min-h-[1.25rem] flex-col"}>
+            {sizeSelector ?? (
+              <p className="text-xs text-[#98a2b3]" aria-hidden={metadata.hasContent ? undefined : true}>
+                {metadata.hasContent ? metadata.contentLabel : " "}
+              </p>
+            )}
+          </div>
         </div>
+        {imageFit !== "contain" ? (
+          <div className="space-y-2">
+            <p
+              className={`product-description break-words text-sm leading-relaxed text-[#667085] ${
+                descriptionExpanded ? "" : "line-clamp-2"
+              }`}
+            >
+              {product.descripcion}
+            </p>
+            {hasLongDescription ? (
+              <button
+                type="button"
+                onClick={() => setDescriptionExpanded((current) => !current)}
+                className="inline-flex text-sm font-semibold text-[#6547fa] transition-colors hover:text-[#5434e6]"
+              >
+                {descriptionExpanded ? "Ver menos" : "Ver más"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 flex flex-wrap items-baseline gap-2">
-            <span className="text-xl font-bold text-[#111318] sm:text-2xl">
+            <span
+              className={`font-bold text-[#111318] ${
+                imageFit === "contain" ? "text-lg sm:text-2xl" : "text-xl sm:text-2xl"
+              }`}
+            >
               {formatCurrency(product.precioVenta)}
             </span>
             {hasPreviousPrice ? (
@@ -129,32 +166,54 @@ export function ProductCard({
           </div>
 
           {quantity > 0 && onDecrease && onRemove ? (
-            <div className="flex items-center gap-2 rounded-[22px] border border-[#e4e7ec] bg-[#f7f8fa] px-2 py-2 shadow-sm">
+            <div
+              className={`flex items-center border border-[#e4e7ec] bg-[#f7f8fa] shadow-sm ${
+                imageFit === "contain" ? "gap-1 rounded-full px-1.5 py-1.5" : "gap-2 rounded-[22px] px-2 py-2"
+              }`}
+            >
               <ProductActionButton
                 label={`Quitar una unidad de ${product.nombre}`}
                 onClick={onDecrease}
+                compact={imageFit === "contain"}
               >
-                <Minus className="h-4 w-4" />
+                <Minus className={imageFit === "contain" ? "h-3.5 w-3.5" : "h-4 w-4"} />
               </ProductActionButton>
-              <div className="min-w-8 text-center text-sm font-semibold text-[#111318]">
+              <div
+                className={`text-center font-semibold text-[#111318] ${
+                  imageFit === "contain" ? "min-w-5 text-xs" : "min-w-8 text-sm"
+                }`}
+              >
                 {quantity}
               </div>
               <ProductActionButton
                 label={`Agregar una unidad de ${product.nombre}`}
                 onClick={onAdd}
                 disabled={isOutOfStock || quantity >= availableStock}
+                compact={imageFit === "contain"}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className={imageFit === "contain" ? "h-3.5 w-3.5" : "h-4 w-4"} />
               </ProductActionButton>
               <button
                 type="button"
                 onClick={onRemove}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[#667085] transition-colors hover:bg-white hover:text-[#b44b43]"
+                className={`inline-flex items-center justify-center text-[#667085] transition-colors hover:bg-white hover:text-[#b44b43] ${
+                  imageFit === "contain" ? "h-8 w-8 rounded-full" : "h-10 w-10 rounded-2xl"
+                }`}
                 aria-label={`Quitar ${product.nombre} del pedido`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className={imageFit === "contain" ? "h-3.5 w-3.5" : "h-4 w-4"} />
               </button>
             </div>
+          ) : imageFit === "contain" ? (
+            <button
+              type="button"
+              onClick={onAdd}
+              disabled={isOutOfStock}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#7357ff] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(115,87,255,0.22)] transition hover:bg-[#5b3ff2] disabled:cursor-not-allowed disabled:bg-[#c7bfff] disabled:shadow-none"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {isOutOfStock ? "Sin stock" : actionLabel ?? "Elegir"}
+            </button>
           ) : (
             <button
               type="button"
@@ -192,12 +251,15 @@ function ProductActionButton({
   children,
   label,
   onClick,
-  disabled = false
+  disabled = false,
+  compact = false
 }: {
   children: React.ReactNode;
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Version reducida (Top 12 en movil) para que el stepper combine con el CTA compacto. */
+  compact?: boolean;
 }) {
   return (
     <button
@@ -205,7 +267,9 @@ function ProductActionButton({
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e4e7ec] bg-white text-[#111318] transition-colors hover:border-[#7357ff] hover:text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-45"
+      className={`inline-flex items-center justify-center border border-[#e4e7ec] bg-white text-[#111318] transition-colors hover:border-[#7357ff] hover:text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-45 ${
+        compact ? "h-8 w-8 rounded-full" : "h-10 w-10 rounded-2xl"
+      }`}
     >
       {children}
     </button>

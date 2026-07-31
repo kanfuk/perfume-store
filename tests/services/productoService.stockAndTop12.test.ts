@@ -522,6 +522,111 @@ describe("ProductoService - visibilidad publica del catalogo", () => {
     const activos = await service.obtenerProductosActivos();
     expect(activos).toHaveLength(0);
   });
+
+  // Fase 2B.13: un producto activo, con stock y precio, pero con ficha
+  // incompleta (falta marca o contenido) NUNCA se publica -- aunque antes
+  // esas dos condiciones bastaban para considerarlo "vendible".
+  it("producto completo (activo, con stock, marca, contenido y precio) SI se publica", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      id: "completo",
+      nombre: "Bright Crystal",
+      marca: "Versace",
+      contenido: "90ML",
+      activo: true,
+      stockActual: 5,
+      precioVenta: 55000
+    });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    expect(activos.map((p) => p.id)).toEqual(["completo"]);
+  });
+
+  it("producto sin marca NO se publica, aunque este activo, con stock y precio validos", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      id: "sin-marca",
+      nombre: "212 Forever Young Hombre",
+      marca: "",
+      contenido: "100ML",
+      activo: true,
+      stockActual: 5,
+      precioVenta: 45000
+    });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    expect(activos).toHaveLength(0);
+  });
+
+  it("producto sin contenido NO se publica, aunque este activo, con stock y precio validos", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      id: "sin-contenido",
+      nombre: "212 Forever Young Hombre",
+      marca: "Carolina Herrera",
+      contenido: "",
+      activo: true,
+      stockActual: 5,
+      precioVenta: 45000
+    });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    expect(activos).toHaveLength(0);
+  });
+
+  it("un producto incompleto no arrastra a sus hermanos: la familia sigue visible por la variante completa", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      id: "lm-30-incompleto",
+      nombre: "Lady Million",
+      marca: "", // incompleta
+      contenido: "30ML",
+      activo: true,
+      stockActual: 3,
+      precioVenta: 33750
+    });
+    seedProduct(repository, {
+      id: "lm-80-completo",
+      nombre: "Lady Million",
+      marca: "Paco Rabanne",
+      contenido: "80ML",
+      activo: true,
+      stockActual: 2,
+      precioVenta: 67500
+    });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    // Solo la variante completa se publica; la incompleta nunca aparece,
+    // ni siquiera como opcion deshabilitada del selector.
+    expect(activos.map((p) => p.id)).toEqual(["lm-80-completo"]);
+  });
+
+  it("un producto incompleto permanece disponible en el catalogo administrativo (nunca se oculta, pausa ni se le toca el stock)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      id: "sin-marca",
+      nombre: "212 Forever Young Hombre",
+      marca: "",
+      contenido: "",
+      activo: true,
+      stockActual: 5,
+      precioVenta: 45000
+    });
+    const service = new ProductoService(repository);
+
+    const activos = await service.obtenerProductosActivos();
+    expect(activos).toHaveLength(0);
+
+    const admin = await service.obtenerCatalogoAdmin();
+    const incompleto = admin.find((p) => p.id === "sin-marca");
+    expect(incompleto).toBeDefined();
+    expect(incompleto?.activo).toBe(true);
+    expect(incompleto?.stockActual).toBe(5);
+  });
 });
 
 describe("ProductoService - asignacion manual de imagen", () => {

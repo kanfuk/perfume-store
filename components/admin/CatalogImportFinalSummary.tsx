@@ -24,6 +24,12 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
   const filasExcluidas = Math.max(filasOriginales - filasFinales, 0);
   const familiasConVariantes = groupByFamilyKey(plan).filter((group) => group.items.length > 1);
 
+  // Seccion 11 (Fase 2B.13): productos con nombre/marca/contenido corregidos
+  // durante la revision guiada (venian vacios o con formato no estandar).
+  const corregidos = plan.filter((p) => p.corrections && p.corrections.length > 0);
+  const completos = plan.length - corregidos.length;
+  const FIELD_LABELS: Record<string, string> = { nombre: "Nombre", marca: "Marca", contenido: "Contenido" };
+
   return (
     <div className="space-y-4">
       <button
@@ -43,15 +49,45 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <SummaryTile label="Productos completos" value={completos} />
+        <SummaryTile label="Corregidos en la revisión" value={corregidos.length} />
+        <SummaryTile label="Bloqueos resueltos" value={summary.conflictosPendientes} />
+        <SummaryTile label="No se publicarán (excluidos)" value={filasExcluidas} />
         <SummaryTile label="Filas originales" value={filasOriginales} />
         <SummaryTile label="Filas finales" value={filasFinales} />
-        <SummaryTile label="Filas excluidas" value={filasExcluidas} />
         <SummaryTile label="Productos nuevos" value={nuevos} />
         <SummaryTile label="Productos a actualizar" value={actualizar} />
         <SummaryTile label="Variantes" value={summary.variantesDetectadas} />
         <SummaryTile label="Nombres/marcas normalizados" value={summary.normalizacionesSeguras + summary.incoherenciasNombreOMarca} />
         <SummaryTile label="Duplicados resueltos" value={summary.posiblesDuplicados} />
       </div>
+
+      {corregidos.length > 0 ? (
+        <div className="space-y-2 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#7357ff]">
+            Productos corregidos durante la revisión
+          </p>
+          <div className="space-y-2">
+            {corregidos.map((row) => (
+              <div key={row.sku} className="rounded-lg border border-[#e4e7ec] bg-white p-3 text-sm">
+                <p className="font-semibold text-[#111318]">
+                  {row.nombre} · {row.marca} · {row.contenido}
+                </p>
+                <div className="mt-1 grid gap-1 sm:grid-cols-2">
+                  {row.corrections!.map((correction, index) => (
+                    <div key={`${row.sku}-${correction.field}-${index}`} className="text-xs text-[#667085]">
+                      <span className="font-semibold text-[#344054]">{FIELD_LABELS[correction.field]}:</span>{" "}
+                      <span className="text-[#b44b43] line-through">{correction.before || "vacío"}</span>
+                      {" → "}
+                      <span className="font-semibold text-[#1f6d33]">{correction.after}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <p className="text-xs text-[#667085]">
         Precio de venta calculado con el recargo vigente (salvo productos con precio manual, que se preservan).

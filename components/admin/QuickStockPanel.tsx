@@ -20,6 +20,9 @@ import {
   isEntireCatalogSelected,
   getMasterCheckboxState
 } from "@/lib/bulk-selection";
+import { LoadingOverlay } from "@/components/shared/LoadingOverlay";
+import { AppToast } from "@/components/shared/AppToast";
+import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
 import type { AdminProductRecord } from "@/lib/types";
 import type { BulkStockOperation, BulkStockPreview, BulkStockConfirmResult } from "@/services/productoService";
 
@@ -66,6 +69,15 @@ function actionTitle(action: BulkActionChoice, count: number): string {
   return `Establecer stock total en ${count} ${plural}`;
 }
 
+/** Mensaje del overlay de carga mientras se aplica la accion (seccion 3, Fase 2B.11): comunica claramente que se esta procesando, para que nunca parezca que la app se colgo. */
+function bulkProgressMessage(action: BulkActionChoice): string {
+  if (action === "activar") return "Activando productos…";
+  if (action === "pausar") return "Pausando productos…";
+  if (action === "disponibleUno" || action === "agotar") return "Actualizando disponibilidad…";
+  if (action === "sumar" || action === "restar" || action === "establecer") return "Actualizando stock…";
+  return "Aplicando cambios masivos…";
+}
+
 function actionConsequence(action: BulkActionChoice): string {
   if (action === "activar") {
     return "Los productos quedarán activos. Los que no tengan stock seguirán sin aparecer en el catálogo público.";
@@ -106,6 +118,7 @@ export function QuickStockPanel() {
   const [pauseAllAck, setPauseAllAck] = useState(false);
   const [bulkResult, setBulkResult] = useState<BulkStockConfirmResult | null>(null);
   const [bulkError, setBulkError] = useState("");
+  const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
 
   const openerButtonRef = useRef<HTMLButtonElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
@@ -153,6 +166,16 @@ export function QuickStockPanel() {
       modalRef.current?.focus();
     }
   }, [bulkConfirmOpen]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 3600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  function showToast(message: string, tone: "success" | "error") {
+    setToast({ message, tone });
+  }
 
   const brands = useMemo(() => getAvailableBrands(products), [products]);
 
@@ -354,7 +377,9 @@ export function QuickStockPanel() {
       setPauseAllAck(false);
       setBulkConfirmOpen(true);
     } catch (err) {
-      setBulkError(err instanceof Error ? err.message : "No fue posible calcular la acción masiva.");
+      const message = err instanceof Error ? err.message : "No fue posible calcular la acción masiva.";
+      setBulkError(message);
+      showToast(message, "error");
     } finally {
       setBulkLoading(false);
     }
@@ -389,10 +414,16 @@ export function QuickStockPanel() {
       setBulkConfirmOpen(false);
       setBulkPreview(null);
       setBulkPreviewHash("");
+      showToast(
+        `${data.actualizados} producto(s) actualizados${data.bloqueados > 0 ? ` · ${data.bloqueados} bloqueados` : ""}.`,
+        "success"
+      );
       await loadProducts();
     } catch (err) {
       // No se limpia la seleccion: se puede reintentar sin repetir la eleccion.
-      setBulkError(err instanceof Error ? err.message : "No fue posible aplicar la acción masiva.");
+      const message = err instanceof Error ? err.message : "No fue posible aplicar la acción masiva.";
+      setBulkError(message);
+      showToast(message, "error");
     } finally {
       setBulkConfirming(false);
     }
@@ -428,6 +459,27 @@ export function QuickStockPanel() {
 
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+      {toast ? (
+        <AppToast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />
+      ) : null}
+
+      {/* Overlay de carga centrado (seccion 3, Fase 2B.11): visible durante TODO el */}
+      {/* tiempo de espera real (calculo del preview y aplicacion confirmada), para */}
+      {/* que nunca de la sensacion de que la app se colgo. Bloquea interaccion al */}
+      {/* cubrir toda la pantalla (fixed inset-0), sin depender del scroll actual. */}
+      {bulkLoading ? (
+        <LoadingOverlay
+          message="Calculando cambios masivos…"
+          subMessage={`Revisando ${selectedIds.size} producto(s) seleccionados.`}
+        />
+      ) : null}
+      {bulkConfirming ? (
+        <LoadingOverlay
+          message={bulkProgressMessage(bulkAction)}
+          subMessage={`Actualizando ${bulkPreview?.totalSeleccionados ?? selectedIds.size} producto(s). No cierres esta pantalla.`}
+        />
+      ) : null}
+
       <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
         <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -564,6 +616,7 @@ export function QuickStockPanel() {
                 const saving = savingId === product.id;
                 const disponible = product.stockActual - (product.stockReservado ?? 0);
                 const etiqueta = `${product.nombre}${product.contenido ? ` ${product.contenido}` : ""}`;
+                const missingFields = getMissingCatalogFields(product);
 
                 return (
                   <div key={product.id} className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
@@ -606,6 +659,14 @@ export function QuickStockPanel() {
                       </span>
                       {(product.stockReservado ?? 0) > 0 ? <span>Reservado: {product.stockReservado}</span> : null}
                       <span>Disponible real: {Math.max(0, disponible)}</span>
+                      {missingFields.length > 0 ? (
+                        <span
+                          title={describeMissingCatalogFields(missingFields)}
+                          className="rounded-full bg-[#fff8ec] px-2 py-0.5 font-semibold text-[#8a5a00]"
+                        >
+                          Ficha incompleta
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -867,17 +928,6 @@ export function QuickStockPanel() {
               <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#f3c6c0] bg-[#fdf1ef] px-3 py-2 text-xs text-[#8a2c22]">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>{bulkError}</span>
-              </div>
-            ) : null}
-
-            {bulkConfirming ? (
-              <div className="mt-3 space-y-2 rounded-lg border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2">
-                <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la acción masiva">
-                  <div className="indeterminate-progress-fill" />
-                </div>
-                <p aria-live="polite" role="status" className="text-xs font-medium text-[#344054]">
-                  Actualizando {bulkPreview?.totalSeleccionados ?? selectedIds.size} productos…
-                </p>
               </div>
             ) : null}
 

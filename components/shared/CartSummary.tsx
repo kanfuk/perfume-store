@@ -61,8 +61,10 @@ export function CartSummary({
                     <ProductImage
                       src={item.product?.imageUrl}
                       alt={item.product?.nombre ?? "Producto"}
+                      brand={item.product?.marca}
                       sizes="(max-width: 640px) 56px, 64px"
                       className="object-cover"
+                      compact
                     />
                   </div>
                   <div className="min-w-0">

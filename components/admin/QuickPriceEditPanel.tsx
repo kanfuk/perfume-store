@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Home, RotateCcw, Save, ShoppingBag } from 
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableBrands, filterAndSortProducts } from "@/lib/catalog-search";
+import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
 import type { AdminProductRecord } from "@/lib/types";
 
 type ModoFilter = "todos" | "AUTO" | "MANUAL";
@@ -381,6 +382,7 @@ export function QuickPriceEditPanel() {
                   const recargoEfectivo =
                     costo > 0 && Number.isFinite(numericPrice) ? ((numericPrice - costo) / costo) * 100 : null;
                   const modo = product.modoPrecio ?? "AUTO";
+                  const missingFields = getMissingCatalogFields(product);
 
                   return (
                     <tr key={product.id} className={dirty ? "bg-[#fff8ec]" : undefined}>
@@ -393,7 +395,19 @@ export function QuickPriceEditPanel() {
                         />
                       </td>
                       <td className="px-3 py-2.5 font-mono text-xs text-[#344054]">{product.sku}</td>
-                      <td className="px-3 py-2.5 text-[#111318]">{product.nombre}</td>
+                      <td className="px-3 py-2.5 text-[#111318]">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span>{product.nombre}</span>
+                          {missingFields.length > 0 ? (
+                            <span
+                              title={describeMissingCatalogFields(missingFields)}
+                              className="inline-flex shrink-0 rounded-full bg-[#fff8ec] px-2 py-0.5 text-[10px] font-semibold text-[#8a5a00]"
+                            >
+                              Ficha incompleta
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-3 py-2.5 text-[#667085]">{product.marca}</td>
                       <td className="px-3 py-2.5 text-[#667085]">{formatCurrency(costo)}</td>
                       <td className="px-3 py-2.5">

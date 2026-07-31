@@ -12,6 +12,13 @@ type ProductImageProps = {
   fallbackClassName?: string;
   /** Marca del producto, mostrada en el placeholder junto a sus iniciales. */
   brand?: string;
+  /**
+   * Fallback compacto para miniaturas pequeñas (carrito/resumen, filas de
+   * listas admin): solo iniciales sobre un fondo degradado, sin texto ni
+   * badge de marca (esos elementos no caben con gracia en una miniatura y
+   * se ven como un error en vez de una decisión de diseño intencional).
+   */
+  compact?: boolean;
 };
 
 function getInitials(value: string): string {
@@ -33,12 +40,28 @@ export function ProductImage({
   sizes,
   className = "object-cover",
   fallbackClassName = "",
-  brand
+  brand,
+  compact = false
 }: ProductImageProps) {
   const [hasError, setHasError] = useState(false);
   const initials = getInitials(brand || alt);
 
   if (!src || hasError) {
+    if (compact) {
+      return (
+        <div
+          className={`flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#f5f3ff_0%,#eeebff_100%)] ${fallbackClassName}`}
+          title={alt}
+        >
+          {initials ? (
+            <span className="text-sm font-bold tracking-wide text-[#5434e6]">{initials}</span>
+          ) : (
+            <FlaskConical className="h-5 w-5 text-[#7357ff]" strokeWidth={1.5} />
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
         className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,#f7f8fa_0%,#f5f3ff_58%,#eeebff_100%)] px-6 text-center ${fallbackClassName}`}

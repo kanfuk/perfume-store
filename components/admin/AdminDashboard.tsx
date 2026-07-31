@@ -149,6 +149,7 @@ import {
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { normalizeChilePhone } from "@/lib/phone/normalizeChilePhone";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
+import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
 import {
   feedbackMessages,
   getMaintenanceConfirmationMessage,
@@ -3158,6 +3159,7 @@ function StockProductCard({
 }) {
   const quickStockAmount = draft?.stock ?? String(getUnifiedProductStock(product));
   const desiredStatus = draft?.activo ?? (product.activo ? "activo" : "pausado");
+  const missingFields = getMissingCatalogFields(product);
 
   return (
     <article className="min-w-0 max-w-full overflow-hidden rounded-[24px] border border-brand-100 bg-white/90 p-4 shadow-soft">
@@ -3167,8 +3169,10 @@ function StockProductCard({
             <ProductImage
               src={product.imageUrl}
               alt={product.nombre}
+              brand={product.marca}
               sizes="96px"
               className="object-cover"
+              compact
             />
           </div>
           <div className="min-w-0 space-y-2">
@@ -3178,6 +3182,11 @@ function StockProductCard({
                 tone={product.activo ? "pedido" : "neutral"}
                 label={product.activo ? "ACTIVO" : "PAUSADO"}
               />
+              {missingFields.length > 0 ? (
+                <span title={describeMissingCatalogFields(missingFields)}>
+                  <StatusBadge tone="warning" label="Ficha incompleta" />
+                </span>
+              ) : null}
             </div>
             <p className="break-words text-sm leading-6 text-brand-900/70">
               {product.descripcion || "Sin descripción."}
@@ -3251,6 +3260,9 @@ function StockProductCard({
           <MiniMetric label="Costo unitario" value={formatCurrency(product.costoUnitario)} />
           <MiniMetric label="Estado costo" value={getCostStatusLabel(getProductCostStatus(product))} />
           <MiniMetric label="Utilidad aprox." value={formatCurrency(product.utilidadUnitaria)} />
+          {missingFields.length > 0 ? (
+            <MiniMetric label="Ficha incompleta" value={describeMissingCatalogFields(missingFields)} />
+          ) : null}
         </div>
       </details>
 

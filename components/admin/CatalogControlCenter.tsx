@@ -16,9 +16,22 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableBrands, filterAndSortProducts } from "@/lib/catalog-search";
 import { groupByFamilyKey, type GenericFamilyGroup } from "@/lib/product-families";
+import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
 import type { AdminProductRecord } from "@/lib/types";
 
-type ChipFilter = "todos" | "activos" | "pausados" | "sin-stock" | "stock-bajo" | "top12" | "sin-imagen";
+type ChipFilter =
+  | "todos"
+  | "activos"
+  | "pausados"
+  | "sin-stock"
+  | "stock-bajo"
+  | "top12"
+  | "sin-imagen"
+  | "ficha-incompleta";
+
+function isFichaIncompleta(product: AdminProductRecord) {
+  return getMissingCatalogFields(product).length > 0;
+}
 
 type AdminFamilyGroup = GenericFamilyGroup<AdminProductRecord>;
 
@@ -87,7 +100,8 @@ export function CatalogControlCenter() {
       pausados: products.filter((p) => !p.activo).length,
       sinStock: products.filter((p) => p.stockActual <= 0).length,
       stockBajo: products.filter(isStockBajo).length,
-      sinImagen: products.filter((p) => !p.imageUrl).length
+      sinImagen: products.filter((p) => !p.imageUrl).length,
+      fichaIncompleta: products.filter(isFichaIncompleta).length
     }),
     [products]
   );
@@ -106,6 +120,8 @@ export function CatalogControlCenter() {
         return products.filter((p) => p.esTop);
       case "sin-imagen":
         return products.filter((p) => !p.imageUrl);
+      case "ficha-incompleta":
+        return products.filter(isFichaIncompleta);
       default:
         return products;
     }
@@ -154,7 +170,8 @@ export function CatalogControlCenter() {
     { id: "sin-stock", label: "Sin stock", count: indicators.sinStock },
     { id: "stock-bajo", label: "Stock bajo", count: indicators.stockBajo },
     { id: "top12", label: "Top 12", count: products.filter((p) => p.esTop).length },
-    { id: "sin-imagen", label: "Sin imagen", count: indicators.sinImagen }
+    { id: "sin-imagen", label: "Sin imagen", count: indicators.sinImagen },
+    { id: "ficha-incompleta", label: "Ficha incompleta", count: indicators.fichaIncompleta }
   ];
 
   return (
@@ -229,6 +246,7 @@ export function CatalogControlCenter() {
         <IndicatorTile label="Sin stock" value={indicators.sinStock} tone="bad" />
         <IndicatorTile label="Stock bajo" value={indicators.stockBajo} tone="warn" />
         <IndicatorTile label="Sin imagen" value={indicators.sinImagen} tone="neutral" icon={<ImageOff className="h-3.5 w-3.5" />} />
+        <IndicatorTile label="Ficha incompleta" value={indicators.fichaIncompleta} tone="warn" />
       </section>
 
       <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
@@ -442,7 +460,10 @@ function AdminProductRow({ product, ...imageProps }: ImageEditorProps & { produc
       <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(product.precioVenta)}</td>
       <td className="px-4 py-2.5 text-[#667085]">{product.stockActual}</td>
       <td className="px-4 py-2.5">
-        <EstadoBadge product={product} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <EstadoBadge product={product} />
+          <IncompleteBadge product={product} />
+        </div>
       </td>
       <td className="px-4 py-2.5 text-[#667085]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
       <td className="px-4 py-2.5 text-[#667085]">
@@ -490,7 +511,10 @@ function FamilyGroupRows({
               <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(product.precioVenta)}</td>
               <td className="px-4 py-2.5 text-[#667085]">{product.stockActual}</td>
               <td className="px-4 py-2.5">
-                <EstadoBadge product={product} />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <EstadoBadge product={product} />
+                  <IncompleteBadge product={product} />
+                </div>
               </td>
               <td className="px-4 py-2.5 text-[#667085]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
               <td className="px-4 py-2.5 text-[#667085]">
@@ -511,7 +535,10 @@ function AdminProductMobileCard({ product, ...imageProps }: ImageEditorProps & {
           <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
           <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
         </div>
-        <EstadoBadge product={product} />
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          <EstadoBadge product={product} />
+          <IncompleteBadge product={product} />
+        </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#667085]">
         <span className="font-semibold text-[#111318]">{formatCurrency(product.precioVenta)}</span>
@@ -556,7 +583,10 @@ function FamilyGroupMobileCard({
             <div key={product.id} className="rounded-xl bg-[#f7f8fa] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="font-semibold text-[#111318]">{product.contenido || "—"}</span>
-                <EstadoBadge product={product} />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <EstadoBadge product={product} />
+                  <IncompleteBadge product={product} />
+                </div>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#667085]">
                 <span className="font-semibold text-[#111318]">{formatCurrency(product.precioVenta)}</span>
@@ -573,6 +603,21 @@ function FamilyGroupMobileCard({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Indicador discreto (no tecnico) de que faltan datos obligatorios para publicar (Fase 2B.13). */
+function IncompleteBadge({ product }: { product: AdminProductRecord }) {
+  const missing = getMissingCatalogFields(product);
+  if (missing.length === 0) return null;
+  return (
+    <span
+      title={describeMissingCatalogFields(missing)}
+      className="inline-flex items-center gap-1 rounded-full bg-[#fff8ec] px-2.5 py-0.5 text-xs font-semibold text-[#8a5a00]"
+    >
+      <AlertTriangle className="h-3 w-3" />
+      Ficha incompleta
+    </span>
   );
 }
 

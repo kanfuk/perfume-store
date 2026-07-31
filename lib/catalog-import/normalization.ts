@@ -59,6 +59,20 @@ export function normalizeContenido(value: string): string {
   return `${numeroLimpio}ML`;
 }
 
+/**
+ * Verdadero solo si el contenido (no vacio) matchea el patron numero+ML
+ * reconocido por `normalizeContenido`. Formatos especiales explicitos como
+ * "SET", "ESTUCHE", "TESTER", "PACK" o "SIN CAJA" retornan false: no son
+ * volumenes, y NO deben convertirse silenciosamente a un numero de ML. Se
+ * usa exclusivamente para clasificar INVALID_CONTENT en el asistente de
+ * calidad (Fase 2B.13); nunca cambia el contrato de `normalizeContenido`.
+ */
+export function isStandardVolumeContent(value: string): boolean {
+  const trimmed = normalizeDisplayText(value);
+  if (trimmed === "") return false;
+  return CONTENT_PATTERN.test(trimmed);
+}
+
 export function buildReconciliationKey(marca: string, nombre: string, contenido: string): string {
   return [normalizeMatchKey(marca), normalizeMatchKey(nombre), normalizeContenido(contenido)].join("|");
 }
