@@ -12,6 +12,7 @@ import {
   getSupabasePublishableKey,
   getSupabaseUrl
 } from "@/lib/supabase/config";
+import { buildWhatsAppRecipientUrl } from "@/lib/whatsapp/url";
 
 export function isSupabaseConfigured() {
   return Boolean(getSupabaseUrl() && getSupabasePublishableKey());
@@ -32,15 +33,8 @@ export function getRiedmannsWhatsAppNumber() {
 }
 
 export function getRiedmannsWhatsAppUrl() {
-  const normalizedNumber = getRiedmannsWhatsAppNumber().replace(/\D/g, "");
-
-  if (!normalizedNumber) {
-    return "";
-  }
-
-  const message = encodeURIComponent(
+  return buildWhatsAppRecipientUrl(
+    getRiedmannsWhatsAppNumber(),
     "Hola RiedmannsApps, quiero digitalizar mi pyme"
-  );
-
-  return `https://wa.me/${normalizedNumber}?text=${message}`;
+  ) ?? "";
 }

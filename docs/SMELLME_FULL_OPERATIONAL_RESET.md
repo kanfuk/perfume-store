@@ -55,3 +55,14 @@ la aceptación, escribir `ELIMINAR TODA LA DATA OPERATIVA` y confirmar el diálo
 los datos cambian, el fingerprint obliga a repetir preview y backup. Ante fallo de Storage, los
 paths seguros quedan en `smellme_full_reset_storage_pending` para reintento; nunca se deben
 aceptar paths suministrados por el cliente.
+
+## Ejecuciones de Fase 5.2
+
+Se realizó un reset inicial sobre la prueba autorizada posterior a 2.0.0-rc.2: 101 productos,
+1 pedido, 1 detalle, 1 cliente y 1 pago. Los 105 registros fechados eran posteriores al reset
+anterior; el único cliente coincidía con el apellido autorizado. Backup: 96.143 bytes.
+
+Después se creó exclusivamente QA `ZZTEST-QA-MOBILE-FINAL`. El preview final registró 1 producto,
+6 pedidos, 6 detalles, 1 cliente, 3 pagos, 1 fiado y 1 imagen. El backup privado fue de 16.702
+bytes, 14 tablas y 18 registros. El reset final y su replay idempotente dejaron todos los conteos,
+reportes y objetos `products/` en cero, preservando las seis comprobaciones de configuración.

@@ -40,11 +40,12 @@ describe("rutas y acciones de configuracion/pedidos", () => {
     expect(home).toContain("/admin/configuracion?seccion=transferencia");
   });
 
-  it("abre un placeholder antes de esperar la API y ofrece fallback manual", () => {
+  it("separa la mutación del CTA y no abre pestañas preliminares", () => {
     const dashboard = source("components/admin/AdminDashboard.tsx");
-    expect(dashboard).toContain('window.open("about:blank", "_blank")');
-    expect(dashboard).toContain("Abrir WhatsApp manualmente");
-    expect(dashboard).toContain("closeWhatsAppPlaceholder");
+    expect(dashboard).not.toMatch(/window\.open|about:blank|openWhatsAppPlaceholder/);
+    expect(dashboard).toContain("Abrir WhatsApp");
+    expect(dashboard).toContain("Copiar mensaje");
+    expect(dashboard).toContain("Volver al pedido");
   });
 
   it("muestra las acciones requeridas por estado", () => {

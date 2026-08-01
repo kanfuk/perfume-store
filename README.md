@@ -1,13 +1,15 @@
-# Smellme.cl v2.0.0-rc.2
+# Smellme.cl v2.0.0-rc.3
 
 Aplicacion web responsive para una tienda de perfumes, testers y fragancias exclusivas, con flujo publico de pedidos y panel admin conectado a Supabase.
 
-Version actual: `2.0.0-rc.2`
+Version actual: `2.0.0-rc.3`
 
 ## Estado actual
 
 Hoy el proyecto ya incluye:
 
+- flujos móviles de WhatsApp separados de las mutaciones y sin pestañas preliminares
+- botón “Compartir mi tiendita” con enlace dinámico al home del entorno actual
 - estado inicial comercial vacío, listo para cargar el catálogo real
 - reinicio total protegido que conserva Auth, administración y configuración
 - centro privado de mantenimiento con vistas previas, respaldo e idempotencia

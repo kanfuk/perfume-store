@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0-rc.3 - 2026-08-01
+
+- corrección de los flujos móviles de WhatsApp y eliminación de pestañas blancas preliminares
+- separación de mutaciones administrativas y navegación externa mediante CTA explícito
+- URLs de WhatsApp centralizadas, validadas y codificadas una sola vez
+- botón “Compartir mi tiendita” con URL raíz dinámica de Preview o producción futura
+- fallback para copiar mensajes, retorno al pedido y cierre accesible
+- QA automatizado responsive y checklist para revisión final en teléfono real
+- reset inicial y final de los datos de prueba con plataforma nuevamente en cero
+
 ## 2.0.0-rc.2 - 2026-08-01
 
 - reinicio total protegido de datos operativos

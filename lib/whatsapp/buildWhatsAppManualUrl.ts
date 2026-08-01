@@ -1,3 +1,5 @@
+import { buildWhatsAppRecipientUrl } from "@/lib/whatsapp/url";
+
 export function buildWhatsAppManualUrl(phone: string, message: string) {
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return buildWhatsAppRecipientUrl(phone, message) ?? "";
 }

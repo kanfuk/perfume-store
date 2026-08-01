@@ -4,7 +4,7 @@ import { appInfo } from "@/lib/app-info";
 
 describe("versión de release", () => {
   it("mantiene package y metadata sincronizados", () => {
-    expect(packageJson.version).toBe("2.0.0-rc.2");
+    expect(packageJson.version).toBe("2.0.0-rc.3");
     expect(appInfo.version).toBe(packageJson.version);
   });
 });

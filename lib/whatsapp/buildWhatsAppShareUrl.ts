@@ -1,3 +1,1 @@
-export function buildWhatsAppShareUrl(message: string) {
-  return `https://wa.me/?text=${encodeURIComponent(message)}`;
-}
+export { buildWhatsAppShareUrl } from "@/lib/whatsapp/url";

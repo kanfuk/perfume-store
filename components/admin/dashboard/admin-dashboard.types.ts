@@ -86,7 +86,9 @@ export type GroupedFiadoCustomer = {
 export type WhatsAppFallbackState = {
   message: string;
   url?: string;
-  reason: "invalid-phone" | "open-failed";
+  reason: "ready" | "invalid-phone";
+  orderId: string;
+  action: AdminOrdersAction;
 };
 
 export type ProfitabilityCostStatus = "real" | "estimated" | "missing";

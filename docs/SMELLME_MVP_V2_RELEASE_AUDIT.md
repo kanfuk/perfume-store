@@ -1,4 +1,4 @@
-# Smellme 2.0.0-rc.2 — auditoría de release
+# Smellme 2.0.0-rc.3 — auditoría de release
 
 ## Base y alcance
 
@@ -68,3 +68,16 @@ hallazgos. `npm audit --production` mantiene tres familias altas conocidas: Next
 Sharp/libvips; no se actualizaron dependencias ni se ejecutó `audit fix`.
 
 No se mergea `main`, no se crea tag y no se despliega producción.
+
+## Cierre móvil 2.0.0-rc.3
+
+La rama `fix/mobile-whatsapp-final-qa` elimina el popup `about:blank`, separa mutaciones y
+navegación externa, centraliza las URLs y agrega el home dinámico a “Compartir mi tiendita”. El
+flujo posterior ofrece CTA, copia con fallback, regreso y cierre con restauración de scroll.
+
+Se validaron ocho viewports con emulación iPhone, Android, tablet y Chromium sin overflow,
+excepciones, errores de consola, respuestas 500 ni pantallas blancas. La integración remota QA
+cubrió transiciones, orígenes, pagos, fiado, idempotencia, catálogo e imagen. El reset final dejó
+la data operacional y Storage en cero; Auth y configuración permanecen preservados. La apertura
+de WhatsApp con sesión real queda en el checklist manual de teléfono físico. El cierre automatizado
+completa 812 pruebas verdes, lint, typecheck y build local exitosos.
