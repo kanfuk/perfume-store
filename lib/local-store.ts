@@ -29,6 +29,7 @@ export type LocalOrderRecord = {
   observacion?: string;
   motivoCancelacion?: string;
   stockRepuesto?: boolean;
+  idempotencyKey?: string;
   adminSeen?: boolean;
   adminSeenAt?: string;
   fechaPedido: string;

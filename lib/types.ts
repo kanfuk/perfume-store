@@ -87,8 +87,10 @@ export type AdminDirectSaleRequest = {
   lugarTrabajo?: string;
   items: CustomerOrderLineInput[];
   estadoPago: "PAGADO" | "FIADO";
+  formaPago: "EFECTIVO" | "TRANSFERENCIA";
   clienteModo: "ocasional" | "existente" | "nuevo";
   observacion?: string;
+  idempotencyKey: string;
 };
 
 export type AdminCustomerOption = {

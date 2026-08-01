@@ -5,6 +5,7 @@ import { METODO_DESPACHO_DOMICILIO_SEMANAL, METODO_DESPACHO_STARKEN_POR_PAGAR } 
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import type {
   CrearPedidoTransaccionalInput,
+  CrearVentaDirectaTransaccionalInput,
   PedidoEstadoTransaccionalResult,
   PedidoRepository,
   PedidoTransaccionalResult
@@ -198,6 +199,31 @@ const DEFAULT_TRANSACTIONAL_RESULT: PedidoTransaccionalResult = {
   ]
 };
 
+const DEFAULT_DIRECT_SALE_RESULT: PedidoTransaccionalResult = {
+  pedidoId: "pedido-directo-1",
+  codigo: "PERF-2026-000002",
+  clienteId: "cliente-directo-1",
+  subtotal: 1000,
+  costoDespacho: 0,
+  total: 1000,
+  estadoPedido: "ENTREGADO",
+  estadoPago: "PAGADO",
+  metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
+  origenPedido: "ADMIN_DIRECTO",
+  items: [
+    {
+      productoId: "perfume-1",
+      nombre: "Perfume floral",
+      cantidad: 2,
+      precioUnitario: 500,
+      costoUnitario: 0,
+      costoTotal: 0,
+      utilidadBruta: 1000,
+      subtotal: 1000
+    }
+  ]
+};
+
 class PedidoRepositoryStub implements PedidoRepository {
   public itemsRegistrados = 0;
   public pedidoRegistrado:
@@ -206,6 +232,10 @@ class PedidoRepositoryStub implements PedidoRepository {
   public crearPedidoTransaccionalInput: CrearPedidoTransaccionalInput | undefined;
   public crearPedidoTransaccionalCalls = 0;
   public crearPedidoTransaccionalResult: PedidoTransaccionalResult = DEFAULT_TRANSACTIONAL_RESULT;
+  public crearVentaDirectaTransaccionalInput: CrearVentaDirectaTransaccionalInput | undefined;
+  public crearVentaDirectaTransaccionalCalls = 0;
+  public crearVentaDirectaTransaccionalResult: PedidoTransaccionalResult =
+    DEFAULT_DIRECT_SALE_RESULT;
 
   async insertarPedido(args: {
     pedido: Pedido;
@@ -256,6 +286,14 @@ class PedidoRepositoryStub implements PedidoRepository {
     this.crearPedidoTransaccionalCalls += 1;
     this.crearPedidoTransaccionalInput = input;
     return this.crearPedidoTransaccionalResult;
+  }
+
+  async crearVentaDirectaTransaccional(
+    input: CrearVentaDirectaTransaccionalInput
+  ): Promise<PedidoTransaccionalResult> {
+    this.crearVentaDirectaTransaccionalCalls += 1;
+    this.crearVentaDirectaTransaccionalInput = input;
+    return this.crearVentaDirectaTransaccionalResult;
   }
 
   async marcarPedidoPagadoTransaccional(
@@ -510,27 +548,7 @@ describe("PedidoService (flujos administrativos heredados: venta directa y perso
     expect(pedidoRepository.pedidoRegistrado?.pedido.fechaPago).toBeUndefined();
   });
 
-  it("permite venta directa de producto inactivo sin descontar stock, entregada en el acto", async () => {
-    const productRepository = new ProductRepositoryStub();
-    const service = new PedidoService(
-      productRepository,
-      new ClienteRepositoryStub(),
-      new PedidoRepositoryStub()
-    );
-
-    const result = await service.crearVentaDirecta({
-      items: [{ productoId: "producto-sin-stock-controlado", cantidad: 3 }],
-      estadoPago: "PAGADO",
-      clienteModo: "ocasional"
-    });
-
-    expect(result.total).toBe(6000);
-    expect(result.estadoPedido).toBe("ENTREGADO");
-    expect(result.estadoPago).toBe("PAGADO");
-    expect(productRepository.stockAdjustments).toEqual([]);
-  });
-
-  it("venta directa fiada queda SIN_PAGO (no existe FIADO como estadoPago de pedidos)", async () => {
+  it("delega la creacion completa en crearVentaDirectaTransaccional (create_direct_sale_v1, Fase 3B.2)", async () => {
     const pedidoRepository = new PedidoRepositoryStub();
     const service = new PedidoService(
       new ProductRepositoryStub(),
@@ -538,15 +556,150 @@ describe("PedidoService (flujos administrativos heredados: venta directa y perso
       pedidoRepository
     );
 
+    await service.crearVentaDirecta({
+      items: [{ productoId: "perfume-1", cantidad: 2 }],
+      estadoPago: "PAGADO",
+      formaPago: "EFECTIVO",
+      clienteModo: "ocasional",
+      idempotencyKey: "venta-idem-1"
+    });
+
+    expect(pedidoRepository.crearVentaDirectaTransaccionalCalls).toBe(1);
+    expect(pedidoRepository.crearVentaDirectaTransaccionalInput).toEqual({
+      cliente: {},
+      items: [{ productoId: "perfume-1", cantidad: 2 }],
+      formaPago: "EFECTIVO",
+      esFiado: false,
+      idempotencyKey: "venta-idem-1"
+    });
+  });
+
+  it("mapea la respuesta de crearVentaDirectaTransaccional tal cual, sin recalcular montos en el servicio", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    pedidoRepository.crearVentaDirectaTransaccionalResult = {
+      pedidoId: "pedido-directo-xyz",
+      codigo: "PERF-2026-000099",
+      clienteId: "cliente-directo-xyz",
+      subtotal: 9000,
+      costoDespacho: 0,
+      total: 9000,
+      estadoPedido: "ENTREGADO",
+      estadoPago: "PAGADO",
+      metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
+      origenPedido: "ADMIN_DIRECTO",
+      items: [
+        {
+          productoId: "perfume-2",
+          nombre: "Perfume amaderado",
+          cantidad: 2,
+          precioUnitario: 4500,
+          costoUnitario: 0,
+          costoTotal: 0,
+          utilidadBruta: 9000,
+          subtotal: 9000
+        }
+      ]
+    };
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      pedidoRepository
+    );
+
     const result = await service.crearVentaDirecta({
+      items: [{ productoId: "perfume-2", cantidad: 2 }],
+      estadoPago: "PAGADO",
+      formaPago: "TRANSFERENCIA",
+      clienteModo: "ocasional",
+      idempotencyKey: "venta-idem-2"
+    });
+
+    expect(result).toEqual(pedidoRepository.crearVentaDirectaTransaccionalResult);
+  });
+
+  it("rechaza un producto inactivo (pausado) antes de llegar a la RPC (pre-chequeo de UX)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      pedidoRepository
+    );
+
+    await expect(
+      service.crearVentaDirecta({
+        items: [{ productoId: "producto-sin-stock-controlado", cantidad: 1 }],
+        estadoPago: "PAGADO",
+        formaPago: "EFECTIVO",
+        clienteModo: "ocasional",
+        idempotencyKey: "venta-idem-3"
+      })
+    ).rejects.toThrow("Producto libre no está disponible.");
+
+    expect(pedidoRepository.crearVentaDirectaTransaccionalCalls).toBe(0);
+  });
+
+  it("propaga sin envolver un error de crearVentaDirectaTransaccional (p.ej. stock insuficiente en el momento real)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    pedidoRepository.crearVentaDirectaTransaccional = async () => {
+      const { PerfumeOrderError } = await import("@/lib/perfumeOrderErrors");
+      throw new PerfumeOrderError("PF005", "Stock insuficiente para Perfume floral.");
+    };
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      pedidoRepository
+    );
+
+    await expect(
+      service.crearVentaDirecta({
+        items: [{ productoId: "perfume-1", cantidad: 1 }],
+        estadoPago: "PAGADO",
+        formaPago: "EFECTIVO",
+        clienteModo: "ocasional",
+        idempotencyKey: "venta-idem-4"
+      })
+    ).rejects.toThrow("Stock insuficiente para Perfume floral.");
+  });
+
+  it("traduce estadoPago FIADO a esFiado=true al llamar a la capa transaccional", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      pedidoRepository
+    );
+
+    await service.crearVentaDirecta({
       nombre: "Cliente fiado",
       items: [{ productoId: "perfume-1", cantidad: 1 }],
       estadoPago: "FIADO",
-      clienteModo: "ocasional"
+      formaPago: "EFECTIVO",
+      clienteModo: "ocasional",
+      idempotencyKey: "venta-idem-5"
     });
 
-    expect(result.estadoPedido).toBe("ENTREGADO");
-    expect(result.estadoPago).toBe("SIN_PAGO");
+    expect(pedidoRepository.crearVentaDirectaTransaccionalInput?.esFiado).toBe(true);
+  });
+
+  it("exige nombre de cliente para dejar una venta directa fiada (pre-chequeo de UX)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const service = new PedidoService(
+      new ProductRepositoryStub(),
+      new ClienteRepositoryStub(),
+      pedidoRepository
+    );
+
+    await expect(
+      service.crearVentaDirecta({
+        items: [{ productoId: "perfume-1", cantidad: 1 }],
+        estadoPago: "FIADO",
+        formaPago: "EFECTIVO",
+        clienteModo: "ocasional",
+        idempotencyKey: "venta-idem-6"
+      })
+    ).rejects.toThrow("Para dejar fiado, registra al menos el nombre del cliente.");
+
+    expect(pedidoRepository.crearVentaDirectaTransaccionalCalls).toBe(0);
   });
 
   it("descuenta stock en pedido personalizado solo si el producto base lo controla", async () => {

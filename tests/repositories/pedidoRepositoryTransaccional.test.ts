@@ -372,3 +372,146 @@ describe("MemoryPedidoRepository (equivalente en memoria de las RPC transacciona
     }
   });
 });
+
+describe("MemoryPedidoRepository.crearVentaDirectaTransaccional (equivalente en memoria de create_direct_sale_v1, Fase 3B.2)", () => {
+  beforeEach(() => {
+    resetLocalStore();
+  });
+
+  it("registra una venta con un item, descuenta stock_actual de inmediato y registra el pago", async () => {
+    const repository = getPedidoRepository();
+
+    const result = await repository.crearVentaDirectaTransaccional({
+      cliente: { nombre: "Cliente mostrador" },
+      items: [{ productoId: PRODUCT_A_ID, cantidad: 2 }],
+      formaPago: "EFECTIVO",
+      esFiado: false,
+      idempotencyKey: "venta-un-item"
+    });
+
+    expect(result.estadoPedido).toBe("ENTREGADO");
+    expect(result.estadoPago).toBe("PAGADO");
+    expect(result.total).toBe(20000);
+    expect(result.origenPedido).toBe("ADMIN_DIRECTO");
+
+    const productA = findProduct(PRODUCT_A_ID);
+    expect(productA.stockActual).toBe(3);
+    expect(productA.stockReservado).toBe(0);
+
+    const pago = localStore.payments.find((item) => item.pedidoId === result.pedidoId);
+    expect(pago?.monto).toBe(20000);
+    expect(pago?.metodoPago).toBe("EFECTIVO");
+  });
+
+  it("registra una venta con varios productos en una sola operacion", async () => {
+    const repository = getPedidoRepository();
+
+    const result = await repository.crearVentaDirectaTransaccional({
+      cliente: {},
+      items: [
+        { productoId: PRODUCT_A_ID, cantidad: 1 },
+        { productoId: PRODUCT_B_ID, cantidad: 1 }
+      ],
+      formaPago: "TRANSFERENCIA",
+      esFiado: false,
+      idempotencyKey: "venta-multi-producto"
+    });
+
+    expect(result.items).toHaveLength(2);
+    expect(result.total).toBe(30000);
+    expect(findProduct(PRODUCT_A_ID).stockActual).toBe(4);
+    expect(findProduct(PRODUCT_B_ID).stockActual).toBe(2);
+  });
+
+  it("rechaza un producto inactivo (pausado) con PF003", async () => {
+    const repository = getPedidoRepository();
+
+    await expect(
+      repository.crearVentaDirectaTransaccional({
+        cliente: {},
+        items: [{ productoId: PRODUCT_INACTIVE_ID, cantidad: 1 }],
+        formaPago: "EFECTIVO",
+        esFiado: false,
+        idempotencyKey: "venta-producto-inactivo"
+      })
+    ).rejects.toMatchObject({ code: "PF003" });
+
+    expect(findProduct(PRODUCT_INACTIVE_ID).stockActual).toBe(10);
+  });
+
+  it("rechaza cantidades que superan el stock disponible con PF005", async () => {
+    const repository = getPedidoRepository();
+
+    await expect(
+      repository.crearVentaDirectaTransaccional({
+        cliente: {},
+        items: [{ productoId: PRODUCT_A_ID, cantidad: 6 }],
+        formaPago: "EFECTIVO",
+        esFiado: false,
+        idempotencyKey: "venta-stock-insuficiente"
+      })
+    ).rejects.toMatchObject({ code: "PF005" });
+
+    expect(findProduct(PRODUCT_A_ID).stockActual).toBe(5);
+  });
+
+  it("rechaza una forma de pago invalida con PF006", async () => {
+    const repository = getPedidoRepository();
+
+    await expect(
+      repository.crearVentaDirectaTransaccional({
+        cliente: {},
+        items: [{ productoId: PRODUCT_A_ID, cantidad: 1 }],
+        // @ts-expect-error forzando un valor fuera de la union para probar el rechazo
+        formaPago: "BITCOIN",
+        esFiado: false,
+        idempotencyKey: "venta-forma-pago-invalida"
+      })
+    ).rejects.toMatchObject({ code: "PF006" });
+  });
+
+  it("una venta fiada queda ENTREGADO/SIN_PAGO y registra un fiado pendiente, no un pago", async () => {
+    const repository = getPedidoRepository();
+
+    const result = await repository.crearVentaDirectaTransaccional({
+      cliente: { nombre: "Cliente fiado" },
+      items: [{ productoId: PRODUCT_A_ID, cantidad: 1 }],
+      formaPago: "EFECTIVO",
+      esFiado: true,
+      idempotencyKey: "venta-fiada"
+    });
+
+    expect(result.estadoPedido).toBe("ENTREGADO");
+    expect(result.estadoPago).toBe("SIN_PAGO");
+
+    const fiado = localStore.fiados.find((item) => item.pedidoId === result.pedidoId);
+    expect(fiado?.montoPendiente).toBe(10000);
+    expect(fiado?.estado).toBe("PENDIENTE");
+
+    const pago = localStore.payments.find((item) => item.pedidoId === result.pedidoId);
+    expect(pago).toBeUndefined();
+  });
+
+  it("un reintento con la misma idempotencyKey no descuenta stock ni registra una segunda venta", async () => {
+    const repository = getPedidoRepository();
+    const request = {
+      cliente: { nombre: "Cliente doble clic" },
+      items: [{ productoId: PRODUCT_A_ID, cantidad: 2 }],
+      formaPago: "EFECTIVO" as const,
+      esFiado: false,
+      idempotencyKey: "venta-doble-clic"
+    };
+
+    const first = await repository.crearVentaDirectaTransaccional(request);
+    const second = await repository.crearVentaDirectaTransaccional(request);
+
+    expect(second).toEqual(first);
+    expect(
+      localStore.orders.filter((order) => order.idempotencyKey === "venta-doble-clic")
+    ).toHaveLength(1);
+    expect(findProduct(PRODUCT_A_ID).stockActual).toBe(3);
+
+    const payments = localStore.payments.filter((item) => item.pedidoId === first.pedidoId);
+    expect(payments).toHaveLength(1);
+  });
+});

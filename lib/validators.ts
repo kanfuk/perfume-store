@@ -179,6 +179,11 @@ export function validateAdminDirectSaleForm(
         break;
       }
 
+      if (producto.activo === false) {
+        errors.items = `${producto.nombre} no está disponible.`;
+        break;
+      }
+
       if (!Number.isInteger(item.cantidad) || item.cantidad < 1) {
         errors.items = "Cada item debe tener cantidad mínima de 1.";
         break;
@@ -186,7 +191,7 @@ export function validateAdminDirectSaleForm(
 
       const stockDisponible = getAvailableProductStock(producto);
 
-      if (!canSellWithoutBreakingStock(producto, item.cantidad)) {
+      if (item.cantidad > stockDisponible) {
         errors.items = `El producto ${producto.nombre} solo tiene ${stockDisponible} disponible(s).`;
         break;
       }
@@ -195,6 +200,10 @@ export function validateAdminDirectSaleForm(
 
   if (data.estadoPago !== "PAGADO" && data.estadoPago !== "FIADO") {
     errors.estadoPago = "Selecciona si la venta quedó pagada o fiada.";
+  }
+
+  if (data.formaPago !== "EFECTIVO" && data.formaPago !== "TRANSFERENCIA") {
+    errors.formaPago = "Selecciona una forma de pago válida.";
   }
 
   if (data.estadoPago === "FIADO" && !data.nombre?.trim()) {

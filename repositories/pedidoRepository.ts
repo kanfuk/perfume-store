@@ -134,6 +134,23 @@ export type PedidoEstadoTransaccionalResult = {
   estadoPago?: string;
 };
 
+export type CrearVentaDirectaTransaccionalCliente = {
+  nombre?: string;
+  rut?: string;
+  email?: string;
+  telefono?: string;
+  lugarTrabajo?: string;
+};
+
+export type CrearVentaDirectaTransaccionalInput = {
+  cliente: CrearVentaDirectaTransaccionalCliente;
+  items: Array<{ productoId: string; cantidad: number }>;
+  formaPago: "EFECTIVO" | "TRANSFERENCIA";
+  esFiado: boolean;
+  observacion?: string;
+  idempotencyKey: string;
+};
+
 export interface PedidoRepository {
   insertarPedido(args: {
     pedido: Pedido;
@@ -187,6 +204,18 @@ export interface PedidoRepository {
    * stock independientes para el flujo publico de creacion de pedidos.
    */
   crearPedidoTransaccional(input: CrearPedidoTransaccionalInput): Promise<PedidoTransaccionalResult>;
+  /**
+   * Registra una venta directa (RPC create_direct_sale_v1 en Supabase):
+   * cliente + pedido ENTREGADO + items + descuento inmediato de stock +
+   * pago o fiado, todo en una sola transaccion. Reemplaza el mecanismo
+   * heredado de PedidoService.crearVentaDirecta (upsertCliente +
+   * insertarPedido + insertarPedidoItem + ajustarStockAgenda como llamadas
+   * independientes sin rollback). Si idempotencyKey ya se uso en una venta
+   * anterior, devuelve ese mismo resultado sin volver a escribir nada.
+   */
+  crearVentaDirectaTransaccional(
+    input: CrearVentaDirectaTransaccionalInput
+  ): Promise<PedidoTransaccionalResult>;
   /** RPC mark_perfume_order_paid_v1: reduce stock_actual y stock_reservado. */
   marcarPedidoPagadoTransaccional(
     pedidoId: string,
@@ -668,6 +697,238 @@ class MemoryPedidoRepository implements PedidoRepository {
       estadoPago: "SIN_PAGO",
       metodoDespacho: input.metodoDespacho,
       origenPedido: input.origenPedido ?? "PUBLICO",
+      items: responseItems
+    };
+  }
+
+  private buildTransaccionalResultFromExistingOrder(
+    order: (typeof localStore.orders)[number]
+  ): PedidoTransaccionalResult {
+    const items = localStore.orderItems.filter((item) => item.pedidoId === order.id);
+
+    return {
+      pedidoId: order.id,
+      codigo: order.codigo ?? "",
+      clienteId: order.clienteId,
+      subtotal: order.subtotal,
+      costoDespacho: order.costoDespacho,
+      total: order.total,
+      estadoPedido: order.estadoPedido,
+      estadoPago: order.estadoPago,
+      metodoDespacho: order.metodoDespacho ?? "STARKEN_POR_PAGAR",
+      origenPedido: order.origenPedido ?? "ADMIN_DIRECTO",
+      items: items.map((item) => ({
+        productoId: item.productoId ?? null,
+        nombre: item.productoNombre ?? "",
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        costoUnitario: item.costoUnitario,
+        costoTotal: item.costoTotal,
+        utilidadBruta: item.utilidadBruta,
+        subtotal: item.subtotal
+      }))
+    };
+  }
+
+  async crearVentaDirectaTransaccional(
+    input: CrearVentaDirectaTransaccionalInput
+  ): Promise<PedidoTransaccionalResult> {
+    const existingOrder = localStore.orders.find(
+      (item) => item.idempotencyKey === input.idempotencyKey
+    );
+
+    if (existingOrder) {
+      return this.buildTransaccionalResultFromExistingOrder(existingOrder);
+    }
+
+    if (input.formaPago !== "EFECTIVO" && input.formaPago !== "TRANSFERENCIA") {
+      throw new PerfumeOrderError("PF006", "Forma de pago invalida.");
+    }
+
+    if (!input.items || input.items.length === 0) {
+      throw new PerfumeOrderError("PF001", "La venta debe tener al menos un item.");
+    }
+
+    const aggregated = new Map<string, number>();
+
+    for (const item of input.items) {
+      if (!item.productoId || !Number.isInteger(item.cantidad) || item.cantidad < 1) {
+        throw new PerfumeOrderError(
+          "PF004",
+          "Cada item debe tener producto y cantidad minima de 1."
+        );
+      }
+      aggregated.set(item.productoId, (aggregated.get(item.productoId) ?? 0) + item.cantidad);
+    }
+
+    // Orden deterministico por id, en paralelo al bloqueo determinista de
+    // la RPC (aqui no protege contra concurrencia real: solo documenta la
+    // misma intencion sobre un almacen en memoria de un solo hilo).
+    const sortedIds = Array.from(aggregated.keys()).sort();
+    const lines: Array<{ product: (typeof localStore.products)[number]; cantidad: number }> = [];
+    let subtotal = 0;
+
+    for (const productoId of sortedIds) {
+      const product = localStore.products.find((item) => item.id === productoId);
+
+      if (!product) {
+        throw new PerfumeOrderError("PF002", "Uno o mas productos de la venta no existen.");
+      }
+
+      if (product.activo === false) {
+        throw new PerfumeOrderError("PF003", `El producto ${product.nombre} no esta disponible.`);
+      }
+
+      const cantidad = aggregated.get(productoId) as number;
+      const stockActual = product.stockActual ?? 0;
+      const stockReservado = product.stockReservado ?? 0;
+
+      if (stockActual - stockReservado < cantidad) {
+        throw new PerfumeOrderError("PF005", `Stock insuficiente para ${product.nombre}.`);
+      }
+
+      lines.push({ product, cantidad });
+      subtotal += product.precioVenta * cantidad;
+    }
+
+    const total = subtotal;
+
+    let cliente = input.cliente.telefono
+      ? localStore.customers.find((item) => item.telefono === input.cliente.telefono)
+      : undefined;
+
+    if (!cliente && input.cliente.rut) {
+      cliente = localStore.customers.find((item) => item.rut === input.cliente.rut);
+    }
+
+    if (!cliente && input.cliente.email) {
+      cliente = localStore.customers.find((item) => item.email === input.cliente.email);
+    }
+
+    let clienteId: string;
+
+    if (cliente) {
+      cliente.nombre = input.cliente.nombre?.trim() || cliente.nombre;
+      cliente.rut = input.cliente.rut ?? cliente.rut;
+      cliente.email = input.cliente.email ?? cliente.email;
+      cliente.telefono = input.cliente.telefono ?? cliente.telefono;
+      cliente.lugarTrabajo = input.cliente.lugarTrabajo ?? cliente.lugarTrabajo;
+      clienteId = cliente.id;
+    } else {
+      clienteId = crypto.randomUUID();
+      localStore.customers.push({
+        id: clienteId,
+        nombre: input.cliente.nombre?.trim() || "Cliente ocasional",
+        rut: input.cliente.rut,
+        email: input.cliente.email,
+        telefono: input.cliente.telefono ?? "",
+        lugarTrabajo: input.cliente.lugarTrabajo?.trim() || "Venta directa",
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    const pedidoId = crypto.randomUUID();
+    const codigo = generateInMemoryOrderCode();
+    const now = new Date().toISOString();
+    const estadoPago = input.esFiado ? "SIN_PAGO" : "PAGADO";
+
+    localStore.orders.push({
+      id: pedidoId,
+      codigo,
+      clienteId,
+      estadoPedido: "ENTREGADO",
+      estadoPago,
+      origenPedido: "ADMIN_DIRECTO",
+      subtotal,
+      metodoDespacho: "STARKEN_POR_PAGAR",
+      costoDespacho: 0,
+      total,
+      observacion: input.observacion,
+      stockRepuesto: false,
+      idempotencyKey: input.idempotencyKey,
+      adminSeen: false,
+      fechaPedido: now,
+      fechaPago: input.esFiado ? undefined : now,
+      fechaDespacho: now,
+      fechaEntrega: now
+    });
+
+    const responseItems: PedidoTransaccionalItem[] = [];
+
+    for (const line of lines) {
+      const itemId = crypto.randomUUID();
+      const costoUnitario = line.product.costoUnitario ?? 0;
+      const costoTotal = costoUnitario * line.cantidad;
+      const itemSubtotal = line.product.precioVenta * line.cantidad;
+
+      localStore.orderItems.push({
+        id: itemId,
+        pedidoId,
+        productoId: line.product.id,
+        productoSku: line.product.sku,
+        productoNombre: line.product.nombre,
+        productoMarca: line.product.marca,
+        productoContenido: line.product.contenido,
+        productoDescripcion: line.product.descripcion,
+        productoImageUrl: line.product.imageUrl,
+        productoTipo: line.product.tipoProducto,
+        cantidad: line.cantidad,
+        precioUnitario: line.product.precioVenta,
+        costoUnitario,
+        costoTotal,
+        utilidadBruta: itemSubtotal - costoTotal,
+        subtotal: itemSubtotal
+      });
+
+      // Descuento inmediato y definitivo: no hay reserva previa que
+      // consumir (la venta directa es en el acto). Paralelo directo de
+      // create_direct_sale_v1.
+      line.product.stockActual = (line.product.stockActual ?? 0) - line.cantidad;
+      line.product.stockAgenda = (line.product.stockAgenda ?? 0) - line.cantidad;
+
+      responseItems.push({
+        productoId: line.product.id,
+        nombre: line.product.nombre,
+        cantidad: line.cantidad,
+        precioUnitario: line.product.precioVenta,
+        costoUnitario,
+        costoTotal,
+        utilidadBruta: itemSubtotal - costoTotal,
+        subtotal: itemSubtotal
+      });
+    }
+
+    if (input.esFiado) {
+      localStore.fiados.push({
+        id: crypto.randomUUID(),
+        pedidoId,
+        clienteId,
+        montoPendiente: total,
+        estado: "PENDIENTE",
+        fechaFiado: now
+      });
+    } else {
+      localStore.payments.push({
+        id: crypto.randomUUID(),
+        pedidoId,
+        monto: total,
+        metodoPago: input.formaPago,
+        estadoPago: "PAGADO",
+        fechaPago: now
+      });
+    }
+
+    return {
+      pedidoId,
+      codigo,
+      clienteId,
+      subtotal,
+      costoDespacho: 0,
+      total,
+      estadoPedido: "ENTREGADO",
+      estadoPago,
+      metodoDespacho: "STARKEN_POR_PAGAR",
+      origenPedido: "ADMIN_DIRECTO",
       items: responseItems
     };
   }
@@ -1259,6 +1520,35 @@ class SupabasePedidoRepository implements PedidoRepository {
       p_metodo_despacho: input.metodoDespacho,
       p_observacion: input.observacion ?? null,
       p_origen_pedido: input.origenPedido ?? "PUBLICO"
+    });
+
+    if (error) {
+      throw mapPerfumeOrderRpcError(error);
+    }
+
+    return data as PedidoTransaccionalResult;
+  }
+
+  async crearVentaDirectaTransaccional(
+    input: CrearVentaDirectaTransaccionalInput
+  ): Promise<PedidoTransaccionalResult> {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("create_direct_sale_v1", {
+      p_cliente: {
+        nombre: input.cliente.nombre ?? null,
+        rut: input.cliente.rut ?? null,
+        email: input.cliente.email ?? null,
+        telefono: input.cliente.telefono ?? null,
+        lugar_trabajo: input.cliente.lugarTrabajo ?? null
+      },
+      p_items: input.items.map((item) => ({
+        producto_id: item.productoId,
+        cantidad: item.cantidad
+      })),
+      p_forma_pago: input.formaPago,
+      p_es_fiado: input.esFiado,
+      p_observacion: input.observacion ?? null,
+      p_idempotency_key: input.idempotencyKey
     });
 
     if (error) {

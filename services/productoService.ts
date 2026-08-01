@@ -15,7 +15,7 @@ import { computeCatalogSummary, type CatalogSummary } from "@/lib/catalog-summar
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import { validateImageUrlInput } from "@/lib/image-url";
-import type { AdminProductRecord } from "@/lib/types";
+import type { AdminProductRecord, ProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
 import {
@@ -179,6 +179,36 @@ export class ProductoService {
         modoPrecio: domainProduct.modoPrecio
       };
     });
+  }
+
+  /**
+   * Catalogo liviano para el buscador de venta directa (Fase 3B.2,
+   * /admin/venta-directa): solo productos activos, sin costoUnitario,
+   * utilidadUnitaria, imagen ni descripcion -- el navegador no necesita ni
+   * debe recibir esos campos para vender rapido. Se agrupa por familia en
+   * el cliente con lib/product-families.ts a partir de esta misma forma
+   * (ProductRecord).
+   */
+  async obtenerCatalogoVentaDirecta(): Promise<ProductRecord[]> {
+    const products = await this.productRepository.buscarTodosProductos();
+
+    return products
+      .map((product) => new Producto(product))
+      .filter((product) => product.activo)
+      .map((product) => ({
+        id: product.id,
+        sku: product.sku,
+        nombre: product.nombre,
+        marca: product.marca,
+        contenido: product.contenido,
+        precioVenta: product.precioVenta,
+        stockActual: getUnifiedProductStock(product),
+        stockAgenda: getUnifiedProductStock(product),
+        stockReservado: product.stockReservado,
+        activo: product.activo,
+        esTop: product.esTop,
+        ordenDestacado: product.ordenDestacado ?? undefined
+      }));
   }
 
   /**

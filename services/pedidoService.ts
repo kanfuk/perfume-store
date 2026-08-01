@@ -35,7 +35,6 @@ import {
   ESTADO_PEDIDO_PAGADO,
   ESTADO_PEDIDO_PREPARANDO,
   METODO_DESPACHO_STARKEN_POR_PAGAR,
-  ORIGEN_PEDIDO_ADMIN_DIRECTO,
   ORIGEN_PEDIDO_PERSONALIZADO,
   ORIGEN_PEDIDO_PUBLICO,
   isMetodoDespacho,
@@ -59,11 +58,7 @@ import {
   validateCustomerOrderForm
 } from "@/lib/validators";
 import { getNewAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
-import {
-  canSellWithoutBreakingStock,
-  getAvailableProductStock,
-  shouldDecreaseStock
-} from "@/lib/stock";
+import { getAvailableProductStock, shouldDecreaseStock } from "@/lib/stock";
 import { sendPendingOrdersPushToAdmins } from "@/lib/pwa/sendWebPush";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
@@ -183,6 +178,10 @@ export class PedidoService {
   }
 
   async crearVentaDirecta(input: AdminDirectSaleRequest): Promise<CustomerOrderResponse> {
+    // Pre-validacion de formato/UX: la autoridad final sobre producto
+    // activo, stock disponible y forma de pago es la RPC
+    // create_direct_sale_v1 (via crearVentaDirectaTransaccional), no este
+    // bloque.
     const products = await this.productRepository.buscarTodosProductos();
     const validation = validateAdminDirectSaleForm(input, products);
 
@@ -193,112 +192,51 @@ export class PedidoService {
     const telefono = input.telefono?.trim()
       ? parseChileanMobilePhone(input.telefono)?.e164 ?? ""
       : "";
-    const cliente = new Cliente({
-      id: input.clienteId,
-      nombre: input.nombre?.trim() || "Cliente ocasional",
-      telefono,
-      lugarTrabajo: input.lugarTrabajo?.trim() || "Venta directa"
+
+    // Un unico llamado atomico: crea/reutiliza cliente, pedido e items,
+    // descuenta stock y registra pago o fiado (create_direct_sale_v1).
+    // Nunca se envian precio/subtotal/total calculados en el navegador: la
+    // RPC los recalcula desde productos y rechaza productos inactivos o
+    // cantidades que superen el stock disponible. idempotencyKey evita
+    // registrar la misma venta dos veces ante doble clic o reintento de red.
+    const resultado = await this.pedidoRepository.crearVentaDirectaTransaccional({
+      cliente: {
+        nombre: input.nombre?.trim() || undefined,
+        telefono: telefono || undefined,
+        lugarTrabajo: input.lugarTrabajo?.trim() || undefined
+      },
+      items: input.items.map((line) => ({
+        productoId: line.productoId,
+        cantidad: line.cantidad
+      })),
+      formaPago: input.formaPago,
+      esFiado: input.estadoPago === "FIADO",
+      observacion: input.observacion?.trim() || undefined,
+      idempotencyKey: input.idempotencyKey
     });
 
-    const productMap = new Map(products.map((product) => [product.id, product]));
-    const items = input.items.map((line) => {
-      const productData = productMap.get(line.productoId);
-
-      if (!productData) {
-        throw new Error("El producto seleccionado no existe.");
-      }
-
-      if (!canSellWithoutBreakingStock(productData, line.cantidad)) {
-        throw new Error(
-          `${productData.nombre} solo tiene ${getAvailableProductStock(productData)} disponible(s) por ahora.`
-        );
-      }
-
-      const producto = new Producto(productData);
-
-      return new DetallePedido({
-        producto,
-        cantidad: line.cantidad,
-        precioUnitario: producto.precioVenta
-      });
-    });
-
-    // Venta en persona: se entrega en el acto, sin despacho real. Ver
-    // METODO_DESPACHO_SIN_ENVIO. Si queda "fiado", el pedido igual se marca
-    // ENTREGADO (el producto se llevo el cliente) y la deuda se rastrea en la
-    // tabla fiados; no existe FIADO como estadoPago de pedidos en este esquema.
-    const now = new Date();
-    const pedido = new Pedido({
-      cliente,
-      items,
-      metodoDespacho: METODO_DESPACHO_SIN_ENVIO,
-      costoDespacho: 0,
-      estadoPedido: ESTADO_PEDIDO_ENTREGADO,
-      estadoPago: input.estadoPago === "PAGADO" ? ESTADO_PAGO_PAGADO : ESTADO_PAGO_SIN_PAGO,
-      fechaPago: input.estadoPago === "PAGADO" ? now : undefined,
-      fechaDespacho: now,
-      fechaEntrega: now
-    });
-
-    const { id: clienteId } = await this.clienteRepository.upsertCliente(
-      cliente,
-      input.clienteId
-    );
-    const { id: pedidoId, codigo } = await this.pedidoRepository.insertarPedido({
-      pedido,
-      clienteId,
-      origenPedido: ORIGEN_PEDIDO_ADMIN_DIRECTO,
-      observacion: input.observacion?.trim() || undefined
-    });
-
-    await Promise.all(
-      items.map((item) =>
-        this.pedidoRepository.insertarPedidoItem({
-          pedidoId,
-          item,
-          productoId: item.producto.id
-        })
-      )
-    );
-
-    await Promise.all(
-      items.map(async (item) => {
-        if (!shouldDecreaseStock(item.producto)) {
-          return;
-        }
-
-        await this.productRepository.ajustarStockAgenda(item.producto.id, -item.cantidad);
-      })
-    );
-
-    if (input.estadoPago === ESTADO_PAGO_PAGADO) {
-      await this.pedidoRepository.insertarPago({
-        pedidoId,
-        monto: pedido.total,
-        metodoPago: "EFECTIVO",
-        estadoPago: ESTADO_PAGO_PAGADO,
-        fechaPago: now.toISOString()
-      });
-    }
-
-    if (input.estadoPago === "FIADO") {
-      await this.pedidoRepository.upsertFiado({
-        pedidoId,
-        clienteId,
-        montoPendiente: pedido.total,
-        estado: "PENDIENTE",
-        fechaFiado: now.toISOString()
-      });
-    }
-
-    return this.buildCustomerOrderResponse(
-      pedido,
-      pedidoId,
-      codigo,
-      clienteId,
-      items,
-      ORIGEN_PEDIDO_ADMIN_DIRECTO
-    );
+    return {
+      pedidoId: resultado.pedidoId,
+      codigo: resultado.codigo,
+      clienteId: resultado.clienteId,
+      subtotal: resultado.subtotal,
+      costoDespacho: resultado.costoDespacho,
+      total: resultado.total,
+      estadoPedido: resultado.estadoPedido,
+      estadoPago: resultado.estadoPago,
+      metodoDespacho: resultado.metodoDespacho as MetodoDespacho,
+      origenPedido: resultado.origenPedido as CustomerOrderResponse["origenPedido"],
+      items: resultado.items.map((item) => ({
+        productoId: item.productoId,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        costoUnitario: item.costoUnitario,
+        costoTotal: item.costoTotal,
+        utilidadBruta: item.utilidadBruta,
+        subtotal: item.subtotal
+      }))
+    };
   }
 
   async crearPedidoPersonalizado(input: CustomOrderRequest): Promise<CustomerOrderResponse> {

@@ -212,12 +212,14 @@ describe("validateCustomerOrderForm", () => {
 });
 
 describe("validateAdminDirectSaleForm", () => {
-  it("permite vender productos inactivos si existen en el catálogo interno", () => {
+  it("rechaza un producto inactivo (pausado): una venta directa nunca acepta una variante pausada", () => {
     const result = validateAdminDirectSaleForm(
       {
         items: [{ productoId: "producto-inactivo", cantidad: 2 }],
         estadoPago: "PAGADO",
-        clienteModo: "ocasional"
+        formaPago: "EFECTIVO",
+        clienteModo: "ocasional",
+        idempotencyKey: "test-idem-inactivo"
       },
       [
         {
@@ -231,22 +233,41 @@ describe("validateAdminDirectSaleForm", () => {
       ]
     );
 
-    expect(result.isValid).toBe(true);
-    expect(result.errors).toEqual({});
+    expect(result.isValid).toBe(false);
+    expect(result.errors.items).toContain("no está disponible");
   });
 
-  it("sigue bloqueando si el stock controlado no alcanza", () => {
+  it("bloquea si el stock disponible no alcanza", () => {
     const result = validateAdminDirectSaleForm(
       {
         items: [{ productoId: activeProductId, cantidad: 99 }],
         estadoPago: "PAGADO",
-        clienteModo: "ocasional"
+        formaPago: "EFECTIVO",
+        clienteModo: "ocasional",
+        idempotencyKey: "test-idem-stock"
       },
       mockProducts
     );
 
     expect(result.isValid).toBe(false);
     expect(result.errors.items).toContain("solo tiene");
+  });
+
+  it("rechaza una forma de pago invalida", () => {
+    const result = validateAdminDirectSaleForm(
+      {
+        items: [{ productoId: activeProductId, cantidad: 1 }],
+        estadoPago: "PAGADO",
+        // @ts-expect-error forzando un valor fuera de la union para probar el rechazo
+        formaPago: "BITCOIN",
+        clienteModo: "ocasional",
+        idempotencyKey: "test-idem-forma-pago"
+      },
+      mockProducts
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.formaPago).toBeTruthy();
   });
 });
 

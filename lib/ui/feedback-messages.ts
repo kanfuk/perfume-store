@@ -23,12 +23,28 @@ export function formatPendingOrdersLabel(count: number) {
   return `${count} pedido${count === 1 ? "" : "s"} pendiente${count === 1 ? "" : "s"}`;
 }
 
-export function formatDirectSaleConfirmationDescription(total: number) {
-  return `Se registrara una venta por ${new Intl.NumberFormat("es-CL", {
+export function formatDirectSaleConfirmationDescription({
+  productCount,
+  unitCount,
+  total,
+  formaPago
+}: {
+  productCount: number;
+  unitCount: number;
+  total: number;
+  formaPago: string;
+}) {
+  const formattedTotal = new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
     maximumFractionDigits: 0
-  }).format(total)} con los productos y totales actuales.`;
+  }).format(total);
+
+  return (
+    `${productCount} producto${productCount === 1 ? "" : "s"}, ` +
+    `${unitCount} unidad${unitCount === 1 ? "" : "es"}, total ${formattedTotal}, ` +
+    `forma de pago ${formaPago}. Esta accion registrara la venta y descontara el stock.`
+  );
 }
 
 export function getMaintenanceConfirmationMessage(action: "close-month" | "clear-test-data") {

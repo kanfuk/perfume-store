@@ -286,6 +286,10 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
     throw new Error("No usado en estas pruebas administrativas.");
   }
 
+  async crearVentaDirectaTransaccional(): Promise<PedidoTransaccionalResult> {
+    throw new Error("No usado en estas pruebas administrativas.");
+  }
+
   async marcarPedidoPagadoTransaccional(
     pedidoId: string,
     metodoPago?: string
