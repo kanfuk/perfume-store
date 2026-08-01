@@ -1,5 +1,9 @@
 # Checklist final — teléfono real
 
+> Este checklist no fue ejecutado en un teléfono físico antes de 2.0.0. Se conserva como
+> comprobación operativa complementaria; la aceptación del release se basó en QA automatizado,
+> integración y emulación móvil.
+
 Usar únicamente el Preview indicado en la entrega. No probar en producción ni ingresar datos
 personales reales. Crear un pedido temporal con prefijo `ZZTEST-QA-MOBILE-FINAL` sólo si se
 autoriza un nuevo ciclo, y ejecutar después el reset protegido.

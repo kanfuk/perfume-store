@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.0 - 2026-08-01
+
+Smellme.cl MVP estable:
+
+- catálogo de perfumes, importador CSV, Top 12 y ofertas
+- tienda pública mobile-first, pedidos públicos y clientes
+- venta directa atómica y pedidos personalizados
+- stock transaccional, pagos, preparación, despacho y entrega
+- configuración bancaria y flujo WhatsApp móvil con CTA explícito
+- reportes y carga manual de imágenes con procesamiento WebP
+- mantenimiento, respaldo, limpieza QA y reinicio total protegido
+- data operacional inicial en cero con Auth y configuración preservados
+- Next.js 16.2.12, Sharp 0.35.3 y PostCSS 8.5.25 actualizados de forma controlada
+- auditoría productiva de dependencias sin vulnerabilidades conocidas
+- aceptación móvil basada en automatización y emulación; no se realizó una prueba física
+
 ## 2.0.0-rc.3 - 2026-08-01
 
 - corrección de los flujos móviles de WhatsApp y eliminación de pestañas blancas preliminares

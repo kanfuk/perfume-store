@@ -1,11 +1,11 @@
-# Smellme 2.0.0-rc.3 — auditoría de release
+# Smellme 2.0.0 — auditoría de release
 
 ## Base y alcance
 
 - Rama base auditada: `feature/image-source-reconciliation` en `955781dc2eeef64341ef946265fdd7be896cd133`.
 - Rama de entrega: `feature/mvp-v2-cleanup-and-release`.
 - Rama de cierre: `fix/full-operational-data-reset`.
-- `main` permanece fuera de alcance y no se despliega a producción.
+- Hasta el cierre de 2.0.0-rc.3, `main` permaneció fuera de alcance y producción intacta.
 - Migraciones de cierre: `20260806000000_smellme_full_operational_reset.sql` y corrección
   compatible con `safeupdate` `20260806010000_smellme_full_operational_reset_safeupdate.sql`.
 
@@ -78,6 +78,24 @@ flujo posterior ofrece CTA, copia con fallback, regreso y cierre con restauraci�
 Se validaron ocho viewports con emulación iPhone, Android, tablet y Chromium sin overflow,
 excepciones, errores de consola, respuestas 500 ni pantallas blancas. La integración remota QA
 cubrió transiciones, orígenes, pagos, fiado, idempotencia, catálogo e imagen. El reset final dejó
-la data operacional y Storage en cero; Auth y configuración permanecen preservados. La apertura
-de WhatsApp con sesión real queda en el checklist manual de teléfono físico. El cierre automatizado
-completa 812 pruebas verdes, lint, typecheck y build local exitosos.
+la data operacional y Storage en cero; Auth y configuración permanecen preservados. No se realizó
+una prueba en teléfono físico. La aceptación se basó en automatización, integración, emulación
+iPhone/Safari y Android/Chrome y revisión visual del Preview. El cierre automatizado completa 812
+pruebas verdes, lint, typecheck y build local exitosos.
+
+## Release estable 2.0.0
+
+La Fase 6 autorizó la integración final, el tag y producción. La rama `release/v2.0.0` parte del
+commit móvil `d69263ff6bdfa90bc564d245c0c0e3493675affe`. El release actualiza Next.js de 16.2.9 a
+16.2.12, Sharp de 0.34.5 a 0.35.3 y PostCSS de 8.5.15/8.4.31 anidado a 8.5.25. Los overrides
+de PostCSS y Sharp son acotados y necesarios porque Next 16.2.12 todavía declara las versiones
+vulnerables anidadas; pruebas, tipos y build verifican su compatibilidad.
+
+`npm audit --production` queda en cero. La regresión específica conserva procesamiento
+JPEG/PNG/WebP, EXIF, transparencia, máximo de 1600 px, reemplazo, eliminación y rollback. El flujo
+WhatsApp conserva CTA explícito, copia, loading en `finally` y home dinámico, sin popups temporales.
+
+Antes del release, Supabase `nxgkudvrotlaqvvhygem` mantiene toda la data operacional, reportes,
+registros QA e imágenes en cero y la secuencia comercial en 1/no llamada. Auth, administrador,
+business settings, banco, WhatsApp y branding permanecen preservados. Fase 6 no agrega migraciones,
+seeds ni datos comerciales.

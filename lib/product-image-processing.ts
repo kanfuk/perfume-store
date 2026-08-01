@@ -14,6 +14,8 @@
 import sharp from "sharp";
 import { PRODUCT_IMAGE_CONFIG, isAcceptedProductImageMimeType } from "@/lib/product-image-config";
 
+type SharpMetadata = Awaited<ReturnType<ReturnType<typeof sharp>["metadata"]>>;
+
 export class ProductImageProcessingError extends Error {
   readonly code:
     | "UNSUPPORTED_FORMAT"
@@ -77,7 +79,7 @@ export async function processProductImage(input: Buffer): Promise<ProcessedProdu
     );
   }
 
-  let metadata: sharp.Metadata;
+  let metadata: SharpMetadata;
 
   try {
     metadata = await sharp(input, { failOn: "error" }).metadata();

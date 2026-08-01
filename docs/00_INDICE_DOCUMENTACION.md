@@ -10,7 +10,9 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 
 | Archivo | Proposito |
 |---|---|
-| `SMELLME_MVP_V2_RELEASE_AUDIT.md` | Estado, auditoría y checklist de liberación de 2.0.0-rc.3. |
+| `SMELLME_V2_RELEASE.md` | Alcance, seguridad, arquitectura, rollback y operación de Smellme 2.0.0. |
+| `SMELLME_V2_PRODUCTION_CHECKLIST.md` | Verificación previa y posterior al despliegue productivo 2.0.0. |
+| `SMELLME_MVP_V2_RELEASE_AUDIT.md` | Historial de auditoría y cierre de la liberación 2.0.0. |
 | `SMELLME_MVP_V2_MAINTENANCE.md` | Contrato seguro de QA, respaldo, reinicio de catálogo y Storage. |
 | `SMELLME_FULL_OPERATIONAL_RESET.md` | Contrato, alcance y evidencia del reinicio total autorizado. |
 | `SMELLME_WHATSAPP_MOBILE_FIX.md` | Causa raíz y patrón seguro para los flujos móviles de WhatsApp. |

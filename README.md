@@ -1,8 +1,8 @@
-# Smellme.cl v2.0.0-rc.3
+# Smellme.cl v2.0.0
 
 Aplicacion web responsive para una tienda de perfumes, testers y fragancias exclusivas, con flujo publico de pedidos y panel admin conectado a Supabase.
 
-Version actual: `2.0.0-rc.3`
+Versión actual: `2.0.0`
 
 ## Estado actual
 
@@ -15,6 +15,8 @@ Hoy el proyecto ya incluye:
 - centro privado de mantenimiento con vistas previas, respaldo e idempotencia
 - clasificación conservadora de QA, reinicio de catálogo y huérfanos de Storage
 - carga manual de imágenes WebP; la búsqueda externa quedó fuera del MVP V2
+- dependencias productivas corregidas: Next.js 16.2.12, Sharp 0.35.3 y PostCSS 8.5.25
+- `npm audit --production` sin vulnerabilidades conocidas al cierre de la versión
 
 - Next.js + TypeScript + Tailwind CSS
 - flujo cliente publico para registrar pedidos
@@ -195,13 +197,15 @@ Migraciones recientes:
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
 - [docs/SMELLME_MVP_V2_MAINTENANCE.md](docs/SMELLME_MVP_V2_MAINTENANCE.md)
 - [docs/SMELLME_MVP_V2_RELEASE_AUDIT.md](docs/SMELLME_MVP_V2_RELEASE_AUDIT.md)
+- [docs/SMELLME_V2_RELEASE.md](docs/SMELLME_V2_RELEASE.md)
+- [docs/SMELLME_V2_PRODUCTION_CHECKLIST.md](docs/SMELLME_V2_PRODUCTION_CHECKLIST.md)
 - [docs/41_BADGES_PWA_LIMITACIONES.md](docs/41_BADGES_PWA_LIMITACIONES.md)
 - [docs/43_ESTADO_ACTUAL_APP_2026_06_26.md](docs/43_ESTADO_ACTUAL_APP_2026_06_26.md)
 
-## Siguiente fase recomendada
+## Operación posterior al release
 
-1. validar en Supabase real que `stock_actual = stock_agenda` despues de editar y vender
-2. confirmar en produccion la reasociacion de pedidos manuales al cliente correcto cuando se dejan fiados
-3. ejecutar limpieza final de datos de prueba antes del lanzamiento
-4. validar flujo completo desde celular con datos reales
-5. endurecer CSP con `nonce` o `report-only` antes de quitar `unsafe-inline` y `unsafe-eval`
+1. cargar el catálogo comercial real desde el panel administrador
+2. comprobar precio, costo, stock, Top 12, ofertas e imágenes antes de activar productos
+3. mantener los respaldos y resets dentro del centro protegido de mantenimiento
+4. realizar cuando sea posible una validación física móvil complementaria; no fue parte de la aceptación de 2.0.0
+5. evaluar CSP con `nonce` o `report-only` en una fase posterior

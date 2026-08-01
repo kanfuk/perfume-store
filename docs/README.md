@@ -1,18 +1,20 @@
 # Smellme.cl — documentación
 
-**Smellme.cl 2.0.0-rc.3** es una aplicación web responsive para catálogo, pedidos y operación administrativa de una tienda de fragancias.
+**Smellme.cl 2.0.0** es una aplicación web responsive para catálogo, pedidos y operación administrativa de una tienda de fragancias.
 
 ## Punto de partida recomendado
 
 Si quieres entender como esta la app hoy, lee en este orden:
 
 1. `README.md`
-2. `docs/SMELLME_MVP_V2_RELEASE_AUDIT.md`
-3. `docs/SMELLME_MVP_V2_MAINTENANCE.md`
-4. `docs/SMELLME_FULL_OPERATIONAL_RESET.md`
-5. `docs/SMELLME_WHATSAPP_MOBILE_FIX.md`
-6. `docs/SMELLME_MOBILE_FINAL_QA_CHECKLIST.md`
-7. `docs/00_INDICE_DOCUMENTACION.md`
+2. `docs/SMELLME_V2_RELEASE.md`
+3. `docs/SMELLME_V2_PRODUCTION_CHECKLIST.md`
+4. `docs/SMELLME_MVP_V2_RELEASE_AUDIT.md`
+5. `docs/SMELLME_MVP_V2_MAINTENANCE.md`
+6. `docs/SMELLME_FULL_OPERATIONAL_RESET.md`
+7. `docs/SMELLME_WHATSAPP_MOBILE_FIX.md`
+8. `docs/SMELLME_MOBILE_FINAL_QA_CHECKLIST.md`
+9. `docs/00_INDICE_DOCUMENTACION.md`
 
 Despues baja a documentos historicos o de arquitectura segun el tipo de tarea.
 
@@ -30,6 +32,8 @@ La documentacion historica sigue siendo util, pero el archivo de estado actual m
 Documentos vigentes para mantenimiento:
 
 - `README.md`
+- `docs/SMELLME_V2_RELEASE.md`
+- `docs/SMELLME_V2_PRODUCTION_CHECKLIST.md`
 - `docs/SMELLME_MVP_V2_RELEASE_AUDIT.md`
 - `docs/SMELLME_MVP_V2_MAINTENANCE.md`
 - `docs/SMELLME_FULL_OPERATIONAL_RESET.md`

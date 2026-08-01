@@ -63,5 +63,6 @@ pruebas cubren orígenes Vercel y dominio productivo futuro.
 - Backup final: 16.702 bytes, 14 tablas, 18 registros. El reset retiró un objeto Storage y dejó
   operación, reportes y huérfanos en cero.
 
-La revisión con una sesión real y la apertura de la app WhatsApp en un teléfono físico queda como
-checkpoint manual; no se automatizaron credenciales reales.
+No se realizó una prueba en un teléfono físico. La aceptación de 2.0.0 se basó en pruebas
+automatizadas, integración, emulación iPhone/Safari y Android/Chrome y revisión visual del Preview;
+no se automatizaron credenciales reales.
