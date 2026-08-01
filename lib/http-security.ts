@@ -57,3 +57,16 @@ export function validateJsonRequest(request: Request) {
 
   return null;
 }
+
+export function validateMultipartRequest(request: Request) {
+  const contentType = getHeaderValue(request, "content-type").toLowerCase();
+
+  if (!contentType.includes("multipart/form-data")) {
+    return NextResponse.json(
+      { error: "Formato de solicitud no soportado." },
+      { status: 415 }
+    );
+  }
+
+  return null;
+}

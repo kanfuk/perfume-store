@@ -26,6 +26,7 @@
     "next": "16.2.9",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "sharp": "0.34.5",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
@@ -37,7 +38,6 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.9",
     "postcss": "8.5.15",
-    "sharp": "0.34.5",
     "tailwindcss": "^3.4.17",
     "typescript": "6.0.3",
     "vitest": "4.1.8"

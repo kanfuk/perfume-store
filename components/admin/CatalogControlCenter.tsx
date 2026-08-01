@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Boxes,
@@ -9,14 +9,20 @@ import {
   CircleDollarSign,
   Home,
   ImageOff,
+  Link2,
+  RefreshCw,
   Sparkles,
+  Trash2,
   UploadCloud
 } from "lucide-react";
 import Link from "next/link";
+import { ProductImage } from "@/components/ProductImage";
+import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableBrands, filterAndSortProducts } from "@/lib/catalog-search";
 import { groupByFamilyKey, type GenericFamilyGroup } from "@/lib/product-families";
 import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
+import { PRODUCT_IMAGE_CONFIG, isAcceptedProductImageMimeType } from "@/lib/product-image-config";
 import type { AdminProductRecord } from "@/lib/types";
 
 type ChipFilter =
@@ -216,6 +222,11 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
     } finally {
       setSavingImage(false);
     }
+  }
+
+  /** Aplica el resultado de Subir/Reemplazar/Eliminar (Fase 3B.3) a una sola fila, sin recargar el catalogo. */
+  function handleProductImageChanged(productId: string, patch: Partial<AdminProductRecord>) {
+    setProducts((prev) => prev.map((p) => (p.id === productId ? { ...p, ...patch } : p)));
   }
 
   const chips: Array<{ id: ChipFilter; label: string; count: number }> = [
@@ -436,6 +447,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                         onCancelEditingImage={cancelEditingImage}
                         onImageDraftChange={setImageDraft}
                         onSaveImage={saveImage}
+                        onProductImageChanged={handleProductImageChanged}
                       />
                     ) : (
                       <AdminProductRow
@@ -448,6 +460,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                         onCancelEditingImage={cancelEditingImage}
                         onImageDraftChange={setImageDraft}
                         onSaveImage={saveImage}
+                        onProductImageChanged={handleProductImageChanged}
                       />
                     )
                   )}
@@ -486,6 +499,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                     onCancelEditingImage={cancelEditingImage}
                     onImageDraftChange={setImageDraft}
                     onSaveImage={saveImage}
+                    onProductImageChanged={handleProductImageChanged}
                   />
                 ) : (
                   <AdminProductMobileCard
@@ -498,6 +512,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                     onCancelEditingImage={cancelEditingImage}
                     onImageDraftChange={setImageDraft}
                     onSaveImage={saveImage}
+                    onProductImageChanged={handleProductImageChanged}
                   />
                 )
               )}
@@ -531,8 +546,26 @@ type ImageEditorProps = {
   onCancelEditingImage: () => void;
   onImageDraftChange: (value: string) => void;
   onSaveImage: (product: AdminProductRecord) => void;
+  onProductImageChanged: (productId: string, patch: Partial<AdminProductRecord>) => void;
 };
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const ACCEPTED_IMAGE_INPUT = PRODUCT_IMAGE_CONFIG.acceptedMimeTypes.join(",");
+
+/**
+ * Celda de imagen de Catalogo -> Productos (Fase 3B.3). Subir/Reemplazar
+ * abren el selector de archivos, muestran preview local, y solo al
+ * confirmar ("Procesar y guardar") suben el archivo -- el servidor procesa
+ * y decide todo (bucket, path, formato, dimensiones). La URL manual queda
+ * como "Opciones avanzadas" secundaria, reutilizando el flujo PATCH
+ * existente sin cambios. El estado de carga/errores es por fila: cada
+ * instancia de este componente (una por producto) tiene su propio estado.
+ */
 function ImageCellEditor({
   product,
   editingImageId,
@@ -541,11 +574,104 @@ function ImageCellEditor({
   onStartEditingImage,
   onCancelEditingImage,
   onImageDraftChange,
-  onSaveImage
+  onSaveImage,
+  onProductImageChanged
 }: ImageEditorProps & { product: AdminProductRecord }) {
-  if (editingImageId === product.id) {
-    return (
-      <div className="flex flex-wrap items-center gap-1.5">
+  const feedback = useAppFeedback();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [localError, setLocalError] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function openFilePicker() {
+    setLocalError("");
+    fileInputRef.current?.click();
+  }
+
+  function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!isAcceptedProductImageMimeType(file.type)) {
+      setLocalError("Selecciona una imagen JPG, PNG o WebP.");
+      return;
+    }
+
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setLocalError("");
+  }
+
+  function cancelSelection() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setSelectedFile(null);
+    setPreviewUrl("");
+    setLocalError("");
+  }
+
+  async function confirmUpload() {
+    if (!selectedFile || uploading) return;
+    setUploading(true);
+    setLocalError("");
+    const isReplace = Boolean(product.imageUrl);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      const data = await fetchJson(`/api/admin/products/${product.id}/image`, {
+        method: "POST",
+        body: formData
+      });
+      onProductImageChanged(product.id, {
+        imageUrl: data.image.displayUrl,
+        imageStoragePath: data.image.storagePath
+      });
+      cancelSelection();
+      feedback.success(isReplace ? "Imagen reemplazada correctamente." : "Imagen guardada correctamente.");
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "No fue posible guardar la imagen.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function confirmDelete() {
+    const confirmed = await feedback.confirm({
+      title: "¿Eliminar la imagen de este producto?",
+      description:
+        "El producto quedará visible sin imagen. Esta acción no modifica su precio, stock ni posición en Top 12.",
+      confirmLabel: "Eliminar imagen",
+      cancelLabel: "Cancelar",
+      tone: "danger"
+    });
+    if (!confirmed) return;
+
+    setUploading(true);
+    setLocalError("");
+    try {
+      await fetchJson(`/api/admin/products/${product.id}/image`, { method: "DELETE" });
+      onProductImageChanged(product.id, { imageUrl: "", imageStoragePath: "" });
+      feedback.success("Imagen eliminada correctamente.");
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "No fue posible eliminar la imagen.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const advancedPanel =
+    editingImageId === product.id ? (
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         <input
           type="text"
           value={imageDraft}
@@ -569,17 +695,134 @@ function ImageCellEditor({
           Cancelar
         </button>
       </div>
+    ) : (
+      <button
+        type="button"
+        onClick={() => {
+          setAdvancedOpen(false);
+          onStartEditingImage(product);
+        }}
+        className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#98a2b3] hover:text-[#667085]"
+      >
+        <Link2 className="h-3 w-3" />
+        Usar dirección de imagen
+      </button>
     );
-  }
-  if (product.imageUrl) return <>Sí</>;
+
+  const advancedToggle =
+    editingImageId === product.id ? null : (
+      <button
+        type="button"
+        onClick={() => setAdvancedOpen((current) => !current)}
+        className="mt-1 text-[11px] font-medium text-[#98a2b3] underline-offset-2 hover:text-[#667085] hover:underline"
+      >
+        Opciones avanzadas
+      </button>
+    );
+
   return (
-    <button
-      type="button"
-      onClick={() => onStartEditingImage(product)}
-      className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#5434e6]"
-    >
-      Asignar imagen
-    </button>
+    <div className="min-w-[9rem]">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_INPUT}
+        onChange={handleFileSelected}
+        className="hidden"
+      />
+
+      {selectedFile ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-[#e4e7ec] bg-[#f7f8fa]">
+              <ProductImage
+                src={previewUrl}
+                alt={product.nombre}
+                sizes="44px"
+                className="object-contain"
+              />
+            </div>
+            <div className="min-w-0 text-[11px] text-[#667085]">
+              <p className="truncate font-medium text-[#111318]">{selectedFile.name}</p>
+              <p>{formatFileSize(selectedFile.size)}</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-[#98a2b3]">
+            La imagen se ajustará automáticamente al formato del catálogo.
+          </p>
+          {localError ? <p className="text-[11px] font-medium text-[#b3261e]">{localError}</p> : null}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={confirmUpload}
+              disabled={uploading}
+              className="min-h-9 rounded-lg bg-[#5434e6] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {uploading ? "Procesando imagen…" : "Procesar y guardar"}
+            </button>
+            <button
+              type="button"
+              onClick={cancelSelection}
+              disabled={uploading}
+              className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054] disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : product.imageUrl ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-[#e4e7ec] bg-[#f7f8fa]">
+              <ProductImage
+                src={product.imageUrl}
+                alt={product.nombre}
+                sizes="44px"
+                className="object-contain"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={openFilePicker}
+                disabled={uploading}
+                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054] disabled:opacity-50"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Reemplazar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={uploading}
+                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#b3261e] disabled:opacity-50"
+              >
+                <Trash2 className="h-3 w-3" />
+                Eliminar
+              </button>
+            </div>
+          </div>
+          {uploading ? <p className="text-[11px] text-[#98a2b3]">Procesando imagen…</p> : null}
+          {localError ? <p className="text-[11px] font-medium text-[#b3261e]">{localError}</p> : null}
+          {advancedToggle}
+          {advancedOpen ? advancedPanel : null}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={openFilePicker}
+            disabled={uploading}
+            className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#5434e6] disabled:opacity-50"
+          >
+            <UploadCloud className="h-3.5 w-3.5" />
+            Subir imagen
+          </button>
+          {localError ? <p className="text-[11px] font-medium text-[#b3261e]">{localError}</p> : null}
+          {advancedToggle}
+          {advancedOpen ? advancedPanel : null}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -676,11 +919,9 @@ function AdminProductMobileCard({ product, ...imageProps }: ImageEditorProps & {
         <span>Stock: {product.stockActual}</span>
         {product.esTop ? <span>Top #{product.ordenDestacado}</span> : null}
       </div>
-      {!product.imageUrl || imageProps.editingImageId === product.id ? (
-        <div className="mt-2">
-          <ImageCellEditor product={product} {...imageProps} />
-        </div>
-      ) : null}
+      <div className="mt-2">
+        <ImageCellEditor product={product} {...imageProps} />
+      </div>
     </div>
   );
 }
@@ -724,11 +965,9 @@ function FamilyGroupMobileCard({
                 <span>Stock: {product.stockActual}</span>
                 <span className="font-mono text-[10px] text-[#98a2b3]">{product.sku}</span>
               </div>
-              {!product.imageUrl || imageProps.editingImageId === product.id ? (
-                <div className="mt-2">
-                  <ImageCellEditor product={product} {...imageProps} />
-                </div>
-              ) : null}
+              <div className="mt-2">
+                <ImageCellEditor product={product} {...imageProps} />
+              </div>
             </div>
           ))}
         </div>

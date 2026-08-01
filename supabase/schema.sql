@@ -1796,3 +1796,37 @@ revoke all on function public.create_direct_sale_v1(jsonb, jsonb, text, boolean,
 revoke all on function public.create_direct_sale_v1(jsonb, jsonb, text, boolean, text, text) from anon;
 revoke all on function public.create_direct_sale_v1(jsonb, jsonb, text, boolean, text, text) from authenticated;
 grant execute on function public.create_direct_sale_v1(jsonb, jsonb, text, boolean, text, text) to service_role;
+
+-- ============================================================
+-- Storage: bucket product-images (Fase 3B.3)
+--
+-- Fotos de producto subidas y procesadas por el admin (WebP, mismo
+-- estandar que public/images/perfumes/top12/*.webp). Publico de solo
+-- lectura para que el catalogo publico pueda mostrarlas sin sesion;
+-- escritura acotada a service_role, nunca directo desde el navegador.
+-- ============================================================
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('product-images', 'product-images', true, 10485760, array['image/webp'])
+on conflict (id) do nothing;
+
+create policy "product_images_public_read"
+on storage.objects for select
+to public
+using (bucket_id = 'product-images');
+
+create policy "product_images_service_role_insert"
+on storage.objects for insert
+to service_role
+with check (bucket_id = 'product-images');
+
+create policy "product_images_service_role_update"
+on storage.objects for update
+to service_role
+using (bucket_id = 'product-images')
+with check (bucket_id = 'product-images');
+
+create policy "product_images_service_role_delete"
+on storage.objects for delete
+to service_role
+using (bucket_id = 'product-images');

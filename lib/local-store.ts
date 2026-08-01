@@ -136,5 +136,7 @@ export const localStore = {
   archivedOrders: [] as LocalArchivedRecord<LocalOrderRecord>[],
   archivedOrderItems: [] as LocalArchivedRecord<LocalOrderItemRecord>[],
   archivedPayments: [] as LocalArchivedRecord<LocalPaymentRecord>[],
-  archivedFiados: [] as LocalArchivedRecord<LocalFiadoRecord>[]
+  archivedFiados: [] as LocalArchivedRecord<LocalFiadoRecord>[],
+  /** Espejo en memoria del bucket product-images (Fase 3B.3): path -> tamano en bytes. */
+  productImageStorage: new Map<string, number>()
 };
