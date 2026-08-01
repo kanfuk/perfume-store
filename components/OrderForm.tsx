@@ -36,7 +36,7 @@ import {
 } from "@/lib/constants";
 import { normalizeCustomerLookupValue } from "@/lib/customers/identity";
 import { formatCurrency } from "@/lib/format";
-import { normalizarProductoParaCarrito } from "@/lib/order-helpers";
+import { normalizarProductoParaCarrito, removeUnavailableCartItems } from "@/lib/order-helpers";
 import { getAvailableProductStock } from "@/lib/stock";
 import type { CustomerOrderResponse, ProductRecord } from "@/lib/types";
 import { type CustomerFormData, validateCustomerOrderForm } from "@/lib/validators";
@@ -263,6 +263,17 @@ export function OrderForm() {
 
     return () => window.clearTimeout(timer);
   }, [highlightedArea]);
+
+  useEffect(() => {
+    if (loadingProducts) return;
+    const timer = window.setTimeout(() => {
+      const reconciled = removeUnavailableCartItems(form.items, products);
+      if (!reconciled.removed) return;
+      setForm((current) => ({ ...current, items: removeUnavailableCartItems(current.items, products).items }));
+      showToast("Los productos anteriores fueron retirados porque el catálogo fue actualizado.", "info");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [form.items, loadingProducts, products]);
 
   const validation = validateCustomerOrderForm(form, products);
 

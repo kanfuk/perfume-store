@@ -2,7 +2,7 @@ export const appInfo = {
   name: "Smellme.cl",
   shortName: "Smellme",
   tagline: "Perfumes, testers y fragancias exclusivas",
-  version: "2.0.0-rc.1",
+  version: "2.0.0-rc.2",
   developer: "Riedmann Apps",
   copyright: "Todos los derechos reservados"
 } as const;

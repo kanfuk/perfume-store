@@ -3,6 +3,8 @@ import { PRODUCT_IMAGE_CONFIG, isManagedProductImageStoragePath } from "@/lib/pr
 export const QA_CLEANUP_CONFIRMATION = "ELIMINAR DATOS DE PRUEBA";
 export const CATALOG_RESET_CONFIRMATION = "REINICIAR CATALOGO SMELLME";
 export const ORPHAN_CLEANUP_CONFIRMATION = "ELIMINAR ARCHIVOS HUERFANOS";
+export const FULL_OPERATIONAL_RESET_CONFIRMATION = "ELIMINAR TODA LA DATA OPERATIVA";
+export const EXPECTED_SUPABASE_PROJECT_REF = "nxgkudvrotlaqvvhygem";
 export const QA_IDEMPOTENCY_PREFIX = "QA-";
 export const DOCUMENTED_QA_CUSTOMER_NAMES = ["QA Smellme Full Flow"] as const;
 
@@ -111,6 +113,20 @@ export function isSafeProductStoragePath(value: unknown): value is string {
   if (typeof value !== "string" || !isManagedProductImageStoragePath(value)) return false;
   if (value.length > 512 || value.includes("\\") || value.split("/").includes("..")) return false;
   return value.startsWith(`${PRODUCT_IMAGE_CONFIG.storagePathPrefix}/`) && /\.webp$/i.test(value);
+}
+
+export function isSafeFullResetStoragePath(value: unknown): value is string {
+  return typeof value === "string" && value.startsWith(`${PRODUCT_IMAGE_CONFIG.storagePathPrefix}/`) &&
+    value.length <= 512 && !value.includes("\\") && !value.split("/").includes("..");
+}
+
+export function resolveSupabaseProjectRef(url: string | null | undefined) {
+  if (!url) return "";
+  try { return new URL(url).hostname.split(".")[0] ?? ""; } catch { return ""; }
+}
+
+export function isExpectedSupabaseProject(url: string | null | undefined) {
+  return resolveSupabaseProjectRef(url) === EXPECTED_SUPABASE_PROJECT_REF;
 }
 
 export function classifyStorageOrphans(storedPaths: readonly string[], referencedPaths: readonly string[]) {

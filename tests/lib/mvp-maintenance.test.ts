@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { catalogBackupToCsv, classifyQaEvidence, classifyStorageOrphans, isSafeProductStoragePath } from "@/lib/mvp-maintenance";
+import { catalogBackupToCsv, classifyQaEvidence, classifyStorageOrphans, isExpectedSupabaseProject, isSafeFullResetStoragePath, isSafeProductStoragePath, resolveSupabaseProjectRef } from "@/lib/mvp-maintenance";
 
 describe("clasificador QA conservador", () => {
   it.each([
@@ -38,5 +38,22 @@ describe("Storage y respaldo", () => {
     const csv = catalogBackupToCsv({ schemaVersion: "smellme-catalog-backup-v1", appVersion: "2.0.0-rc.1", generatedAt: "2026-08-01T00:00:00.000Z", productCount: 1, products: [{ id: "1", sku: null, nombre: "A, \"B\"", marca: null, contenido: null, descripcion: null, precioVenta: 1, precioAnterior: null, costoUnitario: 0, stockActual: 0, stockReservado: 0, stockMinimo: 0, activo: true, esTop: false, esOfertaSemana: false, ordenDestacado: null, tipoProducto: null, modoPrecio: "AUTO", imageUrl: null, imageStoragePath: null, createdAt: "x", updatedAt: "x" }] });
     expect(csv).toContain('"A, ""B"""');
     expect(csv).not.toMatch(/email|telefono|banco/i);
+  });
+});
+
+describe("protecciones del reset operacional total", () => {
+  it("acepta únicamente el proyecto Supabase esperado", () => {
+    expect(resolveSupabaseProjectRef("https://nxgkudvrotlaqvvhygem.supabase.co")).toBe("nxgkudvrotlaqvvhygem");
+    expect(isExpectedSupabaseProject("https://nxgkudvrotlaqvvhygem.supabase.co")).toBe(true);
+    expect(isExpectedSupabaseProject("https://otro-proyecto.supabase.co")).toBe(false);
+    expect(isExpectedSupabaseProject("not-a-url")).toBe(false);
+  });
+
+  it("limita el borrado total de Storage al prefijo administrado", () => {
+    expect(isSafeFullResetStoragePath("products/id/image.webp")).toBe(true);
+    expect(isSafeFullResetStoragePath("products/id/original.png")).toBe(true);
+    expect(isSafeFullResetStoragePath("logos/smellme.png")).toBe(false);
+    expect(isSafeFullResetStoragePath("products/../brand/logo.png")).toBe(false);
+    expect(isSafeFullResetStoragePath("products\\brand.png")).toBe(false);
   });
 });

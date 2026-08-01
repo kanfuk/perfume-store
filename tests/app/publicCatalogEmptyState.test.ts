@@ -8,4 +8,9 @@ describe("estados públicos del catálogo", () => {
     expect(orderForm).toContain("Estamos actualizando nuestro catálogo. Vuelve pronto para descubrir las fragancias disponibles.");
     expect(orderForm).toContain("No pudimos cargar el catálogo. Intenta nuevamente.");
   });
+
+  it("sanea el carrito cuando el catálogo fue actualizado", () => {
+    expect(orderForm).toContain("removeUnavailableCartItems");
+    expect(orderForm).toContain("Los productos anteriores fueron retirados porque el catálogo fue actualizado.");
+  });
 });

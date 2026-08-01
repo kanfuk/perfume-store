@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0-rc.2 - 2026-08-01
+
+- reinicio total protegido de datos operativos
+- catálogo, ventas, pedidos, clientes, stock y reportes de prueba en cero
+- limpieza controlada de imágenes y huérfanos bajo `product-images/products/`
+- preservación verificada de Auth, administrador, banco, WhatsApp y configuración
+- estado inicial listo para la carga comercial real
+- reconciliación del carrito, invalidación de caché y validaciones integrales
+
 ## 2.0.0-rc.1 - 2026-08-01
 
 - retiro completo del asistente de búsqueda externa de imágenes del runtime MVP

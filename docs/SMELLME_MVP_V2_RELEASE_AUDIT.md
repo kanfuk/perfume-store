@@ -1,11 +1,13 @@
-# Smellme 2.0.0-rc.1 — auditoría de release
+# Smellme 2.0.0-rc.2 — auditoría de release
 
 ## Base y alcance
 
 - Rama base auditada: `feature/image-source-reconciliation` en `955781dc2eeef64341ef946265fdd7be896cd133`.
 - Rama de entrega: `feature/mvp-v2-cleanup-and-release`.
+- Rama de cierre: `fix/full-operational-data-reset`.
 - `main` permanece fuera de alcance y no se despliega a producción.
-- Una sola migración nueva: `20260805000000_smellme_mvp_v2_maintenance.sql`.
+- Migraciones de cierre: `20260806000000_smellme_full_operational_reset.sql` y corrección
+  compatible con `safeupdate` `20260806010000_smellme_full_operational_reset_safeupdate.sql`.
 
 ## Integridad histórica
 
@@ -50,4 +52,19 @@ ejecutaron correctamente en Postgres remoto; no es un error de relación durante
 PostCSS transitivo y Sharp/libvips. No se ejecutó `audit fix`, no se cambiaron dependencias y las
 actualizaciones sugeridas quedan fuera de esta release candidate.
 
-Esta release no autoriza ejecutar el reinicio real ni desplegar producción.
+## Cierre 2.0.0-rc.2
+
+La autorización de Fase 5.1 permitió retirar toda la data comercial de prueba. El backup privado
+quedó fuera de Git (8.642 bytes, 14 tablas, 8 registros). El preview previo registró 2 productos,
+2 pedidos, 2 detalles y 2 clientes. Después del reset, todos los conteos operativos, Storage y
+reportes quedaron en cero. La secuencia comercial quedó en 1/no llamada y las comprobaciones de
+Auth, administrador, business settings, banco, WhatsApp y branding devolvieron verdadero.
+
+La primera llamada quedó íntegramente revertida por `safeupdate`; la migración correctiva mantuvo
+los borrados explícitos con cláusula y la ejecución posterior fue exitosa. La repetición con la
+misma clave confirmó idempotencia. Se mantienen 788 pruebas verdes, lint, typecheck y build de 55
+páginas. El lint DB conserva sólo los dos diagnósticos históricos de tablas temporales y no agrega
+hallazgos. `npm audit --production` mantiene tres familias altas conocidas: Next.js, PostCSS y
+Sharp/libvips; no se actualizaron dependencias ni se ejecutó `audit fix`.
+
+No se mergea `main`, no se crea tag y no se despliega producción.

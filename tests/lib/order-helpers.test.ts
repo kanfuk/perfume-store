@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularTotalPedido, normalizarProductoParaCarrito, validarCantidad } from "@/lib/order-helpers.ts";
+import { calcularTotalPedido, normalizarProductoParaCarrito, removeUnavailableCartItems, validarCantidad } from "@/lib/order-helpers.ts";
 import type { ProductRecord } from "@/lib/types";
 
 function product(overrides: Partial<ProductRecord> & { id: string; nombre: string }): ProductRecord {
@@ -66,5 +66,14 @@ describe("order-helpers - validarCantidad", () => {
     expect(validarCantidad(0)).toBe(false);
     expect(validarCantidad(-1)).toBe(false);
     expect(validarCantidad(1.5)).toBe(false);
+  });
+});
+
+describe("order-helpers - reconciliación del carrito", () => {
+  it("retira productos obsoletos después de vaciar o actualizar el catálogo", () => {
+    expect(removeUnavailableCartItems(
+      [{ productoId: "retirado", cantidad: 2 }, { productoId: "vigente", cantidad: 1 }],
+      [{ id: "vigente" }]
+    )).toEqual({ items: [{ productoId: "vigente", cantidad: 1 }], removed: true });
   });
 });

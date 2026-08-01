@@ -34,3 +34,12 @@ export function normalizarProductoParaCarrito(
     };
   });
 }
+
+export function removeUnavailableCartItems(
+  items: CartItemInput[],
+  products: Pick<ProductRecord, "id">[]
+) {
+  const availableIds = new Set(products.map((product) => product.id));
+  const nextItems = items.filter((item) => availableIds.has(item.productoId));
+  return { items: nextItems, removed: nextItems.length !== items.length };
+}

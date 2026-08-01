@@ -51,3 +51,14 @@ No existe rollback automático para una operación confirmada. Para catálogo se
 el respaldo descargado; los snapshots de pedidos permanecen disponibles. Si Storage falla
 después de una transacción, la API informa revisión manual y no intenta borrar rutas externas.
 La migración crea funciones pero no ejecuta QA cleanup, reset ni borrado de archivos.
+
+## Restablecer datos operativos
+
+Esta acción está separada del reinicio conservador. Sólo corresponde a una instalación nueva o
+cuando toda la información actual sea descartable. Exige preview, backup técnico, checkbox,
+frase `ELIMINAR TODA LA DATA OPERATIVA`, fingerprint vigente e idempotencia. La RPC borra por
+tabla dentro de una transacción, verifica las tablas preservadas y reinicia únicamente el
+correlativo comercial. Storage se procesa después y conserva una cola segura de reintento.
+
+El estado y la evidencia de la ejecución autorizada están en
+`docs/SMELLME_FULL_OPERATIONAL_RESET.md`.

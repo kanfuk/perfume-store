@@ -47,6 +47,6 @@ export async function authorizeMaintenanceRequest(
 
 export function sanitizedMaintenanceError(error: unknown) {
   const message = error instanceof Error ? error.message : "No fue posible completar la operación.";
-  if (/^(QA|RESET|STORAGE|MVP)\d{3}:/.test(message)) return message;
+  if (/^(QA|RESET|FULLRESET|STORAGE|MVP)\d{3}:/.test(message)) return message;
   return "No fue posible completar la operación de mantenimiento.";
 }

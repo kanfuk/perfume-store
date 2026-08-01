@@ -1,6 +1,6 @@
 # Smellme.cl — documentación
 
-**Smellme.cl 2.0.0-rc.1** es una aplicación web responsive para catálogo, pedidos y operación administrativa de una tienda de fragancias.
+**Smellme.cl 2.0.0-rc.2** es una aplicación web responsive para catálogo, pedidos y operación administrativa de una tienda de fragancias.
 
 ## Punto de partida recomendado
 
@@ -9,7 +9,8 @@ Si quieres entender como esta la app hoy, lee en este orden:
 1. `README.md`
 2. `docs/SMELLME_MVP_V2_RELEASE_AUDIT.md`
 3. `docs/SMELLME_MVP_V2_MAINTENANCE.md`
-4. `docs/00_INDICE_DOCUMENTACION.md`
+4. `docs/SMELLME_FULL_OPERATIONAL_RESET.md`
+5. `docs/00_INDICE_DOCUMENTACION.md`
 
 Despues baja a documentos historicos o de arquitectura segun el tipo de tarea.
 
@@ -29,6 +30,7 @@ Documentos vigentes para mantenimiento:
 - `README.md`
 - `docs/SMELLME_MVP_V2_RELEASE_AUDIT.md`
 - `docs/SMELLME_MVP_V2_MAINTENANCE.md`
+- `docs/SMELLME_FULL_OPERATIONAL_RESET.md`
 - `docs/future/SMELLME_IMAGE_ASSISTANT_FUTURE.md`
 - `docs/18_DEPLOY_VERCEL.md`
 - `docs/40_ESTADO_ACTUAL_APP_2026_06_25.md`

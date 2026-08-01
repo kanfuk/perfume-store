@@ -10,8 +10,9 @@ Guiar el desarrollo de **Pauli Store** con documentacion clara, separada por tem
 
 | Archivo | Proposito |
 |---|---|
-| `SMELLME_MVP_V2_RELEASE_AUDIT.md` | Estado, auditoría y checklist de liberación de 2.0.0-rc.1. |
+| `SMELLME_MVP_V2_RELEASE_AUDIT.md` | Estado, auditoría y checklist de liberación de 2.0.0-rc.2. |
 | `SMELLME_MVP_V2_MAINTENANCE.md` | Contrato seguro de QA, respaldo, reinicio de catálogo y Storage. |
+| `SMELLME_FULL_OPERATIONAL_RESET.md` | Contrato, alcance y evidencia del reinicio total autorizado. |
 | `future/SMELLME_IMAGE_ASSISTANT_FUTURE.md` | Diseño futuro no operativo del asistente externo retirado. |
 | `01_VISION_GENERAL.md` | Explica objetivo, alcance, usuarios y stack. |
 | `02_REQUERIMIENTOS_FUNCIONALES.md` | Define que debe hacer el sistema. |

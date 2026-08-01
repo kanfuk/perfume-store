@@ -6,10 +6,14 @@ import {
   type CatalogBackupProduct,
   catalogBackupToCsv,
   classifyStorageOrphans,
+  EXPECTED_SUPABASE_PROJECT_REF,
+  isExpectedSupabaseProject,
+  isSafeFullResetStoragePath,
   isSafeProductStoragePath
 } from "@/lib/mvp-maintenance";
 import { PRODUCT_IMAGE_CONFIG } from "@/lib/product-image-config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseUrl } from "@/lib/supabase/config";
 
 type ProductRow = {
   id: string; sku: string | null; nombre: string; marca: string | null;
@@ -40,6 +44,75 @@ function unwrapRpc(data: unknown) {
 }
 
 export class MvpMaintenanceService {
+  async fullOperationalResetPreview() {
+    this.assertExpectedProject();
+    const [{ data, error }, storedPaths] = await Promise.all([
+      createSupabaseServerClient().rpc("preview_smellme_full_operational_reset_v1"),
+      this.listManagedStoragePaths()
+    ]);
+    if (error) throw new Error("FULLRESET500: no fue posible generar el preview del reset total.");
+    const preview = (unwrapRpc(data) ?? {}) as Record<string, unknown>;
+    return { ...preview, storageFiles: storedPaths.filter(isSafeFullResetStoragePath).length };
+  }
+
+  async fullOperationalBackupFile() {
+    this.assertExpectedProject();
+    const { data, error } = await createSupabaseServerClient().rpc("prepare_smellme_full_operational_backup_v1");
+    if (error) throw new Error("FULLRESET500: no fue posible generar el respaldo técnico.");
+    const result = (unwrapRpc(data) ?? {}) as { backupId?: unknown; fingerprint?: unknown; previewFingerprint?: unknown; payload?: unknown };
+    if (typeof result.backupId !== "string" || typeof result.fingerprint !== "string" ||
+        typeof result.previewFingerprint !== "string" || !result.payload) {
+      throw new Error("FULLRESET500: el respaldo técnico quedó incompleto.");
+    }
+    const stamp = new Date().toISOString().replaceAll(/[:.]/g, "-");
+    return {
+      body: JSON.stringify(result.payload, null, 2),
+      contentType: "application/json; charset=utf-8",
+      filename: `smellme-pre-full-reset-backup-${stamp}.json`,
+      backupId: result.backupId,
+      fingerprint: result.fingerprint,
+      previewFingerprint: result.previewFingerprint
+    };
+  }
+
+  async fullOperationalReset(input: { idempotencyKey: string; backupId: string; backupFingerprint: string; expectedFingerprint: string }) {
+    this.assertExpectedProject();
+    const client = createSupabaseServerClient();
+    const { data, error } = await client.rpc("reset_smellme_full_operational_data_v1", {
+      p_confirmation: "ELIMINAR TODA LA DATA OPERATIVA",
+      p_idempotency_key: input.idempotencyKey,
+      p_backup_id: input.backupId,
+      p_backup_fingerprint: input.backupFingerprint,
+      p_expected_fingerprint: input.expectedFingerprint
+    });
+    if (error) {
+      if (error.message.includes("FULLRESET006")) throw new Error("FULLRESET006: los datos cambiaron; genera preview y respaldo nuevos.");
+      throw new Error("FULLRESET500: no fue posible completar el reset total.");
+    }
+    const result = (unwrapRpc(data) ?? {}) as { imagePaths?: unknown; preserved?: unknown };
+    const returnedPaths = Array.isArray(result.imagePaths) ? result.imagePaths.filter(isSafeFullResetStoragePath) : [];
+    const storedPaths = await this.listManagedStoragePaths();
+    const paths = [...new Set([...returnedPaths, ...storedPaths.filter(isSafeFullResetStoragePath)])];
+
+    if (paths.length > 0) {
+      const rows = paths.map((storagePath) => ({ idempotency_key: input.idempotencyKey, storage_path: storagePath, status: "PENDING" }));
+      const pending = await client.from("smellme_full_reset_storage_pending").upsert(rows, { onConflict: "idempotency_key,storage_path", ignoreDuplicates: true });
+      if (pending.error) throw new Error("STORAGE500: la base quedó vacía, pero no fue posible registrar todos los paths pendientes.");
+      for (let index = 0; index < paths.length; index += 100) {
+        const chunk = paths.slice(index, index + 100);
+        const removal = await client.storage.from(PRODUCT_IMAGE_CONFIG.bucket).remove(chunk);
+        if (removal.error) throw new Error("STORAGE500: la base quedó vacía, pero algunas imágenes siguen pendientes.");
+        const completed = await client.from("smellme_full_reset_storage_pending")
+          .update({ status: "DELETED", completed_at: new Date().toISOString() })
+          .eq("idempotency_key", input.idempotencyKey).in("storage_path", chunk);
+        if (completed.error) throw new Error("STORAGE500: Storage quedó limpio, pero falló su registro de auditoría.");
+      }
+    }
+    const remainingPaths = (await this.listManagedStoragePaths()).filter(isSafeFullResetStoragePath);
+    if (remainingPaths.length > 0) throw new Error("STORAGE500: quedaron objetos administrados pendientes.");
+    return { ...result, storageFilesDeleted: paths.length, storageFilesRemaining: 0 };
+  }
+
   async qaPreview() {
     this.assertSupabase();
     const { data, error } = await createSupabaseServerClient().rpc("preview_smellme_qa_cleanup_v1");
@@ -179,6 +252,13 @@ export class MvpMaintenanceService {
 
   private assertSupabase() {
     if (!isSupabaseConfigured()) throw new Error("MVP503: Supabase no está configurado para esta operación.");
+  }
+
+  private assertExpectedProject() {
+    this.assertSupabase();
+    if (!isExpectedSupabaseProject(getSupabaseUrl())) {
+      throw new Error(`FULLRESET412: el proyecto Supabase no coincide con ${EXPECTED_SUPABASE_PROJECT_REF}.`);
+    }
   }
 }
 
