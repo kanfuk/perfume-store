@@ -1,5 +1,9 @@
 # 28 - Cierre mensual y limpieza pre-lanzamiento
 
+> Documento histórico. Desde `2.0.0-rc.1`, la limpieza amplia de pre-lanzamiento está
+> retirada de la API y `service_role` perdió permiso sobre `admin_limpiar_datos_prueba`.
+> La única limpieza QA vigente está documentada en `SMELLME_MVP_V2_MAINTENANCE.md`.
+
 ## Objetivo
 
 Agregar en admin una forma segura de:
@@ -33,9 +37,10 @@ No toca:
 - estado de productos
 - stock
 
-## 2. Limpieza de datos de prueba
+## 2. Limpieza de datos de prueba (retirada)
 
-Disponible desde el panel admin, vista `Reportes`.
+Ya no está disponible desde el panel ni desde la API. Su descripción se conserva solo para
+explicar el comportamiento histórico y no autoriza su ejecución.
 
 Pensada para el momento previo al lanzamiento.
 

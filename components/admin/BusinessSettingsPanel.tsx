@@ -291,6 +291,13 @@ export function BusinessSettingsPanel({
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
+                  href="/admin/mantenimiento"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-rose-700 px-4 py-3 text-sm font-semibold text-white"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Mantenimiento seguro
+                </Link>
+                <Link
                   href="/admin/set-password"
                   className="inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-[#17191f] px-4 py-3 text-sm font-semibold text-white"
                 >

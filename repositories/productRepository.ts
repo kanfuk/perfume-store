@@ -23,7 +23,7 @@ export interface ProductRepository {
     id: string,
     cambios: Partial<Omit<ProductoProps, "id">>
   ): Promise<ProductoProps>;
-  /** Escritura condicional usada por el asistente: null si apareció una imagen concurrentemente. */
+  /** Escritura condicional: null si apareció una imagen manual concurrentemente. */
   actualizarImagenProductoSiAusente?(
     id: string,
     cambios: { imageUrl: string; imageStoragePath: string }

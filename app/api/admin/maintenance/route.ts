@@ -1,53 +1,27 @@
-import { NextResponse } from "next/server";
-import { getAuthenticatedAdmin } from "@/lib/admin-auth";
-import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
-import type { AdminMaintenanceAction } from "@/lib/types";
+import { authorizeMaintenanceRequest, maintenanceJson, sanitizedMaintenanceError } from "@/lib/admin-maintenance-request";
+import { hasOnlyFields } from "@/lib/mvp-maintenance";
 import { createAdminMaintenanceService } from "@/services/adminMaintenanceService";
 
 export async function POST(request: Request) {
-  const admin = await getAuthenticatedAdmin();
-
-  if (!admin) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  }
-
-  const trustedOriginError = validateTrustedOrigin(request);
-
-  if (trustedOriginError) {
-    return trustedOriginError;
-  }
-
-  const jsonRequestError = validateJsonRequest(request);
-
-  if (jsonRequestError) {
-    return jsonRequestError;
-  }
+  const auth = await authorizeMaintenanceRequest(request, { mutation: true });
+  if (auth.response) return auth.response;
+  if (!auth.admin) return maintenanceJson({ error: "No autorizado." }, { status: 401 });
 
   try {
-    const body = (await request.json()) as {
-      action?: AdminMaintenanceAction;
-    };
+    const body: unknown = await request.json();
 
-    if (body.action !== "close-month" && body.action !== "clear-test-data") {
-      return NextResponse.json({ error: "Acción inválida." }, { status: 400 });
+    if (!hasOnlyFields(body, ["action"]) || body.action !== "close-month") {
+      return maintenanceJson({ error: "Acción inválida." }, { status: 400 });
     }
 
     const service = createAdminMaintenanceService();
     const result = await service.run(body.action, {
-      email: admin.email,
-      nombre: admin.nombre
+      email: auth.admin.email,
+      nombre: auth.admin.nombre
     });
 
-    return NextResponse.json(result);
+    return maintenanceJson(result);
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "No fue posible ejecutar la operación."
-      },
-      { status: 400 }
-    );
+    return maintenanceJson({ error: sanitizedMaintenanceError(error) }, { status: 400 });
   }
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleDollarSign, ClipboardList, Images, ShieldAlert, Sparkles, UploadCloud } from "lucide-react";
+import { CircleDollarSign, ClipboardList, ShieldAlert, Sparkles, UploadCloud } from "lucide-react";
 import { getCachedCatalogSummary } from "@/lib/admin-catalog-data";
 import { buildCatalogSectionHref } from "@/lib/admin-catalog-routes";
 import { AdminCatalogSummary } from "@/components/admin/catalog-center/AdminCatalogSummary";
@@ -43,12 +43,6 @@ export default async function AdminCatalogoResumenPage({ searchParams }: AdminCa
       icon: CircleDollarSign,
       label: "Revisar precios manuales",
       description: `${summary.preciosManual} producto(s) con precio fijado a mano.`
-    },
-    {
-      href: buildCatalogSectionHref("imagenes", { q }),
-      icon: Images,
-      label: "Asistente de imágenes",
-      description: "Analiza el CSV, protege ambiguos y procesa solo coincidencias seguras."
     },
     {
       href: buildCatalogSectionHref("top12", { q }),

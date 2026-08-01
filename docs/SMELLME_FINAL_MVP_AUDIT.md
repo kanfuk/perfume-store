@@ -523,7 +523,7 @@ sistema actual, dejando esos 44 archivados como referencia histórica.
 
 ## 16. Asistente futuro de imágenes de producto
 
-Diseño completo en `docs/SMELLME_IMAGE_ASSISTANT_DESIGN.md` (documento
+Diseño futuro consolidado en `docs/future/SMELLME_IMAGE_ASSISTANT_FUTURE.md` (documento
 separado, creado en esta misma pasada). Resumen: dado que el 96% del
 catálogo no tiene imagen (§3), un asistente semi-automático que busque
 candidatos en dominios de fabricantes/distribuidores aprobados, los
@@ -657,7 +657,7 @@ período de prueba.
 ### Fase F — Asistente automático de imágenes
 
 **Objetivo:** implementar el diseño de
-`docs/SMELLME_IMAGE_ASSISTANT_DESIGN.md`.
+`docs/future/SMELLME_IMAGE_ASSISTANT_FUTURE.md`.
 **Incluye:** los 15 pasos del proceso documentado, empezando por el
 catálogo de dominios aprobados y las protecciones SSRF antes que
 cualquier lógica de búsqueda.
@@ -737,7 +737,7 @@ inconsistentes, contenido o concentración dudosos, variantes ambiguas,
 testers/sets/packs/miniaturas, productos pausados o `ZZTEST-*`, productos con
 imagen y cualquier fila marcada para auditoría. La lista detallada y el
 criterio de puntuación están cerrados en
-`docs/SMELLME_IMAGE_ASSISTANT_DESIGN.md`.
+`docs/future/SMELLME_IMAGE_ASSISTANT_FUTURE.md`.
 
 La configuración bancaria se audita únicamente por completitud de sus seis
 categorías. Este informe no conserva ni debe conservar banco, tipo o número

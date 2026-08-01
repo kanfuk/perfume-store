@@ -1,6 +1,6 @@
 {
   "name": "smellme-store",
-  "version": "1.2.0",
+  "version": "2.0.0-rc.1",
   "private": true,
   "scripts": {
     "clean:local": "node scripts/clean-local-artifacts.mjs",

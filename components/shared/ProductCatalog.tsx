@@ -32,11 +32,8 @@ export function ProductCatalog({
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eeebff] text-[#7357ff]">
           <PackageOpen className="h-6 w-6" />
         </span>
-        <h4 className="mt-4 text-lg font-semibold text-[#111318]">
-          El catálogo estará disponible muy pronto
-        </h4>
-        <p className="mt-2 max-w-md text-sm leading-6 text-[#667085]">
-          Estamos preparando Top 12, ofertas y el catálogo completo de Smellme.cl.
+        <p className="mt-4 max-w-md text-sm leading-6 text-[#667085]">
+          Estamos actualizando nuestro catálogo. Vuelve pronto para descubrir las fragancias disponibles.
         </p>
       </div>
     );

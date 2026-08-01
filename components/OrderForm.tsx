@@ -207,18 +207,16 @@ export function OrderForm() {
         };
 
         if (!response.ok) {
-          throw new Error(data.error ?? "No fue posible cargar productos.");
+          throw new Error(data.error ?? "No pudimos cargar el catálogo. Intenta nuevamente.");
         }
 
         if (!cancelled) {
           setProducts(data.products ?? []);
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
-          setServerError(
-            error instanceof Error ? error.message : "No fue posible cargar productos."
-          );
-          showToast("No se pudo registrar el pedido. Revisa los datos e intenta nuevamente.", "error");
+          setServerError("No pudimos cargar el catálogo. Intenta nuevamente.");
+          showToast("No pudimos cargar el catálogo. Intenta nuevamente.", "error");
         }
       } finally {
         if (!cancelled) {
@@ -790,7 +788,12 @@ export function OrderForm() {
               </div>
               {loadingProducts ? <span className="text-sm text-[#667085]">Cargando...</span> : null}
             </div>
-            <div className="space-y-8">
+            {!loadingProducts && !serverError && products.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-[#d0d5dd] bg-[#f7f8fa] px-5 py-10 text-center text-sm leading-6 text-[#667085]">
+                Estamos actualizando nuestro catálogo. Vuelve pronto para descubrir las fragancias disponibles.
+              </div>
+            ) : null}
+            {products.length > 0 ? <div className="space-y-8">
               <TopProductsSection
                 products={products}
                 quantities={catalogQuantities}
@@ -813,7 +816,7 @@ export function OrderForm() {
                 onRemove={removeItem}
                 top12Keys={topFamilyKeys}
               />
-            </div>
+            </div> : null}
             {validation.errors.items ? (
               <p className="text-sm text-danger">{validation.errors.items}</p>
             ) : null}

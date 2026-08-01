@@ -1,12 +1,16 @@
-# Smellme.cl v1.2.0
+# Smellme.cl v2.0.0-rc.1
 
 Aplicacion web responsive para una tienda de perfumes, testers y fragancias exclusivas, con flujo publico de pedidos y panel admin conectado a Supabase.
 
-Version actual: `1.2.0`
+Version actual: `2.0.0-rc.1`
 
 ## Estado actual
 
 Hoy el proyecto ya incluye:
+
+- centro privado de mantenimiento con vistas previas, respaldo e idempotencia
+- clasificación conservadora de QA, reinicio de catálogo y huérfanos de Storage
+- carga manual de imágenes WebP; la búsqueda externa quedó fuera del MVP V2
 
 - Next.js + TypeScript + Tailwind CSS
 - flujo cliente publico para registrar pedidos
@@ -185,7 +189,8 @@ Migraciones recientes:
 - [docs/10_SEGURIDAD_HEADERS_RLS.md](docs/10_SEGURIDAD_HEADERS_RLS.md)
 - [docs/17_SQL_BASE_SUPABASE.md](docs/17_SQL_BASE_SUPABASE.md)
 - [docs/18_DEPLOY_VERCEL.md](docs/18_DEPLOY_VERCEL.md)
-- [docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md](docs/28_CIERRE_MENSUAL_Y_LIMPIEZA_PRELANZAMIENTO.md)
+- [docs/SMELLME_MVP_V2_MAINTENANCE.md](docs/SMELLME_MVP_V2_MAINTENANCE.md)
+- [docs/SMELLME_MVP_V2_RELEASE_AUDIT.md](docs/SMELLME_MVP_V2_RELEASE_AUDIT.md)
 - [docs/41_BADGES_PWA_LIMITACIONES.md](docs/41_BADGES_PWA_LIMITACIONES.md)
 - [docs/43_ESTADO_ACTUAL_APP_2026_06_26.md](docs/43_ESTADO_ACTUAL_APP_2026_06_26.md)
 

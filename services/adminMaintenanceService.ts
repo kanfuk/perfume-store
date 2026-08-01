@@ -34,10 +34,7 @@ export class AdminMaintenanceService {
     admin: MaintenanceAdmin
   ): Promise<AdminMaintenanceResult> {
     const supabase = createSupabaseServerClient();
-    const functionName =
-      action === "close-month"
-        ? "admin_cerrar_mes_operativo"
-        : "admin_limpiar_datos_prueba";
+    const functionName = "admin_cerrar_mes_operativo";
     const { data, error } = await supabase.rpc(functionName, {
       p_admin_email: admin.email,
       p_admin_nombre: admin.nombre
@@ -57,18 +54,14 @@ export class AdminMaintenanceService {
       throw new Error(error.message || "No fue posible ejecutar la operacion.");
     }
 
-    return normalizeMaintenanceResult(data, action);
+    return normalizeMaintenanceResult(data);
   }
 
   private async runLocal(
     action: AdminMaintenanceAction,
     admin: MaintenanceAdmin
   ): Promise<AdminMaintenanceResult> {
-    if (action === "close-month") {
-      return this.closeLocalMonth(admin);
-    }
-
-    return this.clearLocalTestData(admin);
+    return this.closeLocalMonth(admin);
   }
 
   private closeLocalMonth(admin: MaintenanceAdmin): AdminMaintenanceResult {
@@ -115,35 +108,6 @@ export class AdminMaintenanceService {
     };
   }
 
-  private clearLocalTestData(admin: MaintenanceAdmin): AdminMaintenanceResult {
-    const summary = buildLocalSummary();
-
-    if (isSummaryEmpty(summary)) {
-      throw new Error("No hay data operativa para limpiar.");
-    }
-
-    resetOperationalLocalData();
-    const operationId = crypto.randomUUID();
-    const periodo = getCurrentPeriod();
-
-    localStore.adminOperationLogs.push({
-      id: operationId,
-      tipo: "LIMPIEZA_PRELANZAMIENTO",
-      periodo,
-      ejecutadoPorEmail: admin.email,
-      ejecutadoPorNombre: admin.nombre,
-      resumen: summary,
-      createdAt: new Date().toISOString()
-    });
-
-    return {
-      operationId,
-      tipo: "LIMPIEZA_PRELANZAMIENTO",
-      periodo,
-      resumen: summary,
-      message: "Limpieza de datos de prueba completada. Productos y stock se conservaron."
-    };
-  }
 }
 
 function getCurrentPeriod() {
@@ -222,21 +186,14 @@ function resetOperationalLocalData() {
   localStore.customers = [];
 }
 
-function normalizeMaintenanceResult(
-  data: unknown,
-  fallbackAction: AdminMaintenanceAction
-): AdminMaintenanceResult {
+function normalizeMaintenanceResult(data: unknown): AdminMaintenanceResult {
   const current = (data ?? {}) as Partial<AdminMaintenanceResult> & {
     resumen?: Partial<AdminMaintenanceSummary>;
   };
 
   return {
     operationId: current.operationId ?? crypto.randomUUID(),
-    tipo:
-      current.tipo ??
-      (fallbackAction === "close-month"
-        ? "CIERRE_MENSUAL"
-        : "LIMPIEZA_PRELANZAMIENTO"),
+    tipo: current.tipo ?? "CIERRE_MENSUAL",
     periodo: current.periodo ?? getCurrentPeriod(),
     resumen: {
       pedidos: current.resumen?.pedidos ?? 0,
@@ -246,11 +203,7 @@ function normalizeMaintenanceResult(
       fiados: current.resumen?.fiados ?? 0,
       totalVentas: current.resumen?.totalVentas ?? 0
     },
-    message:
-      current.message ??
-      (fallbackAction === "close-month"
-        ? "Cierre mensual completado."
-        : "Limpieza de datos de prueba completada.")
+    message: current.message ?? "Cierre mensual completado."
   };
 }
 

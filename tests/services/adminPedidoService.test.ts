@@ -419,6 +419,50 @@ function buildOrder(estadoPedido: string, overrides: Partial<PedidoListItemRecor
 }
 
 describe("PedidoService admin transitions", () => {
+  it("conserva reportes desde snapshots aunque el producto vivo ya no exista", async () => {
+    class EmptyProductRepositoryStub extends ProductRepositoryStub {
+      override async buscarProductosActivos() { return []; }
+      override async buscarTodosProductos() { return []; }
+    }
+    const historicalOrder = buildOrder("ENTREGADO", {
+      productoId: "",
+      productoNombre: "Fragancia histórica",
+      estadoPago: "PAGADO",
+      origenPedido: "ADMIN_DIRECTO",
+      total: 18_000,
+      subtotal: 18_000,
+      items: [{
+        productoId: null,
+        productoNombre: "Fragancia histórica",
+        cantidad: 2,
+        precioUnitario: 9_000,
+        costoUnitario: 4_000,
+        costoTotal: 8_000,
+        utilidadBruta: 10_000,
+        subtotal: 18_000
+      }]
+    });
+    const repository = new AdminPedidoRepositoryStub({ ENTREGADO: [historicalOrder] });
+    const service = new PedidoService(new EmptyProductRepositoryStub(), new ClienteRepositoryStub(), repository);
+
+    const dashboard = await service.obtenerDashboardAdmin();
+
+    expect(dashboard.finalizados).toHaveLength(1);
+    expect(dashboard.finalizados[0]).toEqual(expect.objectContaining({
+      total: 18_000,
+      totalCost: 8_000,
+      grossProfit: 10_000,
+      origenPedido: "ADMIN_DIRECTO"
+    }));
+    expect(dashboard.finalizados[0]?.items[0]).toEqual(expect.objectContaining({
+      productoId: null,
+      productoNombre: "Fragancia histórica",
+      precioUnitario: 9_000,
+      costoUnitario: 4_000,
+      subtotal: 18_000
+    }));
+  });
+
   it("agenda un pedido nuevo", async () => {
     const repository = new AdminPedidoRepositoryStub({
       NUEVO: [buildOrder("NUEVO")]

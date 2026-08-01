@@ -265,7 +265,7 @@ export type AdminPageData = {
   productos: AdminProductRecord[];
 };
 
-export type AdminMaintenanceAction = "close-month" | "clear-test-data";
+export type AdminMaintenanceAction = "close-month";
 
 export type AdminMaintenanceSummary = {
   pedidos: number;
