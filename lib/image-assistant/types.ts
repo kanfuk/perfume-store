@@ -5,6 +5,7 @@ export type ImageAssistantStatus =
   | "REQUIERE_REVISION"
   | "YA_TIENE_IMAGEN"
   | "SIN_FUENTE_SEGURA"
+  | "PROVEEDOR_NO_CONFIGURADO"
   | "EXCLUIDO_QA"
   | "ERROR";
 
@@ -52,6 +53,36 @@ export type ImageAssistantAnalysis = {
   summary: ImageAssistantSummary;
   reviewReferenceDifference: number;
   batchAllowedByAuditReconciliation: boolean;
+  reconciliationApproved: boolean;
+};
+
+export type ImageAssistantHealth = {
+  providerConfigured: boolean;
+  signingSecretConfigured: boolean;
+  allowedDomainsConfigured: boolean;
+  searchEnabled: boolean;
+  batchEnabled: boolean;
+};
+
+export type NormalizedImageSearchResult = {
+  sourcePageUrl: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  title: string;
+  sourceDomain: string;
+  width?: number;
+  height?: number;
+};
+
+export type ImageAssistantDryRunEntry = {
+  productId: string;
+  status: ImageAssistantStatus;
+  score?: number;
+  domain?: string;
+  reasons: string[];
+  contradictions: boolean;
+  candidateCount: number;
+  recommendedCandidate?: Pick<SafeImageCandidate, "sourcePageUrl" | "sourceUrl" | "sourceDomain" | "score">;
 };
 
 export type CatalogProductForImageAssistant = Pick<

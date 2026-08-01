@@ -72,6 +72,7 @@ function buildSummary(items: ImageAssistantItem[]): ImageAssistantAnalysis["summ
     "REQUIERE_REVISION",
     "YA_TIENE_IMAGEN",
     "SIN_FUENTE_SEGURA",
+    "PROVEEDOR_NO_CONFIGURADO",
     "EXCLUIDO_QA",
     "ERROR"
   ];
@@ -146,6 +147,7 @@ export function analyzeImageAssistantCatalog(input: {
   findings: QualityFinding[];
   auditedProductIds?: ReadonlySet<string>;
   reviewReference?: number;
+  searchAvailable?: boolean;
 }): ImageAssistantAnalysis {
   const reviewReference = input.reviewReference ?? 28;
   const items = input.products.map<ImageAssistantItem>((product) => {
@@ -193,8 +195,8 @@ export function analyzeImageAssistantCatalog(input: {
     }
     return {
       ...base,
-      status: "SIN_FUENTE_SEGURA",
-      reasons: ["IDENTIDAD_CONCILIADA_SIN_CANDIDATO"],
+      status: "PROVEEDOR_NO_CONFIGURADO",
+      reasons: [input.searchAvailable ? "BUSQUEDA_PENDIENTE" : "BUSQUEDA_NO_DISPONIBLE"],
       supplierRowNumber: exactMatches[0].rowNumber
     };
   });
@@ -204,7 +206,8 @@ export function analyzeImageAssistantCatalog(input: {
     items,
     summary,
     reviewReferenceDifference: difference,
-    batchAllowedByAuditReconciliation: difference <= 5
+    batchAllowedByAuditReconciliation: difference <= 5,
+    reconciliationApproved: false
   };
 }
 
@@ -243,17 +246,20 @@ export function attachSafeCandidates(
   candidates: SafeImageCandidate[],
   allowedDomains: ReadonlySet<string>
 ): ImageAssistantItem {
-  if (item.status !== "SIN_FUENTE_SEGURA") return item;
+  if (item.status !== "SIN_FUENTE_SEGURA" && item.status !== "PROVEEDOR_NO_CONFIGURADO") return item;
+  const searchedItem: ImageAssistantItem = item.status === "PROVEEDOR_NO_CONFIGURADO"
+    ? { ...item, status: "SIN_FUENTE_SEGURA", reasons: ["BUSQUEDA_COMPLETADA"] }
+    : item;
   const scored = candidates
-    .map((candidate) => ({ candidate, ...scoreSafeImageCandidate(item, candidate, allowedDomains) }))
+    .map((candidate) => ({ candidate, ...scoreSafeImageCandidate(searchedItem, candidate, allowedDomains) }))
     .filter((result) => result.score >= 95 && !result.contradiction);
-  if (scored.length === 0) return { ...item, reasons: ["SIN_CANDIDATO_SEGURO"] };
+  if (scored.length === 0) return { ...searchedItem, reasons: ["SIN_CANDIDATO_SEGURO"] };
   if (scored.length > 1) {
-    return { ...item, status: "REQUIERE_REVISION", reasons: ["MULTIPLES_IMAGENES_POSIBLES"] };
+    return { ...searchedItem, status: "REQUIERE_REVISION", reasons: ["MULTIPLES_IMAGENES_POSIBLES"] };
   }
   const selected = scored[0];
   return {
-    ...item,
+    ...searchedItem,
     status: "AUTO_SEGURO",
     score: selected.score,
     reasons: selected.reasons,

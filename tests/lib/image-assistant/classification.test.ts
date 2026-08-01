@@ -16,16 +16,27 @@ function finding(type: QualityFindingType): QualityFinding {
 function candidate(overrides: Partial<SafeImageCandidate> = {}): SafeImageCandidate {
   return { sourceUrl: "https://images.dior.example/sauvage.jpg", sourceDomain: "images.dior.example", authority: "OFFICIAL_BRAND", brand: "Dior", name: "Sauvage EDP", concentration: "edp", content: "100ML", imageRole: "PRODUCT", ...overrides };
 }
-function analyze(products = [product()], rows = [row()], findings: QualityFinding[] = []) {
-  return analyzeImageAssistantCatalog({ products, supplierRows: rows, findings, reviewReference: 0 });
+function analyze(products = [product()], rows = [row()], findings: QualityFinding[] = [], searchAvailable = true) {
+  return analyzeImageAssistantCatalog({ products, supplierRows: rows, findings, reviewReference: 0, searchAvailable });
 }
 
 describe("safe image assistant classification", () => {
-  it("deja una identidad exacta sin candidato como SIN_FUENTE_SEGURA", () => expect(analyze().items[0].status).toBe("SIN_FUENTE_SEGURA"));
+  it("deja una identidad exacta como búsqueda pendiente antes de consultar", () => {
+    expect(analyze().items[0]).toEqual(expect.objectContaining({ status: "PROVEEDOR_NO_CONFIGURADO", reasons: ["BUSQUEDA_PENDIENTE"] }));
+  });
+  it("usa PROVEEDOR_NO_CONFIGURADO cuando todavía no puede buscar", () => {
+    const result = analyze([product()], [row()], [], false);
+    expect(result.items[0].status).toBe("PROVEEDOR_NO_CONFIGURADO");
+    expect(result.summary.SIN_FUENTE_SEGURA).toBe(0);
+    expect(result.summary.PROVEEDOR_NO_CONFIGURADO).toBe(1);
+  });
   it("clasifica AUTO_SEGURO solo con un candidato único de 100 puntos", () => {
     const item = analyze().items[0];
     const result = attachSafeCandidates(item, [candidate()], new Set(["images.dior.example"]));
     expect(result.status).toBe("AUTO_SEGURO"); expect(result.score).toBe(100);
+  });
+  it("clasifica SIN_FUENTE_SEGURA sólo después de buscar sin candidatos", () => {
+    expect(attachSafeCandidates(analyze().items[0], [], new Set(["images.dior.example"])).status).toBe("SIN_FUENTE_SEGURA");
   });
   it("excluye duplicados exactos detectados por calidad", () => expect(analyze([product()], [row()], [finding("EXACT_DUPLICATE")]).items[0].status).toBe("REQUIERE_REVISION"));
   it("excluye posibles duplicados", () => expect(analyze([product()], [row()], [finding("POSSIBLE_DUPLICATE")]).items[0].reasons).toContain("POSSIBLE_DUPLICATE"));

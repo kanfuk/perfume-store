@@ -1,117 +1,51 @@
 # Smellme.cl — Asistente seguro de imágenes
 
-Fecha de validación: 2026-07-31. Rama:
-`feature/safe-image-assistant-and-full-qa`.
+Fecha de validación: 2026-07-31. Rama: `feature/image-source-reconciliation`.
 
-## Resultado
+## Estado seguro
 
-Se implementó `/admin/catalogo/imagenes` como flujo mobile-first e incremental.
-Seleccionar el CSV no escribe en Storage ni en la base: el primer paso es
-siempre un dry-run. La navegación de Gestión de catálogo incluye ahora el
-acceso **Imágenes** y el resumen ofrece una acción rápida.
+`/admin/catalogo/imagenes` mantiene el análisis visible, pero separa configuración, búsqueda y carga con gates explícitos. No se infiere ningún permiso desde la existencia de una API key.
 
-El dry-run real utilizó el CSV privado ya existente en `.local-import/`
-(Windows-1252, `;`, 101 filas útiles) y el catálogo remoto actual. El informe
-completo quedó en `.local-work/safe-image-assistant-dry-run.json`, ruta
-ignorada por Git.
+Estados definitivos: `AUTO_SEGURO`, `REQUIERE_REVISION`, `YA_TIENE_IMAGEN`, `SIN_FUENTE_SEGURA`, `PROVEEDOR_NO_CONFIGURADO`, `EXCLUIDO_QA` y `ERROR`. Si la búsqueda no está operativa, una identidad conciliada queda como `PROVEEDOR_NO_CONFIGURADO`. Como no existe un estado adicional “pendiente” en el contrato cerrado, ese mismo estado conservador se mantiene con razón `BUSQUEDA_PENDIENTE` cuando el proveedor ya está listo pero el dry-run aún no se ejecuta. `SIN_FUENTE_SEGURA` sólo se asigna después de una búsqueda real sin candidato seguro.
 
-| Clasificación | Total |
-|---|---:|
-| Total catálogo | 106 |
-| Sin imagen inicial | 102 |
-| `AUTO_SEGURO` | 0 |
-| `REQUIERE_REVISION` | 39 |
-| `YA_TIENE_IMAGEN` | 4 |
-| `SIN_FUENTE_SEGURA` | 61 |
-| `EXCLUIDO_QA` | 2 |
-| `ERROR` | 0 |
+El corte auditado tiene 106 productos: 39 en revisión, 4 con imagen y 2 QA. Los otros 61 quedan como `PROVEEDOR_NO_CONFIGURADO` en la configuración segura por defecto. La explicación caso por caso está en [SMELLME_IMAGE_REVIEW_RECONCILIATION.md](./SMELLME_IMAGE_REVIEW_RECONCILIATION.md).
 
-La referencia administrativa era aproximadamente 28 productos en revisión.
-El motor reconstruyó 39: diferencia 11. Las razones predominantes fueron 22
-inconsistencias de nombre, 19 posibles duplicados, 5 inconsistencias de marca
-y 5 conflictos de marca dentro del catálogo (un producto puede acumular más
-de una razón). Como la diferencia supera cinco, el servidor bloquea cualquier
-subida de lote. No se forzó la cifra de 28.
+## Proveedor Brave
 
-## Criterio de seguridad
+`ImageSearchProvider` desacopla `isConfigured`, `searchImages`, `normalizeResult` y `healthCheck`. El primer adaptador es `BraveImageSearchProvider`, que usa por servidor `GET https://api.search.brave.com/res/v1/images/search` con `X-Subscription-Token`.
 
-Cada producto termina exactamente en `AUTO_SEGURO`, `REQUIERE_REVISION`,
-`YA_TIENE_IMAGEN`, `SIN_FUENTE_SEGURA`, `EXCLUIDO_QA` o `ERROR`. El conjunto
-protegido se reconstruye desde el CSV, el catálogo remoto y el motor de
-calidad. Se excluyen productos incompletos, pausados, `ZZTEST-*`, duplicados,
-variantes no inequívocas, marcas o nombres inconsistentes, contenido no
-estándar, palabras ambiguas y cualquier producto que ya tenga imagen.
+Las consultas combinan marca, nombre, concentración, contenido y términos de producto; agregan `site:dominio` sólo para dominios aprobados. Se conservan únicamente página fuente, URL original de imagen, thumbnail, título, dominio y dimensiones. El adaptador limita resultados, usa `AbortController`, timeout, máximo un reintento para timeout/429/5xx y errores sanitizados. No registra headers, claves ni el payload completo.
 
-El score es explicable: marca 25, nombre 30, concentración 20, contenido 10,
-fuente aprobada 10 e imagen de producto 5. `AUTO_SEGURO` exige al menos 95,
-exactamente un candidato y cero contradicciones. En la implementación actual
-las seis verificaciones son obligatorias, por lo que un candidato automático
-válido obtiene 100.
+## Configuración y gates
 
-## Fuentes y proveedor
+Variables exclusivamente de servidor:
 
-La búsqueda usa un proveedor explícitamente configurado en servidor. El
-contrato recibe marca, nombre, contenido y concentración, y devuelve URL de
-imagen, página de origen, autoridad declarada y metadata de identidad. Los
-hosts deben coincidir exactamente con `SAFE_IMAGE_ALLOWED_DOMAINS`; no se
-aceptan subdominios implícitos. Cada candidato se firma en servidor antes de
-volver al navegador y la firma se verifica otra vez al procesarlo.
+```dotenv
+BRAVE_SEARCH_API_KEY=
+IMAGE_ASSISTANT_SIGNING_SECRET=
+IMAGE_ASSISTANT_ALLOWED_DOMAINS=
+IMAGE_ASSISTANT_SEARCH_ENABLED=false
+IMAGE_ASSISTANT_BATCH_ENABLED=false
+```
 
-En esta ejecución no estaban configurados proveedor, credencial, secreto de
-firma ni dominios aprobados. Por eso no se consultó la web, no se afirmó que
-ninguna fuente fuera oficial y las 61 identidades conciliadas quedaron como
-`SIN_FUENTE_SEGURA`. Fuentes efectivamente utilizadas: ninguna.
+- `SEARCH_ENABLED=false`: análisis disponible; búsqueda bloqueada.
+- Búsqueda habilitada y batch deshabilitado: dry-run y revisión de candidatos disponibles; canary/lote bloqueados.
+- `BATCH_ENABLED=true`: sigue sujeto a reconciliación aprobada y confirmación manual.
 
-## Descarga y SSRF
+El health check autenticado devuelve sólo cinco booleanos: proveedor, firma, allowlist, búsqueda y batch. Nunca devuelve valores.
 
-Solo se acepta HTTPS en puerto 443, sin credenciales en URL. Se rechazan IPs
-literales, localhost, loopback, redes privadas, carrier-grade NAT, link-local,
-metadata cloud, multicast/reservadas e IPv6 local/privada. Todos los resultados
-DNS deben ser públicos; la conexión se fija a la IP ya validada manteniendo
-SNI/Host del dominio. Cada redirect se resuelve y valida nuevamente contra la
-allowlist.
+## Allowlist y descarga
 
-La descarga tiene timeout, máximo 10 MiB y máximo tres redirects. Se cotejan
-`Content-Type`, magic bytes y decodificación real con Sharp. Se rechazan
-formatos no admitidos y dimensiones fuera de 300–10.000 px. La imagen válida
-pasa por `processProductImage`: rotación EXIF, proporción preservada, máximo
-1600 px, WebP calidad 86, sin upscale.
+`config/image-source-domains.ts` no confía en dominios por defecto. La allowlist de servidor acepta hosts exactos separados por coma, rechaza wildcards y respeta entradas versionadas deshabilitadas. No habilita subdominios implícitos.
 
-## Procesamiento e idempotencia
+El pipeline existente valida HTTPS, DNS público, redirects, tamaño, MIME, magic bytes y decodificación antes de cualquier uso. Mantiene protección SSRF, firma HMAC, SHA-256, escritura condicional e imposibilidad de reemplazar una imagen existente.
 
-El navegador procesa como máximo dos productos simultáneos y realiza una
-solicitud por producto. Puede detenerse; al reanalizar, una imagen ya aplicada
-queda como `YA_TIENE_IMAGEN` y no vuelve a procesarse. El historial remoto usa
-producto, URL normalizada, SHA-256, score, razones y estado final. Una URL no
-duplica intentos del mismo producto y un hash aplicado no puede reutilizarse
-en otro producto.
+## Dry-run
 
-Antes de escribir se reejecutan conciliación, score, firma, allowlist, DNS y
-validación binaria. El servicio `asignarImagenProductoSiAusente` se niega a
-reemplazar imágenes existentes y luego reutiliza el pipeline/rollback de la
-carga manual. No modifica nombre, marca, contenido, SKU, costo, precio, stock,
-activo, Top 12 ni ofertas.
+El dry-run sólo analiza y busca con concurrencia máxima de dos. Excluye imágenes existentes, QA y revisión. No descarga imágenes completas, no llama Storage, no modifica DB y no activa batch. Su salida contiene estado, score, dominio, razones, contradicciones, cantidad de candidatos y candidato recomendado, en JSON y CSV. `data/private-output/` está ignorado por Git.
 
-## Canary y lote
+En este cierre no había configuración operativa completa disponible para ejecutar búsquedas reales. Por ello: dry-run de búsqueda no ejecutado, candidatos reales 0, imágenes descargadas 0, imágenes subidas 0 y productos modificados 0.
 
-La UI confirma el total, procesa primero hasta cinco productos y se detiene
-para revisión visual. Solo tras la confirmación humana permite continuar con
-el resto. En esta ejecución el canary y el lote real no se iniciaron por dos
-guardas independientes: diferencia de conciliación 11 y ausencia de fuentes
-configuradas. Imágenes subidas: 0. Duplicados modificados: 0. Productos en
-auditoría modificados: 0. Pendientes manuales actuales: 39, más 61 sin fuente
-segura.
+## Operación manual pendiente
 
-## Operación recomendada
-
-1. Resolver o aceptar explícitamente las 39 filas de revisión hasta reconciliar
-   la diferencia con el conjunto administrativo.
-2. Aprobar legal y comercialmente dominios fuente y configurar las cuatro
-   variables de servidor documentadas en `.env.example`.
-3. Repetir dry-run, revisar el informe y confirmar que la diferencia sea ≤5.
-4. Buscar candidatos, revisar previews WebP servidas por proxy seguro y lanzar
-   el canary de cinco.
-5. Verificar botella, concentración, contenido, ausencia de marca de agua,
-   Storage, DB y catálogo público antes de continuar el lote.
-
-No se desplegó producción ni se modificó `main`.
+Configurar las cinco variables en `.env.local` y en Vercel Project Settings → Environment Variables, aprobar dominios y mantener `IMAGE_ASSISTANT_BATCH_ENABLED=false`. Después se puede ejecutar el dry-run, revisar resultados y decidir en una fase posterior si se aprueba un canary. Esta fase no despliega producción.

@@ -2,14 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Images, Pause, Play, Search, ShieldCheck, Upload } from "lucide-react";
-import Image from "next/image";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/ui/ConfirmDialog";
-import type { ImageAssistantAnalysis, ImageAssistantItem } from "@/lib/image-assistant/types";
+import type { ImageAssistantAnalysis, ImageAssistantDryRunEntry, ImageAssistantHealth, ImageAssistantItem } from "@/lib/image-assistant/types";
 
 type AnalysisResponse = {
   analysis: ImageAssistantAnalysis;
   csvFingerprint: string;
-  searchConfigured: boolean;
+  health: ImageAssistantHealth;
 };
 
 type RunState = "IDLE" | "SEARCHING" | "PROCESSING_CANARY" | "CANARY_REVIEW" | "PROCESSING_ALL" | "PAUSED";
@@ -36,6 +35,7 @@ export function ImageAssistantPanel() {
   const [file, setFile] = useState<File | null>(null);
   const [fileBase64, setFileBase64] = useState("");
   const [response, setResponse] = useState<AnalysisResponse | null>(null);
+  const [health, setHealth] = useState<ImageAssistantHealth | null>(null);
   const [items, setItems] = useState<ImageAssistantItem[]>([]);
   const [runState, setRunState] = useState<RunState>("IDLE");
   const [message, setMessage] = useState("");
@@ -43,11 +43,14 @@ export function ImageAssistantPanel() {
   const [report, setReport] = useState<ReportEntry[]>([]);
   const [confirm, setConfirm] = useState<ConfirmDialogState>(null);
   const [showPending, setShowPending] = useState(false);
-  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
-  const previewUrlsRef = useRef<Record<string, string>>({});
   const stopRef = useRef(false);
 
-  useEffect(() => () => Object.values(previewUrlsRef.current).forEach((url) => URL.revokeObjectURL(url)), []);
+  useEffect(() => {
+    void fetch("/api/admin/image-assistant/health", { cache: "no-store" })
+      .then(readJson)
+      .then((next: ImageAssistantHealth) => setHealth(next))
+      .catch(() => setHealth(null));
+  }, []);
 
   const summary = useMemo(() => {
     const count = (status: ImageAssistantItem["status"]) => items.filter((item) => item.status === status).length;
@@ -57,6 +60,7 @@ export function ImageAssistantPanel() {
       safe: count("AUTO_SEGURO"),
       review: count("REQUIERE_REVISION"),
       noSource: count("SIN_FUENTE_SEGURA"),
+      noProvider: count("PROVEEDOR_NO_CONFIGURADO"),
       existing: count("YA_TIENE_IMAGEN"),
       excluded: count("EXCLUIDO_QA")
     };
@@ -76,31 +80,18 @@ export function ImageAssistantPanel() {
         body: JSON.stringify({ fileName: file.name, fileBase64: encoded })
       })) as AnalysisResponse;
       setResponse(data);
+      setHealth(data.health);
       setItems(data.analysis.items);
       setReport([]);
       setRunState("IDLE");
-      setMessage(data.searchConfigured
-        ? "Análisis listo. Ya puedes buscar candidatos en fuentes aprobadas."
-        : "Análisis listo. La búsqueda segura no está configurada; no se subirá ninguna imagen.");
+      setMessage(data.health.providerConfigured && data.health.searchEnabled
+        ? "Análisis listo. El dry-run buscará candidatos sin descargar ni subir imágenes."
+        : "Análisis listo. Proveedor no configurado o búsqueda deshabilitada; no se buscarán ni subirán imágenes.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "No fue posible analizar."); setMessage(""); }
   }
 
   function updateItem(next: ImageAssistantItem) {
     setItems((current) => current.map((item) => item.productId === next.productId ? next : item));
-  }
-
-  async function createPreview(item: ImageAssistantItem) {
-    if (!item.candidate) return;
-    const previewResponse = await fetch(`/api/admin/image-assistant/${encodeURIComponent(item.productId)}/preview`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payload(), candidate: item.candidate })
-    });
-    if (!previewResponse.ok) return;
-    const objectUrl = URL.createObjectURL(await previewResponse.blob());
-    const previous = previewUrlsRef.current[item.productId];
-    if (previous) URL.revokeObjectURL(previous);
-    previewUrlsRef.current = { ...previewUrlsRef.current, [item.productId]: objectUrl };
-    setPreviewUrls(previewUrlsRef.current);
   }
 
   async function runTwoAtATime<T>(entries: T[], task: (entry: T) => Promise<void>) {
@@ -115,23 +106,38 @@ export function ImageAssistantPanel() {
     await Promise.all([worker(), worker()]);
   }
 
-  async function searchImages() {
-    if (!response?.searchConfigured) { setError("Configura un proveedor y dominios aprobados antes de buscar imágenes."); return; }
-    const queue = items.filter((item) => item.status === "SIN_FUENTE_SEGURA");
-    stopRef.current = false; setRunState("SEARCHING"); setError("");
-    await runTwoAtATime(queue, async (item) => {
-      try {
-        const data = await readJson(await fetch(`/api/admin/image-assistant/${encodeURIComponent(item.productId)}/candidates`, {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload())
-        })) as { item: ImageAssistantItem };
-        updateItem(data.item);
-        if (data.item.status === "AUTO_SEGURO") await createPreview(data.item);
-      } catch (cause) {
-        updateItem({ ...item, status: "ERROR", reasons: [cause instanceof Error ? cause.message : "ERROR_BUSQUEDA"] });
+  async function executeDryRun() {
+    if (!response) return;
+    setError("");
+    setMessage("Ejecutando búsqueda dry-run; no se descargarán imágenes completas ni se escribirá en Storage o DB…");
+    setRunState("SEARCHING");
+    try {
+      const data = await readJson(await fetch("/api/admin/image-assistant/dry-run", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload())
+      })) as { entries: ImageAssistantDryRunEntry[]; csvFingerprint: string };
+      const byId = new Map(data.entries.map((entry) => [entry.productId, entry]));
+      setItems((current) => current.map((item) => {
+        const entry = byId.get(item.productId);
+        return entry ? { ...item, status: entry.status, score: entry.score, reasons: entry.reasons } : item;
+      }));
+      const json = JSON.stringify({ generatedAt: new Date().toISOString(), csvFingerprint: data.csvFingerprint, entries: data.entries }, null, 2);
+      const csvRows = [
+        ["productId", "status", "score", "domain", "reasons", "contradictions", "candidateCount", "recommendedCandidate"],
+        ...data.entries.map((entry) => [entry.productId, entry.status, entry.score ?? "", entry.domain ?? "", entry.reasons.join("|"), entry.contradictions, entry.candidateCount, entry.recommendedCandidate?.sourcePageUrl ?? ""])
+      ];
+      const csv = csvRows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+      for (const [name, contents, type] of [
+        ["image-assistant-dry-run.json", json, "application/json"],
+        ["image-assistant-dry-run.csv", csv, "text/csv"]
+      ] as const) {
+        const url = URL.createObjectURL(new Blob([contents], { type }));
+        const link = document.createElement("a"); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url);
       }
-    });
-    setRunState(stopRef.current ? "PAUSED" : "IDLE");
-    setMessage(stopRef.current ? "Búsqueda detenida; puedes continuar sin repetir completados." : "Búsqueda segura terminada.");
+      setMessage(`Dry-run terminado: ${data.entries.length} productos buscados, 0 imágenes subidas.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No fue posible ejecutar el dry-run.");
+      setMessage("");
+    } finally { setRunState("IDLE"); }
   }
 
   async function processQueue(queue: ImageAssistantItem[], state: RunState) {
@@ -184,7 +190,9 @@ export function ImageAssistantPanel() {
   }
 
   const busy = ["SEARCHING", "PROCESSING_CANARY", "PROCESSING_ALL"].includes(runState);
-  const visibleItems = showPending ? items.filter((item) => ["REQUIERE_REVISION", "SIN_FUENTE_SEGURA", "ERROR"].includes(item.status)) : items.filter((item) => item.status === "AUTO_SEGURO");
+  const visibleItems = showPending ? items.filter((item) => ["REQUIERE_REVISION", "SIN_FUENTE_SEGURA", "PROVEEDOR_NO_CONFIGURADO", "ERROR"].includes(item.status)) : items.filter((item) => item.status === "AUTO_SEGURO");
+  const configurationReady = Boolean(health?.providerConfigured && health.signingSecretConfigured && health.allowedDomainsConfigured && health.searchEnabled);
+  const processingApproved = Boolean(configurationReady && health?.batchEnabled && response?.analysis.batchAllowedByAuditReconciliation && response.analysis.reconciliationApproved);
 
   return (
     <div className="space-y-5">
@@ -199,14 +207,30 @@ export function ImageAssistantPanel() {
         </label>
       </section>
 
-      {items.length > 0 && <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {[ ["Sin imagen", summary.withoutImage], ["Seguras", summary.safe], ["Revisión", summary.review], ["Sin fuente", summary.noSource], ["Con imagen", summary.existing], ["Excluidos", summary.excluded] ].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-[#e4e7ec] bg-white p-4"><p className="text-xs text-[#667085]">{label}</p><p className="mt-1 text-2xl font-bold text-[#111318]">{value}</p></div>)}
+      <section className="rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm">
+        <h3 className="font-semibold text-[#111318]">Configuración segura</h3>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            ["Proveedor de búsqueda", health?.providerConfigured, "Configurado", "No configurado"],
+            ["Firma", health?.signingSecretConfigured, "Configurada", "No configurada"],
+            ["Dominios", health?.allowedDomainsConfigured, "Configurados", "No configurados"],
+            ["Búsqueda", health?.searchEnabled, "Habilitada", "Deshabilitada"],
+            ["Carga automática", health?.batchEnabled, "Habilitada", "Deshabilitada"]
+          ].map(([label, enabled, yes, no]) => <div key={String(label)}><dt className="text-[#667085]">{label}</dt><dd className={`mt-1 font-semibold ${enabled ? "text-emerald-700" : "text-amber-700"}`}>{enabled ? yes : no}</dd></div>)}
+        </dl>
+        <p className="mt-3 text-xs text-[#98a2b3]">Este panel sólo muestra estados booleanos; nunca expone credenciales ni dominios configurados.</p>
+      </section>
+
+      {items.length > 0 && <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        {[ ["Sin imagen", summary.withoutImage], ["Seguras", summary.safe], ["Revisión", summary.review], ["Sin fuente", summary.noSource], ["Proveedor no configurado", summary.noProvider], ["Con imagen", summary.existing], ["Excluidos", summary.excluded] ].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-[#e4e7ec] bg-white p-4"><p className="text-xs text-[#667085]">{label}</p><p className="mt-1 text-2xl font-bold text-[#111318]">{value}</p></div>)}
       </section>}
 
       <section className="flex flex-wrap gap-2 rounded-2xl border border-[#e4e7ec] bg-white p-4">
         <button disabled={!file || busy} onClick={() => void analyze()} className={`${buttonClass} bg-[#7357ff] text-white`}><Search className="h-4 w-4" />Analizar catálogo</button>
-        <button disabled={!response || busy || !response.searchConfigured} onClick={() => void searchImages()} className={`${buttonClass} border border-[#7357ff] bg-white text-[#5434e6]`}><Images className="h-4 w-4" />Buscar imágenes</button>
-        <button disabled={summary.safe === 0 || busy} onClick={requestProcessing} className={`${buttonClass} bg-[#111318] text-white`}><ShieldCheck className="h-4 w-4" />Procesar coincidencias seguras</button>
+        <a href="/api/admin/image-assistant/reconciliation" target="_blank" rel="noreferrer" className={`${buttonClass} border border-[#d0d5dd] bg-white text-[#344054]`}>Ver reconciliación de 39 casos</a>
+        <button disabled={!response || busy || !configurationReady} onClick={() => void executeDryRun()} className={`${buttonClass} border border-[#7357ff] bg-white text-[#5434e6]`}><Images className="h-4 w-4" />Ejecutar dry-run</button>
+        <button disabled={!processingApproved || summary.safe === 0 || busy} onClick={requestProcessing} className={`${buttonClass} bg-[#111318] text-white`}><ShieldCheck className="h-4 w-4" />Procesar coincidencias seguras</button>
+        <button disabled={!processingApproved || summary.safe === 0 || busy} onClick={requestProcessing} className={`${buttonClass} bg-[#111318] text-white`}><Play className="h-4 w-4" />Iniciar canary</button>
         <button disabled={!response || busy} onClick={() => setShowPending(true)} className={`${buttonClass} border border-[#d0d5dd] bg-white text-[#344054]`}>Revisar pendientes</button>
         <button disabled={!response} onClick={downloadReport} className={`${buttonClass} border border-[#d0d5dd] bg-white text-[#344054]`}><Download className="h-4 w-4" />Descargar informe</button>
         {busy && <button onClick={() => { stopRef.current = true; }} className={`${buttonClass} bg-amber-100 text-amber-900`}><Pause className="h-4 w-4" />Detener</button>}
@@ -218,7 +242,6 @@ export function ImageAssistantPanel() {
       {response && <section className="space-y-3">
         <div className="flex items-center justify-between"><h3 className="font-semibold text-[#111318]">{showPending ? "Pendientes manuales" : "Vista previa segura"}</h3>{showPending && <button className="text-sm font-semibold text-[#5434e6]" onClick={() => setShowPending(false)}>Ver coincidencias seguras</button>}</div>
         {visibleItems.length === 0 ? <p className="rounded-xl border border-[#e4e7ec] bg-white p-5 text-sm text-[#667085]">No hay productos en esta bandeja.</p> : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{visibleItems.map((item) => <article key={item.productId} className="overflow-hidden rounded-xl border border-[#e4e7ec] bg-white">
-          {previewUrls[item.productId] && <Image unoptimized width={640} height={640} src={previewUrls[item.productId]} alt={`Vista previa de ${item.name}`} className="aspect-square w-full object-contain bg-white p-4" />}
           <div className="p-4"><p className="text-xs font-semibold text-[#7357ff]">{item.status}{item.score ? ` · ${item.score}/100` : ""}</p><h4 className="mt-1 font-semibold text-[#111318]">{item.brand} {item.name}</h4><p className="text-sm text-[#667085]">{item.content} · {item.sku || "Sin SKU"}</p><p className="mt-2 text-xs leading-5 text-[#98a2b3]">{item.reasons.join(" · ")}</p>{item.candidate && <p className="mt-2 text-xs text-[#667085]">Fuente: {item.candidate.sourceDomain}</p>}</div>
         </article>)}</div>}
       </section>}
