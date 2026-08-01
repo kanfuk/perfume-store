@@ -96,7 +96,15 @@ describe("GET/PUT /api/admin/settings/payment", () => {
       new Request("http://localhost/api/admin/settings/payment?summary=1")
     );
     const payload = await response.json();
-    expect(payload).toEqual({ completa: true });
+    expect(payload).toEqual({
+      completa: true,
+      bancoCompleto: true,
+      tipoCuentaCompleto: true,
+      numeroCuentaCompleto: true,
+      titularCompleto: true,
+      rutCompleto: true,
+      correoCompleto: true
+    });
     expect(JSON.stringify(payload)).not.toContain("001234");
   });
 

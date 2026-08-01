@@ -23,6 +23,11 @@ export interface ProductRepository {
     id: string,
     cambios: Partial<Omit<ProductoProps, "id">>
   ): Promise<ProductoProps>;
+  /** Escritura condicional usada por el asistente: null si apareció una imagen concurrentemente. */
+  actualizarImagenProductoSiAusente?(
+    id: string,
+    cambios: { imageUrl: string; imageStoragePath: string }
+  ): Promise<ProductoProps | null>;
   ajustarStockAgenda(id: string, cantidad: number): Promise<ProductoProps>;
 }
 
@@ -73,6 +78,16 @@ class MockProductRepository implements ProductRepository {
       throw new Error("Producto no encontrado.");
     }
 
+    Object.assign(current, cambios);
+    return current;
+  }
+
+  async actualizarImagenProductoSiAusente(
+    id: string,
+    cambios: { imageUrl: string; imageStoragePath: string }
+  ) {
+    const current = localStore.products.find((product) => product.id === id);
+    if (!current || current.imageUrl?.trim() || current.imageStoragePath?.trim()) return null;
     Object.assign(current, cambios);
     return current;
   }
@@ -276,6 +291,25 @@ class SupabaseProductRepository implements ProductRepository {
     }
 
     return mapSupabaseProduct(response.data);
+  }
+
+  async actualizarImagenProductoSiAusente(
+    id: string,
+    cambios: { imageUrl: string; imageStoragePath: string }
+  ) {
+    const response = await createSupabaseServerClient()
+      .from("productos")
+      .update({ image_url: cambios.imageUrl, image_storage_path: cambios.imageStoragePath })
+      .eq("id", id)
+      .or(
+        "and(image_url.is.null,image_storage_path.is.null),and(image_url.is.null,image_storage_path.eq.),and(image_url.eq.,image_storage_path.is.null),and(image_url.eq.,image_storage_path.eq.)"
+      )
+      .select("*")
+      .maybeSingle();
+    if (response.error) {
+      throw new Error(`No fue posible asignar la imagen de forma segura. ${response.error.message}`);
+    }
+    return response.data ? mapSupabaseProduct(response.data) : null;
   }
 
   async ajustarStockAgenda(id: string, cantidad: number) {

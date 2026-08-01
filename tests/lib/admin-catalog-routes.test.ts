@@ -15,6 +15,7 @@ describe("admin-catalog-routes - buildCatalogSectionHref", () => {
     expect(buildCatalogSectionHref("stock")).toBe("/admin/catalogo/stock");
     expect(buildCatalogSectionHref("precios")).toBe("/admin/catalogo/precios");
     expect(buildCatalogSectionHref("top12")).toBe("/admin/catalogo/top12");
+    expect(buildCatalogSectionHref("imagenes")).toBe("/admin/catalogo/imagenes");
   });
 
   it("agrega parametros como querystring", () => {
@@ -53,6 +54,7 @@ describe("admin-catalog-routes - resolveActiveCatalogSection", () => {
     expect(resolveActiveCatalogSection("/admin/catalogo/stock")).toBe("stock");
     expect(resolveActiveCatalogSection("/admin/catalogo/precios")).toBe("precios");
     expect(resolveActiveCatalogSection("/admin/catalogo/top12")).toBe("top12");
+    expect(resolveActiveCatalogSection("/admin/catalogo/imagenes")).toBe("imagenes");
   });
 
   it("retorna null para rutas fuera de /admin/catalogo (no monta paneles ajenos)", () => {
@@ -61,8 +63,8 @@ describe("admin-catalog-routes - resolveActiveCatalogSection", () => {
     expect(resolveActiveCatalogSection("/admin/stock")).toBeNull();
   });
 
-  it("CATALOG_SECTIONS/CATALOG_SECTION_LABELS cubren exactamente las 5 secciones del encargo", () => {
-    expect(CATALOG_SECTIONS).toEqual(["resumen", "productos", "stock", "precios", "top12"]);
+  it("CATALOG_SECTIONS/CATALOG_SECTION_LABELS incluyen el asistente de imágenes", () => {
+    expect(CATALOG_SECTIONS).toEqual(["resumen", "productos", "stock", "precios", "top12", "imagenes"]);
     for (const section of CATALOG_SECTIONS) {
       expect(CATALOG_SECTION_LABELS[section]).toBeTruthy();
     }

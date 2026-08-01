@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedAdmin } from "@/lib/admin-auth";
 import type { BusinessPaymentSettingsFormInput } from "@/lib/businessPaymentSettings";
+import { getBusinessPaymentSettingsCompleteness } from "@/lib/businessPaymentSettings";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { createBusinessSettingsService } from "@/services/businessSettingsService";
 
@@ -39,7 +40,7 @@ export async function GET(request?: Request) {
     const { settings, completa } = await service.obtenerEstadoConfiguracionPago();
 
     if (request && new URL(request.url).searchParams.get("summary") === "1") {
-      return noStoreJson({ completa });
+      return noStoreJson({ completa, ...getBusinessPaymentSettingsCompleteness(settings) });
     }
 
     return noStoreJson({ settings, completa });

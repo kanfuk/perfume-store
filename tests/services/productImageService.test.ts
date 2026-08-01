@@ -312,3 +312,25 @@ describe("ProductImageService.eliminarImagenProducto", () => {
     });
   });
 });
+
+describe("ProductImageService.asignarImagenProductoSiAusente", () => {
+  it("no sobreescribe una imagen existente automáticamente", async () => {
+    const productRepository = new ProductRepositoryStub();
+    productRepository.producto = baseProduct({ imageUrl: "https://storage.example/existing.webp" });
+    const productImageRepository = new ProductImageRepositoryStub();
+    const service = new ProductImageService(productRepository, productImageRepository);
+    await expect(service.asignarImagenProductoSiAusente("producto-1", await validImageBuffer())).rejects.toMatchObject({ message: "El producto ya tiene una imagen y no será reemplazada automáticamente." });
+    expect(productImageRepository.calls).toHaveLength(0);
+  });
+
+  it("borra la subida nueva si aparece una imagen concurrente antes de actualizar DB", async () => {
+    const baseRepository = new ProductRepositoryStub();
+    const productRepository = Object.assign(baseRepository, {
+      actualizarImagenProductoSiAusente: async () => null
+    });
+    const productImageRepository = new ProductImageRepositoryStub();
+    const service = new ProductImageService(productRepository, productImageRepository);
+    await expect(service.asignarImagenProductoSiAusente("producto-1", await validImageBuffer())).rejects.toMatchObject({ message: "El producto ya tiene una imagen y no será reemplazada automáticamente." });
+    expect(productImageRepository.calls.map((call) => call.op)).toEqual(["subir", "eliminar"]);
+  });
+});

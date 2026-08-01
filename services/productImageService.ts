@@ -102,6 +102,42 @@ export class ProductImageService {
     };
   }
 
+  async asignarImagenProductoSiAusente(productId: string, fileBuffer: Buffer): Promise<ProductImageResult> {
+    const producto = await this.productRepository.buscarProductoPorId(productId);
+    if (!producto) throw new ProductImageServiceError("No se encontró el producto.");
+    if (producto.imageUrl?.trim() || producto.imageStoragePath?.trim()) {
+      throw new ProductImageServiceError("El producto ya tiene una imagen y no será reemplazada automáticamente.");
+    }
+
+    let processed;
+    try {
+      processed = await processProductImage(fileBuffer);
+    } catch (error) {
+      if (error instanceof ProductImageProcessingError) throw new ProductImageServiceError(error.message);
+      throw new ProductImageServiceError("No fue posible procesar la imagen.");
+    }
+    const path = buildProductImageStoragePath(productId, crypto.randomUUID());
+    try {
+      await this.productImageRepository.subir({ path, buffer: processed.buffer, contentType: "image/webp" });
+    } catch {
+      throw new ProductImageServiceError("No fue posible guardar la imagen. La imagen anterior se mantuvo.");
+    }
+    const displayUrl = this.productImageRepository.obtenerUrlPublica(path);
+    try {
+      const updated = this.productRepository.actualizarImagenProductoSiAusente
+        ? await this.productRepository.actualizarImagenProductoSiAusente(productId, { imageUrl: displayUrl, imageStoragePath: path })
+        : await this.productRepository.actualizarProducto(productId, { imageUrl: displayUrl, imageStoragePath: path });
+      if (!updated) {
+        throw new ProductImageServiceError("El producto ya tiene una imagen y no será reemplazada automáticamente.");
+      }
+    } catch (error) {
+      await this.productImageRepository.eliminar(path).catch(() => {});
+      if (error instanceof ProductImageServiceError) throw error;
+      throw new ProductImageServiceError("No fue posible guardar la imagen. La imagen anterior se mantuvo.");
+    }
+    return { storagePath: path, displayUrl, width: processed.width, height: processed.height, format: processed.format, size: processed.size };
+  }
+
   async eliminarImagenProducto(productId: string): Promise<void> {
     const producto = await this.productRepository.buscarProductoPorId(productId);
 

@@ -195,6 +195,20 @@ export function isBusinessPaymentSettingsComplete(
   ).valid;
 }
 
+/** Resumen booleano seguro para QA: nunca devuelve los valores persistidos. */
+export function getBusinessPaymentSettingsCompleteness(
+  settings: Partial<BusinessPaymentSettings> | null | undefined
+) {
+  return {
+    bancoCompleto: Boolean(settings?.banco?.trim()),
+    tipoCuentaCompleto: Boolean(settings?.tipoCuenta?.trim()),
+    numeroCuentaCompleto: Boolean(settings?.numeroCuenta?.trim()),
+    titularCompleto: Boolean(settings?.titularCuenta?.trim()),
+    rutCompleto: Boolean(settings?.rutTitular?.trim()),
+    correoCompleto: Boolean(settings?.correo?.trim())
+  };
+}
+
 /** Lista de campos faltantes, en espanol, para mostrar en el panel de estado. */
 export function missingBusinessPaymentSettingsFields(
   settings: Partial<BusinessPaymentSettings> | null | undefined

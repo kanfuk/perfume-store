@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   businessPaymentSettingsToFormInput,
+  getBusinessPaymentSettingsCompleteness,
   isBusinessPaymentSettingsComplete,
   maskAccountNumber,
   missingBusinessPaymentSettingsFields,
@@ -158,6 +159,24 @@ describe("helpers de configuracion de pago", () => {
     expect(missingBusinessPaymentSettingsFields(null)).toHaveLength(6);
     expect(maskAccountNumber("0012345678")).toBe("••••••5678");
     expect(maskAccountNumber("0012")).toBe("••••");
+  });
+
+  it("expone para QA solo booleanos de completitud por categoría", () => {
+    expect(getBusinessPaymentSettingsCompleteness({
+      banco: "BANCO_DE_PRUEBA",
+      tipoCuenta: "TIPO_DE_PRUEBA",
+      numeroCuenta: "CUENTA_DE_PRUEBA",
+      titularCuenta: "TITULAR_DE_PRUEBA",
+      rutTitular: "RUT_DE_PRUEBA",
+      correo: "correo@example.com"
+    })).toEqual({
+      bancoCompleto: true,
+      tipoCuentaCompleto: true,
+      numeroCuentaCompleto: true,
+      titularCompleto: true,
+      rutCompleto: true,
+      correoCompleto: true
+    });
   });
 
   it("resuelve labels comerciales sin mostrar values tecnicos", () => {

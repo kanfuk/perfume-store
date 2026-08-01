@@ -7,16 +7,17 @@
  * (AdminCatalogNavigation.tsx) solo las llama con `usePathname()`.
  */
 
-export type CatalogSection = "resumen" | "productos" | "stock" | "precios" | "top12";
+export type CatalogSection = "resumen" | "productos" | "stock" | "precios" | "top12" | "imagenes";
 
-export const CATALOG_SECTIONS: CatalogSection[] = ["resumen", "productos", "stock", "precios", "top12"];
+export const CATALOG_SECTIONS: CatalogSection[] = ["resumen", "productos", "stock", "precios", "top12", "imagenes"];
 
 export const CATALOG_SECTION_LABELS: Record<CatalogSection, string> = {
   resumen: "Resumen",
   productos: "Productos",
   stock: "Stock",
   precios: "Precios",
-  top12: "Top 12"
+  top12: "Top 12",
+  imagenes: "Imágenes"
 };
 
 const CATALOG_SECTION_PATHS: Record<CatalogSection, string> = {
@@ -24,7 +25,8 @@ const CATALOG_SECTION_PATHS: Record<CatalogSection, string> = {
   productos: "/admin/catalogo/productos",
   stock: "/admin/catalogo/stock",
   precios: "/admin/catalogo/precios",
-  top12: "/admin/catalogo/top12"
+  top12: "/admin/catalogo/top12",
+  imagenes: "/admin/catalogo/imagenes"
 };
 
 /** Rutas antiguas que ahora redirigen a su equivalente dentro de /admin/catalogo. */
