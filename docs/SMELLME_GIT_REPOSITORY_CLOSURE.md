@@ -11,6 +11,7 @@ Fecha: 2026-07-31.
 - `main` local y `origin/main`: `65fc1755b17bc5b66c026114b4dc87922a027aab`, intactas.
 - Working tree inicial: limpio.
 - Worktrees registrados antes y después: uno, el repositorio principal.
+- Directorios operativos finales de Smellme.cl: sólo el repositorio principal.
 - Ramas locales: 9 antes, 2 después.
 - Ramas remotas eliminadas: ninguna.
 - Referencias remotas obsoletas podadas: ninguna; el dry-run y la poda de `origin` no encontraron referencias eliminadas en servidor.
@@ -19,7 +20,7 @@ Fecha: 2026-07-31.
 
 Ruta: `D:\DESARROLLO SOFTWARE\smellme-price-mode-remote`.
 
-Clasificación: **E, carpeta temporal residual con contenido de proyecto integrado**, pero no eliminable automáticamente en esta fase.
+Clasificación durante la auditoría: **E, carpeta temporal residual con contenido de proyecto integrado**.
 
 La carpeta:
 
@@ -35,7 +36,9 @@ La carpeta:
 
 Siete archivos de `supabase/.temp` coinciden con el repositorio principal y uno difiere. Son estado local ignorado, no código ni historial Git. No se inspeccionaron ni documentaron sus valores.
 
-Decisión: **carpeta no retirada**. No cumple la condición obligatoria de ser un worktree registrado y `git worktree remove` no es aplicable. Tampoco se borró manualmente. Puede evaluarse su eliminación después de una aprobación explícita que acepte descartar el cache ignorado de `supabase/.temp`; no se perdería código ni ningún commit demostrado por esta auditoría.
+Decisión inicial: no retirarla sin autorización porque `git worktree remove` no era aplicable y existía cache ignorado de `supabase/.temp`.
+
+Estado posterior a la autorización: el usuario autorizó expresamente su eliminación. Durante la comprobación obligatoria inmediatamente anterior al borrado, la ruta ya no existía. Por tanto, Codex no ejecutó ningún comando de eliminación. Se confirmó que `D:\DESARROLLO SOFTWARE` contiene únicamente `perfume-store` entre los directorios relacionados y que Git sigue registrando sólo el worktree principal.
 
 ## Worktrees
 
@@ -44,7 +47,7 @@ Decisión: **carpeta no retirada**. No cumple la condición obligatoria de ser u
 | Antes | `D:\DESARROLLO SOFTWARE\perfume-store` | `feature/image-source-reconciliation` | `222c1508` | Limpio, registrado, principal |
 | Después | `D:\DESARROLLO SOFTWARE\perfume-store` | `feature/image-source-reconciliation` | `222c1508` | Limpio, único worktree registrado |
 
-`git worktree prune --verbose` no encontró entradas huérfanas. La carpeta secundaria nunca figuró como worktree y no fue alterada.
+`git worktree prune --verbose` no encontró entradas huérfanas. La carpeta secundaria nunca figuró como worktree. En la verificación final posterior a la autorización ya estaba ausente.
 
 ## Inventario de ramas locales inicial
 
@@ -102,5 +105,5 @@ También se conservó `pauli-source/main`, que apunta al mismo commit que `main`
 
 1. Mantener las ramas remotas históricas hasta validar producción y completar el período de rollback.
 2. Tras esa validación, revisar y aprobar por separado cualquier eliminación remota; no hacerlo como parte de esta fase.
-3. Confirmar si se acepta descartar el cache de `D:\DESARROLLO SOFTWARE\smellme-price-mode-remote\supabase\.temp`; sólo entonces retirar la carpeta residual mediante una operación de filesystem explícitamente autorizada.
+3. No recrear `D:\DESARROLLO SOFTWARE\smellme-price-mode-remote`; usar el repositorio principal o un worktree registrado para cualquier trabajo futuro.
 4. Ejecutar `git maintenance run --auto` únicamente si Git lo recomienda. No es necesario un GC agresivo con el estado actual.
