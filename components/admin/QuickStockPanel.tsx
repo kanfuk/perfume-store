@@ -653,11 +653,34 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
         </div>
 
         <p className="text-sm font-medium text-[#344054]" aria-live="polite">
-          {filtered.length} producto(s) encontrado(s)
+          {loading ? "Cargando catálogo…" : `${filtered.length} producto(s) encontrado(s)`}
         </p>
 
         {loading ? (
-          <p className="text-sm text-[#667085]">Cargando catálogo...</p>
+          /* Skeleton con la misma grilla y alturas que las tarjetas finales (evita el salto de */
+          /* diseño al reemplazar "Cargando..." por el listado real, ver seccion 7 del encargo). */
+          <div aria-busy="true" aria-live="polite" role="status" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <span className="sr-only">Cargando catálogo…</span>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 h-5 w-5 shrink-0 animate-pulse rounded bg-[#e4e7ec]" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-3 w-16 animate-pulse rounded bg-[#e4e7ec]" />
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-[#e4e7ec]" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-[#f2f4f7]" />
+                  </div>
+                  <div className="h-5 w-14 shrink-0 animate-pulse rounded-full bg-[#f2f4f7]" />
+                </div>
+                <div className="h-5 w-24 animate-pulse rounded-full bg-[#f2f4f7]" />
+                <div className="flex items-center gap-2">
+                  <div className="h-11 w-11 animate-pulse rounded-xl bg-[#f2f4f7]" />
+                  <div className="h-11 w-20 animate-pulse rounded-xl bg-[#f2f4f7]" />
+                  <div className="h-11 w-11 animate-pulse rounded-xl bg-[#f2f4f7]" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
