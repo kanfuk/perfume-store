@@ -165,7 +165,41 @@ describe("processProductImage", () => {
   it("detecta HEIC/HEIF y devuelve el mensaje amigable sin intentar decodificar", async () => {
     await expect(processProductImage(buildHeicBuffer())).rejects.toMatchObject({
       code: "HEIC_UNSUPPORTED",
-      message: "Este formato no es compatible. Convierte la imagen a JPG, PNG o WebP."
+      message: "Este formato no es compatible. Convierte la imagen a JPG, PNG, WebP o AVIF."
     });
   });
+
+  it("acepta AVIF valido y convierte a webp (sharp puede decodificarlo en esta instalacion)", async () => {
+    const input = await sharp({
+      create: { width: 320, height: 240, channels: 3, background: { r: 10, g: 200, b: 60 } }
+    })
+      .avif({ quality: 60 })
+      .toBuffer();
+
+    const result = await processProductImage(input);
+
+    expect(result.format).toBe("webp");
+    expect(result.width).toBe(320);
+    expect(result.height).toBe(240);
+  });
+
+  it(
+    "distingue AVIF de HEIC aunque sharp reporte el mismo `format` (\"heif\") para ambos: " +
+      "solo el ftyp brand real (avif/avis vs heic/heix/...) decide cual es cual",
+    async () => {
+      const avif = await sharp({
+        create: { width: 40, height: 40, channels: 3, background: { r: 1, g: 2, b: 3 } }
+      })
+        .avif({ quality: 50 })
+        .toBuffer();
+
+      const metadata = await sharp(avif).metadata();
+      expect(metadata.format).toBe("heif"); // documenta la ambiguedad real de sharp/libvips
+
+      await expect(processProductImage(avif)).resolves.toMatchObject({ format: "webp" });
+      await expect(processProductImage(buildHeicBuffer())).rejects.toMatchObject({
+        code: "HEIC_UNSUPPORTED"
+      });
+    }
+  );
 });

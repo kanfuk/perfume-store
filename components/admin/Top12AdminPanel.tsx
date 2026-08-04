@@ -6,6 +6,7 @@ import { AlertTriangle, CheckCircle2, Home, Search, Sparkles, X } from "lucide-r
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { filterAndSortProducts } from "@/lib/catalog-search";
+import { getProductImageRenderConfig } from "@/lib/product-image-render";
 import type { AdminProductRecord } from "@/lib/types";
 
 type Top12Producto = {
@@ -276,15 +277,24 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                 </div>
 
                 <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f7f8fa]">
-                  {slot.imageUrl ? (
-                    <Image
-                      src={slot.imageUrl}
-                      alt={producto?.nombre ?? `Posición ${slot.rank}`}
-                      fill
-                      sizes="200px"
-                      className="object-contain p-2"
-                    />
-                  ) : null}
+                  {slot.imageUrl
+                    ? (() => {
+                        // Misma URL same-origin que usa ProductImage en el resto del admin
+                        // (getProductImageRenderConfig): el navegador nunca depende
+                        // directamente de Supabase Storage. No se toca la logica editorial.
+                        const renderConfig = getProductImageRenderConfig(slot.imageUrl);
+                        return (
+                          <Image
+                            src={renderConfig.src}
+                            alt={producto?.nombre ?? `Posición ${slot.rank}`}
+                            fill
+                            unoptimized={renderConfig.unoptimized}
+                            sizes="200px"
+                            className="object-contain p-2"
+                          />
+                        );
+                      })()
+                    : null}
                 </div>
 
                 {producto ? (

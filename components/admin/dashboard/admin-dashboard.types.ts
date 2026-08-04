@@ -2,14 +2,12 @@ import type {
   AdminCustomerOption,
   AdminOrderSummary,
   AdminOrdersAction,
-  AdminPageData,
-  AdminProductRecord
+  AdminPageData
 } from "@/lib/types";
 
 export type AdminView =
   | "home"
   | "agenda"
-  | "stock"
   | "cobros"
   | "clientes"
   | "reportes";
@@ -39,11 +37,6 @@ export type OrderModalState =
  * AdminOrdersAction en lib/types.ts.
  */
 export type OrderSectionActionKey = AdminOrdersAction;
-
-export type ProductModalState =
-  | { mode: "create" }
-  | { mode: "edit"; product: AdminProductRecord }
-  | null;
 
 export type StockDraft = {
   stock: string;

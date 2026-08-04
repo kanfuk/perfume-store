@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import Image from "next/image";
 import { FlaskConical } from "lucide-react";
+import {
+  IMAGE_LOAD_RETRY_DELAY_MS,
+  INITIAL_IMAGE_LOAD_STATE,
+  MAX_IMAGE_LOAD_RETRIES,
+  imageLoadReducer
+} from "@/lib/product-image-fallback";
+import { getProductImageRenderConfig } from "@/lib/product-image-render";
 
 type ProductImageProps = {
   src?: string;
@@ -29,12 +36,25 @@ function getInitials(value: string): string {
 }
 
 /**
- * Placeholder premium para productos sin fotografia propia. Nunca inventa
- * una foto real: muestra un icono de frasco estilizado, marca + iniciales, y
- * un aviso discreto de "Imagen próximamente" -- el producto sigue siendo
- * comprable, no se oculta del catalogo.
+ * ProductImage es un wrapper delgado sin estado propio: su UNICA
+ * responsabilidad es forzar un remount COMPLETO de ProductImageInstance
+ * (incluido su estado de error/reintentos) cada vez que `src` cambia.
+ *
+ * Un consumidor (ej. ImageCellEditor en CatalogControlCenter) puede
+ * renderizar `<ProductImage>` en la MISMA posicion del arbol para dos `src`
+ * distintos dentro de la misma rama de un ternario (preview local en blob: ->
+ * URL real ya subida). Sin una key derivada de `src` en ESTE nivel, React
+ * reutilizaria la instancia y arrastraria a la URL nueva el estado de error
+ * de la URL anterior -- por eso la key vive aqui, en el wrapper, y no en
+ * un elemento interno (una key en el <Image> hijo no evita que React
+ * reutilice ProductImageInstance en si, que es donde vive el estado).
  */
-export function ProductImage({
+export function ProductImage(props: ProductImageProps) {
+  const key = props.src?.trim() || "__empty__";
+  return <ProductImageInstance key={key} {...props} />;
+}
+
+function ProductImageInstance({
   src,
   alt,
   sizes,
@@ -43,10 +63,49 @@ export function ProductImage({
   brand,
   compact = false
 }: ProductImageProps) {
-  const [hasError, setHasError] = useState(false);
+  const [state, dispatch] = useReducer(imageLoadReducer, INITIAL_IMAGE_LOAD_STATE);
+  const timerRef = useRef<number | null>(null);
   const initials = getInitials(brand || alt);
 
-  if (!src || hasError) {
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const trimmedSrc = src?.trim();
+  const showFallback = !trimmedSrc || state.failed;
+
+  function handleError() {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (state.attempt >= MAX_IMAGE_LOAD_RETRIES) {
+      // Ya se agotaron los reintentos: no hay nada mas que esperar, se rinde de inmediato.
+      dispatch({ type: "error" });
+      return;
+    }
+    // Espera breve y acotada antes de reintentar (posible propagacion de
+    // CDN/Storage todavia en curso). El timer se limpia si el componente se
+    // desmonta o si llega un onLoad/onError posterior antes de que dispare.
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      dispatch({ type: "error" });
+    }, IMAGE_LOAD_RETRY_DELAY_MS);
+  }
+
+  function handleLoad() {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    dispatch({ type: "success" });
+  }
+
+  if (showFallback) {
     if (compact) {
       return (
         <div
@@ -83,14 +142,23 @@ export function ProductImage({
     );
   }
 
+  // `showFallback` ya fue false: `trimmedSrc` es una URL definida (no vacia).
+  // getProductImageRenderConfig es la MISMA funcion que usa preloadImage
+  // (ver CatalogControlCenter/AddPerfumeModal): nunca se verifica una URL y
+  // se renderiza otra distinta.
+  const renderConfig = getProductImageRenderConfig(trimmedSrc as string);
+
   return (
     <Image
-      src={src}
+      key={state.attempt}
+      src={renderConfig.src}
       alt={alt}
       fill
+      unoptimized={renderConfig.unoptimized}
       className={className}
       sizes={sizes}
-      onError={() => setHasError(true)}
+      onError={handleError}
+      onLoad={handleLoad}
     />
   );
 }

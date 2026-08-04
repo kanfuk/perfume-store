@@ -73,6 +73,47 @@ export type ProductoAdminInput = {
   tipoProducto?: string;
 };
 
+/**
+ * Mapeo compartido Producto (dominio) -> AdminProductRecord (forma que
+ * consume el admin). Extraido para que `obtenerCatalogoAdmin` y
+ * `obtenerProductoAdminPorId` devuelvan EXACTAMENTE la misma forma para el
+ * mismo producto -- el cliente puede reemplazar un registro de la lista con
+ * el resultado de una consulta individual sin perder ni inventar campos.
+ */
+function mapProductoToAdminRecord(domainProduct: Producto): AdminProductRecord {
+  const visual = getProductVisualMeta(domainProduct);
+
+  return {
+    id: domainProduct.id,
+    sku: domainProduct.sku,
+    nombre: domainProduct.nombre,
+    marca: domainProduct.marca,
+    contenido: domainProduct.contenido,
+    descripcion: domainProduct.descripcion,
+    precioVenta: domainProduct.precioVenta,
+    precioAnterior: domainProduct.precioAnterior,
+    imageUrl: domainProduct.imageUrl || visual.imageUrl,
+    imageStoragePath: domainProduct.imageStoragePath,
+    badgeLabel:
+      domainProduct.badgeLabel ||
+      visual.badgeLabel ||
+      domainProduct.tipoProducto ||
+      "PERFUME",
+    costoUnitario: domainProduct.costoUnitario,
+    stockActual: getUnifiedProductStock(domainProduct),
+    stockAgenda: getUnifiedProductStock(domainProduct),
+    stockReservado: domainProduct.stockReservado,
+    stockMinimo: domainProduct.stockMinimo,
+    activo: domainProduct.activo,
+    esTop: domainProduct.esTop,
+    esOfertaSemana: domainProduct.esOfertaSemana,
+    ordenDestacado: domainProduct.ordenDestacado ?? undefined,
+    tipoProducto: domainProduct.tipoProducto,
+    utilidadUnitaria: domainProduct.calcularUtilidadUnitaria(),
+    modoPrecio: domainProduct.modoPrecio
+  };
+}
+
 export class ProductoService {
   constructor(private readonly productRepository: ProductRepository) {}
 
@@ -144,41 +185,20 @@ export class ProductoService {
 
   async obtenerCatalogoAdmin(): Promise<AdminProductRecord[]> {
     const products = await this.productRepository.buscarTodosProductos();
+    return products.map((product) => mapProductoToAdminRecord(new Producto(product)));
+  }
 
-    return products.map((product) => {
-      const domainProduct = new Producto(product);
-      const visual = getProductVisualMeta(domainProduct);
-
-      return {
-        id: domainProduct.id,
-        sku: domainProduct.sku,
-        nombre: domainProduct.nombre,
-        marca: domainProduct.marca,
-        contenido: domainProduct.contenido,
-        descripcion: domainProduct.descripcion,
-        precioVenta: domainProduct.precioVenta,
-        precioAnterior: domainProduct.precioAnterior,
-        imageUrl: domainProduct.imageUrl || visual.imageUrl,
-        imageStoragePath: domainProduct.imageStoragePath,
-        badgeLabel:
-          domainProduct.badgeLabel ||
-          visual.badgeLabel ||
-          domainProduct.tipoProducto ||
-          "PERFUME",
-        costoUnitario: domainProduct.costoUnitario,
-        stockActual: getUnifiedProductStock(domainProduct),
-        stockAgenda: getUnifiedProductStock(domainProduct),
-        stockReservado: domainProduct.stockReservado,
-        stockMinimo: domainProduct.stockMinimo,
-        activo: domainProduct.activo,
-        esTop: domainProduct.esTop,
-        esOfertaSemana: domainProduct.esOfertaSemana,
-        ordenDestacado: domainProduct.ordenDestacado ?? undefined,
-        tipoProducto: domainProduct.tipoProducto,
-        utilidadUnitaria: domainProduct.calcularUtilidadUnitaria(),
-        modoPrecio: domainProduct.modoPrecio
-      };
-    });
+  /**
+   * Version de un solo producto de `obtenerCatalogoAdmin`, con el MISMO
+   * mapeo (misma forma AdminProductRecord). La usa el endpoint de imagen
+   * para devolver al cliente el producto completo y actualizado tras
+   * subir/reemplazar/eliminar una imagen, en vez de que el cliente
+   * reconstruya el registro a mano con solo 2 campos.
+   */
+  async obtenerProductoAdminPorId(id: string): Promise<AdminProductRecord | null> {
+    const product = await this.productRepository.buscarProductoPorId(id);
+    if (!product) return null;
+    return mapProductoToAdminRecord(new Producto(product));
   }
 
   /**
@@ -261,7 +281,7 @@ export class ProductoService {
       tipoProducto: input.tipoProducto ?? "simple"
     });
 
-    await this.productRepository.crearProducto({
+    const creado = await this.productRepository.crearProducto({
       id: product.id,
       sku: product.sku,
       nombre: product.nombre,
@@ -283,6 +303,11 @@ export class ProductoService {
       ordenDestacado: product.ordenDestacado,
       tipoProducto: product.tipoProducto
     });
+
+    // Se devuelve el producto creado (con su id real) para que el llamador
+    // (formulario manual "Agregar perfume") pueda subir la imagen despues,
+    // ya que el pipeline de imagenes exige un productId existente.
+    return creado;
   }
 
   async actualizarProductoAdmin(id: string, input: ProductoAdminInput) {
