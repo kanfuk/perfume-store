@@ -8,8 +8,9 @@ const { validateTrustedOrigin, validateJsonRequest, validateMultipartRequest } =
   validateJsonRequest: vi.fn((): Response | null => null),
   validateMultipartRequest: vi.fn((): Response | null => null)
 }));
-const { asignarImagenProducto } = vi.hoisted(() => ({
-  asignarImagenProducto: vi.fn()
+const { asignarImagenProducto, obtenerProductoAdminPorId } = vi.hoisted(() => ({
+  asignarImagenProducto: vi.fn(),
+  obtenerProductoAdminPorId: vi.fn()
 }));
 const { reemplazarImagenProducto, eliminarImagenProducto } = vi.hoisted(() => ({
   reemplazarImagenProducto: vi.fn(),
@@ -23,7 +24,7 @@ vi.mock("@/lib/http-security", () => ({
   validateMultipartRequest
 }));
 vi.mock("@/services/productoService", () => ({
-  createProductoService: () => ({ asignarImagenProducto })
+  createProductoService: () => ({ asignarImagenProducto, obtenerProductoAdminPorId })
 }));
 vi.mock("@/services/productImageService", async () => {
   const actual = await vi.importActual<typeof import("@/services/productImageService")>(
@@ -35,6 +36,7 @@ vi.mock("@/services/productImageService", async () => {
   };
 });
 
+import * as ImageRoute from "@/app/api/admin/products/[productId]/image/route";
 import { DELETE, PATCH, POST } from "@/app/api/admin/products/[productId]/image/route";
 import { ProductImageServiceError } from "@/services/productImageService";
 
@@ -75,10 +77,44 @@ const IMAGE_RESULT = {
   width: 800,
   height: 600,
   format: "webp" as const,
-  size: 12345
+  size: 12345,
+  producto: { id: "producto-1", imageUrl: "https://storage.example.com/product-images/products/producto-1/abc.webp", imageStoragePath: "products/producto-1/abc.webp" },
+  persisted: true as const,
+  correlationId: "11111111-1111-4111-8111-111111111111"
+};
+
+const ADMIN_RECORD = {
+  id: "producto-1",
+  sku: "SKU-1",
+  nombre: "Perfume de prueba",
+  marca: "Marca Test",
+  contenido: "100ML",
+  precioVenta: 20000,
+  costoUnitario: 10000,
+  imageUrl: IMAGE_RESULT.displayUrl,
+  imageStoragePath: IMAGE_RESULT.storagePath,
+  badgeLabel: "PERFUME",
+  stockActual: 5,
+  stockAgenda: 5,
+  stockMinimo: 0,
+  activo: true,
+  esTop: false,
+  esOfertaSemana: false,
+  tipoProducto: "simple",
+  utilidadUnitaria: 10000,
+  modoPrecio: "manual"
 };
 
 describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
+  it(
+    "declara runtime Node.js explicito (usa Buffer/Sharp/Supabase Storage, incompatibles con Edge) " +
+      "y dynamic force-dynamic (depende de la sesion admin y del cuerpo de cada peticion)",
+    () => {
+      expect(ImageRoute.runtime).toBe("nodejs");
+      expect(ImageRoute.dynamic).toBe("force-dynamic");
+    }
+  );
+
   beforeEach(() => {
     isAdminAuthenticated.mockClear();
     isAdminAuthenticated.mockResolvedValue(true);
@@ -94,6 +130,8 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
     reemplazarImagenProducto.mockResolvedValue(IMAGE_RESULT);
     eliminarImagenProducto.mockReset();
     eliminarImagenProducto.mockResolvedValue(undefined);
+    obtenerProductoAdminPorId.mockReset();
+    obtenerProductoAdminPorId.mockResolvedValue(ADMIN_RECORD);
   });
 
   describe("PATCH (URL avanzada, sin cambios de contrato)", () => {
@@ -211,9 +249,76 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       expect(response.status).toBe(201);
       expect(response.headers.get("Cache-Control")).toBe("no-store");
       const body = await response.json();
-      expect(body).toEqual({ ok: true, image: IMAGE_RESULT });
-      expect(reemplazarImagenProducto).toHaveBeenCalledWith("producto-1", expect.any(Buffer));
+      expect(body).toEqual({
+        ok: true,
+        persisted: true,
+        product: ADMIN_RECORD,
+        imageStoragePath: IMAGE_RESULT.storagePath,
+        imageUrl: IMAGE_RESULT.displayUrl,
+        correlationId: IMAGE_RESULT.correlationId,
+        image: IMAGE_RESULT
+      });
+      expect(reemplazarImagenProducto).toHaveBeenCalledWith(
+        "producto-1",
+        expect.any(Buffer),
+        expect.any(String)
+      );
     });
+
+    it("la respuesta de exito incluye el correlationId de la subida (para correlacionar con logs server-side)", async () => {
+      const formData = new FormData();
+      formData.append("file", makeImageFile());
+      const response = await POST(multipartRequest(formData), ctx());
+      const body = await response.json();
+      expect(body.correlationId).toBe(IMAGE_RESULT.correlationId);
+    });
+
+    it("la respuesta de error incluye un correlationId (aunque el servicio no haya generado uno propio)", async () => {
+      reemplazarImagenProducto.mockRejectedValueOnce(
+        new ProductImageServiceError("No se encontró el producto.")
+      );
+      const formData = new FormData();
+      formData.append("file", makeImageFile());
+      const response = await POST(multipartRequest(formData), ctx());
+      const body = await response.json();
+      expect(typeof body.correlationId).toBe("string");
+      expect(body.correlationId.length).toBeGreaterThan(0);
+    });
+
+    it("la respuesta de error propaga el code del servicio cuando esta presente (ej. STORAGE_ROUNDTRIP_MISMATCH)", async () => {
+      reemplazarImagenProducto.mockRejectedValueOnce(
+        new ProductImageServiceError("La imagen se subió pero quedó corrupta en el almacenamiento. Intenta nuevamente.", {
+          code: "STORAGE_ROUNDTRIP_MISMATCH",
+          correlationId: "22222222-2222-4222-8222-222222222222"
+        })
+      );
+      const formData = new FormData();
+      formData.append("file", makeImageFile());
+      const response = await POST(multipartRequest(formData), ctx());
+      const body = await response.json();
+      expect(body.code).toBe("STORAGE_ROUNDTRIP_MISMATCH");
+      expect(body.correlationId).toBe("22222222-2222-4222-8222-222222222222");
+    });
+
+    it(
+      "contrato exigido: la respuesta trae ok, persisted, product (releido de forma independiente vía " +
+        "obtenerProductoAdminPorId, misma forma que la lista del catalogo admin), imageStoragePath e imageUrl",
+      async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        const response = await POST(multipartRequest(formData), ctx());
+        const body = await response.json();
+
+        expect(body.ok).toBe(true);
+        expect(body.persisted).toBe(true);
+        expect(body.imageStoragePath).toBe(IMAGE_RESULT.storagePath);
+        expect(body.imageUrl).toBe(IMAGE_RESULT.displayUrl);
+        expect(body.product).toEqual(ADMIN_RECORD);
+        expect(body.product.imageStoragePath).toBe(body.imageStoragePath);
+        expect(body.product.imageUrl).toBe(body.imageUrl);
+        expect(obtenerProductoAdminPorId).toHaveBeenCalledWith("producto-1");
+      }
+    );
   });
 
   describe("DELETE (eliminar, idempotente)", () => {
@@ -230,6 +335,20 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       expect(first.status).toBe(200);
       expect(second.status).toBe(200);
       expect(eliminarImagenProducto).toHaveBeenCalledTimes(2);
+    });
+
+    it("200 incluye el producto releido (sin imagen) para que el cliente reemplace el registro local completo", async () => {
+      const sinImagen = { ...ADMIN_RECORD, imageUrl: "", imageStoragePath: "" };
+      obtenerProductoAdminPorId.mockResolvedValueOnce(sinImagen);
+      const response = await DELETE(deleteRequest(), ctx());
+      const body = await response.json();
+      expect(body).toEqual({
+        ok: true,
+        persisted: true,
+        product: sinImagen,
+        imageStoragePath: "",
+        imageUrl: ""
+      });
     });
 
     it("404 si el producto no existe", async () => {

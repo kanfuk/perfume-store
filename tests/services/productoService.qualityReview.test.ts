@@ -198,6 +198,156 @@ describe("ProductoService - asistente de calidad (Fase 2B.7)", () => {
     expect(updated?.imageUrl).toBe("/images/perfumes/top12/top-03-carolina-herrera-la-bomba.webp"); // preservado
   });
 
+  it(
+    "EXCLUDE_FIRST: una fila excluida no termina creada (Fase D, matriz de acciones CSV -- " +
+      "cubre el contrato completo CSV -> preview -> finding -> decision -> final-plan -> confirmacion)",
+    async () => {
+      const repository = new FullProductRepositoryStub();
+      const service = new ProductoService(repository);
+
+      const buffer = supplierCsv(
+        "La Bomba;Carolina Herrera;80ML;58000",
+        "La Bomba;Carolina Herrera;80ML;62000"
+      );
+      const review = await service.revisarCalidadImportacionProveedor(buffer);
+      const duplicate = review.findings.find((f) => f.type === "EXACT_DUPLICATE")!;
+      const decisions: QualityDecision[] = [{ findingId: duplicate.id, optionId: "EXCLUDE_SECOND" }];
+
+      const { applied } = await service.construirPlanConDecisiones(buffer, 35, decisions);
+      expect(applied.plan).toHaveLength(1);
+      expect(applied.plan[0].costoUnitario).toBe(58000); // sobrevive la primera fila (58000), no la excluida (62000)
+
+      const finalPlan = applied.plan.map((row) => ({ ...row, rowNumber: row.rowNumbers[0] }));
+      const result = await service.confirmarImportacionProveedor(finalPlan);
+      expect(result.creados).toBe(1);
+
+      const allProducts = await repository.buscarTodosProductos();
+      expect(allProducts).toHaveLength(1);
+      expect(allProducts[0].costoUnitario).toBe(58000);
+    }
+  );
+
+  it("MISSING_NAME + EDIT_NAME: la fila creada usa el nombre editado, no queda bloqueada", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+
+    const buffer = supplierCsv(";Paco Rabanne;50ML;30000");
+    const review = await service.revisarCalidadImportacionProveedor(buffer);
+    const finding = review.findings.find((f) => f.type === "MISSING_NAME")!;
+    expect(finding.severity).toBe("BLOCKER");
+
+    const decisions: QualityDecision[] = [
+      { findingId: finding.id, optionId: "EDIT_NAME", textValue: "Invictus" }
+    ];
+    const { applied } = await service.construirPlanConDecisiones(buffer, 35, decisions);
+    expect(applied.unresolvedBlockers).toHaveLength(0);
+    expect(applied.plan[0].nombre).toBe("Invictus");
+
+    const finalPlan = applied.plan.map((row) => ({ ...row, rowNumber: row.rowNumbers[0] }));
+    await service.confirmarImportacionProveedor(finalPlan);
+    const created = await repository.buscarProductoPorSku(applied.plan[0].sku);
+    expect(created?.nombre).toBe("Invictus");
+  });
+
+  it("MISSING_BRAND + SET_BRAND_MANUAL: la fila creada usa la marca escrita a mano", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+
+    const buffer = supplierCsv("1 Million;;100ML;28000");
+    const review = await service.revisarCalidadImportacionProveedor(buffer);
+    const finding = review.findings.find((f) => f.type === "MISSING_BRAND")!;
+
+    const decisions: QualityDecision[] = [
+      { findingId: finding.id, optionId: "SET_BRAND_MANUAL", textValue: "Paco Rabanne" }
+    ];
+    const { applied } = await service.construirPlanConDecisiones(buffer, 35, decisions);
+    expect(applied.unresolvedBlockers).toHaveLength(0);
+    expect(applied.plan[0].marca).toBe("Paco Rabanne");
+
+    const finalPlan = applied.plan.map((row) => ({ ...row, rowNumber: row.rowNumbers[0] }));
+    await service.confirmarImportacionProveedor(finalPlan);
+    const created = await repository.buscarProductoPorSku(applied.plan[0].sku);
+    expect(created?.marca).toBe("Paco Rabanne");
+  });
+
+  it("MISSING_CONTENT + EDIT_CONTENT: la fila creada usa el contenido corregido, no queda bloqueada", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+
+    const buffer = supplierCsv("1 Million;Paco Rabanne;;28000");
+    const review = await service.revisarCalidadImportacionProveedor(buffer);
+    const finding = review.findings.find((f) => f.type === "MISSING_CONTENT")!;
+    expect(finding.severity).toBe("BLOCKER");
+
+    const decisions: QualityDecision[] = [
+      { findingId: finding.id, optionId: "EDIT_CONTENT", textValue: "100ML" }
+    ];
+    const { applied } = await service.construirPlanConDecisiones(buffer, 35, decisions);
+    expect(applied.unresolvedBlockers).toHaveLength(0);
+    expect(applied.plan[0].contenido).toBe("100ML");
+
+    const finalPlan = applied.plan.map((row) => ({ ...row, rowNumber: row.rowNumbers[0] }));
+    await service.confirmarImportacionProveedor(finalPlan);
+    const created = await repository.buscarProductoPorSku(applied.plan[0].sku);
+    expect(created?.contenido).toBe("100ML");
+  });
+
+  it("PRICE_ANOMALY (BLOCKER, costo invalido) + EDIT_COST: usa el costo corregido, no queda bloqueada", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+
+    const buffer = supplierCsv("Sauvage;Dior;100ML;0");
+    const review = await service.revisarCalidadImportacionProveedor(buffer);
+    const finding = review.findings.find((f) => f.type === "PRICE_ANOMALY" && f.severity === "BLOCKER")!;
+
+    const decisions: QualityDecision[] = [
+      { findingId: finding.id, optionId: "EDIT_COST", numberValue: 40000 }
+    ];
+    const { applied } = await service.construirPlanConDecisiones(buffer, 35, decisions);
+    expect(applied.unresolvedBlockers).toHaveLength(0);
+    expect(applied.plan[0].costoUnitario).toBe(40000);
+  });
+
+  it(
+    "BRAND_INCONSISTENCY + USE_SUGGESTED_BRAND con applyToAllInFile: unifica la marca " +
+      "en todas las filas con la misma variante detectada, no solo en la fila del hallazgo",
+    async () => {
+      const repository = new FullProductRepositoryStub();
+      const service = new ProductoService(repository);
+
+      const buffer = supplierCsv(
+        "Black Opium;Yves Saint Laurent;30ML;20000",
+        "Libre;Ives Saint Laurent;50ML;25000"
+      );
+      const review = await service.revisarCalidadImportacionProveedor(buffer);
+      const finding = review.findings.find((f) => f.type === "BRAND_INCONSISTENCY")!;
+      expect(finding.rowNumbers).toHaveLength(2);
+
+      const decisions: QualityDecision[] = [
+        {
+          findingId: finding.id,
+          optionId: "USE_SUGGESTED_BRAND",
+          applyToAllInFile: true
+        }
+      ];
+      const { applied } = await service.construirPlanConDecisiones(buffer, 35, decisions);
+      expect(applied.unresolvedBlockers).toHaveLength(0);
+      const brands = new Set(applied.plan.map((row) => row.marca));
+      expect(brands.size).toBe(1); // ambas filas terminan con la misma marca
+    }
+  );
+
+  it("hallazgo BLOCKER sin decision: unresolvedBlockers no queda vacio, y el plan queda vacio (no crea nada a medias)", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+
+    const buffer = supplierCsv(";Paco Rabanne;50ML;30000");
+    const { applied } = await service.construirPlanConDecisiones(buffer, 35, []);
+
+    expect(applied.unresolvedBlockers.length).toBeGreaterThan(0);
+    expect(applied.plan).toHaveLength(0);
+  });
+
   it("obtenerProductosParaRevisionCalidad omite productos sin SKU", async () => {
     const repository = new FullProductRepositoryStub();
     seedExistingProduct(repository);

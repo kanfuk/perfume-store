@@ -1,3 +1,16 @@
+import {
+  Boxes,
+  CalendarRange,
+  ClipboardList,
+  Home,
+  LayoutGrid,
+  Settings,
+  ShoppingBag,
+  UploadCloud,
+  UserRound,
+  Wrench,
+  type LucideIcon
+} from "lucide-react";
 import type {
   AdminView,
   ReportRangePreset,
@@ -31,11 +44,41 @@ export const reportSalesOptions: Array<{ value: ReportSalesFilter; label: string
 export const ADMIN_VIEW_ROUTES: Record<AdminView, string> = {
   home: "/admin",
   agenda: "/admin/pedidos",
-  stock: "/admin/stock",
   cobros: "/admin/ventas",
   clientes: "/admin/clientes",
   reportes: "/admin/reportes"
 };
+
+export type AdminNavItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: LucideIcon;
+};
+
+/**
+ * Fuente unica de la navegacion principal: la reutilizan la barra inferior
+ * (movil) y la barra compacta (escritorio) para que exista un solo lugar
+ * donde agregar, quitar o reordenar destinos. Todos son rutas reales
+ * (<Link>): ninguno depende de cambiar `view` en el cliente para decidir que
+ * mostrar, asi se evita el salto entre pantallas al navegar.
+ */
+export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
+  { id: "home", label: "Inicio", href: "/admin", icon: Home },
+  { id: "agenda", label: "Pedidos", href: "/admin/pedidos", icon: ClipboardList },
+  { id: "venta", label: "Venta", href: "/admin/venta-directa", icon: ShoppingBag },
+  { id: "stock", label: "Stock", href: "/admin/catalogo/stock", icon: Boxes }
+];
+
+/** "Más": mismas secciones secundarias para el menú de escritorio y la hoja móvil. */
+export const ADMIN_MORE_NAV: AdminNavItem[] = [
+  { id: "catalogo", label: "Catálogo", href: "/admin/catalogo", icon: LayoutGrid },
+  { id: "clientes", label: "Clientes", href: "/admin/clientes", icon: UserRound },
+  { id: "reportes", label: "Reportes", href: "/admin/reportes", icon: CalendarRange },
+  { id: "importar", label: "Importar catálogo", href: "/admin/importar-catalogo", icon: UploadCloud },
+  { id: "configuracion", label: "Configuración", href: "/admin/configuracion", icon: Settings },
+  { id: "mantenimiento", label: "Mantenimiento", href: "/admin/mantenimiento", icon: Wrench }
+];
 
 export const PENDING_ORDERS_SECTION_ID = "agenda-pendientes";
 export const SCHEDULED_ORDERS_SECTION_ID = "agenda-agendados";
@@ -56,11 +99,6 @@ export const ADMIN_VIEW_META: Record<
     title: "Pedidos",
     description:
       "Revisa pendientes, agenda entregas y vuelve al inicio cuando termines."
-  },
-  stock: {
-    title: "Stock",
-    description:
-      "Ajusta catalogo, stock, precios e imagenes desde una vista propia y ordenada."
   },
   cobros: {
     title: "Ventas",

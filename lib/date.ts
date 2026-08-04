@@ -89,6 +89,22 @@ export function getChileCurrentMonthRange(reference = new Date()) {
   };
 }
 
+/** Semana lunes a domingo que contiene `reference`, en horario de Chile. */
+export function getChileCurrentWeekRange(reference = new Date()) {
+  const today = getChileTodayInputValue(reference);
+  const date = parseDateInputAsLocalNoon(today);
+  const isoWeekday = date.getDay() === 0 ? 7 : date.getDay(); // lunes=1 ... domingo=7
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - (isoWeekday - 1));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  return {
+    from: formatDateInput(monday),
+    to: formatDateInput(sunday)
+  };
+}
+
 export function parseDateInputAsLocalNoon(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 

@@ -77,6 +77,63 @@ describe("Estado de carga de Stock no produce salto de diseño", () => {
   });
 });
 
+describe("AdminDashboard ya no monta un panel de Stock legado (causa raiz real del flash)", () => {
+  const adminDashboardSource = readFileSync("components/admin/AdminDashboard.tsx", "utf8");
+  const adminDashboardTypesSource = readFileSync(
+    "components/admin/dashboard/admin-dashboard.types.ts",
+    "utf8"
+  );
+  const adminNavSource = readFileSync("components/admin/dashboard/AdminNav.tsx", "utf8");
+  const adminDashboardConstantsSource = readFileSync(
+    "components/admin/dashboard/admin-dashboard.constants.ts",
+    "utf8"
+  );
+
+  it(
+    "QA manual demostro que el flash real no era de /admin/catalogo/stock: " +
+      "AdminDashboard.tsx (montado en /admin, /admin/pedidos, etc.) tenia un panel " +
+      "completo '{view === \"stock\"}' (cabecera, buscador, tarjetas) que se " +
+      "renderizaba de inmediato al hacer click en 'Stock' (navigateToView hace " +
+      "setView(\"stock\") de forma sincronica ANTES de que router.push complete " +
+      "la navegacion a /admin/catalogo/stock), y esa pantalla vieja SI se veia " +
+      "durante la transicion. El fix de skeleton anterior no podia arreglar esto " +
+      "porque el problema ocurria en OTRA pagina, antes de llegar a la ruta corregida.",
+    () => {
+      expect(adminDashboardSource).not.toMatch(/\{view === ["']stock["']/);
+    }
+  );
+
+  it("'stock' ya no es un AdminView valido: no hay panel legado que un futuro cambio pueda volver a montar", () => {
+    expect(adminDashboardTypesSource).not.toMatch(/"stock"/);
+  });
+
+  it("ningun trigger llama navigateToView(\"stock\"): Stock navega siempre por <Link> real", () => {
+    expect(adminDashboardSource).not.toMatch(/navigateToView\(\s*["']stock["']\s*\)/);
+  });
+
+  it("la navegacion principal apunta a la ruta canonica /admin/catalogo/stock directamente (no a /admin/stock)", () => {
+    expect(adminDashboardConstantsSource).toMatch(
+      /id:\s*["']stock["'][^}]*href:\s*["']\/admin\/catalogo\/stock["']/s
+    );
+  });
+
+  it("AdminNav usa <Link> real para los destinos principales, nunca onClick + setState para decidir la vista", () => {
+    const primaryNavBlock = adminNavSource.slice(
+      adminNavSource.indexOf("ADMIN_PRIMARY_NAV.map"),
+      adminNavSource.indexOf("ADMIN_PRIMARY_NAV.map") + 600
+    );
+    expect(primaryNavBlock).toMatch(/<Link/);
+    expect(primaryNavBlock).not.toMatch(/onClick/);
+  });
+
+  it("acceso directo y navegacion desde el menu producen el mismo resultado: ambos son la misma <Link href> a la ruta canonica", () => {
+    // AdminNav (menu) y un acceso directo (escribir la URL) llegan al mismo
+    // sitio porque ambos son, literalmente, la misma URL -- no hay un estado
+    // de cliente intermedio que puede divergir entre ambos caminos.
+    expect(adminDashboardConstantsSource).toMatch(/href:\s*["']\/admin\/catalogo\/stock["']/);
+  });
+});
+
 describe("Una sola cabecera para toda la seccion de catalogo", () => {
   it("el titulo 'Gestión de catálogo' aparece una unica vez, en el shell compartido", () => {
     const occurrencesInShell = (catalogShellSource.match(/>Gestión de catálogo</g) ?? []).length;

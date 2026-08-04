@@ -14,10 +14,12 @@ import {
   isManagedProductImageStoragePath
 } from "@/lib/product-image-config";
 import { ProductImageProcessingError, processProductImage } from "@/lib/product-image-processing";
+import { hasValidWebpHeader } from "@/lib/product-image-integrity";
 import type { ProductImageRepository } from "@/repositories/productImageRepository";
 import { getProductImageRepository } from "@/repositories/productImageRepository";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
+import type { ProductoProps } from "@/domain/Producto";
 
 export type ProductImageResult = {
   storagePath: string;
@@ -26,9 +28,25 @@ export type ProductImageResult = {
   height: number;
   format: "webp";
   size: number;
+  /** Producto releido de forma independiente DESPUES de actualizar, no el resultado del propio UPDATE. */
+  producto: ProductoProps;
+  /** Siempre true al devolver: si la verificacion post-escritura falla, se lanza un error en su lugar. */
+  persisted: true;
+  /** Identificador de esta subida, para correlacionar con logs server-side (nunca expone hashes ni bytes). */
+  correlationId: string;
 };
 
-export class ProductImageServiceError extends Error {}
+export class ProductImageServiceError extends Error {
+  readonly code?: string;
+  readonly correlationId?: string;
+
+  constructor(message: string, options?: { code?: string; correlationId?: string }) {
+    super(message);
+    this.name = "ProductImageServiceError";
+    this.code = options?.code;
+    this.correlationId = options?.correlationId;
+  }
+}
 
 export class ProductImageService {
   constructor(
@@ -36,11 +54,60 @@ export class ProductImageService {
     private readonly productImageRepository: ProductImageRepository
   ) {}
 
-  async reemplazarImagenProducto(productId: string, fileBuffer: Buffer): Promise<ProductImageResult> {
+  /**
+   * Verificacion binaria post-subida: descarga inmediatamente el objeto que
+   * se acaba de subir y confirma que sus bytes son EXACTAMENTE los mismos
+   * que produjo Sharp (mismo tamano, mismo contenido byte a byte) y que la
+   * cabecera RIFF/WEBP sigue siendo valida. Si algo no coincide, el objeto
+   * recien subido se borra y se lanza un error -- la DB nunca llega a
+   * actualizarse con una ruta que apunta a un archivo corrupto o distinto
+   * del que se proceso.
+   */
+  private async verificarIntegridadSubida(
+    path: string,
+    expected: Buffer,
+    correlationId: string
+  ): Promise<void> {
+    let downloaded: Buffer;
+
+    try {
+      downloaded = await this.productImageRepository.descargar(path);
+    } catch {
+      await this.productImageRepository.eliminar(path).catch(() => {});
+      throw new ProductImageServiceError(
+        "La imagen se subió pero no se pudo leer de vuelta para verificarla. Intenta nuevamente.",
+        { code: "STORAGE_DOWNLOAD_FAILED", correlationId }
+      );
+    }
+
+    if (!hasValidWebpHeader(downloaded)) {
+      await this.productImageRepository.eliminar(path).catch(() => {});
+      throw new ProductImageServiceError(
+        "La imagen se subió pero quedó corrupta en el almacenamiento. Intenta nuevamente.",
+        { code: "INVALID_STORAGE_WEBP", correlationId }
+      );
+    }
+
+    const bytesCoinciden = downloaded.length === expected.length && downloaded.equals(expected);
+
+    if (!bytesCoinciden) {
+      await this.productImageRepository.eliminar(path).catch(() => {});
+      throw new ProductImageServiceError(
+        "La imagen se subió pero quedó corrupta en el almacenamiento. Intenta nuevamente.",
+        { code: "STORAGE_ROUNDTRIP_MISMATCH", correlationId }
+      );
+    }
+  }
+
+  async reemplazarImagenProducto(
+    productId: string,
+    fileBuffer: Buffer,
+    correlationId: string = crypto.randomUUID()
+  ): Promise<ProductImageResult> {
     const producto = await this.productRepository.buscarProductoPorId(productId);
 
     if (!producto) {
-      throw new ProductImageServiceError("No se encontró el producto.");
+      throw new ProductImageServiceError("No se encontró el producto.", { correlationId });
     }
 
     let processed;
@@ -49,9 +116,16 @@ export class ProductImageService {
       processed = await processProductImage(fileBuffer);
     } catch (error) {
       if (error instanceof ProductImageProcessingError) {
-        throw new ProductImageServiceError(error.message);
+        throw new ProductImageServiceError(error.message, { code: error.code, correlationId });
       }
-      throw new ProductImageServiceError("No fue posible procesar la imagen.");
+      throw new ProductImageServiceError("No fue posible procesar la imagen.", { correlationId });
+    }
+
+    if (!hasValidWebpHeader(processed.buffer)) {
+      throw new ProductImageServiceError(
+        "No fue posible procesar la imagen: la salida no tiene un formato WebP válido.",
+        { code: "INVALID_SHARP_WEBP", correlationId }
+      );
     }
 
     const path = buildProductImageStoragePath(productId, crypto.randomUUID());
@@ -64,9 +138,12 @@ export class ProductImageService {
       });
     } catch {
       throw new ProductImageServiceError(
-        "No fue posible guardar la imagen. La imagen anterior se mantuvo."
+        "No fue posible guardar la imagen. La imagen anterior se mantuvo.",
+        { code: "STORAGE_UPLOAD_FAILED", correlationId }
       );
     }
+
+    await this.verificarIntegridadSubida(path, processed.buffer, correlationId);
 
     const displayUrl = this.productImageRepository.obtenerUrlPublica(path);
     const previousPath = producto.imageStoragePath;
@@ -81,7 +158,29 @@ export class ProductImageService {
       // archivo nuevo huerfano y conservar la imagen anterior intacta.
       await this.productImageRepository.eliminar(path).catch(() => {});
       throw new ProductImageServiceError(
-        "No fue posible guardar la imagen. La imagen anterior se mantuvo."
+        "No fue posible guardar la imagen. La imagen anterior se mantuvo.",
+        { code: "DB_UPDATE_FAILED", correlationId }
+      );
+    }
+
+    // Verificacion post-escritura: antes de reportar exito, releer el
+    // producto de forma INDEPENDIENTE (no el resultado del propio UPDATE) y
+    // confirmar que la ruta persistida es exactamente la que se acaba de
+    // subir. Nunca se informa "imagen guardada" solo porque Sharp/Storage/DB
+    // no lanzaron una excepcion -- se prueba que el mismo camino de lectura
+    // que usa el resto de la app (buscarProductoPorId) ya ve el cambio.
+    let verificado: ProductoProps | null;
+    try {
+      verificado = await this.productRepository.buscarProductoPorId(productId);
+    } catch {
+      verificado = null;
+    }
+
+    if (!verificado || verificado.imageStoragePath !== path || verificado.imageUrl !== displayUrl) {
+      await this.productImageRepository.eliminar(path).catch(() => {});
+      throw new ProductImageServiceError(
+        "La imagen se subió pero no se pudo confirmar que quedó guardada. Intenta nuevamente.",
+        { code: "DB_VERIFICATION_MISMATCH", correlationId }
       );
     }
 
@@ -98,44 +197,91 @@ export class ProductImageService {
       width: processed.width,
       height: processed.height,
       format: processed.format,
-      size: processed.size
+      size: processed.size,
+      producto: verificado,
+      persisted: true,
+      correlationId
     };
   }
 
-  async asignarImagenProductoSiAusente(productId: string, fileBuffer: Buffer): Promise<ProductImageResult> {
+  async asignarImagenProductoSiAusente(
+    productId: string,
+    fileBuffer: Buffer,
+    correlationId: string = crypto.randomUUID()
+  ): Promise<ProductImageResult> {
     const producto = await this.productRepository.buscarProductoPorId(productId);
-    if (!producto) throw new ProductImageServiceError("No se encontró el producto.");
+    if (!producto) throw new ProductImageServiceError("No se encontró el producto.", { correlationId });
     if (producto.imageUrl?.trim() || producto.imageStoragePath?.trim()) {
-      throw new ProductImageServiceError("El producto ya tiene una imagen y no será reemplazada automáticamente.");
+      throw new ProductImageServiceError(
+        "El producto ya tiene una imagen y no será reemplazada automáticamente.",
+        { correlationId }
+      );
     }
 
     let processed;
     try {
       processed = await processProductImage(fileBuffer);
     } catch (error) {
-      if (error instanceof ProductImageProcessingError) throw new ProductImageServiceError(error.message);
-      throw new ProductImageServiceError("No fue posible procesar la imagen.");
+      if (error instanceof ProductImageProcessingError) {
+        throw new ProductImageServiceError(error.message, { code: error.code, correlationId });
+      }
+      throw new ProductImageServiceError("No fue posible procesar la imagen.", { correlationId });
     }
+
+    if (!hasValidWebpHeader(processed.buffer)) {
+      throw new ProductImageServiceError(
+        "No fue posible procesar la imagen: la salida no tiene un formato WebP válido.",
+        { code: "INVALID_SHARP_WEBP", correlationId }
+      );
+    }
+
     const path = buildProductImageStoragePath(productId, crypto.randomUUID());
     try {
-      await this.productImageRepository.subir({ path, buffer: processed.buffer, contentType: "image/webp" });
+      await this.productImageRepository.subir({
+        path,
+        buffer: processed.buffer,
+        contentType: "image/webp"
+      });
     } catch {
-      throw new ProductImageServiceError("No fue posible guardar la imagen. La imagen anterior se mantuvo.");
+      throw new ProductImageServiceError(
+        "No fue posible guardar la imagen. La imagen anterior se mantuvo.",
+        { code: "STORAGE_UPLOAD_FAILED", correlationId }
+      );
     }
+
+    await this.verificarIntegridadSubida(path, processed.buffer, correlationId);
+
     const displayUrl = this.productImageRepository.obtenerUrlPublica(path);
+    let updated: ProductoProps | null;
     try {
-      const updated = this.productRepository.actualizarImagenProductoSiAusente
+      updated = this.productRepository.actualizarImagenProductoSiAusente
         ? await this.productRepository.actualizarImagenProductoSiAusente(productId, { imageUrl: displayUrl, imageStoragePath: path })
         : await this.productRepository.actualizarProducto(productId, { imageUrl: displayUrl, imageStoragePath: path });
       if (!updated) {
-        throw new ProductImageServiceError("El producto ya tiene una imagen y no será reemplazada automáticamente.");
+        throw new ProductImageServiceError(
+          "El producto ya tiene una imagen y no será reemplazada automáticamente.",
+          { correlationId }
+        );
       }
     } catch (error) {
       await this.productImageRepository.eliminar(path).catch(() => {});
       if (error instanceof ProductImageServiceError) throw error;
-      throw new ProductImageServiceError("No fue posible guardar la imagen. La imagen anterior se mantuvo.");
+      throw new ProductImageServiceError(
+        "No fue posible guardar la imagen. La imagen anterior se mantuvo.",
+        { code: "DB_UPDATE_FAILED", correlationId }
+      );
     }
-    return { storagePath: path, displayUrl, width: processed.width, height: processed.height, format: processed.format, size: processed.size };
+    return {
+      storagePath: path,
+      displayUrl,
+      width: processed.width,
+      height: processed.height,
+      format: processed.format,
+      size: processed.size,
+      producto: updated,
+      correlationId,
+      persisted: true
+    };
   }
 
   async eliminarImagenProducto(productId: string): Promise<void> {

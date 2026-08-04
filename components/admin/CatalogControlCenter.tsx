@@ -10,6 +10,7 @@ import {
   Home,
   ImageOff,
   Link2,
+  Plus,
   RefreshCw,
   Sparkles,
   Trash2,
@@ -17,12 +18,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ProductImage } from "@/components/ProductImage";
+import { AddPerfumeModal } from "@/components/admin/dashboard/AddPerfumeModal";
 import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableBrands, filterAndSortProducts } from "@/lib/catalog-search";
 import { groupByFamilyKey, type GenericFamilyGroup } from "@/lib/product-families";
 import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
 import { PRODUCT_IMAGE_CONFIG, isAcceptedProductImageMimeType } from "@/lib/product-image-config";
+import { preloadImage } from "@/lib/preload-image";
+import { findProductById, productHasExpectedImage } from "@/lib/product-image-verify";
+import { getProductImageRenderConfig } from "@/lib/product-image-render";
 import type { AdminProductRecord } from "@/lib/types";
 
 type ChipFilter =
@@ -108,6 +113,21 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
   const [imageDraft, setImageDraft] = useState("");
   const [savingImage, setSavingImage] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(new Set());
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Guarda contra carreras de peticiones: `refreshCatalog` puede dispararse
+  // desde la carga inicial Y desde "Agregar perfume" (onSaved). Si una
+  // respuesta anterior llega DESPUES de una mas reciente, se descarta -- solo
+  // la ultima peticion en salir puede escribir en `products`. `mountedRef`
+  // evita ademas actualizar estado si el componente ya se desmonto.
+  const refreshRequestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Sincroniza `query` cuando `initialSearch` cambia (el buscador comun del
   // shell actualiza `?q=` sin desmontar esta pagina, ya que sigue siendo la
@@ -128,31 +148,36 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
     });
   }
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadInitial() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await fetchJson("/api/admin/products");
-        if (!cancelled) setProducts(data.products ?? []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "No fue posible cargar el catálogo.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  async function refreshCatalog() {
+    const requestId = ++refreshRequestIdRef.current;
+    setLoading(true);
+    setError("");
+    try {
+      const data = await fetchJson("/api/admin/products", { cache: "no-store" });
+      if (!mountedRef.current || refreshRequestIdRef.current !== requestId) return;
+      setProducts(data.products ?? []);
+    } catch (err) {
+      if (!mountedRef.current || refreshRequestIdRef.current !== requestId) return;
+      setError(err instanceof Error ? err.message : "No fue posible cargar el catálogo.");
+    } finally {
+      if (mountedRef.current && refreshRequestIdRef.current === requestId) setLoading(false);
     }
+  }
 
-    void loadInitial();
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial deliberada, mismo patron que el resto del proyecto
+    void refreshCatalog();
   }, []);
 
   const brands = useMemo(() => getAvailableBrands(products), [products]);
+
+  const productTypeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(["simple", ...products.map((product) => (product.tipoProducto || "simple").trim())].filter(Boolean))
+      ).sort(),
+    [products]
+  );
 
   const indicators = useMemo(
     () => ({
@@ -317,6 +342,23 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
               </Link>
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {embedded ? (
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-[#111318]">Centro de productos</h2>
+            <p className="text-sm text-[#667085]">Crea, revisa y ajusta cada perfume del catálogo.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#5434e6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4327c4] sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Agregar perfume
+          </button>
         </section>
       ) : null}
 
@@ -534,6 +576,15 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
           </>
         )}
       </section>
+
+      {showAddModal ? (
+        <AddPerfumeModal
+          existingBrands={products.map((product) => product.marca ?? "")}
+          existingTypes={productTypeOptions}
+          onClose={() => setShowAddModal(false)}
+          onSaved={() => void refreshCatalog()}
+        />
+      ) : null}
     </main>
   );
 }
@@ -582,8 +633,12 @@ function ImageCellEditor({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [visualCheckFailed, setVisualCheckFailed] = useState(false);
   const [localError, setLocalError] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  /** Datos de la ultima subida exitosa en el backend, pendientes de verificacion visual (ver verifyAndFinish). */
+  const pendingVerificationRef = useRef<{ product: AdminProductRecord; imageStoragePath: string; imageUrl: string; successMessage: string } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -602,7 +657,7 @@ function ImageCellEditor({
     if (!file) return;
 
     if (!isAcceptedProductImageMimeType(file.type)) {
-      setLocalError("Selecciona una imagen JPG, PNG o WebP.");
+      setLocalError("Selecciona una imagen JPG, PNG, WebP o AVIF.");
       return;
     }
 
@@ -617,13 +672,76 @@ function ImageCellEditor({
     setSelectedFile(null);
     setPreviewUrl("");
     setLocalError("");
+    setVisualCheckFailed(false);
+    pendingVerificationRef.current = null;
+  }
+
+  /**
+   * Verificacion real en el navegador ANTES de anunciar exito (no basta con
+   * que el POST no haya lanzado una excepcion, ya vimos que eso no garantiza
+   * que la imagen se pueda visualizar): 1) GET fresco de /api/admin/products
+   * (cache: "no-store") para confirmar que la relectura del servidor YA ve
+   * imageStoragePath/imageUrl nuevos; 2) precarga real de imageUrl con
+   * window.Image() y espera su onload real. Solo si ambos pasan se
+   * reemplaza el producto local y se cierra el editor -- si cualquiera
+   * falla, el archivo seleccionado y el editor se mantienen, y se ofrece
+   * "Reintentar visualización" sin volver a subir el archivo.
+   */
+  async function verifyAndFinish(pending: {
+    product: AdminProductRecord;
+    imageStoragePath: string;
+    imageUrl: string;
+    successMessage: string;
+  }) {
+    setVerifying(true);
+    setVisualCheckFailed(false);
+    setLocalError("");
+    try {
+      const data = await fetchJson("/api/admin/products", { cache: "no-store" });
+      const latest = findProductById<AdminProductRecord>(data.products ?? [], pending.product.id);
+
+      if (!productHasExpectedImage(latest, { imageStoragePath: pending.imageStoragePath, imageUrl: pending.imageUrl })) {
+        pendingVerificationRef.current = pending;
+        setVisualCheckFailed(true);
+        setLocalError("La imagen se guardó, pero todavía no puede visualizarse.");
+        return;
+      }
+
+      // Mismo src que renderizara ProductImage (ver getProductImageRenderConfig):
+      // nunca se verifica una URL y se renderiza otra distinta.
+      const loaded = await preloadImage(getProductImageRenderConfig(pending.imageUrl).src);
+      if (!loaded) {
+        pendingVerificationRef.current = pending;
+        setVisualCheckFailed(true);
+        setLocalError("La imagen se guardó, pero todavía no puede visualizarse.");
+        return;
+      }
+
+      onProductImageChanged(pending.product.id, latest ?? pending.product);
+      pendingVerificationRef.current = null;
+      cancelSelection();
+      feedback.success(pending.successMessage);
+    } catch (err) {
+      pendingVerificationRef.current = pending;
+      setVisualCheckFailed(true);
+      setLocalError(err instanceof Error ? err.message : "La imagen se guardó, pero todavía no puede visualizarse.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  function retryVisualCheck() {
+    if (!pendingVerificationRef.current || verifying) return;
+    void verifyAndFinish(pendingVerificationRef.current);
   }
 
   async function confirmUpload() {
     if (!selectedFile || uploading) return;
     setUploading(true);
     setLocalError("");
+    setVisualCheckFailed(false);
     const isReplace = Boolean(product.imageUrl);
+    let uploadResult: { product: AdminProductRecord; imageStoragePath: string; imageUrl: string } | null = null;
 
     try {
       const formData = new FormData();
@@ -632,16 +750,25 @@ function ImageCellEditor({
         method: "POST",
         body: formData
       });
-      onProductImageChanged(product.id, {
-        imageUrl: data.image.displayUrl,
-        imageStoragePath: data.image.storagePath
-      });
-      cancelSelection();
-      feedback.success(isReplace ? "Imagen reemplazada correctamente." : "Imagen guardada correctamente.");
+      // El endpoint devuelve el PRODUCTO COMPLETO releido de forma
+      // independiente tras la verificacion post-escritura del backend -- eso
+      // confirma persistencia en DB/Storage, pero no que el navegador ya
+      // pueda cargar la URL (ver verifyAndFinish).
+      if (!data.product || !data.imageStoragePath || !data.imageUrl) {
+        throw new Error("La imagen se guardó pero no se pudo confirmar el producto actualizado. Recarga la página.");
+      }
+      uploadResult = { product: data.product, imageStoragePath: data.imageStoragePath, imageUrl: data.imageUrl };
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "No fue posible guardar la imagen.");
     } finally {
       setUploading(false);
+    }
+
+    if (uploadResult) {
+      await verifyAndFinish({
+        ...uploadResult,
+        successMessage: isReplace ? "Imagen reemplazada correctamente." : "Imagen guardada correctamente."
+      });
     }
   }
 
@@ -659,8 +786,8 @@ function ImageCellEditor({
     setUploading(true);
     setLocalError("");
     try {
-      await fetchJson(`/api/admin/products/${product.id}/image`, { method: "DELETE" });
-      onProductImageChanged(product.id, { imageUrl: "", imageStoragePath: "" });
+      const data = await fetchJson(`/api/admin/products/${product.id}/image`, { method: "DELETE" });
+      onProductImageChanged(product.id, data.product ?? { imageUrl: "", imageStoragePath: "" });
       feedback.success("Imagen eliminada correctamente.");
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "No fue posible eliminar la imagen.");
@@ -749,20 +876,31 @@ function ImageCellEditor({
           <p className="text-[11px] text-[#98a2b3]">
             La imagen se ajustará automáticamente al formato del catálogo.
           </p>
+          {verifying ? <p className="text-[11px] font-medium text-[#5434e6]">Verificando imagen…</p> : null}
           {localError ? <p className="text-[11px] font-medium text-[#b3261e]">{localError}</p> : null}
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={confirmUpload}
-              disabled={uploading}
+              disabled={uploading || verifying}
               className="min-h-9 rounded-lg bg-[#5434e6] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
             >
-              {uploading ? "Procesando imagen…" : "Procesar y guardar"}
+              {uploading ? "Procesando imagen…" : verifying ? "Verificando imagen…" : "Procesar y guardar"}
             </button>
+            {visualCheckFailed ? (
+              <button
+                type="button"
+                onClick={retryVisualCheck}
+                disabled={verifying}
+                className="min-h-9 rounded-lg border border-[#5434e6] px-2 py-1 text-xs font-semibold text-[#5434e6] disabled:opacity-50"
+              >
+                {verifying ? "Verificando…" : "Reintentar visualización"}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={cancelSelection}
-              disabled={uploading}
+              disabled={uploading || verifying}
               className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054] disabled:opacity-50"
             >
               Cancelar

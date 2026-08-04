@@ -797,17 +797,12 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                 </p>
               ) : null}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <ChoiceButton
-                  active={paymentState === "PAGADO"}
-                  label="Pagado"
-                  onClick={() => setPaymentState("PAGADO")}
-                />
-                <ChoiceButton
-                  active={paymentState === "FIADO"}
-                  label="Fiado"
-                  onClick={() => setPaymentState("FIADO")}
-                />
+              {/* Smellme.cl no ofrece fiado como decision comercial normal (Fase E): */}
+              {/* unico estado disponible en la UI es Pagado. `paymentState` conserva */}
+              {/* el tipo "PAGADO" | "FIADO" para no romper el contrato con la RPC ni */}
+              {/* datos historicos, solo se retiro el selector. */}
+              <div className="grid gap-3">
+                <ChoiceButton active={paymentState === "PAGADO"} label="Pagado" onClick={() => setPaymentState("PAGADO")} />
               </div>
 
               {paymentState === "PAGADO" ? (

@@ -74,12 +74,12 @@ export async function POST(request: Request) {
     };
     const normalizedStock = normalizeStockValue(body.stock ?? body.stockActual ?? body.stockAgenda ?? 0);
     const productoService = createProductoService();
-    await productoService.crearProductoAdmin({
+    const product = await productoService.crearProductoAdmin({
       ...body,
       stockActual: normalizedStock,
       stockAgenda: normalizedStock
     });
-    return NextResponse.json({ ok: true }, { status: 201 });
+    return NextResponse.json({ ok: true, product }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       {

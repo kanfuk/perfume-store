@@ -10,6 +10,16 @@ import { createProductoService } from "@/services/productoService";
 import { ProductImageServiceError, createProductImageService } from "@/services/productImageService";
 
 /**
+ * Runtime Node.js explicito (no Edge): esta ruta usa Buffer, crypto,
+ * validacion binaria y sube/descarga archivos reales desde Supabase Storage
+ * a traves de Sharp -- ninguno de esos disponibles/soportados en Edge.
+ * `force-dynamic` porque depende de la cookie de sesion admin y del cuerpo
+ * multipart de cada peticion, nunca debe servirse cacheada.
+ */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
  * Asignacion manual de image_url (URL avanzada, Fase 3B.1A en adelante).
  * Toca UNICAMENTE image_url; valida https:// o ruta local /images/. No
  * sube archivos ni toca Storage. Se mantiene para el consumidor existente
@@ -70,6 +80,8 @@ export async function POST(
   const multipartError = validateMultipartRequest(request);
   if (multipartError) return multipartError;
 
+  const correlationId = crypto.randomUUID();
+
   try {
     const { productId } = await context.params;
 
@@ -92,7 +104,7 @@ export async function POST(
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Selecciona una imagen JPG, PNG o WebP." }, { status: 400 });
+      return NextResponse.json({ error: "Selecciona una imagen JPG, PNG, WebP o AVIF." }, { status: 400 });
     }
 
     if (file.size === 0) {
@@ -107,15 +119,34 @@ export async function POST(
     }
 
     if (file.type && !isAcceptedProductImageMimeType(file.type)) {
-      return NextResponse.json({ error: "Selecciona una imagen JPG, PNG o WebP." }, { status: 400 });
+      return NextResponse.json({ error: "Selecciona una imagen JPG, PNG, WebP o AVIF." }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
     const productImageService = createProductImageService();
-    const image = await productImageService.reemplazarImagenProducto(productId, buffer);
+    const image = await productImageService.reemplazarImagenProducto(productId, buffer, correlationId);
+
+    // El producto que se devuelve es el mismo mapeo que usa la lista del
+    // catalogo admin (obtenerCatalogoAdmin), releido de forma independiente
+    // DESPUES de la verificacion post-escritura del servicio -- el cliente
+    // reemplaza su registro local con este objeto completo, sin reconstruir
+    // campos a mano.
+    const productoService = createProductoService();
+    const product = await productoService.obtenerProductoAdminPorId(productId);
 
     return NextResponse.json(
-      { ok: true, image },
+      {
+        ok: true,
+        persisted: image.persisted,
+        product,
+        imageStoragePath: image.storagePath,
+        imageUrl: image.displayUrl,
+        correlationId: image.correlationId,
+        // Se mantiene `image` por compatibilidad con el resto de campos
+        // (width, height, format, size) que no forman parte de AdminProductRecord.
+        image
+      },
       { status: 201, headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
@@ -124,8 +155,14 @@ export async function POST(
         ? error.message
         : "No fue posible guardar la imagen. La imagen anterior se mantuvo.";
     const status = message === "No se encontró el producto." ? 404 : 400;
+    const code = error instanceof ProductImageServiceError ? error.code : undefined;
+    const responseCorrelationId =
+      error instanceof ProductImageServiceError && error.correlationId ? error.correlationId : correlationId;
 
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      { error: message, code, correlationId: responseCorrelationId },
+      { status }
+    );
   }
 }
 
@@ -150,7 +187,13 @@ export async function DELETE(
     const productImageService = createProductImageService();
     await productImageService.eliminarImagenProducto(productId);
 
-    return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+    const productoService = createProductoService();
+    const product = await productoService.obtenerProductoAdminPorId(productId);
+
+    return NextResponse.json(
+      { ok: true, persisted: true, product, imageStoragePath: "", imageUrl: "" },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     const message =
       error instanceof ProductImageServiceError

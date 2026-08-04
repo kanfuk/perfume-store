@@ -216,6 +216,9 @@ class SupabaseProductRepository implements ProductRepository {
     const response = await supabase.from("productos").insert(payload).select("*").single();
 
     if (response.error || !response.data) {
+      if (response.error?.code === "23505") {
+        throw new Error("Ya existe un producto con ese SKU. Usa uno distinto.");
+      }
       throw new Error(
         `No fue posible crear el producto. ${response.error?.message ?? ""}`.trim()
       );

@@ -8,7 +8,6 @@ import {
   useState,
   useSyncExternalStore
 } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -23,27 +22,19 @@ import {
   CircleDollarSign,
   ClipboardList,
   HandCoins,
-  Home,
-  LayoutGrid,
   MessageCircle,
-  Package2,
-  PencilLine,
   Phone,
-  Plus,
   ReceiptText,
   RefreshCcw,
   Search,
   Settings,
-  ShoppingBag,
   Sparkles,
   Store,
-  Trash2,
   UserRound,
   WalletCards
 } from "lucide-react";
 import { AppFooter } from "@/components/AppFooter";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
-import { ProductImage } from "@/components/ProductImage";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import {
   ADMIN_VIEW_META,
@@ -64,14 +55,11 @@ import type {
   GroupedFiadoCustomer,
   OrderModalState,
   OrderSectionProps,
-  ProductModalState,
   ProfitabilityCostStatus,
   ReportRangePreset,
   ReportSalesFilter,
   ReportTab,
   StatusFilter,
-  StockDraft,
-  StockFilter,
   WhatsAppFallbackState
 } from "@/components/admin/dashboard/admin-dashboard.types";
 import {
@@ -85,7 +73,6 @@ import {
   getCostStatusLabel,
   getCurrentDeviceLabel,
   getLastDebtPaymentDate,
-  getProductCostStatus,
   getReportRangePresetValues,
   getSalesFilterLabel,
   isRecentCustomerMovement,
@@ -97,26 +84,23 @@ import {
   todayDateValue
 } from "@/components/admin/dashboard/admin-dashboard.utils";
 import {
-  AdminSectionTab,
   BadgeStatusChip,
   CompactHistorySection,
   CompactSelect,
   CostStatusBadge,
   EmptyState,
-  FilterChip,
   HeaderIconButton,
   HeroMetric,
   MiniHomeTab,
   MiniMetric,
-  MobileQuickHomeButton,
   ProfitabilityBar,
   ReportDateField,
   SectionIntro,
   SegmentedControl,
-  StableHorizontalRail,
   StatusBadge
 } from "@/components/admin/dashboard/DashboardPresentation";
 import { DashboardHomeView } from "@/components/admin/dashboard/DashboardHomeView";
+import { AdminNav } from "@/components/admin/dashboard/AdminNav";
 import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import {
@@ -148,12 +132,10 @@ import {
 } from "@/lib/pwa/push";
 import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { normalizeChilePhone } from "@/lib/phone/normalizeChilePhone";
-import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
-import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
+import { getUnifiedProductStock } from "@/lib/stock";
 import {
   feedbackMessages,
-  getMaintenanceConfirmationMessage,
-  getProductDeleteConfirmationDescription
+  getMaintenanceConfirmationMessage
 } from "@/lib/ui/feedback-messages";
 import { buildAdminOrderAlertMessage } from "@/lib/whatsapp/buildAdminOrderAlertMessage";
 import { buildDebtCollectionMessage } from "@/lib/whatsapp/buildDebtCollectionMessage";
@@ -162,7 +144,7 @@ import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
 import { createWhatsAppActionState } from "@/lib/whatsapp/action";
 import { createNotificationService } from "@/services/NotificationService";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { getChileCurrentMonthRange } from "@/lib/date";
+import { getChileCurrentMonthRange, getChileCurrentWeekRange } from "@/lib/date";
 import type {
   AdminCustomerOption,
   AdminMaintenanceAction,
@@ -190,7 +172,6 @@ export function AdminDashboard({
   const [customers, setCustomers] = useState<AdminCustomerOption[]>(initialCustomers);
   const [view, setView] = useState<AdminView>(initialView);
   const [loading, setLoading] = useState(false);
-  const [catalogLoading, setCatalogLoading] = useState(false);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -199,20 +180,15 @@ export function AdminDashboard({
     null
   );
   const [busyOrderId, setBusyOrderId] = useState("");
-  const [busyProductId, setBusyProductId] = useState("");
   const [busyMaintenanceAction, setBusyMaintenanceAction] = useState("");
   const [search, setSearch] = useState("");
-  const [productSearch, setProductSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pendientes");
-  const [stockFilter, setStockFilter] = useState<StockFilter>("activos");
   const [customerFilter, setCustomerFilter] = useState<CustomerFilter>("todos");
   const [selectedOrderId, setSelectedOrderId] = useState("");
   const [orderModalState, setOrderModalState] = useState<OrderModalState>(null);
-  const [productModalState, setProductModalState] = useState<ProductModalState>(null);
   const [customerEditModalState, setCustomerEditModalState] =
     useState<CustomerEditModalState>(null);
   const [customerSaveLoading, setCustomerSaveLoading] = useState(false);
-  const [stockDrafts, setStockDrafts] = useState<Record<string, StockDraft>>({});
   const [reportTab, setReportTab] = useState<ReportTab>("rentabilidad");
   const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>("month");
   const [reportSalesFilter, setReportSalesFilter] = useState<ReportSalesFilter>("todos");
@@ -304,69 +280,6 @@ export function AdminDashboard({
   );
 
   const normalizedSearch = search.trim().toLowerCase();
-  const normalizedProductSearch = productSearch.trim().toLowerCase();
-
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const stockMatches =
-        stockFilter === "todos"
-          ? true
-          : stockFilter === "activos"
-            ? product.activo
-            : !product.activo;
-
-      if (!stockMatches) {
-        return false;
-      }
-
-      if (!normalizedProductSearch) {
-        return true;
-      }
-
-      return [
-        product.nombre,
-        product.descripcion,
-        product.tipoProducto,
-        product.activo ? "activo" : "inactivo"
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedProductSearch);
-    });
-  }, [normalizedProductSearch, products, stockFilter]);
-
-  const stockProductNameOptions = useMemo(
-    () => Array.from(new Set(products.map((product) => product.nombre.trim()).filter(Boolean))).sort(),
-    [products]
-  );
-
-  const stockTypeOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(["simple", ...products.map((product) => (product.tipoProducto || "simple").trim())].filter(Boolean))
-      ).sort(),
-    [products]
-  );
-
-  const stockBadgeOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          products
-            .map((product) => (product.badgeLabel || product.tipoProducto || "").trim())
-            .filter(Boolean)
-        )
-      ).sort(),
-    [products]
-  );
-
-  const stockPriceSuggestions = useMemo(
-    () =>
-      Array.from(new Set(products.map((product) => product.precioVenta).filter((price) => price > 0))).sort(
-        (a, b) => a - b
-      ),
-    [products]
-  );
 
   const ordersByFilter = useMemo(() => {
     function matches(order: AdminOrderSummary) {
@@ -656,20 +569,34 @@ export function AdminDashboard({
       (sum, product) => sum + getUnifiedProductStock(product),
       0
     );
-    const saldoPorCobrar = data.fiadosPendientes.reduce(
-      (sum, order) => sum + order.saldoPendiente,
-      0
-    );
+    const stockCritico = productosActivos.filter(
+      (product) => getUnifiedProductStock(product) <= (product.stockMinimo || 1)
+    ).length;
 
     return {
       pendientes: data.pendientes.length,
       agendaHoy: agendaHoy.length,
       productosActivos: productosActivos.length,
       stockTotal,
-      saldoPorCobrar,
-      ventasCerradas: data.finalizados.reduce((sum, order) => sum + order.totalPagado, 0)
+      stockCritico
     };
   }, [data, products, todayDate]);
+
+  /**
+   * Ventas de la semana (lunes a domingo actual), independiente del rango
+   * que el admin haya elegido en la pestaña Reportes: la tarjeta del
+   * dashboard siempre debe leerse como "esta semana", sin depender de un
+   * filtro que el usuario pudo haber cambiado en otra pestaña.
+   */
+  const weekSalesTotal = useMemo(() => {
+    const { from, to } = getChileCurrentWeekRange();
+    return data.finalizados.reduce((sum, order) => {
+      const baseDate = order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido;
+      const dateOnly = baseDate.slice(0, 10);
+      if (dateOnly < from || dateOnly > to) return sum;
+      return sum + order.total;
+    }, 0);
+  }, [data.finalizados]);
 
   const pendingAttentionCount = useMemo(
     () => getNewAdminOrdersCount(data.pendientes),
@@ -1248,7 +1175,6 @@ export function AdminDashboard({
 
   async function loadProducts() {
     try {
-      setCatalogLoading(true);
       const response = await fetch("/api/admin/products", { cache: "no-store" });
       const currentData = (await response.json()) as {
         products?: AdminProductRecord[];
@@ -1266,8 +1192,6 @@ export function AdminDashboard({
           ? currentError.message
           : "No fue posible cargar productos."
       );
-    } finally {
-      setCatalogLoading(false);
     }
   }
 
@@ -1656,54 +1580,6 @@ export function AdminDashboard({
     }
   }
 
-  async function saveProduct(payload: {
-    id?: string;
-    nombre: string;
-    descripcion: string;
-    precioVenta: number;
-    imageUrl?: string;
-    badgeLabel?: string;
-    costoUnitario: number;
-    stock: number;
-    tipoProducto: string;
-    activo: boolean;
-  }) {
-    try {
-      setBusyProductId(payload.id ?? "new");
-      setError("");
-      const url = payload.id
-        ? `/api/admin/products/${payload.id}`
-        : "/api/admin/products";
-      const method = payload.id ? "PATCH" : "POST";
-      const body = payload.id
-        ? JSON.stringify({ mode: "update", ...payload })
-        : JSON.stringify(payload);
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body
-      });
-      const currentData = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(currentData.error ?? "No fue posible guardar el producto.");
-      }
-
-      setProductModalState(null);
-      await loadProducts();
-    } catch (currentError) {
-      setError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No fue posible guardar el producto."
-      );
-    } finally {
-      setBusyProductId("");
-    }
-  }
-
   async function saveCustomer(payload: {
     id: string;
     nombre: string;
@@ -1749,87 +1625,6 @@ export function AdminDashboard({
     }
   }
 
-  async function saveStock(product: AdminProductRecord) {
-    const draft = stockDrafts[product.id];
-    const normalizedStock = normalizeStockValue(
-      draft?.stock ?? getUnifiedProductStock(product)
-    );
-    const nextActive =
-      normalizedStock <= 0
-        ? false
-        : (draft?.activo ?? (product.activo ? "activo" : "pausado")) === "activo";
-
-    await saveProduct({
-      id: product.id,
-      nombre: product.nombre,
-      descripcion: product.descripcion,
-      precioVenta: Number(draft?.precioVenta ?? product.precioVenta),
-      imageUrl: product.imageUrl,
-      badgeLabel: product.badgeLabel,
-      costoUnitario: product.costoUnitario,
-      stock: normalizedStock,
-      tipoProducto: draft?.tipoProducto ?? product.tipoProducto,
-      activo: nextActive
-    });
-  }
-
-  async function deleteProduct(product: AdminProductRecord) {
-    const confirmed = await feedback.confirm({
-      title: feedbackMessages.confirmDeleteProductTitle,
-      description: getProductDeleteConfirmationDescription(product.nombre),
-      confirmLabel: "Eliminar producto",
-      cancelLabel: "Mantener producto",
-      tone: "danger"
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setBusyProductId(product.id);
-      setError("");
-      const response = await fetch(`/api/admin/products/${product.id}`, {
-        method: "DELETE"
-      });
-      const currentData = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(currentData.error ?? "No fue posible eliminar el producto.");
-      }
-
-      setProductModalState((current) =>
-        current?.mode === "edit" && current.product.id === product.id ? null : current
-      );
-      await loadProducts();
-    } catch (currentError) {
-      setError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No fue posible eliminar el producto."
-      );
-    } finally {
-      setBusyProductId("");
-    }
-  }
-
-  function updateStockDraft(
-    productId: string,
-    key: keyof StockDraft,
-    value: string,
-    product: AdminProductRecord
-  ) {
-    setStockDrafts((current) => ({
-      ...current,
-      [productId]: {
-        stock: current[productId]?.stock ?? String(getUnifiedProductStock(product)),
-        precioVenta: current[productId]?.precioVenta ?? String(product.precioVenta),
-        tipoProducto: current[productId]?.tipoProducto ?? product.tipoProducto,
-        activo: current[productId]?.activo ?? (product.activo ? "activo" : "pausado"),
-        [key]: value
-      }
-    }));
-  }
 
   function navigateToView(nextView: AdminView) {
     setView(nextView);
@@ -1959,80 +1754,7 @@ export function AdminDashboard({
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 -mx-1 max-w-full overflow-x-hidden border-b border-[#e4e7ec] bg-[#f7f8fa]/95 px-1 py-3 backdrop-blur">
-        <StableHorizontalRail className="flex gap-2 overflow-x-auto pb-1">
-          <AdminSectionTab
-            label="Inicio"
-            icon={Home}
-            active={view === "home"}
-            badge="Resumen"
-            onClick={() => navigateToView("home")}
-          />
-          <AdminSectionTab
-            label="Pedidos"
-            icon={ClipboardList}
-            active={view === "agenda"}
-            badge={`${attentionCount} por atender`}
-            onClick={() => navigateToView("agenda")}
-          />
-          <AdminSectionTab
-            label="Stock"
-            icon={Boxes}
-            active={view === "stock"}
-            badge={`${products.filter((product) => product.activo).length} activos`}
-            onClick={() => navigateToView("stock")}
-          />
-          <AdminSectionTab
-            label="Ventas"
-            icon={WalletCards}
-            active={view === "cobros"}
-            badge={`${groupedFiados.length} fiados`}
-            onClick={() => navigateToView("cobros")}
-          />
-          <AdminSectionTab
-            label="Clientes"
-            icon={UserRound}
-            active={view === "clientes"}
-            badge={`${customerCards.length} registros`}
-            onClick={() => navigateToView("clientes")}
-          />
-          <AdminSectionTab
-            label="Reportes"
-            icon={CalendarRange}
-            active={view === "reportes"}
-            badge={formatCurrency(reportSummary.totalVentas)}
-            onClick={() => navigateToView("reportes")}
-          />
-          <Link
-            href="/admin/venta-directa"
-            className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
-          >
-            <ShoppingBag className="h-4 w-4 text-[#7357ff]" />
-            Venta directa
-          </Link>
-          <Link
-            href="/admin/pedidos-personalizados"
-            className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
-          >
-            <Sparkles className="h-4 w-4 text-[#7357ff]" />
-            Pedidos personalizados
-          </Link>
-          <Link
-            href="/admin/catalogo"
-            className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
-          >
-            <LayoutGrid className="h-4 w-4 text-[#7357ff]" />
-            Gestión de catálogo
-          </Link>
-          <Link
-            href="/admin/importar-catalogo"
-            className="inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#344054] transition hover:border-[#c1b6ff]"
-          >
-            <Boxes className="h-4 w-4 text-[#7357ff]" />
-            Importar catálogo
-          </Link>
-        </StableHorizontalRail>
-      </section>
+      <AdminNav />
 
       {error ? (
         <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
@@ -2074,41 +1796,27 @@ export function AdminDashboard({
 
       {view === "home" ? (
         <DashboardHomeView
-          agendaGroups={agendaGroups}
-          agendadosCount={data.agendados.length}
           attentionCount={attentionCount}
           badgeActionLoading={badgeActionLoading}
           badgeCardLoading={badgeCardLoading}
           badgeDeviceId={badgeDeviceId}
           badgeDeviceSetting={badgeDeviceSetting}
           badgeSupported={badgeSupported}
-          customerCardsCount={customerCards.length}
-          finalizadosCount={data.finalizados.length}
-          groupedFiadosCount={groupedFiados.length}
           homeSummary={homeSummary}
           isInstalledPwa={isInstalledPwa}
           notificationPermission={notificationPermission}
           pendingUnseenOrders={pendingUnseenOrders}
           paymentSettingsComplete={paymentSettingsComplete}
-          products={products}
           pushSubscriptionActive={pushSubscriptionActive}
           pushSupported={pushSupported}
-          reportSummaryTotalVentas={reportSummary.totalVentas}
+          weekSalesTotal={weekSalesTotal}
           renderNewOrderWhatsAppButton={(order) => <NewOrderWhatsAppButton order={order} />}
           onActivateBadgeForCurrentDevice={() => void activateBadgeForCurrentDevice()}
           onMarkOrderSeen={(order) => void runAction(order.id, "visto", order)}
           onOpenAttentionOrders={openAttentionOrders}
-          onOpenClientes={() => navigateToView("clientes")}
-          onOpenCobros={() => navigateToView("cobros")}
           onOpenPendingOrderDetail={(orderId) => {
             openAttentionOrders();
             setSelectedOrderId(orderId);
-          }}
-          onOpenReportes={() => navigateToView("reportes")}
-          onOpenStock={() => navigateToView("stock")}
-          onOpenStockWithoutInventory={() => {
-            navigateToView("stock");
-            setStockFilter("pausados");
           }}
           onTestBadgeOnCurrentDevice={() => void testBadgeOnCurrentDevice()}
           onTestPushOnCurrentDevice={() => void testPushOnCurrentDevice()}
@@ -2305,121 +2013,6 @@ export function AdminDashboard({
         </section>
       ) : null}
 
-      {view === "stock" ? (
-        <section className="space-y-5">
-          <SectionIntro
-            title="Stock y productos"
-            subtitle="Crea productos, cambia precio, activa o pausa ventas y define stock disponible."
-            icon={Boxes}
-            helper="Paso 2: deja aquí lo que sí vas a vender y el cupo máximo para no sobreagendar."
-            action={
-              <button
-                type="button"
-                onClick={() => setProductModalState({ mode: "create" })}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white"
-              >
-                <Plus className="h-4 w-4" />
-                Nuevo producto
-              </button>
-            }
-          />
-
-          <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-brand-100 bg-white/90 p-4 shadow-soft">
-            <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <label className="min-w-0 space-y-2">
-                <span className="flex items-center gap-2 text-sm font-semibold text-brand-900">
-                  <Search className="h-4 w-4" />
-                  Buscar producto
-                </span>
-                <input
-                  list="stock-product-options"
-                  value={productSearch}
-                  onChange={(event) => setProductSearch(event.target.value)}
-                  placeholder="Nombre, descripción o tipo"
-                  className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950 outline-none placeholder:text-brand-400"
-                />
-                <datalist id="stock-product-options">
-                  {stockProductNameOptions.map((productName) => (
-                    <option key={productName} value={productName} />
-                  ))}
-                  {stockTypeOptions.map((typeOption) => (
-                    <option key={`type-${typeOption}`} value={typeOption} />
-                  ))}
-                </datalist>
-              </label>
-
-              <div className="min-w-0 space-y-2">
-                <span className="text-sm font-semibold text-brand-900">Filtro rápido</span>
-                <StableHorizontalRail className="flex gap-2 overflow-x-auto">
-                  <FilterChip
-                    label="Activos"
-                    active={stockFilter === "activos"}
-                    onClick={() => setStockFilter("activos")}
-                  />
-                  <FilterChip
-                    label="Pausados"
-                    active={stockFilter === "pausados"}
-                    onClick={() => setStockFilter("pausados")}
-                  />
-                  <FilterChip
-                    label="Todos"
-                    active={stockFilter === "todos"}
-                    onClick={() => setStockFilter("todos")}
-                  />
-                </StableHorizontalRail>
-              </div>
-            </div>
-          </section>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <HeroMetric
-              label="Catálogo activo"
-              value={String(products.filter((product) => product.activo).length)}
-              detail="Productos visibles para clientes"
-              icon={CheckCircle2}
-              tone="emerald"
-            />
-            <HeroMetric
-              label="Pausados"
-              value={String(products.filter((product) => !product.activo).length)}
-              detail="Productos fuera del catálogo"
-              icon={Package2}
-              tone="violet"
-            />
-            <HeroMetric
-              label="Sin stock"
-              value={String(products.filter((product) => getUnifiedProductStock(product) <= 0).length)}
-              detail="Revisar antes de abrir ventas"
-              icon={AlertCircle}
-              tone="amber"
-            />
-          </div>
-
-          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-            {catalogLoading ? <EmptyState text="Cargando catálogo..." /> : null}
-            {!catalogLoading && filteredProducts.length === 0 ? (
-              <EmptyState text="No hay productos para esta busqueda." />
-            ) : null}
-            {filteredProducts.map((product) => {
-              const draft = stockDrafts[product.id];
-
-              return (
-                <StockProductCard
-                  key={product.id}
-                  product={product}
-                  draft={draft}
-                  busy={busyProductId === product.id}
-                  onEdit={() => setProductModalState({ mode: "edit", product })}
-                  onDelete={() => void deleteProduct(product)}
-                  onChange={(key, value) => updateStockDraft(product.id, key, value, product)}
-                  onSave={() => void saveStock(product)}
-                  typeOptions={stockTypeOptions}
-                />
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
 
       {view === "cobros" ? (
         <section className="space-y-5">
@@ -3155,22 +2748,6 @@ export function AdminDashboard({
         />
       ) : null}
 
-      {productModalState ? (
-        <ProductModal
-          state={productModalState}
-          busy={
-            busyProductId ===
-            (productModalState.mode === "edit" ? productModalState.product.id : "new")
-          }
-          onClose={() => setProductModalState(null)}
-          onSave={saveProduct}
-          productNameOptions={stockProductNameOptions}
-          typeOptions={stockTypeOptions}
-          badgeOptions={stockBadgeOptions}
-          priceSuggestions={stockPriceSuggestions}
-        />
-      ) : null}
-
       {customerEditModalState ? (
         <CustomerEditModal
           key={customerEditModalState.customer.id}
@@ -3183,172 +2760,14 @@ export function AdminDashboard({
 
       <AppFooter className="pb-24 md:pb-8" />
       <WhatsAppFloatingButton
-        hidden={Boolean(productModalState || orderModalState || customerEditModalState)}
+        hidden={Boolean(orderModalState || customerEditModalState)}
         bottomOffsetClassName={
           view === "home"
             ? "bottom-[calc(24px+env(safe-area-inset-bottom))]"
             : "bottom-[calc(88px+env(safe-area-inset-bottom))]"
         }
       />
-      {view !== "home" ? <MobileQuickHomeButton href="/admin" label="Inicio" /> : null}
     </main>
-  );
-}
-
-function StockProductCard({
-  product,
-  draft,
-  busy,
-  onEdit,
-  onDelete,
-  onChange,
-  onSave,
-  typeOptions
-}: {
-  product: AdminProductRecord;
-  draft?: StockDraft;
-  busy: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-  onChange: (key: keyof StockDraft, value: string) => void;
-  onSave: () => void;
-  typeOptions: string[];
-}) {
-  const quickStockAmount = draft?.stock ?? String(getUnifiedProductStock(product));
-  const desiredStatus = draft?.activo ?? (product.activo ? "activo" : "pausado");
-  const missingFields = getMissingCatalogFields(product);
-
-  return (
-    <article className="min-w-0 max-w-full overflow-hidden rounded-[24px] border border-brand-100 bg-white/90 p-4 shadow-soft">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 gap-4">
-          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-brand-100 bg-brand-50">
-            <ProductImage
-              src={product.imageUrl}
-              alt={product.nombre}
-              brand={product.marca}
-              sizes="96px"
-              className="object-cover"
-              compact
-            />
-          </div>
-          <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="break-words text-lg font-semibold text-brand-950">{product.nombre}</h3>
-              <StatusBadge
-                tone={product.activo ? "pedido" : "neutral"}
-                label={product.activo ? "ACTIVO" : "PAUSADO"}
-              />
-              {missingFields.length > 0 ? (
-                <span title={describeMissingCatalogFields(missingFields)}>
-                  <StatusBadge tone="warning" label="Ficha incompleta" />
-                </span>
-              ) : null}
-            </div>
-            <p className="break-words text-sm leading-6 text-brand-900/70">
-              {product.descripcion || "Sin descripción."}
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onEdit}
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2.5 text-sm font-semibold text-brand-900 sm:w-auto"
-        >
-          <PencilLine className="h-4 w-4" />
-          Editar
-        </button>
-      </div>
-
-      <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2">
-        <select
-          value={desiredStatus}
-          onChange={(event) => onChange("activo", event.target.value)}
-          className="min-h-11 min-w-0 rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900"
-        >
-          <option value="activo">Activo</option>
-          <option value="pausado">Pausado</option>
-        </select>
-        <StatusBadge
-          tone="neutral"
-          label={draft?.tipoProducto || product.badgeLabel || product.tipoProducto || "PERFUME"}
-        />
-        <StatusBadge
-          tone={getUnifiedProductStock(product) > 0 ? "pedido" : "warning"}
-          label={`Stock ${getUnifiedProductStock(product)}`}
-        />
-        <CostStatusBadge status={getProductCostStatus(product)} compact />
-      </div>
-
-      <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
-        <InlineField
-          label="Precio"
-          value={draft?.precioVenta ?? String(product.precioVenta)}
-          onChange={(value) => onChange("precioVenta", value)}
-        />
-        <InlineField
-          label="Stock"
-          value={quickStockAmount}
-          onChange={(value) => onChange("stock", value)}
-        />
-        <InlineSelectField
-          label="Tipo"
-          value={draft?.tipoProducto ?? product.tipoProducto}
-          onChange={(value) => onChange("tipoProducto", value)}
-          options={typeOptions}
-        />
-        <QuickStockAdjuster
-          value={quickStockAmount}
-          onChange={(value) => onChange("stock", value)}
-        />
-      </div>
-
-      <details className="mt-4 min-w-0 overflow-hidden rounded-lg border border-brand-100 bg-brand-50/50 p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-brand-900">
-          Ver detalle del producto
-        </summary>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <MiniMetric
-            label="Badge"
-            value={product.badgeLabel || product.tipoProducto || "PERFUME"}
-          />
-          <MiniMetric label="Imagen" value={product.imageUrl ? "Configurada" : "Fallback"} />
-          <MiniMetric label="Costo unitario" value={formatCurrency(product.costoUnitario)} />
-          <MiniMetric label="Estado costo" value={getCostStatusLabel(getProductCostStatus(product))} />
-          <MiniMetric label="Utilidad aprox." value={formatCurrency(product.utilidadUnitaria)} />
-          {missingFields.length > 0 ? (
-            <MiniMetric label="Ficha incompleta" value={describeMissingCatalogFields(missingFields)} />
-          ) : null}
-        </div>
-      </details>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0 break-words text-sm text-brand-900/60">
-          Ajusta aquí lo rápido. Editar abre el detalle completo.
-        </div>
-        <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onDelete}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-100 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700"
-          >
-            <Trash2 className="h-4 w-4" />
-            {busy ? "Procesando..." : "Eliminar"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onSave}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white"
-          >
-            <Archive className="h-4 w-4" />
-            {busy ? "Guardando..." : "Guardar"}
-          </button>
-        </div>
-      </div>
-    </article>
   );
 }
 
@@ -3975,251 +3394,6 @@ function AdminActionModal({
   );
 }
 
-function ProductModal({
-  state,
-  busy,
-  onClose,
-  onSave,
-  productNameOptions,
-  typeOptions,
-  badgeOptions,
-  priceSuggestions
-}: {
-  state: Exclude<ProductModalState, null>;
-  busy: boolean;
-  onClose: () => void;
-  onSave: (payload: {
-    id?: string;
-    nombre: string;
-    descripcion: string;
-    precioVenta: number;
-    imageUrl?: string;
-    badgeLabel?: string;
-    costoUnitario: number;
-    stock: number;
-    tipoProducto: string;
-    activo: boolean;
-  }) => void;
-  productNameOptions: string[];
-  typeOptions: string[];
-  badgeOptions: string[];
-  priceSuggestions: number[];
-}) {
-  const current = state.mode === "edit" ? state.product : null;
-  const [nombre, setNombre] = useState(current?.nombre ?? "");
-  const [descripcion, setDescripcion] = useState(current?.descripcion ?? "");
-  const [precioVenta, setPrecioVenta] = useState(String(current?.precioVenta ?? 0));
-  const [imageUrl, setImageUrl] = useState(current?.imageUrl ?? "");
-  const [badgeLabel, setBadgeLabel] = useState(current?.badgeLabel ?? "");
-  const [costoUnitario, setCostoUnitario] = useState(
-    String(current?.costoUnitario ?? 0)
-  );
-  const [stock, setStock] = useState(
-    String(getUnifiedProductStock(current ?? { stockActual: 0, stockAgenda: 0 }))
-  );
-  const [tipoProducto, setTipoProducto] = useState(current?.tipoProducto ?? "simple");
-  const [activo, setActivo] = useState(current?.activo ?? true);
-
-  return (
-    <div className="fixed inset-0 z-50 bg-brand-950/20 px-3 py-3 sm:px-4 sm:py-5">
-      <div className="mx-auto flex h-full w-full max-w-2xl items-center justify-center">
-        <div className="flex max-h-[calc(100dvh-24px)] min-h-0 w-full flex-col overflow-hidden rounded-[24px] border border-brand-100 bg-white shadow-soft sm:max-h-[calc(100dvh-40px)]">
-          <div className="shrink-0 border-b border-brand-100 bg-white/95 px-5 py-4 backdrop-blur">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700">
-                  <Package2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-brand-950">
-                    {state.mode === "create" ? "Nuevo producto" : "Editar producto"}
-                  </h3>
-                  <p className="text-sm text-brand-900/70">
-                    Ajusta catálogo, stock y precio sin perderte en el celular.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-2xl border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-
-          <div className="min-h-0 overflow-x-hidden overflow-y-auto px-5 py-5 pb-[calc(128px+env(safe-area-inset-bottom))]">
-            <div className="space-y-5">
-            <section className="grid gap-3 sm:grid-cols-3">
-              <MiniMetric
-                label="Catálogo"
-                value={activo ? "Activo" : "Pausado"}
-              />
-              <MiniMetric label="Stock" value={stock} />
-              <MiniMetric
-                label="Badge"
-                value={badgeLabel || tipoProducto || "PERFUME"}
-              />
-            </section>
-
-            <label className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-4 text-sm text-brand-900 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="font-semibold text-brand-950">Disponible para clientes</div>
-                <div className="mt-1 text-xs text-brand-900/65">
-                  Apágalo cuando no quieras vender este producto.
-                </div>
-              </div>
-              <select
-                value={activo ? "Activo" : "Pausado"}
-                onChange={(event) => setActivo(event.target.value === "Activo")}
-                className="min-h-11 w-full min-w-0 rounded-full border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900 sm:w-auto"
-              >
-                <option value="Activo">Activo</option>
-                <option value="Pausado">Pausado</option>
-              </select>
-            </label>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-brand-900">Nombre</span>
-            <input
-              list="stock-modal-product-names"
-              value={nombre}
-              onChange={(event) => setNombre(event.target.value)}
-              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            />
-            <datalist id="stock-modal-product-names">
-              {productNameOptions.map((productName) => (
-                <option key={productName} value={productName} />
-              ))}
-            </datalist>
-          </label>
-          <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-brand-900">Descripción corta</span>
-            <textarea
-              value={descripcion}
-              onChange={(event) => setDescripcion(event.target.value)}
-              rows={3}
-              className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            />
-          </label>
-          <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-brand-900">Badge visible</span>
-            <input
-              list="stock-modal-badge-options"
-              value={badgeLabel}
-              onChange={(event) => setBadgeLabel(event.target.value)}
-              placeholder="Ejemplo: EAU DE PARFUM"
-              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            />
-            <datalist id="stock-modal-badge-options">
-              {badgeOptions.map((badgeOption) => (
-                <option key={badgeOption} value={badgeOption} />
-              ))}
-            </datalist>
-          </label>
-          <label className="space-y-2 sm:col-span-2">
-            <span className="text-sm font-semibold text-brand-900">Ruta pública de imagen</span>
-            <input
-              value={imageUrl}
-              onChange={(event) => setImageUrl(event.target.value)}
-              placeholder="/images/products/perfume-floral-100.png"
-              className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-brand-900">Precio</span>
-            <input
-              list="stock-modal-price-options"
-              type="number"
-              min={0}
-              value={precioVenta}
-              onChange={(event) => setPrecioVenta(event.target.value)}
-              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            />
-            <datalist id="stock-modal-price-options">
-              {priceSuggestions.map((priceSuggestion) => (
-                <option key={priceSuggestion} value={priceSuggestion} />
-              ))}
-            </datalist>
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-brand-900">Costo</span>
-            <input
-              type="number"
-              min={0}
-              value={costoUnitario}
-              onChange={(event) => setCostoUnitario(event.target.value)}
-              className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-brand-900">Stock</span>
-            <input
-              type="number"
-              min={0}
-              value={stock}
-              onChange={(event) => setStock(event.target.value)}
-              className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-brand-900">Tipo</span>
-            <select
-              value={tipoProducto}
-              onChange={(event) => setTipoProducto(event.target.value)}
-              className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-            >
-              {typeOptions.map((typeOption) => (
-                <option key={typeOption} value={typeOption}>
-                  {typeOption}
-                </option>
-              ))}
-            </select>
-          </label>
-            </div>
-            </div>
-          </div>
-
-          <div className="shrink-0 border-t border-brand-100 bg-white/95 px-5 py-4 pb-[calc(16px+env(safe-area-inset-bottom))] backdrop-blur">
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="min-h-11 rounded-lg border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-brand-900"
-            >
-              Cerrar
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                onSave({
-                  id: current?.id,
-                  nombre,
-                  descripcion,
-                  precioVenta: Number(precioVenta),
-                  imageUrl,
-                  badgeLabel,
-                  costoUnitario: Number(costoUnitario),
-                  stock: normalizeStockValue(stock),
-                  tipoProducto,
-                  activo
-                })
-              }
-              className="min-h-11 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
-            >
-              {busy ? "Guardando..." : "Guardar producto"}
-            </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ClientStatsCards({
   summary
 }: {
@@ -4628,86 +3802,6 @@ function ClientEmptyState({ hasSearch }: { hasSearch: boolean }) {
           ? "Prueba con otro nombre, teléfono o lugar de trabajo para seguir buscando."
           : "Cuando ingresen pedidos, aparecerán aquí automáticamente."}
       </p>
-    </div>
-  );
-}
-
-function InlineField({
-  label,
-  value,
-  onChange
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="min-w-0 space-y-2">
-      <span className="text-sm font-semibold text-brand-900">{label}</span>
-      <input
-        type="number"
-        min={0}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="block w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-      />
-    </label>
-  );
-}
-
-function InlineSelectField({
-  label,
-  value,
-  onChange,
-  options
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-}) {
-  return (
-    <label className="min-w-0 space-y-2">
-      <span className="text-sm font-semibold text-brand-900">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="block min-h-11 w-full min-w-0 max-w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function QuickStockAdjuster({
-  value,
-  onChange
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const currentValue = normalizeStockValue(value);
-
-  return (
-    <div className="min-w-0 space-y-2">
-      <span className="text-sm font-semibold text-brand-900">Ajuste Rápido</span>
-      <div className="grid grid-cols-4 gap-2">
-        {[-1, 1, 5, 10].map((delta) => (
-          <button
-            key={delta}
-            type="button"
-            onClick={() => onChange(String(Math.max(0, currentValue + delta)))}
-            className="min-h-11 rounded-lg border border-brand-100 bg-white px-2 text-sm font-semibold text-brand-900"
-          >
-            {delta > 0 ? `+${delta}` : delta}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

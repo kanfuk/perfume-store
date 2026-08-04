@@ -14,7 +14,7 @@
 
 export const PRODUCT_IMAGE_CONFIG = {
   /** MIME aceptados en la subida. SVG/GIF/HEIC quedan fuera a proposito. */
-  acceptedMimeTypes: ["image/jpeg", "image/png", "image/webp"] as const,
+  acceptedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/avif"] as const,
   /** 10 MiB de entrada; el resultado final queda muy por debajo. */
   maxInputBytes: 10 * 1024 * 1024,
   /** Igual que optimize-top12-images.mjs: MAX_SIDE. */

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
+import { clearUnresolvedDecisions, buildUnresolvedBlockersMessage } from "@/lib/admin-catalog-import-ui";
 import { CatalogQualityReview } from "@/components/admin/CatalogQualityReview";
 import { CatalogImportFinalSummary } from "@/components/admin/CatalogImportFinalSummary";
 import type {
@@ -57,6 +58,13 @@ type SupplierPlanRow = {
 };
 
 type RowError = { rowNumber: number; sku: string; message: string };
+
+/** Forma de error que el servidor devuelve cuando quedan hallazgos bloqueantes sin resolver (final-plan/confirm). */
+type UnresolvedBlockersError = {
+  error?: string;
+  unresolvedBlockers?: QualityFinding[];
+  detalles?: string[];
+};
 
 type CanonicalPreview = {
   totalFilas: number;
@@ -292,6 +300,27 @@ export function CatalogImportPanel() {
     }
   }
 
+  /**
+   * El servidor SIEMPRE revalida las decisiones desde cero (final-plan y
+   * confirm): si algo quedo sin resolver (ej. "mantener separadas" sin un
+   * nombre final distinto), devuelve exactamente que hallazgos siguen
+   * bloqueados. Si el cliente ignora esa lista, esos hallazgos quedan
+   * marcados como "resueltos" en su estado local (por la decision que ya se
+   * habia guardado) sin estarlo realmente en el servidor: un callejon sin
+   * salida donde el admin ve un error generico y no encuentra que producto
+   * arreglar. Aqui se limpian esas decisiones para que vuelvan a aparecer en
+   * "Pendientes" y se navega de vuelta a la revision para que sean visibles.
+   */
+  function handleUnresolvedBlockers(data: UnresolvedBlockersError): boolean {
+    if (!data.unresolvedBlockers || data.unresolvedBlockers.length === 0) return false;
+
+    const unresolvedIds = data.unresolvedBlockers.map((f) => f.id);
+    setDecisions((prev) => clearUnresolvedDecisions(prev, unresolvedIds));
+    setError(buildUnresolvedBlockersMessage(data.unresolvedBlockers));
+    setStep("quality-review");
+    return true;
+  }
+
   async function requestFinalPlan(nextDecisions: QualityDecision[]) {
     if (busy || !result || result.perfil !== "proveedor") return;
 
@@ -318,6 +347,7 @@ export function CatalogImportPanel() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (handleUnresolvedBlockers(data)) return;
         setError(
           data.error ??
             "No se puede continuar: hay conflictos bloqueantes sin resolver en la revisión de calidad."
@@ -366,6 +396,7 @@ export function CatalogImportPanel() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (handleUnresolvedBlockers(data)) return;
         setError(data.error ?? "No fue posible confirmar la importación. Genera una vista previa nueva.");
         return;
       }
