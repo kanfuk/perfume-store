@@ -13,7 +13,8 @@ import { describe, expect, it } from "vitest";
 const CONSUMERS_VIA_PRODUCT_IMAGE = [
   "components/shared/ProductCard.tsx", // catalogo publico
   "components/shared/CartSummary.tsx", // carrito
-  "components/admin/CatalogControlCenter.tsx" // Centro de productos
+  "components/admin/CatalogControlCenter.tsx", // Centro de productos
+  "components/admin/bulk-images/BulkImagePreview.tsx" // Carga masiva de imagenes (Fase 7.3)
 ];
 
 describe("Consumidores publicos/admin usan el ProductImage compartido (same-origin por construccion)", () => {
@@ -50,7 +51,8 @@ describe("Ningun consumidor arma manualmente una URL de /_next/image apuntando a
     "components/admin/CatalogControlCenter.tsx",
     "components/admin/dashboard/AddPerfumeModal.tsx",
     "components/shared/ProductCard.tsx",
-    "components/shared/CartSummary.tsx"
+    "components/shared/CartSummary.tsx",
+    "components/admin/bulk-images/BulkImagePreview.tsx"
   ];
 
   it.each(files)("%s no referencia supabase.co como src de imagen", (file) => {

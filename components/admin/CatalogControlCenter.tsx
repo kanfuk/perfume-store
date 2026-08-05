@@ -9,6 +9,7 @@ import {
   CircleDollarSign,
   Home,
   ImageOff,
+  ImagePlus,
   Link2,
   Plus,
   RefreshCw,
@@ -352,14 +353,23 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
             <h2 className="text-lg font-bold text-[#111318]">Centro de productos</h2>
             <p className="text-sm text-[#667085]">Crea, revisa y ajusta cada perfume del catálogo.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#5434e6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4327c4] sm:w-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Agregar perfume
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Link
+              href="/admin/catalogo/imagenes"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054] transition hover:bg-[#f7f8fa] sm:w-auto"
+            >
+              <ImagePlus className="h-4 w-4" />
+              Carga masiva de imágenes
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#5434e6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4327c4] sm:w-auto"
+            >
+              <Plus className="h-4 w-4" />
+              Agregar perfume
+            </button>
+          </div>
         </section>
       ) : null}
 
