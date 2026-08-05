@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeCatalogSummary, type CatalogSummaryProductInput } from "@/lib/catalog-summary.ts";
-import { TOP_PRODUCTS_LIMIT } from "@/lib/constants.ts";
+import { OFFERS_LIMIT, TOP_PRODUCTS_LIMIT } from "@/lib/constants.ts";
 
 function product(overrides: Partial<CatalogSummaryProductInput> = {}): CatalogSummaryProductInput {
   return {
@@ -12,13 +12,14 @@ function product(overrides: Partial<CatalogSummaryProductInput> = {}): CatalogSu
     stockActual: 5,
     modoPrecio: "AUTO",
     esTop: false,
+    esOfertaSemana: false,
     ...overrides
   };
 }
 
 describe("catalog-summary - computeCatalogSummary (Fase 3A, resumen de Gestion de catalogo)", () => {
-  it("catalogo vacio: todos los conteos en 0, top12Pendientes = limite completo", () => {
-    const summary = computeCatalogSummary([], 12);
+  it("catalogo vacio: todos los conteos en 0, top12Pendientes/ofertasPendientes = limite completo", () => {
+    const summary = computeCatalogSummary([], 12, 10);
     expect(summary).toEqual({
       total: 0,
       activos: 0,
@@ -29,7 +30,9 @@ describe("catalog-summary - computeCatalogSummary (Fase 3A, resumen de Gestion d
       preciosAuto: 0,
       preciosManual: 0,
       top12Asignados: 0,
-      top12Pendientes: 12
+      top12Pendientes: 12,
+      ofertasAsignadas: 0,
+      ofertasPendientes: 10
     });
   });
 
@@ -101,6 +104,28 @@ describe("catalog-summary - computeCatalogSummary (Fase 3A, resumen de Gestion d
   it(`usa TOP_PRODUCTS_LIMIT (${TOP_PRODUCTS_LIMIT}) como limite por defecto sin necesidad de pasarlo explicitamente`, () => {
     const summary = computeCatalogSummary([product({ esTop: true })]);
     expect(summary.top12Pendientes).toBe(TOP_PRODUCTS_LIMIT - 1);
+  });
+
+  it("ofertasAsignadas cuenta productos con esOfertaSemana=true; ofertasPendientes nunca es negativo", () => {
+    const summary = computeCatalogSummary(
+      [product({ esOfertaSemana: true }), product({ esOfertaSemana: true }), product({ esOfertaSemana: false })],
+      12,
+      2
+    );
+    expect(summary.ofertasAsignadas).toBe(2);
+    expect(summary.ofertasPendientes).toBe(0);
+
+    const overAssigned = computeCatalogSummary(
+      [product({ esOfertaSemana: true }), product({ esOfertaSemana: true }), product({ esOfertaSemana: true })],
+      12,
+      2
+    );
+    expect(overAssigned.ofertasPendientes).toBe(0);
+  });
+
+  it(`usa OFFERS_LIMIT (${OFFERS_LIMIT}) como limite por defecto sin necesidad de pasarlo explicitamente`, () => {
+    const summary = computeCatalogSummary([product({ esOfertaSemana: true })]);
+    expect(summary.ofertasPendientes).toBe(OFFERS_LIMIT - 1);
   });
 
   it("nunca retorna una lista de productos, solo numeros", () => {

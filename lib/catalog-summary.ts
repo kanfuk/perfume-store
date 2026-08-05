@@ -8,7 +8,7 @@
  * pruebas (sin necesidad de un repositorio falso).
  */
 
-import { TOP_PRODUCTS_LIMIT } from "./constants.ts";
+import { OFFERS_LIMIT, TOP_PRODUCTS_LIMIT } from "./constants.ts";
 import { getMissingCatalogFields, type CatalogCompletenessCheck } from "./catalog-completeness.ts";
 
 export type CatalogSummaryProductInput = CatalogCompletenessCheck & {
@@ -16,6 +16,7 @@ export type CatalogSummaryProductInput = CatalogCompletenessCheck & {
   stockActual: number;
   modoPrecio?: "AUTO" | "MANUAL";
   esTop?: boolean;
+  esOfertaSemana?: boolean;
 };
 
 export type CatalogSummary = {
@@ -29,6 +30,8 @@ export type CatalogSummary = {
   preciosManual: number;
   top12Asignados: number;
   top12Pendientes: number;
+  ofertasAsignadas: number;
+  ofertasPendientes: number;
 };
 
 /**
@@ -43,10 +46,12 @@ export type CatalogSummary = {
  * - incompletos: getMissingCatalogFields > 0 (falta nombre/marca/contenido/
  *   precio valido); ver lib/catalog-completeness.ts.
  * - top12Pendientes: TOP_PRODUCTS_LIMIT - top12Asignados, nunca negativo.
+ * - ofertasPendientes: OFFERS_LIMIT - ofertasAsignadas, nunca negativo (Fase 7.4).
  */
 export function computeCatalogSummary(
   products: readonly CatalogSummaryProductInput[],
-  top12Limit: number = TOP_PRODUCTS_LIMIT
+  top12Limit: number = TOP_PRODUCTS_LIMIT,
+  offersLimit: number = OFFERS_LIMIT
 ): CatalogSummary {
   let activos = 0;
   let pausados = 0;
@@ -55,6 +60,7 @@ export function computeCatalogSummary(
   let incompletos = 0;
   let preciosManual = 0;
   let top12Asignados = 0;
+  let ofertasAsignadas = 0;
 
   for (const product of products) {
     if (product.activo) {
@@ -68,6 +74,7 @@ export function computeCatalogSummary(
     if (getMissingCatalogFields(product).length > 0) incompletos += 1;
     if (product.modoPrecio === "MANUAL") preciosManual += 1;
     if (product.esTop) top12Asignados += 1;
+    if (product.esOfertaSemana) ofertasAsignadas += 1;
   }
 
   return {
@@ -80,6 +87,8 @@ export function computeCatalogSummary(
     preciosAuto: products.length - preciosManual,
     preciosManual,
     top12Asignados,
-    top12Pendientes: Math.max(0, top12Limit - top12Asignados)
+    top12Pendientes: Math.max(0, top12Limit - top12Asignados),
+    ofertasAsignadas,
+    ofertasPendientes: Math.max(0, offersLimit - ofertasAsignadas)
   };
 }

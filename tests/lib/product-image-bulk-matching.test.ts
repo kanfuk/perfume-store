@@ -53,6 +53,19 @@ describe("normalizeBulkImageIdentity", () => {
   it("devuelve cadena vacia si el nombre es solo un sufijo ignorado", () => {
     expect(normalizeBulkImageIdentity("front")).toBe("");
   });
+
+  it("colapsa espacios repetidos en un solo separador", () => {
+    expect(normalizeBulkImageIdentity("Acqua   Di    Gio")).toBe("ACQUA-DI-GIO");
+  });
+
+  it(
+    "NO normaliza tildes (comportamiento actual documentado en Fase 7.4: " +
+      "'Acquá' y 'Acqua' se consideran identidades distintas, a diferencia de " +
+      "normalizeProductKey en lib/product-catalog.ts que sí las unifica)",
+    () => {
+      expect(normalizeBulkImageIdentity("Acquá Di Gio")).not.toBe(normalizeBulkImageIdentity("Acqua Di Gio"));
+    }
+  );
 });
 
 describe("stripFileExtension", () => {
@@ -165,6 +178,21 @@ describe("matchBulkProductImages - nombre", () => {
   it("nombre exacto unico", () => {
     const products = [product({ id: "p1", nombre: "La Vida Es Bella" })];
     const rows = matchBulkProductImages([file({ fileName: "La Vida Es Bella.jpg" })], products);
+    expect(rows[0].status).toBe("MATCHED_BY_EXACT_NAME");
+    expect(rows[0].matchedProductId).toBe("p1");
+  });
+
+  it("el SKU es opcional: un producto sin SKU se asocia igual por su nombre (Fase 7.4)", () => {
+    const products = [product({ id: "p1", sku: undefined, nombre: "Lattafa Asad" })];
+    const rows = matchBulkProductImages([file({ fileName: "Lattafa Asad.jpg" })], products);
+    expect(rows[0].status).toBe("MATCHED_BY_EXACT_NAME");
+    expect(rows[0].matchedProductId).toBe("p1");
+    expect(rows[0].ready).toBe(true);
+  });
+
+  it("nombre con espacios repetidos en el archivo igual asocia por nombre", () => {
+    const products = [product({ id: "p1", nombre: "Acqua Di Gio Profondo" })];
+    const rows = matchBulkProductImages([file({ fileName: "Acqua   Di    Gio   Profondo.jpg" })], products);
     expect(rows[0].status).toBe("MATCHED_BY_EXACT_NAME");
     expect(rows[0].matchedProductId).toBe("p1");
   });

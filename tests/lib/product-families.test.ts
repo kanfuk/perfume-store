@@ -81,6 +81,17 @@ describe("product-families - groupProductsIntoFamilies", () => {
     expect(v50.precioVenta).toBe(2000);
   });
 
+  it("conserva esOfertaSemana por variante (Fase 7.4A: necesario para no mostrar precio tachado fuera de una oferta real)", () => {
+    const products = [
+      product({ id: "p1", nombre: "X", esOfertaSemana: true, precioAnterior: 90000, precioVenta: 65000 }),
+      product({ id: "p2", nombre: "Y", esOfertaSemana: false, precioAnterior: 90000, precioVenta: 65000 })
+    ];
+    const [familyX] = groupProductsIntoFamilies([products[0]]);
+    const [familyY] = groupProductsIntoFamilies([products[1]]);
+    expect(familyX.variants[0].esOfertaSemana).toBe(true);
+    expect(familyY.variants[0].esOfertaSemana).toBe(false);
+  });
+
   it("ordena variantes por contenido numerico ascendente", () => {
     const products = [
       product({ id: "p200", nombre: "X", contenido: "200ML" }),

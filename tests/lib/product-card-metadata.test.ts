@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveCardMetadata } from "@/lib/product-card-metadata.ts";
+import { resolveCardMetadata, hasVisiblePreviousPrice } from "@/lib/product-card-metadata.ts";
 
 describe("product-card-metadata - resolveCardMetadata (Fase 2B.13, tarjetas uniformes)", () => {
   it("con marca y contenido: ambas lineas se muestran", () => {
@@ -44,5 +44,48 @@ describe("product-card-metadata - resolveCardMetadata (Fase 2B.13, tarjetas unif
       const result = resolveCardMetadata(caso);
       expect(Object.keys(result).sort()).toEqual(["brandLabel", "contentLabel", "hasBrand", "hasContent"]);
     }
+  });
+});
+
+describe("product-card-metadata - hasVisiblePreviousPrice (Fase 7.4A, seccion 7)", () => {
+  it("muestra precio anterior solo si esOfertaSemana=true, precioAnterior existe y es mayor al precio actual", () => {
+    expect(
+      hasVisiblePreviousPrice({ esOfertaSemana: true, precioAnterior: 90000, precioVenta: 65000 })
+    ).toBe(true);
+  });
+
+  it("NO muestra precio anterior si esOfertaSemana es false, aunque precioAnterior > precioVenta (evita precio tachado obsoleto/huerfano)", () => {
+    expect(
+      hasVisiblePreviousPrice({ esOfertaSemana: false, precioAnterior: 90000, precioVenta: 65000 })
+    ).toBe(false);
+  });
+
+  it("NO muestra precio anterior si esOfertaSemana no viene definido (producto fuera del flujo de ofertas)", () => {
+    expect(hasVisiblePreviousPrice({ precioAnterior: 90000, precioVenta: 65000 })).toBe(false);
+  });
+
+  it("NO muestra precio anterior si precioAnterior no existe", () => {
+    expect(hasVisiblePreviousPrice({ esOfertaSemana: true, precioVenta: 65000 })).toBe(false);
+  });
+
+  it("NO muestra precio anterior si precioAnterior es igual al precio actual (sin ahorro real)", () => {
+    expect(
+      hasVisiblePreviousPrice({ esOfertaSemana: true, precioAnterior: 65000, precioVenta: 65000 })
+    ).toBe(false);
+  });
+
+  it("NO muestra precio anterior si precioAnterior es menor al precio actual (nunca un descuento negativo)", () => {
+    expect(
+      hasVisiblePreviousPrice({ esOfertaSemana: true, precioAnterior: 50000, precioVenta: 65000 })
+    ).toBe(false);
+  });
+
+  it("NO muestra precio anterior si precioAnterior es NaN o Infinity", () => {
+    expect(
+      hasVisiblePreviousPrice({ esOfertaSemana: true, precioAnterior: Number.NaN, precioVenta: 65000 })
+    ).toBe(false);
+    expect(
+      hasVisiblePreviousPrice({ esOfertaSemana: true, precioAnterior: Number.POSITIVE_INFINITY, precioVenta: 65000 })
+    ).toBe(false);
   });
 });

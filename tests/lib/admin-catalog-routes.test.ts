@@ -15,6 +15,7 @@ describe("admin-catalog-routes - buildCatalogSectionHref", () => {
     expect(buildCatalogSectionHref("stock")).toBe("/admin/catalogo/stock");
     expect(buildCatalogSectionHref("precios")).toBe("/admin/catalogo/precios");
     expect(buildCatalogSectionHref("top12")).toBe("/admin/catalogo/top12");
+    expect(buildCatalogSectionHref("ofertas")).toBe("/admin/catalogo/ofertas");
   });
 
   it("agrega parametros como querystring", () => {
@@ -53,6 +54,7 @@ describe("admin-catalog-routes - resolveActiveCatalogSection", () => {
     expect(resolveActiveCatalogSection("/admin/catalogo/stock")).toBe("stock");
     expect(resolveActiveCatalogSection("/admin/catalogo/precios")).toBe("precios");
     expect(resolveActiveCatalogSection("/admin/catalogo/top12")).toBe("top12");
+    expect(resolveActiveCatalogSection("/admin/catalogo/ofertas")).toBe("ofertas");
     expect(resolveActiveCatalogSection("/admin/catalogo/imagenes")).toBeNull();
   });
 
@@ -63,7 +65,7 @@ describe("admin-catalog-routes - resolveActiveCatalogSection", () => {
   });
 
   it("CATALOG_SECTIONS/CATALOG_SECTION_LABELS solo incluyen funciones del MVP", () => {
-    expect(CATALOG_SECTIONS).toEqual(["resumen", "productos", "stock", "precios", "top12"]);
+    expect(CATALOG_SECTIONS).toEqual(["resumen", "productos", "stock", "precios", "top12", "ofertas"]);
     for (const section of CATALOG_SECTIONS) {
       expect(CATALOG_SECTION_LABELS[section]).toBeTruthy();
     }

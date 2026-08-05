@@ -142,6 +142,13 @@ export const HORAS_EXPIRACION_PEDIDO = 72;
 export const TOP_PRODUCTS_LIMIT = 15;
 
 /**
+ * Fase 7.4: cantidad maxima de productos en "Ofertas de la semana"
+ * (es_oferta_semana). Unica fuente de este limite en todo el proyecto; no
+ * repetir el numero en componentes, rutas ni validaciones.
+ */
+export const OFFERS_LIMIT = 10;
+
+/**
  * Fase 7.3: cantidad maxima de imagenes por lote en la carga masiva
  * (/admin/catalogo/imagenes). Limite conservador para un flujo que sube una
  * imagen por request (ver lib/product-image-bulk-queue.ts) -- unica fuente

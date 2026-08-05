@@ -65,6 +65,7 @@ export function ProductFamilyCard({
     stockReservado: selected.stockReservado,
     activo: selected.activo,
     esTop: selected.esTop,
+    esOfertaSemana: selected.esOfertaSemana,
     ordenDestacado: selected.ordenDestacado
   };
 

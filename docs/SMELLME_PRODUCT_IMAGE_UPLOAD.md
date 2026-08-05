@@ -138,13 +138,16 @@ traducen a mensajes en español sin exponer detalle de Supabase ni stack.
 ## Catálogo y Top 12
 
 `productos.image_url` es el mismo campo que ya usaba el catálogo público y
-Top 12 (`vincularProductoTop12` ya lo sobrescribía con la foto curada del
-rank correspondiente antes de esta fase). Por eso, si un producto que ya
-forma parte de Top 12 recibe una foto nueva desde esta pantalla, la grilla
-de Top 12 la reflejará automáticamente (mismo campo compartido) — esto no
-es un caso especial de esta fase, es el comportamiento preexistente del
-modelo de datos. Esta fase no modifica `es_top` ni `orden_destacado` en
-ningún momento.
+Top 12. Por eso, si un producto que ya forma parte de Top 12 recibe una foto
+nueva desde esta pantalla, la grilla de Top 12 la reflejará automáticamente
+(mismo campo compartido). Esta fase no modifica `es_top` ni `orden_destacado`
+en ningún momento.
+
+**Actualizado en Fase 7.4:** `vincularProductoTop12` ya **no** sobrescribe
+`image_url` con la foto curada del rank (`data/top12-image-map.json`). Ese
+mapa quedó documentado como archivo histórico sin consumo automático — ver
+`docs/SMELLME_REMAINING_ROADMAP.md`. La imagen mostrada en cada puesto del
+Top 15 es siempre la imagen real del producto vinculado.
 
 ## Responsive
 

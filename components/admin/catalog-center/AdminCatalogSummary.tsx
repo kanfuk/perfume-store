@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CatalogSummary } from "@/lib/catalog-summary";
 import { buildCatalogSectionHref } from "@/lib/admin-catalog-routes";
-import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
+import { OFFERS_LIMIT, TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 
 type MetricTone = "neutral" | "good" | "warn" | "bad";
 
@@ -24,7 +24,8 @@ const METRICS: MetricDef[] = [
   { key: "preciosAuto", label: "Precio automático", href: (q) => buildCatalogSectionHref("precios", { modo: "AUTO", q }), tone: "neutral" },
   { key: "preciosManual", label: "Precio manual", href: (q) => buildCatalogSectionHref("precios", { modo: "MANUAL", q }), tone: "warn" },
   { key: "top12Asignados", label: `Top ${TOP_PRODUCTS_LIMIT} asignados`, href: (q) => buildCatalogSectionHref("top12", { estado: "asignado", q }), tone: "good" },
-  { key: "top12Pendientes", label: `Top ${TOP_PRODUCTS_LIMIT} pendientes`, href: (q) => buildCatalogSectionHref("top12", { estado: "pendiente", q }), tone: "warn", compact: true }
+  { key: "top12Pendientes", label: `Top ${TOP_PRODUCTS_LIMIT} pendientes`, href: (q) => buildCatalogSectionHref("top12", { estado: "pendiente", q }), tone: "warn", compact: true },
+  { key: "ofertasAsignadas", label: `Ofertas activas (máx. ${OFFERS_LIMIT})`, href: (q) => buildCatalogSectionHref("ofertas", { q }), tone: "good" }
 ];
 
 const TILE_TONE_CLASSES: Record<MetricTone, string> = {

@@ -5,7 +5,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableProductStock } from "@/lib/stock";
-import { resolveCardMetadata } from "@/lib/product-card-metadata";
+import { resolveCardMetadata, hasVisiblePreviousPrice } from "@/lib/product-card-metadata";
 import type { ProductRecord } from "@/lib/types";
 
 type ProductCardProps = {
@@ -43,8 +43,7 @@ export function ProductCard({
   const metadata = resolveCardMetadata(product);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const hasLongDescription = (product.descripcion?.trim().length ?? 0) > 96;
-  const hasPreviousPrice =
-    typeof product.precioAnterior === "number" && product.precioAnterior > product.precioVenta;
+  const hasPreviousPrice = hasVisiblePreviousPrice(product);
 
   return (
     <article className="interactive-card flex h-full max-w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-[#e4e7ec] bg-white shadow-sm">
