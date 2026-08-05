@@ -28,6 +28,19 @@ export interface ProductRepository {
     id: string,
     cambios: { imageUrl: string; imageStoragePath: string }
   ): Promise<ProductoProps | null>;
+  /**
+   * Fase 7.3A: compare-and-swap para reemplazo autorizado de imagen. Solo
+   * actualiza si image_storage_path sigue siendo EXACTAMENTE
+   * `expectedImageStoragePath` en el momento de la escritura (comparacion y
+   * escritura atomicas en la misma sentencia UPDATE, nunca leer->comparar->
+   * escribir por separado). null si el producto no existe o la imagen ya
+   * cambio desde que el cliente la observo.
+   */
+  actualizarImagenProductoSiCoincide?(
+    id: string,
+    expectedImageStoragePath: string,
+    cambios: { imageUrl: string; imageStoragePath: string }
+  ): Promise<ProductoProps | null>;
   ajustarStockAgenda(id: string, cantidad: number): Promise<ProductoProps>;
 }
 
@@ -88,6 +101,17 @@ class MockProductRepository implements ProductRepository {
   ) {
     const current = localStore.products.find((product) => product.id === id);
     if (!current || current.imageUrl?.trim() || current.imageStoragePath?.trim()) return null;
+    Object.assign(current, cambios);
+    return current;
+  }
+
+  async actualizarImagenProductoSiCoincide(
+    id: string,
+    expectedImageStoragePath: string,
+    cambios: { imageUrl: string; imageStoragePath: string }
+  ) {
+    const current = localStore.products.find((product) => product.id === id);
+    if (!current || (current.imageStoragePath ?? "") !== expectedImageStoragePath) return null;
     Object.assign(current, cambios);
     return current;
   }
@@ -311,6 +335,24 @@ class SupabaseProductRepository implements ProductRepository {
       .maybeSingle();
     if (response.error) {
       throw new Error(`No fue posible asignar la imagen de forma segura. ${response.error.message}`);
+    }
+    return response.data ? mapSupabaseProduct(response.data) : null;
+  }
+
+  async actualizarImagenProductoSiCoincide(
+    id: string,
+    expectedImageStoragePath: string,
+    cambios: { imageUrl: string; imageStoragePath: string }
+  ) {
+    const response = await createSupabaseServerClient()
+      .from("productos")
+      .update({ image_url: cambios.imageUrl, image_storage_path: cambios.imageStoragePath })
+      .eq("id", id)
+      .eq("image_storage_path", expectedImageStoragePath)
+      .select("*")
+      .maybeSingle();
+    if (response.error) {
+      throw new Error(`No fue posible reemplazar la imagen de forma segura. ${response.error.message}`);
     }
     return response.data ? mapSupabaseProduct(response.data) : null;
   }

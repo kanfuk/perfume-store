@@ -12,8 +12,10 @@ const { asignarImagenProducto, obtenerProductoAdminPorId } = vi.hoisted(() => ({
   asignarImagenProducto: vi.fn(),
   obtenerProductoAdminPorId: vi.fn()
 }));
-const { reemplazarImagenProducto, eliminarImagenProducto } = vi.hoisted(() => ({
+const { reemplazarImagenProducto, asignarImagenProductoSiAusente, reemplazarImagenProductoSiCoincide, eliminarImagenProducto } = vi.hoisted(() => ({
   reemplazarImagenProducto: vi.fn(),
+  asignarImagenProductoSiAusente: vi.fn(),
+  reemplazarImagenProductoSiCoincide: vi.fn(),
   eliminarImagenProducto: vi.fn()
 }));
 
@@ -32,7 +34,12 @@ vi.mock("@/services/productImageService", async () => {
   );
   return {
     ...actual,
-    createProductImageService: () => ({ reemplazarImagenProducto, eliminarImagenProducto })
+    createProductImageService: () => ({
+      reemplazarImagenProducto,
+      asignarImagenProductoSiAusente,
+      reemplazarImagenProductoSiCoincide,
+      eliminarImagenProducto
+    })
   };
 });
 
@@ -128,6 +135,10 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
     asignarImagenProducto.mockResolvedValue({ id: "producto-1", imageUrl: "https://ejemplo.com/a.jpg" });
     reemplazarImagenProducto.mockReset();
     reemplazarImagenProducto.mockResolvedValue(IMAGE_RESULT);
+    asignarImagenProductoSiAusente.mockReset();
+    asignarImagenProductoSiAusente.mockResolvedValue(IMAGE_RESULT);
+    reemplazarImagenProductoSiCoincide.mockReset();
+    reemplazarImagenProductoSiCoincide.mockResolvedValue(IMAGE_RESULT);
     eliminarImagenProducto.mockReset();
     eliminarImagenProducto.mockResolvedValue(undefined);
     obtenerProductoAdminPorId.mockReset();
@@ -157,7 +168,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       formData.append("file", makeImageFile());
       const response = await POST(multipartRequest(formData), ctx());
       expect(response.status).toBe(401);
-      expect(reemplazarImagenProducto).not.toHaveBeenCalled();
+      expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
     });
 
     it("403 con origen invalido", async () => {
@@ -169,7 +180,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       formData.append("file", makeImageFile());
       const response = await POST(multipartRequest(formData), ctx());
       expect(response.status).toBe(403);
-      expect(reemplazarImagenProducto).not.toHaveBeenCalled();
+      expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
     });
 
     it("415 con content-type invalido (no multipart)", async () => {
@@ -181,7 +192,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       formData.append("file", makeImageFile());
       const response = await POST(multipartRequest(formData), ctx());
       expect(response.status).toBe(415);
-      expect(reemplazarImagenProducto).not.toHaveBeenCalled();
+      expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
     });
 
     it("400 si el form-data no trae el campo file", async () => {
@@ -189,7 +200,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       formData.append("otraCosa", "valor");
       const response = await POST(multipartRequest(formData), ctx());
       expect(response.status).toBe(400);
-      expect(reemplazarImagenProducto).not.toHaveBeenCalled();
+      expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
     });
 
     it("400 con claves desconocidas en el form-data", async () => {
@@ -200,7 +211,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(body.error).toMatch(/Campos no permitidos/);
-      expect(reemplazarImagenProducto).not.toHaveBeenCalled();
+      expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
     });
 
     it("413 si el archivo supera el tamano maximo", async () => {
@@ -211,7 +222,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       formData.append("file", bigFile);
       const response = await POST(multipartRequest(formData), ctx());
       expect(response.status).toBe(413);
-      expect(reemplazarImagenProducto).not.toHaveBeenCalled();
+      expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
     });
 
     it("400 con un MIME declarado fuera de la lista blanca", async () => {
@@ -219,11 +230,11 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
       formData.append("file", makeImageFile("<svg></svg>", "image/svg+xml", "a.svg"));
       const response = await POST(multipartRequest(formData), ctx());
       expect(response.status).toBe(400);
-      expect(reemplazarImagenProducto).not.toHaveBeenCalled();
+      expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
     });
 
     it("404 si el producto no existe", async () => {
-      reemplazarImagenProducto.mockRejectedValueOnce(
+      asignarImagenProductoSiAusente.mockRejectedValueOnce(
         new ProductImageServiceError("No se encontró el producto.")
       );
       const formData = new FormData();
@@ -233,7 +244,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
     });
 
     it("400 con un error de procesamiento saneado (sin detalle de Supabase)", async () => {
-      reemplazarImagenProducto.mockRejectedValueOnce(new Error("raw supabase storage error XYZ"));
+      asignarImagenProductoSiAusente.mockRejectedValueOnce(new Error("raw supabase storage error XYZ"));
       const formData = new FormData();
       formData.append("file", makeImageFile());
       const response = await POST(multipartRequest(formData), ctx());
@@ -258,7 +269,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
         correlationId: IMAGE_RESULT.correlationId,
         image: IMAGE_RESULT
       });
-      expect(reemplazarImagenProducto).toHaveBeenCalledWith(
+      expect(asignarImagenProductoSiAusente).toHaveBeenCalledWith(
         "producto-1",
         expect.any(Buffer),
         expect.any(String)
@@ -274,7 +285,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
     });
 
     it("la respuesta de error incluye un correlationId (aunque el servicio no haya generado uno propio)", async () => {
-      reemplazarImagenProducto.mockRejectedValueOnce(
+      asignarImagenProductoSiAusente.mockRejectedValueOnce(
         new ProductImageServiceError("No se encontró el producto.")
       );
       const formData = new FormData();
@@ -286,7 +297,7 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
     });
 
     it("la respuesta de error propaga el code del servicio cuando esta presente (ej. STORAGE_ROUNDTRIP_MISMATCH)", async () => {
-      reemplazarImagenProducto.mockRejectedValueOnce(
+      asignarImagenProductoSiAusente.mockRejectedValueOnce(
         new ProductImageServiceError("La imagen se subió pero quedó corrupta en el almacenamiento. Intenta nuevamente.", {
           code: "STORAGE_ROUNDTRIP_MISMATCH",
           correlationId: "22222222-2222-4222-8222-222222222222"
@@ -319,6 +330,196 @@ describe("app/api/admin/products/[productId]/image (Fase 3B.3)", () => {
         expect(obtenerProductoAdminPorId).toHaveBeenCalledWith("producto-1");
       }
     );
+
+    describe("Fase 7.3A: autorizacion atomica de reemplazo", () => {
+      const VALID_EXPECTED_PATH = "products/producto-1/existing-abc.webp";
+
+      it("upload normal (sin replaceExisting) usa la asignacion segura, nunca el reemplazo condicionado", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(201);
+        expect(asignarImagenProductoSiAusente).toHaveBeenCalledTimes(1);
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+      });
+
+      it("upload normal no puede reemplazar: si el servicio reporta IMAGE_ALREADY_EXISTS, responde 409 con ese code", async () => {
+        asignarImagenProductoSiAusente.mockRejectedValueOnce(
+          new ProductImageServiceError("El producto ya tiene una imagen y no será reemplazada automáticamente.", {
+            code: "IMAGE_ALREADY_EXISTS"
+          })
+        );
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(409);
+        const body = await response.json();
+        expect(body.code).toBe("IMAGE_ALREADY_EXISTS");
+        expect(body.error).not.toMatch(/stack|sql/i);
+      });
+
+      it("replaceExisting=\"true\" con expectedImageStoragePath valido usa el reemplazo condicionado", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", VALID_EXPECTED_PATH);
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(201);
+        expect(reemplazarImagenProductoSiCoincide).toHaveBeenCalledWith(
+          "producto-1",
+          VALID_EXPECTED_PATH,
+          expect.any(Buffer),
+          expect.any(String)
+        );
+        expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
+      });
+
+      it("replaceExisting con valor distinto de \"true\"/\"false\" es invalido (400)", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "yes");
+        formData.append("expectedImageStoragePath", VALID_EXPECTED_PATH);
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(400);
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+        expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
+      });
+
+      it("replaceExisting=\"false\" explicito se comporta como asignacion segura (no reemplazo)", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "false");
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(201);
+        expect(asignarImagenProductoSiAusente).toHaveBeenCalledTimes(1);
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+      });
+
+      it("replace sin expectedImageStoragePath: 400 EXPECTED_IMAGE_PATH_REQUIRED, sin llamar al servicio", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(400);
+        const body = await response.json();
+        expect(body.code).toBe("EXPECTED_IMAGE_PATH_REQUIRED");
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+        expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
+      });
+
+      it("replace con expectedImageStoragePath vacio: 400, sin llamar al servicio", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", "   ");
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(400);
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+      });
+
+      it("replace con expectedImageStoragePath de forma invalida (fuera del patron de Storage): 400", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", "../etc/passwd");
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(400);
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+      });
+
+      it("replace con expectedImageStoragePath de OTRO producto: 400, sin llamar al servicio", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", "products/otro-producto/abc.webp");
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(400);
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+      });
+
+      it("expectedImageStoragePath sin replaceExisting: se ignora de forma segura (asignacion segura, sin error)", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("expectedImageStoragePath", VALID_EXPECTED_PATH);
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(201);
+        expect(asignarImagenProductoSiAusente).toHaveBeenCalledTimes(1);
+        expect(reemplazarImagenProductoSiCoincide).not.toHaveBeenCalled();
+      });
+
+      it("conflicto IMAGE_ALREADY_EXISTS responde 409 con ese code y mensaje seguro", async () => {
+        asignarImagenProductoSiAusente.mockRejectedValueOnce(
+          new ProductImageServiceError("El producto ya tiene una imagen y no será reemplazada automáticamente.", {
+            code: "IMAGE_ALREADY_EXISTS",
+            correlationId: "33333333-3333-4333-8333-333333333333"
+          })
+        );
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(409);
+        const body = await response.json();
+        expect(body).toMatchObject({
+          code: "IMAGE_ALREADY_EXISTS",
+          correlationId: "33333333-3333-4333-8333-333333333333"
+        });
+      });
+
+      it("conflicto IMAGE_CHANGED_SINCE_PREVIEW responde 409 con ese code y mensaje seguro", async () => {
+        reemplazarImagenProductoSiCoincide.mockRejectedValueOnce(
+          new ProductImageServiceError(
+            "La imagen del producto cambió desde que abriste el Preview. Actualiza la página antes de reemplazarla.",
+            { code: "IMAGE_CHANGED_SINCE_PREVIEW" }
+          )
+        );
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", VALID_EXPECTED_PATH);
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(409);
+        const body = await response.json();
+        expect(body.code).toBe("IMAGE_CHANGED_SINCE_PREVIEW");
+        expect(body.error).not.toMatch(/stack|sql/i);
+      });
+
+      it("rechaza mas de un archivo bajo el campo file", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("file", makeImageFile(undefined, undefined, "otra.jpg"));
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(400);
+        expect(asignarImagenProductoSiAusente).not.toHaveBeenCalled();
+      });
+
+      it("rechaza replaceExisting duplicado en el form-data", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", VALID_EXPECTED_PATH);
+        const response = await POST(multipartRequest(formData), ctx());
+        expect(response.status).toBe(400);
+      });
+
+      it("respuesta exitosa conserva el contrato actual tambien en modo reemplazo", async () => {
+        const formData = new FormData();
+        formData.append("file", makeImageFile());
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", VALID_EXPECTED_PATH);
+        const response = await POST(multipartRequest(formData), ctx());
+        const body = await response.json();
+        expect(body).toEqual({
+          ok: true,
+          persisted: true,
+          product: ADMIN_RECORD,
+          imageStoragePath: IMAGE_RESULT.storagePath,
+          imageUrl: IMAGE_RESULT.displayUrl,
+          correlationId: IMAGE_RESULT.correlationId,
+          image: IMAGE_RESULT
+        });
+      });
+    });
   });
 
   describe("DELETE (eliminar, idempotente)", () => {

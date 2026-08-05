@@ -3,7 +3,15 @@ import { describe, expect, it } from "vitest";
 
 describe("MVP V2 sin asistente externo de imágenes", () => {
   it("no expone rutas, pantalla ni servicio del asistente", () => {
-    expect(existsSync("app/admin/catalogo/imagenes/page.tsx")).toBe(false);
+    // Fase 7.3: /admin/catalogo/imagenes ahora aloja la carga masiva manual y
+    // deterministica de imagenes (BulkProductImagePanel, sin IA ni busqueda
+    // externa) -- una herramienta distinta, autorizada explicitamente para
+    // esa ruta. La prueba ya no exige que la ruta no exista; exige que jamas
+    // vuelva a importar el asistente externo retirado.
+    if (existsSync("app/admin/catalogo/imagenes/page.tsx")) {
+      const bulkImagesPage = readFileSync("app/admin/catalogo/imagenes/page.tsx", "utf8");
+      expect(bulkImagesPage).not.toMatch(/ImageAssistant|imageAssistantService|BRAVE_SEARCH/);
+    }
     expect(existsSync("app/api/admin/image-assistant/analyze/route.ts")).toBe(false);
     expect(existsSync("app/api/admin/image-assistant/health/route.ts")).toBe(false);
     expect(existsSync("services/imageAssistantService.ts")).toBe(false);

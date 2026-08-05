@@ -140,3 +140,19 @@ export const HORAS_EXPIRACION_PEDIDO = 72;
  * repetir el numero en componentes, rutas ni validaciones.
  */
 export const TOP_PRODUCTS_LIMIT = 15;
+
+/**
+ * Fase 7.3: cantidad maxima de imagenes por lote en la carga masiva
+ * (/admin/catalogo/imagenes). Limite conservador para un flujo que sube una
+ * imagen por request (ver lib/product-image-bulk-queue.ts) -- unica fuente
+ * de este numero, no repetirlo en componentes.
+ */
+export const BULK_PRODUCT_IMAGE_MAX_FILES = 100;
+
+/**
+ * Fase 7.3: maximo de subidas simultaneas en la cola de carga masiva. Cada
+ * request reutiliza el endpoint individual ya validado
+ * (/api/admin/products/[productId]/image); nunca se empaquetan varios
+ * binarios en una sola peticion.
+ */
+export const BULK_PRODUCT_IMAGE_MAX_CONCURRENCY = 2;
