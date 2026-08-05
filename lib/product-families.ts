@@ -24,6 +24,7 @@ export type ProductVariant = {
   disponible: boolean;
   activo: boolean;
   esTop: boolean;
+  esOfertaSemana: boolean;
   ordenDestacado?: number;
   imageUrl?: string;
 };
@@ -72,6 +73,7 @@ function toVariant(product: ProductRecord): ProductVariant {
     disponible,
     activo: Boolean(product.activo),
     esTop: Boolean(product.esTop),
+    esOfertaSemana: Boolean(product.esOfertaSemana),
     ordenDestacado: product.ordenDestacado,
     imageUrl: product.imageUrl
   };

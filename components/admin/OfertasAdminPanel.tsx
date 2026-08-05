@@ -397,8 +397,14 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
                   <button
                     type="button"
                     onClick={() => void activar(product)}
-                    disabled={pendingId === product.id || maxAlcanzado}
-                    title={maxAlcanzado ? `Alcanzaste el máximo de ${OFFERS_LIMIT} ofertas` : "Agregar a Ofertas de la semana"}
+                    disabled={pendingId === product.id || maxAlcanzado || pausado}
+                    title={
+                      pausado
+                        ? "Un producto pausado no puede agregarse a Ofertas de la semana"
+                        : maxAlcanzado
+                          ? `Alcanzaste el máximo de ${OFFERS_LIMIT} ofertas`
+                          : "Agregar a Ofertas de la semana"
+                    }
                     className="app-button-primary inline-flex min-h-11 shrink-0 items-center justify-center px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Agregar

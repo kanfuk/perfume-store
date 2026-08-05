@@ -92,7 +92,7 @@ function mapProductoToAdminRecord(domainProduct: Producto): AdminProductRecord {
     contenido: domainProduct.contenido,
     descripcion: domainProduct.descripcion,
     precioVenta: domainProduct.precioVenta,
-    precioAnterior: domainProduct.precioAnterior,
+    precioAnterior: domainProduct.precioAnterior ?? undefined,
     imageUrl: domainProduct.imageUrl || visual.imageUrl,
     imageStoragePath: domainProduct.imageStoragePath,
     badgeLabel:
@@ -1163,6 +1163,26 @@ export class ProductoService {
    * validando el maximo OFFERS_LIMIT. `precioAnterior` es opcional -- nunca
    * se calcula ni se inventa aqui, solo se persiste el valor que ingresa el
    * admin (debe ser mayor que 0). No toca ningun otro campo del producto.
+   *
+   * Reactivar un producto que ya esta en oferta es idempotente: no vuelve a
+   * validar el maximo (no se cuenta dos veces a si mismo) y solo actualiza
+   * precioAnterior si se envio uno nuevo.
+   *
+   * Un producto pausado no puede iniciar una oferta nueva (Fase 7.4A,
+   * seccion 6A) -- si ya estaba en oferta y luego se pausa desde otra
+   * pantalla, esta llamada NO lo bloquea (solo el admin lo ve como
+   * inconsistencia en el panel; el catalogo publico ya lo excluye por estar
+   * pausado, ver obtenerProductosActivos).
+   *
+   * ATOMICIDAD (Fase 7.4A): el conteo de ofertas activas y la escritura son
+   * dos operaciones separadas (leer, luego escribir), no una transaccion ni
+   * un UPDATE condicionado por conteo. Bajo carga administrativa concurrente
+   * esto puede superar OFFERS_LIMIT (demostrado en
+   * tests/services/productoService.ofertasConcurrency.test.ts). No se creo
+   * una funcion SQL/RPC/trigger para esto en esta fase -- ver
+   * docs/SMELLME_OFFERS_ATOMICITY_PROPOSAL.md para el analisis y la
+   * propuesta pendiente. Riesgo aceptado por ahora: es una pantalla admin de
+   * uso interno, de bajo trafico, sin concurrencia real esperada.
    */
   async activarOfertaSemana(productIdRaw: unknown, precioAnteriorRaw?: unknown) {
     if (typeof productIdRaw !== "string" || !productIdRaw.trim()) {
@@ -1185,6 +1205,10 @@ export class ProductoService {
     }
 
     if (!producto.esOfertaSemana) {
+      if (producto.activo === false) {
+        throw new Error("No se puede agregar a Ofertas de la semana un producto pausado.");
+      }
+
       const todos = await this.productRepository.buscarTodosProductos();
       const activas = todos.filter((item) => item.esOfertaSemana).length;
       if (activas >= OFFERS_LIMIT) {
@@ -1203,8 +1227,12 @@ export class ProductoService {
   }
 
   /**
-   * Ofertas de la semana: quita es_oferta_semana de un producto. No toca
-   * precioAnterior (se conserva por si se reactiva la oferta despues).
+   * Ofertas de la semana: quita es_oferta_semana de un producto y limpia
+   * precioAnterior (Fase 7.4A, seccion 5, politica A: evita que un precio
+   * tachado obsoleto reaparezca en otra pantalla -- ver
+   * lib/product-card-metadata.ts hasVisiblePreviousPrice). Operacion
+   * idempotente: sobre un producto que ya esta fuera de oferta solo asegura
+   * que precioAnterior quede en null.
    */
   async desactivarOfertaSemana(productIdRaw: unknown) {
     if (typeof productIdRaw !== "string" || !productIdRaw.trim()) {
@@ -1218,7 +1246,8 @@ export class ProductoService {
     }
 
     const actualizado = await this.productRepository.actualizarProducto(productId, {
-      esOfertaSemana: false
+      esOfertaSemana: false,
+      precioAnterior: null
     });
 
     return { producto: actualizado };

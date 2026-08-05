@@ -22,7 +22,7 @@ vi.mock("@/services/productoService", () => ({
   })
 }));
 
-import { POST as ofertasPost } from "@/app/api/admin/ofertas/route";
+import { GET as ofertasGet, POST as ofertasPost } from "@/app/api/admin/ofertas/route";
 
 function makeRequest(url: string, body: unknown) {
   return new Request(url, {
@@ -31,6 +31,23 @@ function makeRequest(url: string, body: unknown) {
     body: JSON.stringify(body)
   });
 }
+
+describe("GET /api/admin/ofertas", () => {
+  beforeEach(() => {
+    isAdminAuthenticated.mockClear();
+  });
+
+  it("rechaza con 401 sin sesion", async () => {
+    isAdminAuthenticated.mockResolvedValueOnce(false);
+    const response = await ofertasGet();
+    expect(response.status).toBe(401);
+  });
+
+  it("con sesion valida, retorna 200", async () => {
+    const response = await ofertasGet();
+    expect(response.status).toBe(200);
+  });
+});
 
 describe("POST /api/admin/ofertas", () => {
   beforeEach(() => {

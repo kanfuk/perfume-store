@@ -4,6 +4,20 @@ import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security"
 import { createProductoService } from "@/services/productoService";
 
 /**
+ * Fase 7.4A: GET solo confirma la sesion admin (mismo gate 401 que el resto
+ * de /api/admin/*). El panel lee el estado de las ofertas desde
+ * /api/admin/products (ya expone esOfertaSemana/precioAnterior); no se
+ * duplica esa lectura aqui a proposito.
+ */
+export async function GET() {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+/**
  * Activa/desactiva "Ofertas de la semana" (es_oferta_semana) en un producto,
  * uno a la vez -- mismo patron no-batch que /api/admin/top12. El maximo
  * (OFFERS_LIMIT) y la validacion de precioAnterior se resuelven siempre en

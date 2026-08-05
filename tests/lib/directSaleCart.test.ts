@@ -21,6 +21,7 @@ function variant(overrides: Partial<ProductVariant> = {}): ProductVariant {
     disponible: true,
     activo: true,
     esTop: false,
+    esOfertaSemana: false,
     ...overrides
   };
 }

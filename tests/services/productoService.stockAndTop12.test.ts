@@ -559,7 +559,41 @@ describe("ProductoService - Ofertas de la semana (Fase 7.4)", () => {
     await expect(service.activarOfertaSemana("no-existe")).rejects.toThrow(/no encontrado/);
   });
 
-  it("desactivarOfertaSemana quita es_oferta_semana sin tocar precioAnterior", async () => {
+  it("rechaza activar una oferta NUEVA sobre un producto pausado (Fase 7.4A, seccion 6A)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: false });
+    const service = new ProductoService(repository);
+
+    await expect(service.activarOfertaSemana("prod-1")).rejects.toThrow(/pausado/i);
+
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.esOfertaSemana).toBe(false);
+  });
+
+  it("un producto que YA esta en oferta y luego se pausa puede seguir editando su precioAnterior (idempotente, no vuelve a validar activo)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { activo: false, esOfertaSemana: true });
+    const service = new ProductoService(repository);
+
+    await expect(service.activarOfertaSemana("prod-1", 99000)).resolves.toBeTruthy();
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.esOfertaSemana).toBe(true);
+    expect(updated?.precioAnterior).toBe(99000);
+  });
+
+  it("acepta guardar precioAnterior igual o menor al precio actual (la vitrina publica lo oculta, no el servicio)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { precioVenta: 65000 });
+    const service = new ProductoService(repository);
+
+    await expect(service.activarOfertaSemana("prod-1", 65000)).resolves.toBeTruthy();
+    expect((await repository.buscarProductoPorId("prod-1"))?.precioAnterior).toBe(65000);
+
+    await expect(service.activarOfertaSemana("prod-1", 50000)).resolves.toBeTruthy();
+    expect((await repository.buscarProductoPorId("prod-1"))?.precioAnterior).toBe(50000);
+  });
+
+  it("desactivarOfertaSemana quita es_oferta_semana y limpia precioAnterior (Fase 7.4A, politica A)", async () => {
     const repository = new FullProductRepositoryStub();
     seedProduct(repository, { esOfertaSemana: true, precioAnterior: 80000 });
     const service = new ProductoService(repository);
@@ -568,7 +602,49 @@ describe("ProductoService - Ofertas de la semana (Fase 7.4)", () => {
 
     const updated = await repository.buscarProductoPorId("prod-1");
     expect(updated?.esOfertaSemana).toBe(false);
-    expect(updated?.precioAnterior).toBe(80000);
+    expect(updated?.precioAnterior).toBeNull();
+  });
+
+  it("desactivarOfertaSemana es idempotente sobre un producto que ya estaba fuera de oferta", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { esOfertaSemana: false, precioAnterior: 80000 });
+    const service = new ProductoService(repository);
+
+    await expect(service.desactivarOfertaSemana("prod-1")).resolves.toBeTruthy();
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.esOfertaSemana).toBe(false);
+    expect(updated?.precioAnterior).toBeNull();
+  });
+
+  it("desactivarOfertaSemana no modifica precio actual, costo, stock ni Top 15", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, {
+      esOfertaSemana: true,
+      precioAnterior: 80000,
+      precioVenta: 65000,
+      costoUnitario: 45000,
+      stockActual: 7,
+      esTop: true,
+      ordenDestacado: 4
+    });
+    const service = new ProductoService(repository);
+
+    await service.desactivarOfertaSemana("prod-1");
+
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.precioVenta).toBe(65000);
+    expect(updated?.costoUnitario).toBe(45000);
+    expect(updated?.stockActual).toBe(7);
+    expect(updated?.esTop).toBe(true);
+    expect(updated?.ordenDestacado).toBe(4);
+  });
+
+  it("rechaza desactivar un producto inexistente", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await expect(service.desactivarOfertaSemana("no-existe")).rejects.toThrow(/no encontrado/);
   });
 
   it("quitar una oferta libera cupo para agregar otra", async () => {

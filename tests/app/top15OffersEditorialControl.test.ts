@@ -77,7 +77,7 @@ describe("Ofertas de la semana: maximo de 10 y contador", () => {
   });
 
   it("el panel bloquea agregar una oferta 11 cuando ya se alcanzo el maximo", () => {
-    expect(ofertasPanelSource).toMatch(/disabled=\{pendingId === product\.id \|\| maxAlcanzado\}/);
+    expect(ofertasPanelSource).toMatch(/disabled=\{pendingId === product\.id \|\| maxAlcanzado/);
   });
 });
 

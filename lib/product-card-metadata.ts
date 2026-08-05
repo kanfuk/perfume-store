@@ -40,3 +40,27 @@ export function resolveCardMetadata(product: CardMetadataInput): CardMetadataRes
     contentLabel: contenido
   };
 }
+
+export type PreviousPriceInput = {
+  esOfertaSemana?: boolean;
+  precioAnterior?: number;
+  precioVenta: number;
+};
+
+/**
+ * Fase 7.4A (seccion 7): decide si una tarjeta publica puede mostrar el
+ * precio tachado. Las tres condiciones son obligatorias -- un precioAnterior
+ * "huerfano" (por ejemplo, de una oferta ya retirada, o cargado manualmente
+ * fuera de Ofertas de la semana) nunca debe mostrarse como si fuera una
+ * promocion vigente, en NINGUNA seccion publica (Top 15, catalogo completo,
+ * Ofertas). Nunca inventa un ahorro ni muestra un descuento de 0% o
+ * negativo.
+ */
+export function hasVisiblePreviousPrice(product: PreviousPriceInput): boolean {
+  return (
+    product.esOfertaSemana === true &&
+    typeof product.precioAnterior === "number" &&
+    Number.isFinite(product.precioAnterior) &&
+    product.precioAnterior > product.precioVenta
+  );
+}

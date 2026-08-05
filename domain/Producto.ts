@@ -16,7 +16,8 @@ export type ProductoProps = {
   contenido?: string;
   descripcion?: string;
   precioVenta: number;
-  precioAnterior?: number;
+  /** null limpia explícitamente el precio anterior (usado al retirar una Oferta de la semana). */
+  precioAnterior?: number | null;
   imageUrl?: string;
   imageStoragePath?: string;
   badgeLabel?: string;
@@ -56,7 +57,7 @@ export class Producto {
   readonly ordenDestacado?: number | null;
   readonly createdAt?: Date;
   private _precioVenta: number;
-  private _precioAnterior?: number;
+  private _precioAnterior?: number | null;
   private _costoUnitario: number;
   private _stockActual: number;
   private _stockAgenda: number;
@@ -205,7 +206,7 @@ export class Producto {
       throw new Error("El precio de venta no puede ser negativo.");
     }
 
-    if (this._precioAnterior !== undefined && this._precioAnterior < 0) {
+    if (this._precioAnterior !== undefined && this._precioAnterior !== null && this._precioAnterior < 0) {
       throw new Error("El precio anterior no puede ser negativo.");
     }
 
