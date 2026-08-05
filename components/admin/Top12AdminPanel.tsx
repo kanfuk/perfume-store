@@ -2,13 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, CheckCircle2, Home, PackagePlus, Search, Sparkles, UploadCloud, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Home,
+  PackagePlus,
+  Search,
+  Sparkles,
+  UploadCloud,
+  X
+} from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { filterAndSortProducts } from "@/lib/catalog-search";
 import { getProductImageRenderConfig } from "@/lib/product-image-render";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
-import type { AdminProductRecord } from "@/lib/types";
+import { TopProductsSection } from "@/components/shared/TopProductsSection";
+import type { AdminProductRecord, ProductRecord } from "@/lib/types";
 
 type Top12Producto = {
   id: string;
@@ -58,7 +70,36 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [unlinkingRank, setUnlinkingRank] = useState<number | null>(null);
+  const [confirmingReplace, setConfirmingReplace] = useState(false);
   const [slotFilter, setSlotFilter] = useState<Top12FilterChoice>(() => mapUrlEstadoToTop12Filter(initialFilter));
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewProducts, setPreviewProducts] = useState<ProductRecord[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+
+  async function togglePreview() {
+    if (previewOpen) {
+      setPreviewOpen(false);
+      return;
+    }
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewError("");
+    try {
+      // Misma llamada que hace la portada publica (/api/products): la vista
+      // previa reutiliza el mismo endpoint y el mismo componente publico
+      // (TopProductsSection) en vez de reimplementar el filtro de
+      // "vendible" (activo + stock + precio + ficha completa) en el admin.
+      const data = await fetchJson("/api/products");
+      setPreviewProducts(data.products ?? []);
+    } catch (err) {
+      setPreviewError(
+        err instanceof Error ? err.message : "No fue posible cargar la vista previa pública."
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   async function loadAll() {
     setLoading(true);
@@ -127,15 +168,22 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
     setActiveRank(rank);
     setPickerQuery("");
     setSelectedProductId(null);
+    setConfirmingReplace(false);
   }
 
   function closePicker() {
     setActiveRank(null);
     setPickerQuery("");
     setSelectedProductId(null);
+    setConfirmingReplace(false);
   }
 
-  async function confirmLink() {
+  const activeSlot = useMemo(
+    () => (activeRank === null ? null : (slots.find((slot) => slot.rank === activeRank) ?? null)),
+    [slots, activeRank]
+  );
+
+  async function performLink() {
     if (activeRank === null || !selectedProductId) return;
     setLinking(true);
     setError("");
@@ -153,6 +201,17 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
     } finally {
       setLinking(false);
     }
+  }
+
+  function confirmLink() {
+    // Reemplazo sensible: la posición ya tiene un producto vinculado y el
+    // admin eligió uno distinto. Se pide una confirmación explícita antes
+    // de escribir para evitar quitar por error un perfume ya publicado.
+    if (activeSlot?.producto && activeSlot.producto.id !== selectedProductId && !confirmingReplace) {
+      setConfirmingReplace(true);
+      return;
+    }
+    void performLink();
   }
 
   async function unlink(rank: number) {
@@ -221,9 +280,38 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         </div>
       ) : null}
 
-      <p className="text-sm font-semibold text-[#344054]">
-        Top {TOP_PRODUCTS_LIMIT}: {slots.filter((slot) => !!slot.producto).length} de {TOP_PRODUCTS_LIMIT} seleccionados
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-[#344054]">
+          Top {TOP_PRODUCTS_LIMIT}: {slots.filter((slot) => !!slot.producto).length} de {TOP_PRODUCTS_LIMIT} seleccionados
+        </p>
+        <button
+          type="button"
+          onClick={() => void togglePreview()}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2 text-sm font-semibold text-[#344054]"
+          aria-expanded={previewOpen}
+        >
+          {previewOpen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {previewOpen ? "Ocultar vista previa" : "Vista previa pública"}
+        </button>
+      </div>
+
+      {previewOpen ? (
+        <section className="rounded-2xl border border-[#e4e7ec] bg-[#f7f8fa] p-4 sm:p-5" aria-label="Vista previa pública del Top 15">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
+            Así se ve en la portada (mismo componente y datos que el catálogo público)
+          </p>
+          {previewLoading ? (
+            <p className="text-sm text-[#667085]">Cargando vista previa...</p>
+          ) : previewError ? (
+            <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{previewError}</span>
+            </div>
+          ) : (
+            <TopProductsSection products={previewProducts} quantities={{}} onAdd={() => {}} />
+          )}
+        </section>
+      ) : null}
 
       {!loading && products.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#e4e7ec] bg-white p-6 text-sm text-[#667085]">
@@ -388,7 +476,10 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                 <button
                   key={product.id}
                   type="button"
-                  onClick={() => setSelectedProductId(product.id)}
+                  onClick={() => {
+                    setSelectedProductId(product.id);
+                    setConfirmingReplace(false);
+                  }}
                   className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm ${
                     selectedProductId === product.id
                       ? "border-[#7357ff] bg-[#f7f5ff]"
@@ -412,6 +503,19 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
               ) : null}
             </div>
 
+            {confirmingReplace && activeSlot?.producto ? (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-3 py-2.5 text-sm text-[#8a2c22]"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Esta posición ya tiene a <strong>{activeSlot.producto.nombre}</strong>. Confirma para
+                  reemplazarlo.
+                </span>
+              </div>
+            ) : null}
+
             <div className="flex justify-end gap-3">
               <button
                 type="button"
@@ -426,7 +530,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                 disabled={!selectedProductId || linking}
                 className="app-button-primary inline-flex min-h-11 items-center justify-center px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {linking ? "Vinculando..." : "Vincular"}
+                {linking ? "Vinculando..." : confirmingReplace ? "Sí, reemplazar" : "Vincular"}
               </button>
             </div>
           </div>

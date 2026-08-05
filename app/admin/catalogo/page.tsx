@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { CircleDollarSign, ClipboardList, ShieldAlert, Sparkles, UploadCloud } from "lucide-react";
+import { CircleDollarSign, ClipboardList, ShieldAlert, Sparkles, Tag, UploadCloud } from "lucide-react";
 import { getCachedCatalogSummary } from "@/lib/admin-catalog-data";
 import { buildCatalogSectionHref } from "@/lib/admin-catalog-routes";
 import { AdminCatalogSummary } from "@/components/admin/catalog-center/AdminCatalogSummary";
-import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
+import { OFFERS_LIMIT, TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 
 type AdminCatalogoResumenPageProps = {
   searchParams: Promise<{ q?: string }>;
@@ -50,6 +50,12 @@ export default async function AdminCatalogoResumenPage({ searchParams }: AdminCa
       icon: Sparkles,
       label: `Configurar Top ${TOP_PRODUCTS_LIMIT}`,
       description: `${summary.top12Pendientes} posición(es) pendiente(s) de asignar.`
+    },
+    {
+      href: buildCatalogSectionHref("ofertas", { q }),
+      icon: Tag,
+      label: "Configurar Ofertas de la semana",
+      description: `${summary.ofertasAsignadas} de ${OFFERS_LIMIT} ofertas activas.`
     }
   ];
 

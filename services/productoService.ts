@@ -13,7 +13,7 @@ import { buildFamilyKey } from "@/lib/product-families";
 import { isProductMetadataComplete } from "@/lib/catalog-completeness";
 import { computeCatalogSummary, type CatalogSummary } from "@/lib/catalog-summary";
 import { getUnifiedProductStock, normalizeStockValue } from "@/lib/stock";
-import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
+import { OFFERS_LIMIT, TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import { validateImageUrlInput } from "@/lib/image-url";
 import type { AdminProductRecord, ProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
@@ -252,7 +252,8 @@ export class ProductoService {
         activo: product.activo,
         stockActual: getUnifiedProductStock(product),
         modoPrecio: product.modoPrecio,
-        esTop: product.esTop
+        esTop: product.esTop,
+        esOfertaSemana: product.esOfertaSemana
       }))
     );
   }
@@ -1093,19 +1094,17 @@ export class ProductoService {
    * orden_destacado, liberando automaticamente la posicion previa (un
    * producto solo puede estar en una posicion a la vez).
    *
-   * `imageUrl`: solo las posiciones con fotografia curada fija (1-12, ver
-   * data/top12-image-map.json) la envian -- esa foto SI reemplaza la imagen
-   * del producto (comportamiento historico sin cambios). Las posiciones sin
-   * fotografia curada (13-15) reciben `null`: el producto conserva su propia
-   * imagen real, nunca se le asigna una inventada.
+   * La imagen pertenece siempre al producto, nunca a la posicion (Fase
+   * 7.4): este metodo jamas escribe imageUrl. El puesto vinculado muestra la
+   * fotografia real del producto (o el fallback neutral si no tiene) sin
+   * importar el rank -- ver data/top12-image-map.json para el detalle de por
+   * que ese mapa de fotografias curadas por posicion quedo sin consumo
+   * automatico.
    */
-  async vincularProductoTop12(rankRaw: unknown, productId: string, imageUrl: string | null) {
+  async vincularProductoTop12(rankRaw: unknown, productId: string) {
     const rank = typeof rankRaw === "number" ? rankRaw : Number(rankRaw);
     if (!Number.isInteger(rank) || rank < 1 || rank > TOP_PRODUCTS_LIMIT) {
       throw new Error(`La posición debe ser un número entero entre 1 y ${TOP_PRODUCTS_LIMIT}.`);
-    }
-    if (imageUrl !== null && (typeof imageUrl !== "string" || !imageUrl.trim())) {
-      throw new Error("Falta la imagen del Top 15 para esta posición.");
     }
     if (typeof productId !== "string" || !productId.trim()) {
       throw new Error("Selecciona un producto para vincular.");
@@ -1130,8 +1129,7 @@ export class ProductoService {
 
     const actualizado = await this.productRepository.actualizarProducto(productId, {
       esTop: true,
-      ordenDestacado: rank,
-      ...(imageUrl !== null ? { imageUrl } : {})
+      ordenDestacado: rank
     });
 
     return { rank, producto: actualizado };
@@ -1158,6 +1156,72 @@ export class ProductoService {
     }
 
     return { rank, producto: null };
+  }
+
+  /**
+   * Ofertas de la semana (Fase 7.4): activa es_oferta_semana en un producto,
+   * validando el maximo OFFERS_LIMIT. `precioAnterior` es opcional -- nunca
+   * se calcula ni se inventa aqui, solo se persiste el valor que ingresa el
+   * admin (debe ser mayor que 0). No toca ningun otro campo del producto.
+   */
+  async activarOfertaSemana(productIdRaw: unknown, precioAnteriorRaw?: unknown) {
+    if (typeof productIdRaw !== "string" || !productIdRaw.trim()) {
+      throw new Error("Selecciona un producto para agregar a las ofertas.");
+    }
+    const productId = productIdRaw;
+
+    let precioAnterior: number | undefined;
+    if (precioAnteriorRaw !== undefined && precioAnteriorRaw !== null && precioAnteriorRaw !== "") {
+      const parsed = typeof precioAnteriorRaw === "number" ? precioAnteriorRaw : Number(precioAnteriorRaw);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error("El precio anterior debe ser un número mayor que 0.");
+      }
+      precioAnterior = parsed;
+    }
+
+    const producto = await this.productRepository.buscarProductoPorId(productId);
+    if (!producto) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    if (!producto.esOfertaSemana) {
+      const todos = await this.productRepository.buscarTodosProductos();
+      const activas = todos.filter((item) => item.esOfertaSemana).length;
+      if (activas >= OFFERS_LIMIT) {
+        throw new Error(
+          `Ya hay ${OFFERS_LIMIT} productos en Ofertas de la semana. Quita uno antes de agregar otro.`
+        );
+      }
+    }
+
+    const actualizado = await this.productRepository.actualizarProducto(productId, {
+      esOfertaSemana: true,
+      ...(precioAnterior !== undefined ? { precioAnterior } : {})
+    });
+
+    return { producto: actualizado };
+  }
+
+  /**
+   * Ofertas de la semana: quita es_oferta_semana de un producto. No toca
+   * precioAnterior (se conserva por si se reactiva la oferta despues).
+   */
+  async desactivarOfertaSemana(productIdRaw: unknown) {
+    if (typeof productIdRaw !== "string" || !productIdRaw.trim()) {
+      throw new Error("Selecciona un producto para quitar de las ofertas.");
+    }
+    const productId = productIdRaw;
+
+    const producto = await this.productRepository.buscarProductoPorId(productId);
+    if (!producto) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    const actualizado = await this.productRepository.actualizarProducto(productId, {
+      esOfertaSemana: false
+    });
+
+    return { producto: actualizado };
   }
 
   /**

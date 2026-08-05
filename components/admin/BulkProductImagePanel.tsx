@@ -388,6 +388,13 @@ export function BulkProductImagePanel() {
 
       {stage !== "summary" ? (
         <>
+          <p className="rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-xs leading-5 text-[#667085]">
+            <span className="font-semibold text-[#344054]">Cómo nombrar cada archivo:</span> usa el mismo nombre
+            del perfume tal como aparece en el CSV importado (ej.: &quot;Acqua Di Gio Profondo.jpg&quot;,
+            &quot;Lattafa Asad.png&quot;). No hace falta escribir el SKU en el nombre del archivo — es opcional y
+            solo se usa como respaldo si el nombre coincide con más de un producto.
+          </p>
+
           <BulkImageDropzone disabled={stage === "uploading"} onFilesSelected={handleFilesSelected} />
 
           {selectionError ? (

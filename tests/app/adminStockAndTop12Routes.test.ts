@@ -47,7 +47,13 @@ const {
   confirmarAjusteMasivoStock: vi.fn(async () => ({ actualizados: 1, sinCambios: 0, bloqueados: 0, total: 1 })),
   asignarImagenProducto: vi.fn(async () => ({ id: "prod-1", imageUrl: "https://cdn.example.com/x.webp" })),
   obtenerEstadoTop12: vi.fn(async () =>
-    Array.from({ length: 12 }, (_, i) => ({ rank: i + 1, producto: null }))
+    Array.from({ length: 15 }, (_, i) => {
+      const rank = i + 1;
+      if (rank === 3) {
+        return { rank, producto: { id: "prod-1", nombre: "La Bomba", imageUrl: "/images/mi-propia-foto.webp" } };
+      }
+      return { rank, producto: null };
+    })
   ),
   vincularProductoTop12: vi.fn(async () => ({ rank: 3, producto: { id: "prod-1" } })),
   desvincularProductoTop12: vi.fn(async () => ({ rank: 3, producto: null }))
@@ -381,13 +387,15 @@ describe("GET/POST /api/admin/top12", () => {
     expect(response.status).toBe(401);
   });
 
-  it("GET devuelve 12 posiciones con la imagen resuelta desde el mapa estatico", async () => {
+  it("GET devuelve 15 posiciones y la imagen real del producto vinculado, nunca una foto historica por rank", async () => {
     const response = await top12Get();
     const data = await response.json();
     expect(response.status).toBe(200);
-    expect(data.slots).toHaveLength(12);
+    expect(data.slots).toHaveLength(15);
     expect(data.slots[2].rank).toBe(3);
-    expect(typeof data.slots[2].imageUrl).toBe("string");
+    expect(data.slots[2].imageUrl).toBe("/images/mi-propia-foto.webp");
+    expect(data.slots[0].producto).toBeNull();
+    expect(data.slots[0].imageUrl).toBeNull();
   });
 
   it("POST rechaza con 401 sin sesion", async () => {
@@ -399,7 +407,7 @@ describe("GET/POST /api/admin/top12", () => {
     expect(vincularProductoTop12).not.toHaveBeenCalled();
   });
 
-  it("POST vincular resuelve la imagen en el servidor (nunca confia en el cliente)", async () => {
+  it("POST vincular ignora cualquier imageUrl enviada por el cliente (la imagen siempre es la del producto)", async () => {
     const response = await top12Post(
       makeRequest("http://localhost/api/admin/top12", {
         action: "vincular",
@@ -409,7 +417,7 @@ describe("GET/POST /api/admin/top12", () => {
       })
     );
     expect(response.status).toBe(200);
-    expect(vincularProductoTop12).toHaveBeenCalledWith(3, "prod-1", expect.stringContaining("/images/perfumes/top12/"));
+    expect(vincularProductoTop12).toHaveBeenCalledWith(3, "prod-1");
   });
 
   it("POST desvincular llama a desvincularProductoTop12", async () => {

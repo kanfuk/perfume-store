@@ -17,7 +17,9 @@ const FAKE_SUMMARY: CatalogSummary = {
   preciosAuto: 89,
   preciosManual: 12,
   top12Asignados: 9,
-  top12Pendientes: 3
+  top12Pendientes: 3,
+  ofertasAsignadas: 6,
+  ofertasPendientes: 4
 };
 
 const { obtenerResumenCatalogo } = vi.hoisted(() => ({
