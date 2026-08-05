@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Cliente } from "@/domain/Cliente";
 import { Pedido } from "@/domain/Pedido";
 import { METODO_DESPACHO_DOMICILIO_SEMANAL, METODO_DESPACHO_STARKEN_POR_PAGAR } from "@/lib/constants";
-import type { ClienteRepository } from "@/repositories/clienteRepository";
+import type { ClienteRepository, IdentidadPedido } from "@/repositories/clienteRepository";
 import type {
   CrearPedidoTransaccionalInput,
   CrearVentaDirectaTransaccionalInput,
@@ -161,6 +161,9 @@ class ProductRepositoryStub implements ProductRepository {
 }
 
 class ClienteRepositoryStub implements ClienteRepository {
+  /** Fase 7.5A: cuando se setea, buscarClienteBloqueadoPorIdentidad coincide contra estos valores. */
+  bloqueado: IdentidadPedido | null = null;
+
   async upsertCliente(cliente: Cliente) {
     return { id: `cliente-${cliente.nombre}` };
   }
@@ -171,6 +174,28 @@ class ClienteRepositoryStub implements ClienteRepository {
 
   async actualizarCliente(cliente: Cliente) {
     return { id: cliente.id ?? `cliente-${cliente.nombre}` };
+  }
+
+  async buscarClientePorId() {
+    return null;
+  }
+
+  async actualizarEstadoBloqueo(): Promise<Cliente> {
+    throw new Error("No usado en estos tests.");
+  }
+
+  async buscarClienteBloqueadoPorIdentidad(identidad: IdentidadPedido) {
+    if (!this.bloqueado) return null;
+    if (identidad.telefono && this.bloqueado.telefono === identidad.telefono) {
+      return { id: "cliente-bloqueado" };
+    }
+    if (identidad.rut && this.bloqueado.rut === identidad.rut) {
+      return { id: "cliente-bloqueado" };
+    }
+    if (identidad.email && this.bloqueado.email === identidad.email) {
+      return { id: "cliente-bloqueado" };
+    }
+    return null;
   }
 }
 
@@ -520,6 +545,133 @@ describe("PedidoService.crearPedido (flujo publico, Fase 1C)", () => {
     await expect(service.crearPedido(baseCustomerOrderInput())).rejects.toThrow(
       "Stock insuficiente para Perfume floral."
     );
+  });
+});
+
+describe("PedidoService.crearPedido - banlist de clientes (Fase 7.5A)", () => {
+  it("rechaza el pedido si el telefono normalizado coincide con un cliente bloqueado", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    clienteRepository.bloqueado = { telefono: "+56999999999" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    await expect(service.crearPedido(baseCustomerOrderInput())).rejects.toThrow(
+      "No pudimos procesar tu pedido en este momento. Comunícate con nosotros por WhatsApp para recibir ayuda."
+    );
+    expect(pedidoRepository.crearPedidoTransaccionalCalls).toBe(0);
+  });
+
+  it("rechaza el pedido si el RUT normalizado coincide con un cliente bloqueado (aunque el telefono no coincida)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    clienteRepository.bloqueado = { rut: "11111111-1" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    await expect(
+      service.crearPedido(baseCustomerOrderInput({ telefono: "988887777" }))
+    ).rejects.toThrow(/No pudimos procesar tu pedido/);
+    expect(pedidoRepository.crearPedidoTransaccionalCalls).toBe(0);
+  });
+
+  it("rechaza el pedido si el correo normalizado coincide con un cliente bloqueado (aunque telefono y RUT no coincidan)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    clienteRepository.bloqueado = { email: "rodrigo@example.com" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    await expect(
+      service.crearPedido(
+        baseCustomerOrderInput({ telefono: "988887777", rut: "22.222.222-2" })
+      )
+    ).rejects.toThrow(/No pudimos procesar tu pedido/);
+    expect(pedidoRepository.crearPedidoTransaccionalCalls).toBe(0);
+  });
+
+  it("el codigo interno del error es CUSTOMER_BLOCKED (nunca expuesto en el mensaje publico)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    clienteRepository.bloqueado = { telefono: "+56999999999" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    const { CustomerBlockedError } = await import("@/lib/customers/customerBlockedError");
+    await expect(service.crearPedido(baseCustomerOrderInput())).rejects.toBeInstanceOf(
+      CustomerBlockedError
+    );
+
+    try {
+      await service.crearPedido(baseCustomerOrderInput());
+      throw new Error("no deberia llegar aqui");
+    } catch (error) {
+      expect(error).toBeInstanceOf(CustomerBlockedError);
+      expect((error as InstanceType<typeof CustomerBlockedError>).code).toBe("CUSTOMER_BLOCKED");
+      expect((error as Error).message).not.toMatch(/bloquead|banlist|lista negra/i);
+    }
+  });
+
+  it("coincide por RUT sin importar el formato de entrada (con puntos, sin puntos, guion)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    // Almacenado siempre normalizado (sin puntos, con guion) -- ver
+    // lib/rut.ts parseChileanRut().normalized.
+    clienteRepository.bloqueado = { rut: "11111111-1" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    await expect(
+      service.crearPedido(baseCustomerOrderInput({ rut: "11111111-1", telefono: "988887777" }))
+    ).rejects.toThrow(/No pudimos procesar tu pedido/);
+    await expect(
+      service.crearPedido(baseCustomerOrderInput({ rut: "11.111.111-1", telefono: "988887777" }))
+    ).rejects.toThrow(/No pudimos procesar tu pedido/);
+  });
+
+  it("coincide por correo sin importar mayusculas/minusculas ni espacios", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    clienteRepository.bloqueado = { email: "rodrigo@example.com" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    await expect(
+      service.crearPedido(
+        baseCustomerOrderInput({
+          email: "  RODRIGO@EXAMPLE.COM  ",
+          telefono: "988887777",
+          rut: "22.222.222-2"
+        })
+      )
+    ).rejects.toThrow(/No pudimos procesar tu pedido/);
+  });
+
+  it("nunca rechaza por coincidencia parcial (ej. telefono que contiene el bloqueado como substring)", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    clienteRepository.bloqueado = { telefono: "+56999999999" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    // Numero distinto que simplemente contiene el bloqueado como substring:
+    // nunca debe coincidir (solo igualdad exacta).
+    await expect(
+      service.crearPedido(baseCustomerOrderInput({ telefono: "988887777" }))
+    ).resolves.toBeTruthy();
+    expect(pedidoRepository.crearPedidoTransaccionalCalls).toBe(1);
+  });
+
+  it("un cliente sin coincidencias (no bloqueado) genera el pedido con normalidad", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    clienteRepository.bloqueado = { telefono: "+56911112222" };
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    await expect(service.crearPedido(baseCustomerOrderInput())).resolves.toBeTruthy();
+    expect(pedidoRepository.crearPedidoTransaccionalCalls).toBe(1);
+  });
+
+  it("sin ninguna banlist activa (bloqueado = null) el pedido se procesa con normalidad", async () => {
+    const pedidoRepository = new PedidoRepositoryStub();
+    const clienteRepository = new ClienteRepositoryStub();
+    const service = new PedidoService(new ProductRepositoryStub(), clienteRepository, pedidoRepository);
+
+    await expect(service.crearPedido(baseCustomerOrderInput())).resolves.toBeTruthy();
+    expect(pedidoRepository.crearPedidoTransaccionalCalls).toBe(1);
   });
 });
 

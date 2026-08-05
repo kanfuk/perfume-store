@@ -105,6 +105,14 @@ export type AdminCustomerOption = {
   referenciaDireccion?: string;
   /** Legado de Pauli Store, compatibilidad temporal. */
   lugarTrabajo: string;
+  /** Banlist (Fase 7.5A): fuente de verdad sobre si el cliente puede generar pedidos publicos. */
+  bloqueado: boolean;
+  /** Exclusivamente administrativo -- nunca debe exponerse en superficies publicas. */
+  motivoBloqueo?: string;
+  /** ISO. Fecha del ULTIMO bloqueo; se conserva aunque el cliente se desbloquee despues. */
+  bloqueadoEn?: string;
+  /** ISO. Fecha del ultimo desbloqueo; ausente mientras el cliente sigue bloqueado. */
+  desbloqueadoEn?: string;
 };
 
 export type CustomOrderRequest = {

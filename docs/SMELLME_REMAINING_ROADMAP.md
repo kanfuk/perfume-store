@@ -1,11 +1,18 @@
 # Smellme Store — Roadmap restante (checkpoint persistente)
 
-Última actualización: 2026-08-05, rama `feature/top15-offers-editorial-control`
-(base: `main` @ `3603a132613e60efcdd5e5f86e9e0764ecd4580e`).
+Última actualización: 2026-08-05, rama `feature/customer-banlist`
+(base: `main` @ `0f782f4fa4ffcb89c5f8b560e76ffb183348dd10`, merge productivo de
+la Fase 7.4/7.4A: "merge: integrate top 15 and weekly offers control").
 
-Este documento preserva el roadmap acordado para las fases 7.4 a 7.9. Solo
-la Fase 7.4 se implementa en esta rama; las fases 7.5 a 7.9 quedan
-documentadas como pendientes, sin implementación.
+Este documento preserva el roadmap acordado para las fases 7.4 a 7.9.
+
+- **Fase 7.4 y 7.4A**: implementadas, mergeadas a `main` y desplegadas en
+  producción (`https://perfume-store-mu-smoky.vercel.app`,
+  deployment `dpl_5PmEDSWpY855nwcRpCgr5N7CasQL`).
+- **Fase 7.5A**: implementada de forma local en `feature/customer-banlist`
+  (código, migración preparada sin aplicar, pruebas, documentación). Rama
+  publicada, **sin mergear, sin Preview, sin despliegue**.
+- **Fase 7.5B en adelante**: pendientes, sin implementación.
 
 ## Fase 7.4 — Control editorial real de Top 15, Ofertas de la semana e
 imágenes asociadas al producto (esta rama)
@@ -68,13 +75,53 @@ imágenes asociadas al producto (esta rama)
     autorizado de esta fase ("no cambiar la arquitectura del importador").
     Queda documentado como mejora candidata para una fase futura.
 
-## Fase 7.5 — Banlist de clientes (pendiente, no implementada)
+## Fase 7.5A — Banlist de clientes: implementación local (esta rama)
 
-- Bloqueo y desbloqueo de clientes.
-- Motivo interno del bloqueo (visible solo en admin).
-- Validación server-side (un cliente bloqueado no puede generar pedidos).
-- Historial conservado (quién bloqueó, cuándo, por qué, y el desbloqueo si
-  ocurre).
+- **Modelo**: ampliación aditiva de `public.clientes` (`bloqueado`,
+  `motivo_bloqueo`, `bloqueado_en`, `desbloqueado_en`, `bloqueado_por`) —
+  ver `docs/SMELLME_CUSTOMER_BANLIST_DESIGN.md` para la alternativa
+  descartada (tabla separada) y el detalle completo.
+- **Migración preparada, NO aplicada**:
+  `supabase/migrations/20260807000000_smellme_customer_banlist.sql`.
+- **Contrato de bloqueo/desbloqueo**: `domain/Cliente.ts`
+  (`bloquear()`/`desbloquear()`), `repositories/clienteRepository.ts`
+  (`buscarClientePorId`, `actualizarEstadoBloqueo` — escritura parcial,
+  nunca toca datos personales — y `buscarClienteBloqueadoPorIdentidad`,
+  coincidencia exacta por teléfono→RUT→correo, nunca fuzzy),
+  `services/adminCustomerService.ts` (`bloquearCliente`/`desbloquearCliente`,
+  motivo obligatorio 5-500 caracteres, idempotentes). Al desbloquear se
+  limpia el estado (`bloqueado = false`) pero se conserva `motivo_bloqueo`/
+  `bloqueado_en` como referencia administrativa.
+- **Rechazo del pedido público**: `services/pedidoService.ts` consulta la
+  banlist **antes** de invocar `create_perfume_order_v1` (no hay ninguna
+  escritura previa en el flujo actual). Mensaje público genérico
+  ("No pudimos procesar tu pedido..."), código interno `CUSTOMER_BLOCKED`,
+  nunca se revela la banlist, el motivo ni el identificador que coincidió.
+  **Riesgo de atomicidad residual documentado, no resuelto**: la RPC no se
+  modificó, por lo que existe una ventana de carrera teórica (bloqueo
+  simultáneo al envío del pedido) — ver
+  `docs/SMELLME_CUSTOMER_BANLIST_DESIGN.md`, sección de atomicidad.
+- **API admin**: `PATCH /api/admin/customers/[customerId]` extendido con
+  `action: "block"|"unblock"` (sin romper el contrato de edición existente).
+- **UI**: integrada dentro de `/admin/clientes` (`AdminDashboard.tsx`) — sin
+  panel paralelo: badge "Bloqueado", filtro "Bloqueados", modal de bloqueo
+  con motivo obligatorio y contador de caracteres, confirmación para
+  desbloquear.
+- **Pruebas**: 1273 → 1346 (dominio, repositorio, servicio, ruta admin,
+  `PedidoService.crearPedido`, migración por inspección estática, UI por
+  inspección de código).
+- **No se tocó** en esta fase: Top 15, Ofertas de la semana (su riesgo de
+  atomicidad documentado en `docs/SMELLME_OFFERS_ATOMICITY_PROPOSAL.md` se
+  mantiene sin resolver, a propósito), cierres semanales, stock, costos,
+  fórmula de precios, importador CSV, Auth, RLS, CSP.
+
+## Fase 7.5B — Banlist de clientes: revisión y despliegue controlado (pendiente)
+
+- Revisión final de la migración `20260807000000_smellme_customer_banlist.sql`.
+- Aplicación controlada de la migración en Supabase remoto.
+- Preview de Vercel con QA autenticado real (bloquear/desbloquear un
+  cliente de prueba, verificar rechazo real del pedido público).
+- Merge a `main` y despliegue productivo.
 
 ## Fase 7.6 — Cierres semanales administrativos (pendiente, no implementada)
 
@@ -110,8 +157,11 @@ imágenes asociadas al producto (esta rama)
 
 ---
 
-**Nota de alcance**: esta rama (`feature/top15-offers-editorial-control`)
-implementa únicamente la Fase 7.4. No se tocó autenticación, RLS, CSP,
-pedidos, clientes, banlist, cierres semanales, costos, fórmula de precios ni
-stock. No se importó catálogo real ni se subieron imágenes reales. No se
-ejecutaron migraciones de base de datos.
+**Nota de alcance**: la rama `feature/top15-offers-editorial-control`
+(Fase 7.4/7.4A) ya fue mergeada a `main` y desplegada en producción. La
+rama `feature/customer-banlist` (Fase 7.5A) implementa únicamente la
+banlist de clientes de forma local: no se tocó Top 15, Ofertas, cierres
+semanales, costos, fórmula de precios, stock ni el importador CSV. No se
+importó catálogo real ni se subieron imágenes reales. No se ejecutó
+ninguna migración de base de datos ni se desplegó Preview o producción
+para esta fase.

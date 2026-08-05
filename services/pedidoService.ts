@@ -41,6 +41,7 @@ import {
   type MetodoDespacho
 } from "@/lib/constants";
 import { parseChileanMobilePhone } from "@/lib/chile-phone";
+import { CustomerBlockedError } from "@/lib/customers/customerBlockedError";
 import { PerfumeOrderError } from "@/lib/perfumeOrderErrors";
 import { parseChileanRut } from "@/lib/rut";
 import type {
@@ -127,6 +128,27 @@ export class PedidoService {
       throw new Error("Selecciona un metodo de despacho valido.");
     }
 
+    const normalizedEmail = input.email.trim().toLowerCase();
+
+    // Banlist (Fase 7.5A): comprobacion server-side ANTES de cualquier
+    // escritura. No existe ninguna escritura previa a la RPC en este flujo
+    // (ver crearPedidoTransaccional mas abajo), asi que esta lectura es
+    // segura de hacer primero: si hay coincidencia, no se llama a la RPC,
+    // no se crea pedido, no se reserva stock, no se crea/edita cliente.
+    // Coincidencia exacta por telefono, luego RUT, luego correo -- nunca
+    // fuzzy. La RPC create_perfume_order_v1 NO se modifico: existe una
+    // ventana de carrera residual documentada en
+    // docs/SMELLME_CUSTOMER_BANLIST_DESIGN.md (aceptada para esta fase).
+    const bloqueado = await this.clienteRepository.buscarClienteBloqueadoPorIdentidad({
+      telefono: normalizedPhone.e164,
+      rut: normalizedRut.normalized,
+      email: normalizedEmail
+    });
+
+    if (bloqueado) {
+      throw new CustomerBlockedError();
+    }
+
     // Un unico llamado atomico: crea cliente, pedido, items y reserva stock
     // (create_perfume_order_v1). Nunca se envian precio/subtotal/total ni
     // estado calculados en el navegador: la RPC los recalcula desde
@@ -135,7 +157,7 @@ export class PedidoService {
       cliente: {
         nombre: input.nombre.trim(),
         rut: normalizedRut.normalized,
-        email: input.email.trim().toLowerCase(),
+        email: normalizedEmail,
         telefono: normalizedPhone.e164,
         region: input.region.trim(),
         comuna: input.comuna.trim(),

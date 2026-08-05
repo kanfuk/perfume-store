@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   Archive,
+  Ban,
   BarChart3,
   Box,
   Boxes,
@@ -27,6 +28,7 @@ import {
   ReceiptText,
   RefreshCcw,
   Search,
+  ShieldCheck,
   Settings,
   Sparkles,
   Store,
@@ -49,6 +51,7 @@ import {
 import type {
   AdminDashboardProps,
   AdminView,
+  CustomerBlockModalState,
   CustomerCardData,
   CustomerEditModalState,
   CustomerFilter,
@@ -189,6 +192,9 @@ export function AdminDashboard({
   const [customerEditModalState, setCustomerEditModalState] =
     useState<CustomerEditModalState>(null);
   const [customerSaveLoading, setCustomerSaveLoading] = useState(false);
+  const [customerBlockModalState, setCustomerBlockModalState] =
+    useState<CustomerBlockModalState>(null);
+  const [customerBlockLoading, setCustomerBlockLoading] = useState(false);
   const [reportTab, setReportTab] = useState<ReportTab>("rentabilidad");
   const [reportRangePreset, setReportRangePreset] = useState<ReportRangePreset>("month");
   const [reportSalesFilter, setReportSalesFilter] = useState<ReportSalesFilter>("todos");
@@ -668,7 +674,10 @@ export function AdminDashboard({
   const customerCards = useMemo(() => {
     const metricsByCustomerId = new Map<
       string,
-      Omit<CustomerCardData, "nombre" | "telefono" | "lugarTrabajo" | "isRecent">
+      Omit<
+        CustomerCardData,
+        "nombre" | "telefono" | "lugarTrabajo" | "isRecent" | "bloqueado" | "motivoBloqueo" | "bloqueadoEn" | "desbloqueadoEn"
+      >
     >();
 
     allOrders.forEach((order) => {
@@ -723,7 +732,11 @@ export function AdminDashboard({
         proximasFechas: [...(metrics?.proximasFechas ?? [])].sort((a, b) => a.localeCompare(b)),
         pedidosActivos: metrics?.pedidosActivos ?? 0,
         pedidosFinalizados: metrics?.pedidosFinalizados ?? 0,
-        isRecent: metrics ? isRecentCustomerMovement(metrics.ultimoMovimiento) : false
+        isRecent: metrics ? isRecentCustomerMovement(metrics.ultimoMovimiento) : false,
+        bloqueado: customer.bloqueado,
+        motivoBloqueo: customer.motivoBloqueo,
+        bloqueadoEn: customer.bloqueadoEn,
+        desbloqueadoEn: customer.desbloqueadoEn
       };
     });
 
@@ -746,7 +759,13 @@ export function AdminDashboard({
         proximasFechas: [...metrics.proximasFechas].sort((a, b) => a.localeCompare(b)),
         pedidosActivos: metrics.pedidosActivos,
         pedidosFinalizados: metrics.pedidosFinalizados,
-        isRecent: isRecentCustomerMovement(metrics.ultimoMovimiento)
+        isRecent: isRecentCustomerMovement(metrics.ultimoMovimiento),
+        // No hay ficha de cliente disponible en este caso limite (pedido
+        // huerfano sin registro en `customers`): nunca se asume bloqueado.
+        bloqueado: false,
+        motivoBloqueo: undefined,
+        bloqueadoEn: undefined,
+        desbloqueadoEn: undefined
       });
     });
 
@@ -783,6 +802,10 @@ export function AdminDashboard({
         return customer.isRecent;
       }
 
+      if (customerFilter === "bloqueados") {
+        return customer.bloqueado;
+      }
+
       return true;
     });
   }, [customerCards, customerFilter, normalizedSearch]);
@@ -792,7 +815,8 @@ export function AdminDashboard({
       total: customerCards.length,
       conPedidos: customerCards.filter((customer) => customer.pedidos > 0).length,
       conFiado: customerCards.filter((customer) => customer.pendiente > 0).length,
-      recientes: customerCards.filter((customer) => customer.isRecent).length
+      recientes: customerCards.filter((customer) => customer.isRecent).length,
+      bloqueados: customerCards.filter((customer) => customer.bloqueado).length
     }),
     [customerCards]
   );
@@ -1625,6 +1649,93 @@ export function AdminDashboard({
     }
   }
 
+  /** Banlist (Fase 7.5A): motivo obligatorio, validado tambien en servidor. */
+  async function blockCustomer(customerId: string, reason: string) {
+    try {
+      setCustomerBlockLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const response = await fetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ action: "block", reason })
+      });
+      const currentData = (await response.json()) as {
+        customer?: AdminCustomerOption;
+        error?: string;
+      };
+
+      if (!response.ok || !currentData.customer) {
+        throw new Error(currentData.error ?? "No fue posible bloquear al cliente.");
+      }
+
+      setCustomers((current) =>
+        current.map((customer) =>
+          customer.id === currentData.customer?.id ? currentData.customer : customer
+        )
+      );
+      setCustomerBlockModalState(null);
+      setSuccessMessage("Cliente bloqueado correctamente.");
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error ? currentError.message : "No fue posible bloquear al cliente."
+      );
+    } finally {
+      setCustomerBlockLoading(false);
+    }
+  }
+
+  async function unblockCustomer(customerId: string) {
+    const confirmed = await feedback.confirm({
+      title: "¿Desbloquear a este cliente?",
+      description: "Podrá volver a generar pedidos públicos de inmediato.",
+      confirmLabel: "Desbloquear",
+      cancelLabel: "Cancelar",
+      tone: "default"
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setCustomerBlockLoading(true);
+      setError("");
+      setSuccessMessage("");
+
+      const response = await fetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ action: "unblock" })
+      });
+      const currentData = (await response.json()) as {
+        customer?: AdminCustomerOption;
+        error?: string;
+      };
+
+      if (!response.ok || !currentData.customer) {
+        throw new Error(currentData.error ?? "No fue posible desbloquear al cliente.");
+      }
+
+      setCustomers((current) =>
+        current.map((customer) =>
+          customer.id === currentData.customer?.id ? currentData.customer : customer
+        )
+      );
+      setSuccessMessage("Cliente desbloqueado correctamente.");
+    } catch (currentError) {
+      setError(
+        currentError instanceof Error ? currentError.message : "No fue posible desbloquear al cliente."
+      );
+    } finally {
+      setCustomerBlockLoading(false);
+    }
+  }
 
   function navigateToView(nextView: AdminView) {
     setView(nextView);
@@ -2278,12 +2389,15 @@ export function AdminDashboard({
                         id: customer.clienteId,
                         nombre: customer.nombre,
                         telefono: customer.telefono,
-                        lugarTrabajo: customer.lugarTrabajo
+                        lugarTrabajo: customer.lugarTrabajo,
+                        bloqueado: customer.bloqueado
                       }
                     })
                   }
                   onOpenOrders={() => openCustomerOrders(customer)}
                   onOpenPayments={() => openCustomerPayments(customer)}
+                  onBlock={() => setCustomerBlockModalState({ customer })}
+                  onUnblock={() => void unblockCustomer(customer.clienteId)}
                 />
               ))}
             </div>
@@ -2758,9 +2872,19 @@ export function AdminDashboard({
         />
       ) : null}
 
+      {customerBlockModalState ? (
+        <CustomerBlockModal
+          key={customerBlockModalState.customer.clienteId}
+          state={customerBlockModalState}
+          busy={customerBlockLoading}
+          onClose={() => setCustomerBlockModalState(null)}
+          onConfirm={(reason) => void blockCustomer(customerBlockModalState.customer.clienteId, reason)}
+        />
+      ) : null}
+
       <AppFooter className="pb-24 md:pb-8" />
       <WhatsAppFloatingButton
-        hidden={Boolean(orderModalState || customerEditModalState)}
+        hidden={Boolean(orderModalState || customerEditModalState || customerBlockModalState)}
         bottomOffsetClassName={
           view === "home"
             ? "bottom-[calc(24px+env(safe-area-inset-bottom))]"
@@ -3484,13 +3608,15 @@ function ClientFilterChips({
     conPedidos: number;
     conFiado: number;
     recientes: number;
+    bloqueados: number;
   };
 }) {
   const filters: Array<{ value: CustomerFilter; label: string; count: number }> = [
     { value: "todos", label: "Todos", count: counts.total },
     { value: "con-pedidos", label: "Con pedidos", count: counts.conPedidos },
     { value: "con-fiado", label: "Con fiado", count: counts.conFiado },
-    { value: "recientes", label: "Recientes", count: counts.recientes }
+    { value: "recientes", label: "Recientes", count: counts.recientes },
+    { value: "bloqueados", label: "Bloqueados", count: counts.bloqueados }
   ];
 
   return (
@@ -3528,12 +3654,16 @@ function ClientCard({
   customer,
   onEdit,
   onOpenOrders,
-  onOpenPayments
+  onOpenPayments,
+  onBlock,
+  onUnblock
 }: {
   customer: CustomerCardData;
   onEdit: () => void;
   onOpenOrders: () => void;
   onOpenPayments: () => void;
+  onBlock: () => void;
+  onUnblock: () => void;
 }) {
   const initial = customer.nombre.trim().charAt(0).toUpperCase() || "C";
   const lastMovementLabel = customer.ultimoMovimiento
@@ -3560,6 +3690,7 @@ function ClientCard({
                   tone={customer.pendiente > 0 ? "danger" : "success"}
                 />
                 {customer.isRecent ? <ClientPill label="Reciente" tone="accent" /> : null}
+                {customer.bloqueado ? <ClientPill label="Bloqueado" tone="danger" /> : null}
               </div>
             </div>
           </div>
@@ -3570,6 +3701,27 @@ function ClientCard({
       </div>
 
       <div className="space-y-4 p-5">
+        {customer.bloqueado ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="space-y-1 rounded-[20px] border border-[#f3c6c0] bg-[#fdf1ef] p-4"
+          >
+            <p className="flex items-center gap-2 text-sm font-semibold text-[#8a2c22]">
+              <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Cliente bloqueado
+            </p>
+            {customer.motivoBloqueo ? (
+              <p className="text-sm leading-6 text-[#8a2c22]/90">{customer.motivoBloqueo}</p>
+            ) : null}
+            {customer.bloqueadoEn ? (
+              <p className="text-xs text-[#8a2c22]/70">
+                Bloqueado el {formatShortDateTime(customer.bloqueadoEn)}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="grid gap-3 sm:grid-cols-2">
           <ClientFact icon={Phone} label="Teléfono" value={customer.telefono || "Sin teléfono"} />
           <ClientFact
@@ -3615,7 +3767,7 @@ function ClientCard({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <button
             type="button"
             onClick={onEdit}
@@ -3637,6 +3789,25 @@ function ClientCard({
           >
             Revisar cobros
           </button>
+          {customer.bloqueado ? (
+            <button
+              type="button"
+              onClick={onUnblock}
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#1f6d33]"
+            >
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              Desbloquear
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onBlock}
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[18px] border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm font-semibold text-[#8a2c22]"
+            >
+              <Ban className="h-4 w-4" aria-hidden="true" />
+              Bloquear cliente
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -3735,6 +3906,102 @@ function CustomerEditModal({
               className="min-h-11 rounded-[18px] bg-[#7357ff] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(115, 87, 255,0.2)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {busy ? "Guardando..." : "Guardar cliente"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const MOTIVO_BLOQUEO_MIN_LENGTH = 5;
+const MOTIVO_BLOQUEO_MAX_LENGTH = 500;
+
+/**
+ * Banlist (Fase 7.5A): modal dedicado (no el confirm generico) porque
+ * bloquear exige capturar un motivo obligatorio -- el motivo nunca se
+ * muestra en superficies publicas, es exclusivamente administrativo.
+ */
+function CustomerBlockModal({
+  state,
+  busy,
+  onClose,
+  onConfirm
+}: {
+  state: NonNullable<CustomerBlockModalState>;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const trimmedLength = reason.trim().length;
+  const tooShort = trimmedLength > 0 && trimmedLength < MOTIVO_BLOQUEO_MIN_LENGTH;
+  const canConfirm = trimmedLength >= MOTIVO_BLOQUEO_MIN_LENGTH && reason.length <= MOTIVO_BLOQUEO_MAX_LENGTH;
+
+  return (
+    <div className="fixed inset-0 z-[110] bg-[#111318]/35 p-4 backdrop-blur-[2px]">
+      <div className="mx-auto flex min-h-full w-full max-w-xl items-center justify-center">
+        <div className="w-full overflow-hidden rounded-[30px] border border-[#e4e7ec] bg-white shadow-[0_30px_60px_rgba(17, 19, 24,0.22)]">
+          <div className="border-b border-[#e4e7ec] bg-[linear-gradient(135deg,#fdf1ef_0%,#fff_72%,#FFFFFF_100%)] p-5">
+            <div className="space-y-2">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f3c6c0] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a2c22]">
+                <Ban className="h-3.5 w-3.5" aria-hidden="true" />
+                Bloquear cliente
+              </span>
+              <h3 className="text-xl font-bold text-[#111318]">
+                Bloquear a {state.customer.nombre}
+              </h3>
+              <p className="text-sm leading-6 text-[#667085]">
+                No podrá generar nuevos pedidos públicos. Sus pedidos, ventas, pagos y fiado
+                anteriores se conservan sin cambios. El motivo es exclusivamente administrativo:
+                nunca se muestra al cliente.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 p-5">
+            <label className="block space-y-2" htmlFor="motivo-bloqueo-textarea">
+              <span className="text-sm font-medium text-[#111318]">Motivo interno (obligatorio)</span>
+              <textarea
+                id="motivo-bloqueo-textarea"
+                autoFocus
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                maxLength={MOTIVO_BLOQUEO_MAX_LENGTH}
+                rows={4}
+                aria-describedby="motivo-bloqueo-counter"
+                aria-invalid={tooShort || undefined}
+                placeholder="Ejemplo: pedidos repetidos sin retiro ni aviso."
+                className="block w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none focus:border-[#7357ff]"
+              />
+            </label>
+            <p
+              id="motivo-bloqueo-counter"
+              aria-live="polite"
+              className={`text-xs ${tooShort ? "text-[#8a2c22]" : "text-[#667085]"}`}
+            >
+              {tooShort
+                ? `Escribe al menos ${MOTIVO_BLOQUEO_MIN_LENGTH} caracteres.`
+                : `${reason.length} de ${MOTIVO_BLOQUEO_MAX_LENGTH} caracteres`}
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-[#e4e7ec] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              className="min-h-11 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={busy || !canConfirm}
+              onClick={() => onConfirm(reason.trim())}
+              className="min-h-11 rounded-[18px] bg-[#b44b43] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(180,75,67,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? "Bloqueando..." : "Bloquear cliente"}
             </button>
           </div>
         </div>

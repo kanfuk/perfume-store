@@ -130,6 +130,21 @@ class ClienteRepositoryStub implements ClienteRepository {
   async actualizarCliente(cliente: Cliente) {
     return { id: cliente.id ?? "cliente-1" };
   }
+
+  async buscarClientePorId() {
+    return null;
+  }
+
+  async actualizarEstadoBloqueo(): Promise<Cliente> {
+    throw new Error("No usado en estos tests.");
+  }
+
+  async buscarClienteBloqueadoPorIdentidad() {
+    // Fase 7.5A: la banlist solo se aplica al pedido publico
+    // (PedidoService.crearPedido), no a los flujos administrativos que
+    // prueba este archivo (venta directa / pedido personalizado).
+    return null;
+  }
 }
 
 /**
