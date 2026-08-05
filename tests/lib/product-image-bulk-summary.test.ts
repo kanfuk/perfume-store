@@ -18,6 +18,7 @@ function row(overrides: Partial<BulkImageRow> & { fileId: string }): BulkImageRo
     ready: false,
     blocking: false,
     warnings: [],
+    expectedImageStoragePath: null,
     ...overrides
   };
 }

@@ -199,6 +199,19 @@ export function BulkProductImagePanel() {
 
     const formData = new FormData();
     formData.append("file", file);
+
+    if (job.action === "REPLACE") {
+      // El servidor exige esta ruta para autorizar el reemplazo (Fase
+      // 7.3A): nunca se envia replaceExisting sin ella, ni se infiere nada
+      // en el cliente -- si falta, el motor de matching ya dejo la fila
+      // como no lista y esta funcion nunca deberia ser invocada para ella.
+      if (!job.expectedImageStoragePath) {
+        throw new Error("Falta la imagen actual esperada para autorizar el reemplazo.");
+      }
+      formData.append("replaceExisting", "true");
+      formData.append("expectedImageStoragePath", job.expectedImageStoragePath);
+    }
+
     const data = await fetchJson(`/api/admin/products/${job.productId}/image`, {
       method: "POST",
       body: formData
@@ -255,7 +268,8 @@ export function BulkProductImagePanel() {
     const jobs: BulkQueueJob[] = readyRows.map((row) => ({
       fileId: row.fileId,
       productId: row.matchedProductId as string,
-      action: row.action as "UPLOAD" | "REPLACE"
+      action: row.action as "UPLOAD" | "REPLACE",
+      expectedImageStoragePath: row.expectedImageStoragePath
     }));
 
     await runQueueFor(jobs);
@@ -280,7 +294,12 @@ export function BulkProductImagePanel() {
     const jobs: BulkQueueJob[] = failedFileIds
       .map((fileId) => displayRows.find((row) => row.fileId === fileId))
       .filter((row): row is NonNullable<typeof row> => Boolean(row))
-      .map((row) => ({ fileId: row.fileId, productId: row.matchedProductId as string, action: row.action as "UPLOAD" | "REPLACE" }));
+      .map((row) => ({
+        fileId: row.fileId,
+        productId: row.matchedProductId as string,
+        action: row.action as "UPLOAD" | "REPLACE",
+        expectedImageStoragePath: row.expectedImageStoragePath
+      }));
 
     await runQueueFor(jobs);
     setRetrying(false);

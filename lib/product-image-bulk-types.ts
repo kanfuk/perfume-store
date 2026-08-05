@@ -74,6 +74,14 @@ export type BulkImageRow = {
   /** true si esta fila bloquea el boton Confirmar (ver seccion 11 del encargo). */
   blocking: boolean;
   warnings: string[];
+  /**
+   * Fase 7.3A: imageStoragePath del producto EN EL MOMENTO DEL MATCHING
+   * (solo poblado cuando status es ALREADY_HAS_IMAGE). Es la identidad que
+   * el servidor debe confirmar que sigue vigente antes de autorizar un
+   * reemplazo (compare-and-swap) -- nunca se vuelve a leer de `products`
+   * mas tarde, para no capturar un valor ya refrescado tras el propio lote.
+   */
+  expectedImageStoragePath: string | null;
 };
 
 export type BulkQueueItemState = "PENDING" | "UPLOADING" | "SUCCESS" | "FAILED" | "SKIPPED";
@@ -83,6 +91,8 @@ export type BulkQueueJob = {
   productId: string;
   /** UPLOAD (producto sin imagen previa) o REPLACE (reemplazo autorizado). Informativo para la UI/el resumen. */
   action: "UPLOAD" | "REPLACE";
+  /** Obligatorio y no vacio cuando action es REPLACE; ignorado en UPLOAD. */
+  expectedImageStoragePath?: string | null;
 };
 
 export type BulkQueueSuccessData = {

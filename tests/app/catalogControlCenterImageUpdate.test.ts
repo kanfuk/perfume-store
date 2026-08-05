@@ -98,6 +98,36 @@ describe("CatalogControlCenter: confirmUpload delega la decision de exito a veri
   });
 });
 
+describe("CatalogControlCenter: Fase 7.3A - autorizacion explicita de reemplazo en el editor individual", () => {
+  const confirmUploadBody = bodyBetween("async function confirmUpload()", "async function confirmDelete()");
+
+  it("isReplace depende de imageStoragePath (identidad confirmable por el servidor), no solo de imageUrl", () => {
+    expect(confirmUploadBody).toMatch(/const isReplace = Boolean\(product\.imageStoragePath\?\.trim\(\)\)/);
+  });
+
+  it("primera imagen (sin isReplace) omite replaceExisting y expectedImageStoragePath: solo envia file", () => {
+    expect(confirmUploadBody).toMatch(/if \(isReplace\) \{/);
+    // El append de "file" ocurre SIEMPRE, fuera del if -- los otros dos campos solo dentro.
+    const ifIndex = confirmUploadBody.indexOf("if (isReplace) {");
+    const fileAppendIndex = confirmUploadBody.indexOf('formData.append("file"');
+    expect(fileAppendIndex).toBeGreaterThan(-1);
+    expect(fileAppendIndex).toBeLessThan(ifIndex);
+  });
+
+  it('reemplazo envia replaceExisting="true" y expectedImageStoragePath (el path actual observado)', () => {
+    expect(confirmUploadBody).toMatch(/formData\.append\("replaceExisting", "true"\)/);
+    expect(confirmUploadBody).toMatch(/formData\.append\("expectedImageStoragePath", product\.imageStoragePath as string\)/);
+  });
+
+  it("sigue usando el mismo endpoint individual (no crea una API nueva)", () => {
+    expect(confirmUploadBody).toMatch(/`\/api\/admin\/products\/\$\{product\.id\}\/image`/);
+  });
+
+  it("no agrega una confirmacion duplicada (sin feedback.confirm dentro de confirmUpload)", () => {
+    expect(confirmUploadBody).not.toMatch(/feedback\.confirm/);
+  });
+});
+
 describe("CatalogControlCenter: eliminar imagen sigue usando el producto completo devuelto por el endpoint", () => {
   it("confirmDelete reemplaza el registro local con el producto devuelto por el endpoint", () => {
     const fnBody = bodyBetween("async function confirmDelete()", "const advancedPanel");

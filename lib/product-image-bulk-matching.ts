@@ -388,7 +388,8 @@ export function matchBulkProductImages(
         action: "EXCLUDE",
         ready: false,
         blocking: true,
-        warnings: ["Otro archivo ya está asociado a este mismo producto.", ...warnings]
+        warnings: ["Otro archivo ya está asociado a este mismo producto.", ...warnings],
+        expectedImageStoragePath: null
       };
     }
 
@@ -404,7 +405,8 @@ export function matchBulkProductImages(
         action: "EXCLUDE",
         ready: false,
         blocking: false,
-        warnings
+        warnings,
+        expectedImageStoragePath: null
       };
     }
 
@@ -420,7 +422,8 @@ export function matchBulkProductImages(
         action: "EXCLUDE",
         ready: false,
         blocking: true,
-        warnings
+        warnings,
+        expectedImageStoragePath: null
       };
     }
 
@@ -436,7 +439,8 @@ export function matchBulkProductImages(
         action: "EXCLUDE",
         ready: false,
         blocking: row.status === "AMBIGUOUS",
-        warnings
+        warnings,
+        expectedImageStoragePath: null
       };
     }
 
@@ -446,8 +450,27 @@ export function matchBulkProductImages(
 
     if (hasExistingImage(product)) {
       const replaceRequested = Boolean(decision?.replaceRequested);
+      const expectedImageStoragePath = product?.imageStoragePath?.trim() || null;
+      // Seccion 9: si falta expectedImageStoragePath (imagen actual sin ruta
+      // administrada, ej. una URL externa asignada manualmente), la fila
+      // NUNCA queda lista para reemplazo, sin importar la autorizacion
+      // global -- no hay identidad segura que comparar en el servidor.
+      const missingExpectedPath = replaceRequested && !expectedImageStoragePath;
+      const blockingReplaceNotAuthorized = replaceRequested && !!expectedImageStoragePath && !globalReplaceAuthorized;
       const action: BulkImageAction = replaceRequested ? "REPLACE" : "SKIP";
-      const blockingReplaceNotAuthorized = replaceRequested && !globalReplaceAuthorized;
+      const ready = replaceRequested && !!expectedImageStoragePath && globalReplaceAuthorized;
+      const blocking = missingExpectedPath || blockingReplaceNotAuthorized;
+
+      let rowWarnings = warnings;
+      if (missingExpectedPath) {
+        rowWarnings = [
+          "No es posible autorizar el reemplazo: falta la ruta de la imagen actual del producto.",
+          ...warnings
+        ];
+      } else if (blockingReplaceNotAuthorized) {
+        rowWarnings = ["Reemplazo no autorizado: activa \"Autorizar reemplazos seleccionados\".", ...warnings];
+      }
+
       return {
         fileId: file.fileId,
         fileName: file.fileName,
@@ -457,11 +480,10 @@ export function matchBulkProductImages(
         matchedProductId: row.productId,
         candidateProductIds: [],
         action,
-        ready: replaceRequested && globalReplaceAuthorized,
-        blocking: blockingReplaceNotAuthorized,
-        warnings: blockingReplaceNotAuthorized
-          ? ["Reemplazo no autorizado: activa \"Autorizar reemplazos seleccionados\".", ...warnings]
-          : warnings
+        ready,
+        blocking,
+        warnings: rowWarnings,
+        expectedImageStoragePath
       };
     }
 
@@ -476,6 +498,7 @@ export function matchBulkProductImages(
       action: "UPLOAD",
       ready: true,
       blocking: false,
+      expectedImageStoragePath: null,
       warnings
     };
   });

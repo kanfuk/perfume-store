@@ -291,17 +291,34 @@ describe("matchBulkProductImages - producto con imagen existente", () => {
   });
 
   it("reemplazo solicitado pero no autorizado globalmente bloquea la confirmacion", () => {
-    const products = [product({ id: "p1", sku: "SML-0001", nombre: "X", imageUrl: "https://x/imagen.webp" })];
+    const products = [
+      product({
+        id: "p1",
+        sku: "SML-0001",
+        nombre: "X",
+        imageUrl: "https://x/imagen.webp",
+        imageStoragePath: "products/p1/old.webp"
+      })
+    ];
     const decisions: Record<string, BulkImageDecision> = { a: { replaceRequested: true } };
     const rows = matchBulkProductImages([file({ fileId: "a", fileName: "SML-0001.jpg" })], products, decisions, {
       globalReplaceAuthorized: false
     });
     expect(rows[0].blocking).toBe(true);
     expect(rows[0].ready).toBe(false);
+    expect(rows[0].expectedImageStoragePath).toBe("products/p1/old.webp");
   });
 
-  it("reemplazo solicitado y autorizado globalmente queda listo", () => {
-    const products = [product({ id: "p1", sku: "SML-0001", nombre: "X", imageUrl: "https://x/imagen.webp" })];
+  it("reemplazo solicitado y autorizado globalmente queda listo, con expectedImageStoragePath capturado", () => {
+    const products = [
+      product({
+        id: "p1",
+        sku: "SML-0001",
+        nombre: "X",
+        imageUrl: "https://x/imagen.webp",
+        imageStoragePath: "products/p1/old.webp"
+      })
+    ];
     const decisions: Record<string, BulkImageDecision> = { a: { replaceRequested: true } };
     const rows = matchBulkProductImages([file({ fileId: "a", fileName: "SML-0001.jpg" })], products, decisions, {
       globalReplaceAuthorized: true
@@ -310,6 +327,21 @@ describe("matchBulkProductImages - producto con imagen existente", () => {
     expect(rows[0].action).toBe("REPLACE");
     expect(rows[0].ready).toBe(true);
     expect(rows[0].blocking).toBe(false);
+    expect(rows[0].expectedImageStoragePath).toBe("products/p1/old.webp");
+  });
+
+  it("reemplazo solicitado y autorizado, pero SIN imageStoragePath (URL externa sin ruta administrada), nunca queda listo", () => {
+    const products = [
+      product({ id: "p1", sku: "SML-0001", nombre: "X", imageUrl: "https://cdn.externo.com/foto.jpg" })
+    ];
+    const decisions: Record<string, BulkImageDecision> = { a: { replaceRequested: true } };
+    const rows = matchBulkProductImages([file({ fileId: "a", fileName: "SML-0001.jpg" })], products, decisions, {
+      globalReplaceAuthorized: true
+    });
+    expect(rows[0].ready).toBe(false);
+    expect(rows[0].blocking).toBe(true);
+    expect(rows[0].expectedImageStoragePath).toBeNull();
+    expect(rows[0].warnings.some((w) => w.includes("falta la ruta"))).toBe(true);
   });
 });
 

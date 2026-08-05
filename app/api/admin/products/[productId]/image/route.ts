@@ -6,6 +6,7 @@ import {
   validateTrustedOrigin
 } from "@/lib/http-security";
 import { PRODUCT_IMAGE_CONFIG, isAcceptedProductImageMimeType } from "@/lib/product-image-config";
+import { isValidProductImageStoragePath } from "@/lib/product-image-storage-path";
 import { createProductoService } from "@/services/productoService";
 import { ProductImageServiceError, createProductImageService } from "@/services/productImageService";
 
@@ -65,6 +66,14 @@ export async function PATCH(
  * final, formato y dimensiones; nunca acepta esos valores del cliente. Ver
  * services/productImageService.ts para el orden exacto de reemplazo
  * seguro.
+ *
+ * Fase 7.3A: por defecto (sin replaceExisting) NUNCA sobrescribe una imagen
+ * existente -- responde 409 IMAGE_ALREADY_EXISTS. Un reemplazo real exige
+ * replaceExisting="true" + expectedImageStoragePath (la imagen observada por
+ * el cliente en su Preview); el servidor solo reemplaza si esa ruta sigue
+ * siendo la actual en el momento exacto de la escritura (compare-and-swap
+ * en el repositorio) -- si cambio, responde 409 IMAGE_CHANGED_SINCE_PREVIEW
+ * sin tocar la imagen existente.
  */
 export async function POST(
   request: Request,
@@ -92,13 +101,20 @@ export async function POST(
       return NextResponse.json({ error: "El cuerpo multipart no es válido." }, { status: 400 });
     }
 
-    const knownFields = new Set(["file"]);
+    const knownFields = new Set(["file", "replaceExisting", "expectedImageStoragePath"]);
     const unknownFields = Array.from(formData.keys()).filter((key) => !knownFields.has(key));
     if (unknownFields.length > 0) {
       return NextResponse.json(
         { error: `Campos no permitidos: ${unknownFields.join(", ")}.` },
         { status: 400 }
       );
+    }
+
+    if (formData.getAll("file").length !== 1) {
+      return NextResponse.json({ error: "Selecciona una sola imagen." }, { status: 400 });
+    }
+    if (formData.getAll("replaceExisting").length > 1 || formData.getAll("expectedImageStoragePath").length > 1) {
+      return NextResponse.json({ error: "Campos duplicados en la solicitud." }, { status: 400 });
     }
 
     const file = formData.get("file");
@@ -122,10 +138,51 @@ export async function POST(
       return NextResponse.json({ error: "Selecciona una imagen JPG, PNG, WebP o AVIF." }, { status: 400 });
     }
 
+    // Autorizacion explicita de reemplazo (seccion 4): unico valor aceptado
+    // como verdadero es el texto exacto "true". Ausente, "false" o
+    // cualquier otro valor ambiguo cuentan como NO autorizado.
+    const replaceExistingRaw = formData.get("replaceExisting");
+    if (replaceExistingRaw !== null) {
+      if (typeof replaceExistingRaw !== "string" || (replaceExistingRaw !== "true" && replaceExistingRaw !== "false")) {
+        return NextResponse.json({ error: "Valor inválido para replaceExisting." }, { status: 400 });
+      }
+    }
+    const replaceExisting = replaceExistingRaw === "true";
+
+    const expectedImageStoragePathRaw = formData.get("expectedImageStoragePath");
+    if (expectedImageStoragePathRaw !== null && typeof expectedImageStoragePathRaw !== "string") {
+      return NextResponse.json({ error: "Valor inválido para expectedImageStoragePath." }, { status: 400 });
+    }
+
+    let expectedImageStoragePath = "";
+    if (replaceExisting) {
+      expectedImageStoragePath =
+        typeof expectedImageStoragePathRaw === "string" ? expectedImageStoragePathRaw.trim() : "";
+
+      if (!expectedImageStoragePath) {
+        return NextResponse.json(
+          { error: "Falta la imagen actual esperada para autorizar el reemplazo.", code: "EXPECTED_IMAGE_PATH_REQUIRED" },
+          { status: 400 }
+        );
+      }
+      if (!isValidProductImageStoragePath(expectedImageStoragePath)) {
+        return NextResponse.json({ error: "La imagen esperada no es válida." }, { status: 400 });
+      }
+      // Forma validada por isValidProductImageStoragePath: products/{productId}/{uuid}.webp.
+      const [, expectedProductId] = expectedImageStoragePath.split("/");
+      if (expectedProductId !== productId) {
+        return NextResponse.json({ error: "La imagen esperada no corresponde a este producto." }, { status: 400 });
+      }
+    }
+    // expectedImageStoragePath se ignora de forma segura cuando no hay
+    // reemplazo (replaceExisting !== "true"): nunca se usa fuera de esa rama.
+
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const productImageService = createProductImageService();
-    const image = await productImageService.reemplazarImagenProducto(productId, buffer, correlationId);
+    const image = replaceExisting
+      ? await productImageService.reemplazarImagenProductoSiCoincide(productId, expectedImageStoragePath, buffer, correlationId)
+      : await productImageService.asignarImagenProductoSiAusente(productId, buffer, correlationId);
 
     // El producto que se devuelve es el mismo mapeo que usa la lista del
     // catalogo admin (obtenerCatalogoAdmin), releido de forma independiente
@@ -154,8 +211,13 @@ export async function POST(
       error instanceof ProductImageServiceError
         ? error.message
         : "No fue posible guardar la imagen. La imagen anterior se mantuvo.";
-    const status = message === "No se encontró el producto." ? 404 : 400;
     const code = error instanceof ProductImageServiceError ? error.code : undefined;
+    const status =
+      message === "No se encontró el producto."
+        ? 404
+        : code === "IMAGE_ALREADY_EXISTS" || code === "IMAGE_CHANGED_SINCE_PREVIEW"
+          ? 409
+          : 400;
     const responseCorrelationId =
       error instanceof ProductImageServiceError && error.correlationId ? error.correlationId : correlationId;
 

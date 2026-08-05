@@ -117,3 +117,36 @@ describe("Sin retries automaticos, solo boton manual", () => {
   // en tests/lib/product-image-bulk-queue.test.ts -- mas confiable que una
   // inspeccion de texto fuente para este caso.
 });
+
+describe("Fase 7.3A: autorizacion atomica de reemplazo en la carga masiva", () => {
+  const uploadOneBody = panelSource.match(/async function uploadOne[\s\S]*?\n  \}/)?.[0] ?? "";
+
+  it("fila normal (action !== REPLACE) nunca agrega replaceExisting ni expectedImageStoragePath", () => {
+    expect(uploadOneBody).toMatch(/if \(job\.action === "REPLACE"\) \{/);
+    const ifIndex = uploadOneBody.indexOf('if (job.action === "REPLACE")');
+    const fileAppendIndex = uploadOneBody.indexOf('formData.append("file"');
+    expect(fileAppendIndex).toBeGreaterThan(-1);
+    expect(fileAppendIndex).toBeLessThan(ifIndex);
+  });
+
+  it('reemplazo autorizado envia replaceExisting="true" y expectedImageStoragePath del job', () => {
+    expect(uploadOneBody).toMatch(/formData\.append\("replaceExisting", "true"\)/);
+    expect(uploadOneBody).toMatch(/formData\.append\("expectedImageStoragePath", job\.expectedImageStoragePath\)/);
+  });
+
+  it("si falta expectedImageStoragePath en un job REPLACE, lanza error ANTES de llamar a fetch (nunca envia el request)", () => {
+    const guardIndex = uploadOneBody.indexOf("if (!job.expectedImageStoragePath)");
+    const fetchIndex = uploadOneBody.indexOf("fetchJson(");
+    expect(guardIndex).toBeGreaterThan(-1);
+    expect(fetchIndex).toBeGreaterThan(guardIndex);
+  });
+
+  it("expectedImageStoragePath se captura en el motor de matching (fila), nunca se relee de `products` al construir el job", () => {
+    expect(panelSource).toMatch(/expectedImageStoragePath: row\.expectedImageStoragePath/);
+  });
+
+  it("el motor de matching bloquea una fila REPLACE sin expectedImageStoragePath (no queda lista, seccion 9)", () => {
+    const matchingSource = readFileSync("lib/product-image-bulk-matching.ts", "utf8");
+    expect(matchingSource).toMatch(/missingExpectedPath/);
+  });
+});

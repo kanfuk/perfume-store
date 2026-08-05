@@ -763,12 +763,22 @@ function ImageCellEditor({
     setUploading(true);
     setLocalError("");
     setVisualCheckFailed(false);
-    const isReplace = Boolean(product.imageUrl);
+    // Fase 7.3A: la autorizacion de reemplazo depende de imageStoragePath
+    // (la identidad que el servidor puede confirmar de forma atomica), no
+    // solo de imageUrl -- una imagen historica asignada por URL externa
+    // (sin ruta administrada) no puede autorizarse por compare-and-swap;
+    // en ese caso el servidor responde 409 de forma segura en vez de
+    // sobrescribirla en silencio.
+    const isReplace = Boolean(product.imageStoragePath?.trim());
     let uploadResult: { product: AdminProductRecord; imageStoragePath: string; imageUrl: string } | null = null;
 
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
+      if (isReplace) {
+        formData.append("replaceExisting", "true");
+        formData.append("expectedImageStoragePath", product.imageStoragePath as string);
+      }
       const data = await fetchJson(`/api/admin/products/${product.id}/image`, {
         method: "POST",
         body: formData
