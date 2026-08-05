@@ -154,6 +154,97 @@ describe("ProductoService - edicion individual de precio", () => {
   });
 });
 
+describe("ProductoService - edicion de costo unitario (actualizarCostoProducto)", () => {
+  it("actualiza costo y recalcula precio con la misma formula (costo * (1 + recargo/100)), queda en AUTO", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository, { modoPrecio: "MANUAL", precioVenta: 99999 });
+    const service = new ProductoService(repository);
+
+    const result = await service.actualizarCostoProducto("prod-1", 50000, 35);
+    expect(result).toEqual({ id: "prod-1", costoUnitario: 50000, precioVenta: 67500, modoPrecio: "AUTO" });
+
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.costoUnitario).toBe(50000);
+    expect(updated?.precioVenta).toBe(67500);
+    expect(updated?.modoPrecio).toBe("AUTO");
+  });
+
+  it("acepta costo cero", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const result = await service.actualizarCostoProducto("prod-1", 0, 35);
+    expect(result).toEqual({ id: "prod-1", costoUnitario: 0, precioVenta: 0, modoPrecio: "AUTO" });
+  });
+
+  it("acepta costo decimal (se redondea el precio resultante, nunca el costo guardado)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const result = await service.actualizarCostoProducto("prod-1", 1234.5, 10);
+    expect(result.costoUnitario).toBe(1234.5);
+    expect(result.precioVenta).toBe(Math.round(1234.5 * 1.1));
+  });
+
+  it("preserva stock, imagen, Top12 y ofertas -- el payload de escritura solo incluye costo/precio/modo", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await service.actualizarCostoProducto("prod-1", 50000, 35);
+
+    const cambios = repository.actualizarProductoCalls[0].cambios as Record<string, unknown>;
+    expect(Object.keys(cambios).sort()).toEqual(["costoUnitario", "modoPrecio", "precioVenta"]);
+
+    const updated = await repository.buscarProductoPorId("prod-1");
+    expect(updated?.stockActual).toBe(7);
+    expect(updated?.imageUrl).toBe("/images/perfumes/top12/top-03-carolina-herrera-la-bomba.webp");
+    expect(updated?.esTop).toBe(true);
+    expect(updated?.esOfertaSemana).toBe(true);
+  });
+
+  it("rechaza costo invalido (negativo, NaN o no numerico)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await expect(service.actualizarCostoProducto("prod-1", -1, 35)).rejects.toThrow(/no puede ser negativo/);
+    await expect(service.actualizarCostoProducto("prod-1", NaN, 35)).rejects.toThrow(/número válido/);
+    await expect(service.actualizarCostoProducto("prod-1", "no-es-numero", 35)).rejects.toThrow();
+
+    expect(repository.actualizarProductoCalls).toHaveLength(0);
+  });
+
+  it("rechaza recargo fuera de 0..300 y no escribe nada", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    await expect(service.actualizarCostoProducto("prod-1", 50000, -5)).rejects.toThrow();
+    await expect(service.actualizarCostoProducto("prod-1", 50000, 301)).rejects.toThrow();
+    expect(repository.actualizarProductoCalls).toHaveLength(0);
+  });
+
+  it("rechaza producto inexistente", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+
+    await expect(service.actualizarCostoProducto("no-existe", 50000, 35)).rejects.toThrow(/no encontrado/);
+  });
+
+  it("usa la MISMA formula que el importador de proveedor y la creacion manual (sin duplicar logica)", async () => {
+    const repository = new FullProductRepositoryStub();
+    seedProduct(repository);
+    const service = new ProductoService(repository);
+
+    const { calculateSalePrice } = await import("@/lib/catalog-import/supplier-import.ts");
+    const result = await service.actualizarCostoProducto("prod-1", 38000, 42);
+    expect(result.precioVenta).toBe(calculateSalePrice(38000, 42));
+  });
+});
+
 describe("ProductoService - edicion masiva de precio", () => {
   it("previsualizarAjusteMasivoPrecio es un dry-run: no escribe nada", async () => {
     const repository = new FullProductRepositoryStub();

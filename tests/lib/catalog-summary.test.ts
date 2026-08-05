@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeCatalogSummary, type CatalogSummaryProductInput } from "@/lib/catalog-summary.ts";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants.ts";
 
 function product(overrides: Partial<CatalogSummaryProductInput> = {}): CatalogSummaryProductInput {
   return {
@@ -97,9 +98,9 @@ describe("catalog-summary - computeCatalogSummary (Fase 3A, resumen de Gestion d
     expect(overAssigned.top12Pendientes).toBe(0);
   });
 
-  it("usa TOP_PRODUCTS_LIMIT (12) como limite por defecto sin necesidad de pasarlo explicitamente", () => {
+  it(`usa TOP_PRODUCTS_LIMIT (${TOP_PRODUCTS_LIMIT}) como limite por defecto sin necesidad de pasarlo explicitamente`, () => {
     const summary = computeCatalogSummary([product({ esTop: true })]);
-    expect(summary.top12Pendientes).toBe(11);
+    expect(summary.top12Pendientes).toBe(TOP_PRODUCTS_LIMIT - 1);
   });
 
   it("nunca retorna una lista de productos, solo numeros", () => {

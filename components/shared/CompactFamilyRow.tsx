@@ -5,6 +5,7 @@ import { Minus, Plus } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableProductStock } from "@/lib/stock";
 import { getDefaultVariant, getSelectableVariants, type ProductFamily } from "@/lib/product-families";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 
 type CompactFamilyRowProps = {
   family: ProductFamily;
@@ -12,7 +13,7 @@ type CompactFamilyRowProps = {
   onAdd: (productId: string) => void;
   onDecrease?: (productId: string) => void;
   onRemove?: (productId: string) => void;
-  /** Muestra el chip discreto "Top 12" (la familia tambien vive en la galeria visual). */
+  /** Muestra el chip discreto "Top {TOP_PRODUCTS_LIMIT}" (la familia tambien vive en la galeria visual). */
   isTop12?: boolean;
 };
 
@@ -41,7 +42,7 @@ export function CompactFamilyRow({ family, quantities, onAdd, onDecrease, onRemo
           <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{family.marca}</p>
           {isTop12 ? (
             <span className="shrink-0 rounded-full bg-[#eeebff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5434e6]">
-              Top 12
+              Top {TOP_PRODUCTS_LIMIT}
             </span>
           ) : null}
         </div>

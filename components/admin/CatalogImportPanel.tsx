@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { clearUnresolvedDecisions, buildUnresolvedBlockersMessage } from "@/lib/admin-catalog-import-ui";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import { CatalogQualityReview } from "@/components/admin/CatalogQualityReview";
 import { CatalogImportFinalSummary } from "@/components/admin/CatalogImportFinalSummary";
 import type {
@@ -819,7 +820,7 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
       <p className="border-t border-[#e4e7ec] bg-[#f7f8fa] px-4 py-2 text-xs text-[#667085]">
         Este SKU es provisional: puede cambiar tras la revisión de calidad si se excluyen, unifican o
         renombran filas. Producto nuevo: se creará activo y con stock 1. Producto existente: stock, imagen
-        y Top 12 se conservan sin cambios.
+        y Top {TOP_PRODUCTS_LIMIT} se conservan sin cambios.
       </p>
     </div>
   );

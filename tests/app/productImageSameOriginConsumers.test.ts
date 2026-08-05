@@ -39,7 +39,7 @@ describe("Top12AdminPanel: usa getProductImageRenderConfig para el <Image> de ne
 
   it("no modifica la logica editorial (unlink/rank/producto) alrededor del cambio", () => {
     expect(source).toMatch(/unlink\(slot\.rank\)/);
-    expect(source).toMatch(/Quitar del Top 12/);
+    expect(source).toMatch(/Quitar del Top \$\{TOP_PRODUCTS_LIMIT\}/);
   });
 });
 

@@ -28,6 +28,7 @@ import { PRODUCT_IMAGE_CONFIG, isAcceptedProductImageMimeType } from "@/lib/prod
 import { preloadImage } from "@/lib/preload-image";
 import { findProductById, productHasExpectedImage } from "@/lib/product-image-verify";
 import { getProductImageRenderConfig } from "@/lib/product-image-render";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import type { AdminProductRecord } from "@/lib/types";
 
 type ChipFilter =
@@ -260,7 +261,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
     { id: "pausados", label: "Pausados", count: indicators.pausados },
     { id: "sin-stock", label: "Sin stock", count: indicators.sinStock },
     { id: "stock-bajo", label: "Stock bajo", count: indicators.stockBajo },
-    { id: "top12", label: "Top 12", count: products.filter((p) => p.esTop).length },
+    { id: "top12", label: `Top ${TOP_PRODUCTS_LIMIT}`, count: products.filter((p) => p.esTop).length },
     { id: "sin-imagen", label: "Sin imagen", count: indicators.sinImagen },
     { id: "ficha-incompleta", label: "Ficha incompleta", count: indicators.fichaIncompleta }
   ];
@@ -338,7 +339,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
               >
                 <Sparkles className="h-4 w-4" />
-                Top 12
+                Top {TOP_PRODUCTS_LIMIT}
               </Link>
             </div>
           </div>
@@ -470,7 +471,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                     <th className="px-4 py-3">Precio</th>
                     <th className="px-4 py-3">Stock</th>
                     <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3">Top 12</th>
+                    <th className="px-4 py-3">Top {TOP_PRODUCTS_LIMIT}</th>
                     <th className="px-4 py-3">Imagen</th>
                   </tr>
                 </thead>
@@ -509,16 +510,22 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-6 text-center text-sm text-[#667085]">
-                        <p>Sin productos que coincidan con la búsqueda.</p>
-                        {hasActiveChipOrBrandFilter ? (
-                          <button
-                            type="button"
-                            onClick={clearChipAndBrandFilters}
-                            className="mt-2 text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
-                          >
-                            Limpiar filtros
-                          </button>
-                        ) : null}
+                        {indicators.total === 0 ? (
+                          <EmptyCatalogMessage onAddPerfume={() => setShowAddModal(true)} />
+                        ) : (
+                          <>
+                            <p>Sin productos que coincidan con la búsqueda.</p>
+                            {hasActiveChipOrBrandFilter ? (
+                              <button
+                                type="button"
+                                onClick={clearChipAndBrandFilters}
+                                className="mt-2 text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+                              >
+                                Limpiar filtros
+                              </button>
+                            ) : null}
+                          </>
+                        )}
                       </td>
                     </tr>
                   ) : null}
@@ -560,16 +567,22 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
               )}
               {filtered.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-[#667085]">
-                  <p>Sin productos que coincidan con la búsqueda.</p>
-                  {hasActiveChipOrBrandFilter ? (
-                    <button
-                      type="button"
-                      onClick={clearChipAndBrandFilters}
-                      className="text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
-                    >
-                      Limpiar filtros
-                    </button>
-                  ) : null}
+                  {indicators.total === 0 ? (
+                    <EmptyCatalogMessage onAddPerfume={() => setShowAddModal(true)} />
+                  ) : (
+                    <>
+                      <p>Sin productos que coincidan con la búsqueda.</p>
+                      {hasActiveChipOrBrandFilter ? (
+                        <button
+                          type="button"
+                          onClick={clearChipAndBrandFilters}
+                          className="text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+                        >
+                          Limpiar filtros
+                        </button>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -775,8 +788,7 @@ function ImageCellEditor({
   async function confirmDelete() {
     const confirmed = await feedback.confirm({
       title: "¿Eliminar la imagen de este producto?",
-      description:
-        "El producto quedará visible sin imagen. Esta acción no modifica su precio, stock ni posición en Top 12.",
+      description: `El producto quedará visible sin imagen. Esta acción no modifica su precio, stock ni posición en Top ${TOP_PRODUCTS_LIMIT}.`,
       confirmLabel: "Eliminar imagen",
       cancelLabel: "Cancelar",
       tone: "danger"
@@ -1183,6 +1195,36 @@ function IndicatorTile({
         {label}
       </div>
       <div className="mt-1 text-2xl font-bold">{value}</div>
+    </div>
+  );
+}
+
+/**
+ * Estado vacio real (catalogo sin ningun producto, Fase 7.2) -- distinto de
+ * "sin resultados para la busqueda". Solo aparece cuando indicators.total
+ * es 0, nunca cuando hay productos pero el filtro/busqueda no matchea.
+ */
+function EmptyCatalogMessage({ onAddPerfume }: { onAddPerfume: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <p>Todavía no hay perfumes en el catálogo.</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          onClick={onAddPerfume}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5434e6] px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar perfume
+        </button>
+        <Link
+          href="/admin/importar-catalogo"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+        >
+          <UploadCloud className="h-4 w-4" />
+          Importar catálogo
+        </Link>
+      </div>
     </div>
   );
 }

@@ -20,7 +20,7 @@ type CatalogExplorerProps = {
   onAdd: (productId: string) => void;
   onDecrease?: (productId: string) => void;
   onRemove?: (productId: string) => void;
-  /** Claves de familia del Top 12 (para el chip discreto "Top 12" en la lista compacta). */
+  /** Claves de familia del Top (para el chip discreto "Top {TOP_PRODUCTS_LIMIT}" en la lista compacta). */
   top12Keys?: ReadonlySet<string>;
 };
 
