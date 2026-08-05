@@ -105,6 +105,7 @@ import {
   StatusBadge
 } from "@/components/admin/dashboard/DashboardPresentation";
 import { DashboardHomeView } from "@/components/admin/dashboard/DashboardHomeView";
+import { WeeklyClosuresPanel } from "@/components/admin/dashboard/WeeklyClosuresPanel";
 import { AdminNav } from "@/components/admin/dashboard/AdminNav";
 import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
@@ -2490,27 +2491,30 @@ export function AdminDashboard({
                 onChange={(value) => setReportTab(value as ReportTab)}
                 options={[
                   { value: "resumen", label: "Resumen" },
-                  { value: "rentabilidad", label: "Rentabilidad" }
+                  { value: "rentabilidad", label: "Rentabilidad" },
+                  { value: "cierres", label: "Cierres" }
                 ]}
               />
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <CompactSelect
-                  label="Periodo"
-                  value={reportRangePreset}
-                  onChange={(value) => applyReportRangePreset(value as ReportRangePreset)}
-                  options={reportRangeOptions}
-                />
-                <CompactSelect
-                  label="Canal"
-                  value={reportSalesFilter}
-                  onChange={(value) => setReportSalesFilter(value as ReportSalesFilter)}
-                  options={reportSalesOptions}
-                />
-              </div>
+              {reportTab !== "cierres" ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <CompactSelect
+                    label="Periodo"
+                    value={reportRangePreset}
+                    onChange={(value) => applyReportRangePreset(value as ReportRangePreset)}
+                    options={reportRangeOptions}
+                  />
+                  <CompactSelect
+                    label="Canal"
+                    value={reportSalesFilter}
+                    onChange={(value) => setReportSalesFilter(value as ReportSalesFilter)}
+                    options={reportSalesOptions}
+                  />
+                </div>
+              ) : null}
             </div>
 
-            {reportRangePreset === "custom" ? (
+            {reportTab !== "cierres" && reportRangePreset === "custom" ? (
               <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
                 <ReportDateField
                   label="Desde"
@@ -2526,7 +2530,9 @@ export function AdminDashboard({
             ) : null}
           </section>
 
-          {reportTab === "resumen" ? (
+          {reportTab === "cierres" ? (
+            <WeeklyClosuresPanel />
+          ) : reportTab === "resumen" ? (
             <>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <HeroMetric

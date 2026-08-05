@@ -1,18 +1,24 @@
 # Smellme Store — Roadmap restante (checkpoint persistente)
 
-Última actualización: 2026-08-05, rama `feature/customer-banlist`
-(base: `main` @ `0f782f4fa4ffcb89c5f8b560e76ffb183348dd10`, merge productivo de
-la Fase 7.4/7.4A: "merge: integrate top 15 and weekly offers control").
+Última actualización: 2026-08-05, rama `feature/weekly-admin-closures`
+(base: `main` @ `6182972` — "merge: integrate customer banlist safeguards",
+que a su vez incluye el merge productivo de la Fase 7.4/7.4A: "merge:
+integrate top 15 and weekly offers control").
 
 Este documento preserva el roadmap acordado para las fases 7.4 a 7.9.
 
 - **Fase 7.4 y 7.4A**: implementadas, mergeadas a `main` y desplegadas en
   producción (`https://perfume-store-mu-smoky.vercel.app`,
   deployment `dpl_5PmEDSWpY855nwcRpCgr5N7CasQL`).
-- **Fase 7.5A**: implementada de forma local en `feature/customer-banlist`
-  (código, migración preparada sin aplicar, pruebas, documentación). Rama
-  publicada, **sin mergear, sin Preview, sin despliegue**.
-- **Fase 7.5B en adelante**: pendientes, sin implementación.
+- **Fase 7.5A/7.5B-1/7.5B-2**: banlist de clientes diseñada, migrada
+  (`20260807000000_smellme_customer_banlist.sql`), mergeada a `main`
+  ("merge: integrate customer banlist safeguards") y desplegada en
+  producción.
+- **Fase 7.6A**: implementada de forma **local** en
+  `feature/weekly-admin-closures` (código, migración aditiva preparada sin
+  aplicar, pruebas, documentación). Rama publicada, **sin mergear, sin
+  Preview, sin despliegue**. Ver sección dedicada más abajo.
+- **Fase 7.6B-1 en adelante**: pendientes, sin implementación.
 
 ## Fase 7.4 — Control editorial real de Top 15, Ofertas de la semana e
 imágenes asociadas al producto (esta rama)
@@ -75,7 +81,7 @@ imágenes asociadas al producto (esta rama)
     autorizado de esta fase ("no cambiar la arquitectura del importador").
     Queda documentado como mejora candidata para una fase futura.
 
-## Fase 7.5A — Banlist de clientes: implementación local (esta rama)
+## Fase 7.5A — Banlist de clientes: implementación local
 
 - **Modelo**: ampliación aditiva de `public.clientes` (`bloqueado`,
   `motivo_bloqueo`, `bloqueado_en`, `desbloqueado_en`, `bloqueado_por`) —
@@ -115,24 +121,83 @@ imágenes asociadas al producto (esta rama)
   mantiene sin resolver, a propósito), cierres semanales, stock, costos,
   fórmula de precios, importador CSV, Auth, RLS, CSP.
 
-## Fase 7.5B — Banlist de clientes: revisión y despliegue controlado (pendiente)
+## Fase 7.5B-1/7.5B-2 — Banlist de clientes: revisión y despliegue controlado (implementadas)
 
 - Revisión final de la migración `20260807000000_smellme_customer_banlist.sql`.
 - Aplicación controlada de la migración en Supabase remoto.
 - Preview de Vercel con QA autenticado real (bloquear/desbloquear un
   cliente de prueba, verificar rechazo real del pedido público).
-- Merge a `main` y despliegue productivo.
+- Merge a `main` ("merge: integrate customer banlist safeguards") y
+  despliegue productivo.
 
-## Fase 7.6 — Cierres semanales administrativos (pendiente, no implementada)
+## Fase 7.6A — Cierres semanales administrativos: modelo, cálculo, historial,
+reapertura auditada y exportación (implementada de forma local, esta rama)
 
-- Resumen de ventas de la semana.
-- Costos y utilidad del período.
-- Pedidos, cancelaciones y pendientes del período.
-- Historial de cierres anteriores.
-- Exportación del cierre.
-- Cierre no destructivo (no borra ni recalcula datos históricos).
-- Impedir cierres duplicados sobre el mismo período.
-- Reapertura explícita y auditada (quién reabrió, cuándo, por qué).
+- **Auditoría previa al diseño**: antes de definir el modelo, se auditaron
+  las reglas reales de pedidos/ventas/costos/pagos/fiado ya existentes
+  (`domain/Pedido.ts`, `lib/constants.ts`, `services/pedidoService.ts`,
+  `components/admin/dashboard/admin-dashboard.utils.ts`,
+  `components/admin/AdminDashboard.tsx`) — ver
+  `docs/SMELLME_WEEKLY_CLOSURES_DESIGN.md`, sección "Auditoría del modelo
+  real", para la tabla completa métrica → fuente → definición y la
+  justificación de por qué "ventas" e "ingresos" son métricas distintas en
+  este código (una venta a fiado sin pagar cuenta como venta, no como
+  ingreso de caja).
+- **Período**: semana calendario lunes-domingo, hora de Chile, como
+  intervalo semiabierto `[periodStart, periodEndExclusive)` —
+  `lib/weekly-closures/period.ts` (reutiliza `getChileCurrentWeekRange` de
+  `lib/date.ts`, sin librerías nuevas). Sin selección de rango arbitrario en
+  el MVP.
+- **Modelo histórico**: tabla `cierres_semanales` con snapshot inmutable y
+  versionado (`domain/CierreSemanal.ts`). Reabrir nunca borra ni sobrescribe
+  una versión: crea una fila `REOPENED`, permitiendo un nuevo cierre
+  (versión siguiente) del mismo período.
+- **Prevención atómica de duplicados**: índice único parcial
+  `UNIQUE (period_start, period_end_exclusive) WHERE status = 'CLOSED'` —
+  garantía real de base de datos, no una validación de aplicación. RPC
+  `create_weekly_closure_v1` / `reopen_weekly_closure_v1`
+  (`SECURITY DEFINER`, solo `service_role`).
+- **Cálculo de métricas**: reutiliza íntegramente
+  `PedidoService.obtenerDashboardAdmin()` y
+  `resolveOrderItemProfitabilityCost` (la misma fórmula de costo/utilidad
+  que la pestaña "Rentabilidad" existente) — `services/cierreSemanalService.ts`
+  no reimplementa ninguna regla de negocio nueva.
+- **Reapertura auditada**: motivo obligatorio (5-500 caracteres),
+  `domain/CierreSemanal.ts` (`validarMotivoReapertura`), identidad del
+  admin (`email`/`nombre`, nullable, mismo patrón que
+  `services/adminMaintenanceService.ts`).
+- **API admin**: `GET/POST /api/admin/weekly-closures`,
+  `POST /api/admin/weekly-closures/preview`,
+  `GET/PATCH /api/admin/weekly-closures/[closureId]`,
+  `GET /api/admin/weekly-closures/[closureId]/export` (CSV).
+- **UI**: integrada dentro de `/admin/reportes` (`AdminDashboard.tsx`) como
+  una pestaña más ("Cierres") — sin módulo aislado:
+  `components/admin/dashboard/WeeklyClosuresPanel.tsx`.
+- **Exportación CSV**: sin dependencias nuevas
+  (`lib/weekly-closures/csv.ts`), protección contra CSV injection, motivo de
+  reapertura completo excluido del archivo (solo indicador booleano).
+- **Migración preparada, NO aplicada**:
+  `supabase/migrations/20260810000000_smellme_weekly_admin_closures.sql`.
+- **No se tocó** en esta fase: Top 15, Ofertas de la semana (su riesgo de
+  atomicidad documentado en `docs/SMELLME_OFFERS_ATOMICITY_PROPOSAL.md` se
+  mantiene sin resolver, a propósito), banlist de clientes, pedidos, stock,
+  costos, fórmula de precios, Auth, RLS, CSP. Sin merge, sin Preview, sin
+  despliegue, sin escritura en Supabase remoto.
+- Ver `docs/SMELLME_WEEKLY_CLOSURES_DESIGN.md` para el diseño completo.
+
+## Fase 7.6B-1 — Cierres semanales: revisión de migración y despliegue
+controlado en Preview (pendiente)
+
+- Revisión final de la migración
+  `20260810000000_smellme_weekly_admin_closures.sql`.
+- Aplicación controlada de la migración y las RPC en Supabase remoto.
+- Preview de Vercel con QA autenticado real (previsualizar, cerrar,
+  reabrir y volver a cerrar una semana de prueba; exportar CSV).
+
+## Fase 7.6B-2 — Cierres semanales: merge y despliegue productivo (pendiente)
+
+- Merge de `feature/weekly-admin-closures` a `main`.
+- Despliegue productivo.
 
 ## Fase 7.7 — Flujo de pedidos (pendiente, no implementada)
 
@@ -157,11 +222,12 @@ imágenes asociadas al producto (esta rama)
 
 ---
 
-**Nota de alcance**: la rama `feature/top15-offers-editorial-control`
-(Fase 7.4/7.4A) ya fue mergeada a `main` y desplegada en producción. La
-rama `feature/customer-banlist` (Fase 7.5A) implementa únicamente la
-banlist de clientes de forma local: no se tocó Top 15, Ofertas, cierres
-semanales, costos, fórmula de precios, stock ni el importador CSV. No se
-importó catálogo real ni se subieron imágenes reales. No se ejecutó
-ninguna migración de base de datos ni se desplegó Preview o producción
-para esta fase.
+**Nota de alcance**: las ramas `feature/top15-offers-editorial-control`
+(Fase 7.4/7.4A) y `feature/customer-banlist` (Fase 7.5A/7.5B-1/7.5B-2) ya
+fueron mergeadas a `main` y desplegadas en producción. La rama
+`feature/weekly-admin-closures` (Fase 7.6A) implementa únicamente los
+cierres semanales administrativos de forma local: no se tocó Top 15,
+Ofertas, la banlist de clientes, pedidos, stock, costos, fórmula de
+precios, el importador CSV, Auth, RLS ni CSP. No se importó catálogo real
+ni se subieron imágenes reales. No se ejecutó ninguna migración de base de
+datos ni se desplegó Preview o producción para esta fase.
