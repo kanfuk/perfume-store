@@ -14,7 +14,7 @@ export type AdminView =
 
 export type StatusFilter = "pendientes" | "agendados" | "historial";
 export type StockFilter = "todos" | "activos" | "pausados";
-export type CustomerFilter = "todos" | "con-pedidos" | "con-fiado" | "recientes";
+export type CustomerFilter = "todos" | "con-pedidos" | "con-fiado" | "recientes" | "bloqueados";
 export type ReportTab = "resumen" | "rentabilidad";
 export type ReportRangePreset = "today" | "week" | "month" | "last-month" | "custom";
 export type ReportSalesFilter =
@@ -58,11 +58,23 @@ export type CustomerCardData = {
   pedidosActivos: number;
   pedidosFinalizados: number;
   isRecent: boolean;
+  /** Banlist (Fase 7.5A). */
+  bloqueado: boolean;
+  motivoBloqueo?: string;
+  bloqueadoEn?: string;
+  desbloqueadoEn?: string;
 };
 
 export type CustomerEditModalState =
   | {
       customer: AdminCustomerOption;
+    }
+  | null;
+
+/** Banlist (Fase 7.5A): modal dedicado para capturar el motivo obligatorio del bloqueo. */
+export type CustomerBlockModalState =
+  | {
+      customer: CustomerCardData;
     }
   | null;
 

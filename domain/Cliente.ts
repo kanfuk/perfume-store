@@ -18,6 +18,16 @@ export type ClienteProps = {
   referenciaDireccion?: string;
   /** Legado de Pauli Store (venta informal). No usar como direccion. */
   lugarTrabajo?: string;
+  /** Banlist (Fase 7.5A): fuente de verdad sobre si el cliente puede generar pedidos publicos. */
+  bloqueado?: boolean;
+  /** Exclusivamente administrativo -- nunca se expone al cliente. Se conserva tras desbloquear. */
+  motivoBloqueo?: string | null;
+  /** Fecha del ULTIMO bloqueo; se conserva aunque el cliente se desbloquee despues. */
+  bloqueadoEn?: Date | null;
+  /** Fecha del ultimo desbloqueo; null mientras el cliente sigue bloqueado. */
+  desbloqueadoEn?: Date | null;
+  /** userId (Supabase Auth) del admin que bloqueo por ultima vez. Nunca correo/nombre como clave. */
+  bloqueadoPor?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -35,6 +45,11 @@ export class Cliente {
   private _referenciaDireccion: string;
   private _lugarTrabajo: string;
   private _updatedAt: Date;
+  private _bloqueado: boolean;
+  private _motivoBloqueo: string | null;
+  private _bloqueadoEn: Date | null;
+  private _desbloqueadoEn: Date | null;
+  private _bloqueadoPor: string | null;
 
   constructor(props: ClienteProps) {
     this.id = props.id;
@@ -49,6 +64,11 @@ export class Cliente {
     this._direccion = (props.direccion ?? "").trim();
     this._referenciaDireccion = (props.referenciaDireccion ?? "").trim();
     this._lugarTrabajo = (props.lugarTrabajo ?? "").trim();
+    this._bloqueado = props.bloqueado ?? false;
+    this._motivoBloqueo = props.motivoBloqueo ?? null;
+    this._bloqueadoEn = props.bloqueadoEn ?? null;
+    this._desbloqueadoEn = props.desbloqueadoEn ?? null;
+    this._bloqueadoPor = props.bloqueadoPor ?? null;
     this.validarDatos();
   }
 
@@ -93,10 +113,59 @@ export class Cliente {
     return this._updatedAt;
   }
 
+  get bloqueado() {
+    return this._bloqueado;
+  }
+
+  get motivoBloqueo() {
+    return this._motivoBloqueo;
+  }
+
+  get bloqueadoEn() {
+    return this._bloqueadoEn;
+  }
+
+  get desbloqueadoEn() {
+    return this._desbloqueadoEn;
+  }
+
+  get bloqueadoPor() {
+    return this._bloqueadoPor;
+  }
+
   validarDatos() {
     if (!this._nombre) {
       throw new Error("El nombre del cliente es obligatorio.");
     }
+  }
+
+  /**
+   * Banlist (Fase 7.5A): marca al cliente como bloqueado. La validacion del
+   * motivo (obligatorio, trim, 5-500 caracteres) es responsabilidad del
+   * servicio (services/adminCustomerService.ts), no de esta entidad -- este
+   * metodo solo aplica el cambio de estado, igual que Producto.activar()/
+   * desactivar() no validan reglas de negocio de stock. Idempotente: volver
+   * a bloquear a alguien ya bloqueado solo actualiza el motivo si se envia
+   * uno nuevo y refresca bloqueadoEn/bloqueadoPor.
+   */
+  bloquear(motivo: string, bloqueadoPor: string | null) {
+    this._bloqueado = true;
+    this._motivoBloqueo = motivo;
+    this._bloqueadoEn = new Date();
+    this._desbloqueadoEn = null;
+    this._bloqueadoPor = bloqueadoPor;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Banlist: retira el bloqueo. Conserva motivoBloqueo y bloqueadoEn como
+   * referencia administrativa del ultimo bloqueo (nunca se borran).
+   * Idempotente sobre un cliente ya desbloqueado.
+   */
+  desbloquear() {
+    this._bloqueado = false;
+    this._desbloqueadoEn = new Date();
+    this._updatedAt = new Date();
   }
 
   actualizarDatos(

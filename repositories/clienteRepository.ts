@@ -21,7 +21,31 @@ export interface ClienteRepository {
   upsertCliente(cliente: Cliente, preferredId?: string): Promise<{ id: string }>;
   buscarClienteRelacionado(cliente: Cliente): Promise<{ id: string } | null>;
   actualizarCliente(cliente: Cliente): Promise<{ id: string }>;
+  /** Banlist (Fase 7.5A). */
+  buscarClientePorId(id: string): Promise<Cliente | null>;
+  /** Escritura parcial: toca UNICAMENTE las columnas de bloqueo, nunca datos personales. */
+  actualizarEstadoBloqueo(clienteId: string, cambios: EstadoBloqueoCambios): Promise<Cliente>;
+  /**
+   * Coincidencia exacta por telefono, luego RUT, luego correo (mismo orden
+   * de confianza que matchesCustomerIdentity) SOLO entre clientes con
+   * bloqueado = true. Nunca fuzzy, nunca parcial.
+   */
+  buscarClienteBloqueadoPorIdentidad(identidad: IdentidadPedido): Promise<{ id: string } | null>;
 }
+
+export type EstadoBloqueoCambios = {
+  bloqueado: boolean;
+  motivoBloqueo: string | null;
+  bloqueadoEn: Date | null;
+  desbloqueadoEn: Date | null;
+  bloqueadoPor: string | null;
+};
+
+export type IdentidadPedido = {
+  telefono?: string;
+  rut?: string;
+  email?: string;
+};
 
 type IdentityFields = {
   telefono: string;
@@ -94,7 +118,32 @@ type StoredCustomer = {
   direccion?: string;
   referenciaDireccion?: string;
   lugarTrabajo: string;
+  bloqueado?: boolean;
+  motivoBloqueo?: string | null;
+  bloqueadoEn?: string | null;
+  desbloqueadoEn?: string | null;
+  bloqueadoPor?: string | null;
 };
+
+function storedCustomerToCliente(stored: StoredCustomer): Cliente {
+  return new Cliente({
+    id: stored.id,
+    nombre: stored.nombre,
+    rut: stored.rut,
+    email: stored.email,
+    telefono: stored.telefono,
+    region: stored.region,
+    comuna: stored.comuna,
+    direccion: stored.direccion,
+    referenciaDireccion: stored.referenciaDireccion,
+    lugarTrabajo: stored.lugarTrabajo,
+    bloqueado: stored.bloqueado ?? false,
+    motivoBloqueo: stored.motivoBloqueo ?? null,
+    bloqueadoEn: stored.bloqueadoEn ? new Date(stored.bloqueadoEn) : null,
+    desbloqueadoEn: stored.desbloqueadoEn ? new Date(stored.desbloqueadoEn) : null,
+    bloqueadoPor: stored.bloqueadoPor ?? null
+  });
+}
 
 class MemoryClienteRepository implements ClienteRepository {
   async buscarClienteRelacionado(cliente: Cliente) {
@@ -180,6 +229,50 @@ class MemoryClienteRepository implements ClienteRepository {
     applyClienteFields(existing, normalizedCliente);
     return { id: existing.id };
   }
+
+  async buscarClientePorId(id: string) {
+    const existing = localStore.customers.find((item) => item.id === id);
+    return existing ? storedCustomerToCliente(existing) : null;
+  }
+
+  async actualizarEstadoBloqueo(clienteId: string, cambios: EstadoBloqueoCambios) {
+    const existing = localStore.customers.find((item) => item.id === clienteId);
+
+    if (!existing) {
+      throw new Error("Cliente no encontrado.");
+    }
+
+    existing.bloqueado = cambios.bloqueado;
+    existing.motivoBloqueo = cambios.motivoBloqueo;
+    existing.bloqueadoEn = cambios.bloqueadoEn ? cambios.bloqueadoEn.toISOString() : null;
+    existing.desbloqueadoEn = cambios.desbloqueadoEn ? cambios.desbloqueadoEn.toISOString() : null;
+    existing.bloqueadoPor = cambios.bloqueadoPor;
+
+    return storedCustomerToCliente(existing);
+  }
+
+  async buscarClienteBloqueadoPorIdentidad(identidad: IdentidadPedido) {
+    if (identidad.telefono) {
+      const match = localStore.customers.find(
+        (item) => item.bloqueado && item.telefono === identidad.telefono
+      );
+      if (match) return { id: match.id };
+    }
+
+    if (identidad.rut) {
+      const match = localStore.customers.find((item) => item.bloqueado && item.rut === identidad.rut);
+      if (match) return { id: match.id };
+    }
+
+    if (identidad.email) {
+      const match = localStore.customers.find(
+        (item) => item.bloqueado && item.email === identidad.email
+      );
+      if (match) return { id: match.id };
+    }
+
+    return null;
+  }
 }
 
 function toIdentityFields(value: StoredCustomer | Cliente): IdentityFields {
@@ -246,6 +339,38 @@ function rowToIdentityFields(row: SupabaseClienteRow): IdentityFields {
     email: row.email ?? "",
     nombre: row.nombre ?? ""
   };
+}
+
+/** Columnas completas de public.clientes, incluida la banlist (Fase 7.5A). */
+const CLIENTE_FULL_COLUMNS =
+  "id, nombre, rut, email, telefono, region, comuna, direccion, referencia_direccion, lugar_trabajo, bloqueado, motivo_bloqueo, bloqueado_en, desbloqueado_en, bloqueado_por";
+
+type SupabaseClienteFullRow = SupabaseClienteRow & {
+  bloqueado: boolean | null;
+  motivo_bloqueo: string | null;
+  bloqueado_en: string | null;
+  desbloqueado_en: string | null;
+  bloqueado_por: string | null;
+};
+
+function rowToCliente(row: SupabaseClienteFullRow): Cliente {
+  return new Cliente({
+    id: row.id,
+    nombre: row.nombre,
+    rut: row.rut ?? undefined,
+    email: row.email ?? undefined,
+    telefono: row.telefono ?? undefined,
+    region: row.region ?? undefined,
+    comuna: row.comuna ?? undefined,
+    direccion: row.direccion ?? undefined,
+    referenciaDireccion: row.referencia_direccion ?? undefined,
+    lugarTrabajo: row.lugar_trabajo ?? undefined,
+    bloqueado: row.bloqueado ?? false,
+    motivoBloqueo: row.motivo_bloqueo ?? null,
+    bloqueadoEn: row.bloqueado_en ? new Date(row.bloqueado_en) : null,
+    desbloqueadoEn: row.desbloqueado_en ? new Date(row.desbloqueado_en) : null,
+    bloqueadoPor: row.bloqueado_por ?? null
+  });
 }
 
 class SupabaseClienteRepository implements ClienteRepository {
@@ -384,6 +509,115 @@ class SupabaseClienteRepository implements ClienteRepository {
     }
 
     return { id: customerId };
+  }
+
+  async buscarClientePorId(id: string) {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("clientes")
+      .select(CLIENTE_FULL_COLUMNS)
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error("No fue posible consultar el cliente.");
+    }
+
+    return data ? rowToCliente(data as SupabaseClienteFullRow) : null;
+  }
+
+  /**
+   * Escritura parcial: el payload SOLO contiene las 5 columnas de bloqueo,
+   * nunca nombre/rut/email/telefono/direccion -- a diferencia de
+   * actualizarCliente (que reescribe la ficha completa), esta operacion no
+   * puede pisar accidentalmente un dato personal por una carrera con otra
+   * edicion concurrente.
+   */
+  async actualizarEstadoBloqueo(clienteId: string, cambios: EstadoBloqueoCambios) {
+    const supabase = createSupabaseServerClient();
+    const payload = {
+      bloqueado: cambios.bloqueado,
+      motivo_bloqueo: cambios.motivoBloqueo,
+      bloqueado_en: cambios.bloqueadoEn ? cambios.bloqueadoEn.toISOString() : null,
+      desbloqueado_en: cambios.desbloqueadoEn ? cambios.desbloqueadoEn.toISOString() : null,
+      bloqueado_por: cambios.bloqueadoPor
+    };
+
+    const { data, error } = await supabase
+      .from("clientes")
+      .update(payload)
+      .eq("id", clienteId)
+      .select(CLIENTE_FULL_COLUMNS)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error("No fue posible actualizar el estado de bloqueo del cliente.");
+    }
+
+    if (!data) {
+      throw new Error("Cliente no encontrado.");
+    }
+
+    return rowToCliente(data as SupabaseClienteFullRow);
+  }
+
+  /**
+   * Coincidencia exacta (nunca ilike/or/fuzzy) por telefono, luego RUT,
+   * luego correo, solo entre clientes bloqueados. Se detiene en la primera
+   * coincidencia (misma prioridad que matchesCustomerIdentity).
+   */
+  async buscarClienteBloqueadoPorIdentidad(identidad: IdentidadPedido) {
+    const supabase = createSupabaseServerClient();
+
+    if (identidad.telefono) {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("telefono", identidad.telefono)
+        .eq("bloqueado", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error("No fue posible verificar el estado del cliente.");
+      }
+
+      if (data) return { id: data.id };
+    }
+
+    if (identidad.rut) {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("rut", identidad.rut)
+        .eq("bloqueado", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error("No fue posible verificar el estado del cliente.");
+      }
+
+      if (data) return { id: data.id };
+    }
+
+    if (identidad.email) {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("email", identidad.email)
+        .eq("bloqueado", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error("No fue posible verificar el estado del cliente.");
+      }
+
+      if (data) return { id: data.id };
+    }
+
+    return null;
   }
 }
 

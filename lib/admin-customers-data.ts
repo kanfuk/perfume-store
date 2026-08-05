@@ -20,7 +20,11 @@ export async function getAdminCustomersData(): Promise<AdminCustomerOption[]> {
         comuna: customer.comuna,
         direccion: customer.direccion,
         referenciaDireccion: customer.referenciaDireccion,
-        lugarTrabajo: customer.lugarTrabajo
+        lugarTrabajo: customer.lugarTrabajo,
+        bloqueado: customer.bloqueado ?? false,
+        motivoBloqueo: customer.motivoBloqueo ?? undefined,
+        bloqueadoEn: customer.bloqueadoEn ?? undefined,
+        desbloqueadoEn: customer.desbloqueadoEn ?? undefined
       }))
     );
   }
@@ -28,7 +32,9 @@ export async function getAdminCustomersData(): Promise<AdminCustomerOption[]> {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("clientes")
-    .select("id, nombre, telefono, lugar_trabajo, rut, email, region, comuna, direccion, referencia_direccion")
+    .select(
+      "id, nombre, telefono, lugar_trabajo, rut, email, region, comuna, direccion, referencia_direccion, bloqueado, motivo_bloqueo, bloqueado_en, desbloqueado_en"
+    )
     .order("nombre", { ascending: true });
 
   if (error) {
@@ -46,7 +52,11 @@ export async function getAdminCustomersData(): Promise<AdminCustomerOption[]> {
       comuna: customer.comuna ?? undefined,
       direccion: customer.direccion ?? undefined,
       referenciaDireccion: customer.referencia_direccion ?? undefined,
-      lugarTrabajo: customer.lugar_trabajo ?? ""
+      lugarTrabajo: customer.lugar_trabajo ?? "",
+      bloqueado: customer.bloqueado ?? false,
+      motivoBloqueo: customer.motivo_bloqueo ?? undefined,
+      bloqueadoEn: customer.bloqueado_en ?? undefined,
+      desbloqueadoEn: customer.desbloqueado_en ?? undefined
     }))
   );
 }

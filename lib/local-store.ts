@@ -13,6 +13,12 @@ export type LocalCustomerRecord = {
   /** Legado de Pauli Store, compatibilidad temporal. */
   lugarTrabajo: string;
   createdAt: string;
+  /** Banlist (Fase 7.5A). Ver domain/Cliente.ts. */
+  bloqueado?: boolean;
+  motivoBloqueo?: string | null;
+  bloqueadoEn?: string | null;
+  desbloqueadoEn?: string | null;
+  bloqueadoPor?: string | null;
 };
 
 export type LocalOrderRecord = {
