@@ -10,22 +10,34 @@ vi.mock("@/lib/http-security", () => ({
   validateJsonRequest: () => null
 }));
 
-const { fijarPrecioManualProducto, volverPrecioAutomaticoProducto, previsualizarAjusteMasivoPrecio, confirmarAjusteMasivoPrecio } =
-  vi.hoisted(() => ({
-    fijarPrecioManualProducto: vi.fn(async () => ({ id: "prod-1", precioVenta: 72000, modoPrecio: "MANUAL" })),
-    volverPrecioAutomaticoProducto: vi.fn(async () => ({ id: "prod-1", precioVenta: 60750, modoPrecio: "AUTO" })),
-    previsualizarAjusteMasivoPrecio: vi.fn(async () => ({
-      operation: { type: "ajuste-porcentaje", porcentaje: 10 },
-      productos: [{ id: "prod-1", sku: "SML-A", nombre: "La Bomba", precioAnterior: 65000, precioNuevo: 71500, diferencia: 6500 }],
-      erroresGlobales: [] as string[]
-    })),
-    confirmarAjusteMasivoPrecio: vi.fn(async () => ({ actualizados: 1 }))
-  }));
+const {
+  fijarPrecioManualProducto,
+  volverPrecioAutomaticoProducto,
+  actualizarCostoProducto,
+  previsualizarAjusteMasivoPrecio,
+  confirmarAjusteMasivoPrecio
+} = vi.hoisted(() => ({
+  fijarPrecioManualProducto: vi.fn(async () => ({ id: "prod-1", precioVenta: 72000, modoPrecio: "MANUAL" })),
+  volverPrecioAutomaticoProducto: vi.fn(async () => ({ id: "prod-1", precioVenta: 60750, modoPrecio: "AUTO" })),
+  actualizarCostoProducto: vi.fn(async () => ({
+    id: "prod-1",
+    costoUnitario: 50000,
+    precioVenta: 67500,
+    modoPrecio: "AUTO"
+  })),
+  previsualizarAjusteMasivoPrecio: vi.fn(async () => ({
+    operation: { type: "ajuste-porcentaje", porcentaje: 10 },
+    productos: [{ id: "prod-1", sku: "SML-A", nombre: "La Bomba", precioAnterior: 65000, precioNuevo: 71500, diferencia: 6500 }],
+    erroresGlobales: [] as string[]
+  })),
+  confirmarAjusteMasivoPrecio: vi.fn(async () => ({ actualizados: 1 }))
+}));
 
 vi.mock("@/services/productoService", () => ({
   createProductoService: () => ({
     fijarPrecioManualProducto,
     volverPrecioAutomaticoProducto,
+    actualizarCostoProducto,
     previsualizarAjusteMasivoPrecio,
     confirmarAjusteMasivoPrecio
   })
@@ -47,6 +59,7 @@ describe("PATCH /api/admin/products/[productId]/price", () => {
     isAdminAuthenticated.mockClear();
     fijarPrecioManualProducto.mockClear();
     volverPrecioAutomaticoProducto.mockClear();
+    actualizarCostoProducto.mockClear();
   });
 
   it("rechaza con 401 cuando el admin no esta autenticado", async () => {

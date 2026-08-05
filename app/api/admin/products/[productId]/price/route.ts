@@ -4,9 +4,12 @@ import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security"
 import { createProductoService } from "@/services/productoService";
 
 /**
- * Edicion rapida de precios - fila individual.
- * Toca UNICAMENTE precio_venta y modo_precio: nunca stock, imagen, Top 12,
- * ofertas ni cualquier otro dato del producto.
+ * Edicion rapida de precios - fila individual. Tres modos:
+ * - "manual": fija precio_venta a mano (modo_precio -> MANUAL).
+ * - "auto": recalcula precio_venta desde el costo actual + recargo (modo_precio -> AUTO).
+ * - "cost": actualiza costo_unitario Y recalcula precio_venta desde ese costo + recargo (modo_precio -> AUTO).
+ * Nunca toca stock, imagen, Top 15 (Top 12 legado internamente), ofertas ni
+ * cualquier otro dato del producto.
  */
 export async function PATCH(
   request: Request,
@@ -24,9 +27,10 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as {
-      mode?: "manual" | "auto";
+      mode?: "manual" | "auto" | "cost";
       precioVenta?: unknown;
       recargoPorcentaje?: unknown;
+      costoUnitario?: unknown;
     };
     const { productId } = await context.params;
     const productoService = createProductoService();
@@ -34,6 +38,15 @@ export async function PATCH(
     if (body.mode === "auto") {
       const result = await productoService.volverPrecioAutomaticoProducto(
         productId,
+        body.recargoPorcentaje
+      );
+      return NextResponse.json({ ok: true, ...result });
+    }
+
+    if (body.mode === "cost") {
+      const result = await productoService.actualizarCostoProducto(
+        productId,
+        body.costoUnitario,
         body.recargoPorcentaje
       );
       return NextResponse.json({ ok: true, ...result });

@@ -18,24 +18,30 @@ export async function GET() {
     const estado = await productoService.obtenerEstadoTop12();
     const slots = estado.map((slot) => ({
       rank: slot.rank,
-      imageUrl: IMAGE_BY_RANK.get(slot.rank) ?? null,
+      // Las posiciones 1-12 tienen fotografia curada fija (data/top12-image-map.json).
+      // Las posiciones 13-15 (Fase 7.2) no tienen foto curada propia todavia: se
+      // muestra la imagen real del producto vinculado, nunca una imagen inventada.
+      imageUrl: IMAGE_BY_RANK.get(slot.rank) ?? slot.producto?.imageUrl ?? null,
       producto: slot.producto
     }));
 
     return NextResponse.json({ slots });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No fue posible cargar el Top 12." },
+      { error: error instanceof Error ? error.message : "No fue posible cargar el Top 15." },
       { status: 400 }
     );
   }
 }
 
 /**
- * Vincula/desvincula un producto a una posicion del Top 12. La imagen de
- * cada posicion se resuelve SIEMPRE en el servidor desde
- * data/top12-image-map.json -- nunca se confia en una imageUrl enviada por
- * el cliente para esta operacion.
+ * Vincula/desvincula un producto a una posicion del Top 15 (posiciones 1-12
+ * heredan el nombre interno "top12" de la Fase 3B; el contrato no depende
+ * del numero 12, ver lib/constants.ts TOP_PRODUCTS_LIMIT). La imagen de una
+ * posicion con fotografia curada (1-12) se resuelve SIEMPRE en el servidor
+ * desde data/top12-image-map.json -- nunca se confia en una imageUrl enviada
+ * por el cliente. Las posiciones sin fotografia curada (13-15) conservan la
+ * imagen real del producto vinculado, sin sobrescribirla.
  */
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
@@ -63,10 +69,9 @@ export async function POST(request: Request) {
     }
 
     const rankNumber = typeof body.rank === "number" ? body.rank : Number(body.rank);
-    const imageUrl = IMAGE_BY_RANK.get(rankNumber);
-    if (!imageUrl) {
-      return NextResponse.json({ error: "No hay una imagen configurada para esa posición." }, { status: 400 });
-    }
+    // Solo las posiciones 1-12 tienen fotografia curada fija; las 13-15 no
+    // sobrescriben la imagen del producto (ver vincularProductoTop12).
+    const imageUrl = IMAGE_BY_RANK.get(rankNumber) ?? null;
     if (typeof body.productId !== "string" || !body.productId) {
       return NextResponse.json({ error: "Selecciona un producto para vincular." }, { status: 400 });
     }
@@ -75,7 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No fue posible actualizar el Top 12." },
+      { error: error instanceof Error ? error.message : "No fue posible actualizar el Top 15." },
       { status: 400 }
     );
   }

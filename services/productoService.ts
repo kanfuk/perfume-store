@@ -29,6 +29,7 @@ import {
 import {
   buildSupplierImportPreview,
   parseSupplierCsv,
+  validateMarkupPercentage,
   type SupplierImportPreview,
   type SupplierPlanRow,
   type ExistingProductPriceInfo
@@ -741,6 +742,50 @@ export class ProductoService {
   }
 
   /**
+   * Edicion rapida - fila individual: actualiza el costo unitario y
+   * recalcula el precio de venta desde ese costo + el recargo indicado
+   * (misma formula unica que el importador y la creacion manual). Vuelve a
+   * modo AUTO -- reemplaza cualquier precio manual fijado antes. Toca
+   * UNICAMENTE costo_unitario, precio_venta y modo_precio.
+   */
+  async actualizarCostoProducto(id: string, costoUnitarioRaw: unknown, recargoPorcentajeRaw: unknown) {
+    const costo = typeof costoUnitarioRaw === "number" ? costoUnitarioRaw : Number(costoUnitarioRaw);
+    if (!Number.isFinite(costo)) {
+      throw new Error("El costo debe ser un número válido.");
+    }
+    if (costo < 0) {
+      throw new Error("El costo no puede ser negativo.");
+    }
+
+    const markupValidation = validateMarkupPercentage(recargoPorcentajeRaw);
+    if (markupValidation.error !== null) {
+      throw new Error(markupValidation.error);
+    }
+
+    const current = await this.productRepository.buscarProductoPorId(id);
+    if (!current) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    const domainProduct = new Producto(current);
+    domainProduct.actualizarCosto(costo);
+    domainProduct.recalcularPrecioAutomatico(markupValidation.value);
+
+    await this.productRepository.actualizarProducto(id, {
+      costoUnitario: domainProduct.costoUnitario,
+      precioVenta: domainProduct.precioVenta,
+      modoPrecio: domainProduct.modoPrecio
+    });
+
+    return {
+      id,
+      costoUnitario: domainProduct.costoUnitario,
+      precioVenta: domainProduct.precioVenta,
+      modoPrecio: domainProduct.modoPrecio
+    };
+  }
+
+  /**
    * Edicion masiva de precios: dry-run. Nunca escribe. Re-deriva el precio
    * nuevo desde el estado ACTUAL de cada producto (nunca confia en un precio
    * "nuevo" enviado por el navegador).
@@ -1018,8 +1063,9 @@ export class ProductoService {
   }
 
   /**
-   * Top 12 editorial: estado de las 12 posiciones (producto vinculado o null
-   * en cada una). Se deriva de es_top/orden_destacado -- no crea tablas nuevas.
+   * Top 15 editorial: estado de las TOP_PRODUCTS_LIMIT posiciones (producto
+   * vinculado o null en cada una). Se deriva de es_top/orden_destacado -- no
+   * crea tablas nuevas.
    */
   async obtenerEstadoTop12(): Promise<Top12Slot[]> {
     const productos = await this.productRepository.buscarTodosProductos();
@@ -1038,20 +1084,28 @@ export class ProductoService {
   }
 
   /**
-   * Top 12 editorial: vincula un producto a una posicion (1..12). Si otro
-   * producto ya ocupaba esa posicion, se le quita es_top/orden_destacado SIN
-   * tocar su imageUrl (conserva su propia imagen comercial si la tenia). Si
-   * el producto elegido ya estaba en otra posicion, esta escritura reemplaza
-   * su propio orden_destacado, liberando automaticamente la posicion previa
-   * (un producto solo puede estar en una posicion a la vez).
+   * Top 15 editorial (posiciones 1..TOP_PRODUCTS_LIMIT; "Top12" en nombres
+   * internos por herencia de la Fase 3B, el contrato no depende del numero
+   * 12): vincula un producto a una posicion. Si otro producto ya ocupaba esa
+   * posicion, se le quita es_top/orden_destacado SIN tocar su imageUrl
+   * (conserva su propia imagen comercial si la tenia). Si el producto
+   * elegido ya estaba en otra posicion, esta escritura reemplaza su propio
+   * orden_destacado, liberando automaticamente la posicion previa (un
+   * producto solo puede estar en una posicion a la vez).
+   *
+   * `imageUrl`: solo las posiciones con fotografia curada fija (1-12, ver
+   * data/top12-image-map.json) la envian -- esa foto SI reemplaza la imagen
+   * del producto (comportamiento historico sin cambios). Las posiciones sin
+   * fotografia curada (13-15) reciben `null`: el producto conserva su propia
+   * imagen real, nunca se le asigna una inventada.
    */
-  async vincularProductoTop12(rankRaw: unknown, productId: string, imageUrl: string) {
+  async vincularProductoTop12(rankRaw: unknown, productId: string, imageUrl: string | null) {
     const rank = typeof rankRaw === "number" ? rankRaw : Number(rankRaw);
     if (!Number.isInteger(rank) || rank < 1 || rank > TOP_PRODUCTS_LIMIT) {
       throw new Error(`La posición debe ser un número entero entre 1 y ${TOP_PRODUCTS_LIMIT}.`);
     }
-    if (typeof imageUrl !== "string" || !imageUrl.trim()) {
-      throw new Error("Falta la imagen del Top 12 para esta posición.");
+    if (imageUrl !== null && (typeof imageUrl !== "string" || !imageUrl.trim())) {
+      throw new Error("Falta la imagen del Top 15 para esta posición.");
     }
     if (typeof productId !== "string" || !productId.trim()) {
       throw new Error("Selecciona un producto para vincular.");
@@ -1077,14 +1131,14 @@ export class ProductoService {
     const actualizado = await this.productRepository.actualizarProducto(productId, {
       esTop: true,
       ordenDestacado: rank,
-      imageUrl
+      ...(imageUrl !== null ? { imageUrl } : {})
     });
 
     return { rank, producto: actualizado };
   }
 
   /**
-   * Top 12 editorial: libera una posicion (queda sin producto vinculado).
+   * Top 15 editorial: libera una posicion (queda sin producto vinculado).
    * No toca imageUrl del producto liberado.
    */
   async desvincularProductoTop12(rankRaw: unknown) {

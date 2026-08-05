@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ProductoProps } from "@/domain/Producto";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { ProductoService } from "@/services/productoService";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 
 class FullProductRepositoryStub implements ProductRepository {
   actualizarProductoCalls: Array<{ id: string; cambios: unknown }> = [];
@@ -365,15 +366,17 @@ describe("ProductoService - stock rapido masivo", () => {
 });
 
 describe("ProductoService - Top 12 editorial", () => {
-  it("obtenerEstadoTop12 devuelve 12 posiciones, vacias si nadie esta vinculado", async () => {
+  it(`obtenerEstadoTop12 devuelve ${TOP_PRODUCTS_LIMIT} posiciones, vacias si nadie esta vinculado`, async () => {
     const repository = new FullProductRepositoryStub();
     seedProduct(repository);
     const service = new ProductoService(repository);
 
     const estado = await service.obtenerEstadoTop12();
-    expect(estado).toHaveLength(12);
+    expect(estado).toHaveLength(TOP_PRODUCTS_LIMIT);
     expect(estado.every((slot) => slot.producto === null)).toBe(true);
-    expect(estado.map((slot) => slot.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(estado.map((slot) => slot.rank)).toEqual(
+      Array.from({ length: TOP_PRODUCTS_LIMIT }, (_, i) => i + 1)
+    );
   });
 
   it("vincularProductoTop12 asigna es_top, orden_destacado e imagen", async () => {
@@ -427,13 +430,15 @@ describe("ProductoService - Top 12 editorial", () => {
     expect(estado.find((slot) => slot.rank === 8)?.producto?.id).toBe("prod-1");
   });
 
-  it("rechaza posiciones fuera de 1..12 o no enteras", async () => {
+  it(`rechaza posiciones fuera de 1..${TOP_PRODUCTS_LIMIT} o no enteras`, async () => {
     const repository = new FullProductRepositoryStub();
     seedProduct(repository);
     const service = new ProductoService(repository);
 
     await expect(service.vincularProductoTop12(0, "prod-1", "/images/x.webp")).rejects.toThrow();
-    await expect(service.vincularProductoTop12(13, "prod-1", "/images/x.webp")).rejects.toThrow();
+    await expect(
+      service.vincularProductoTop12(TOP_PRODUCTS_LIMIT + 1, "prod-1", "/images/x.webp")
+    ).rejects.toThrow();
     await expect(service.vincularProductoTop12(2.5, "prod-1", "/images/x.webp")).rejects.toThrow();
   });
 
@@ -683,7 +688,7 @@ describe("ProductoService - obtenerResumenCatalogo (Fase 3A, resumen de Gestion 
     expect(summary.preciosManual).toBe(1); // p2
     expect(summary.preciosAuto).toBe(3);
     expect(summary.top12Asignados).toBe(1); // p1
-    expect(summary.top12Pendientes).toBe(11);
+    expect(summary.top12Pendientes).toBe(TOP_PRODUCTS_LIMIT - 1);
   });
 
   it("nunca retorna una lista de productos (solo conteos numericos)", async () => {

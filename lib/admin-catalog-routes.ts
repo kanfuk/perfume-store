@@ -16,7 +16,7 @@ export const CATALOG_SECTION_LABELS: Record<CatalogSection, string> = {
   productos: "Productos",
   stock: "Stock",
   precios: "Precios",
-  top12: "Top 12"
+  top12: "Top 15"
 };
 
 const CATALOG_SECTION_PATHS: Record<CatalogSection, string> = {

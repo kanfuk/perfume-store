@@ -39,10 +39,10 @@ export function TopProductsSection({
           <Sparkles className="h-5 w-5" />
         </span>
         <h4 className="text-base font-semibold text-[#111318]">
-          El Top 12 se publicará muy pronto
+          El Top {TOP_PRODUCTS_LIMIT} se publicará muy pronto
         </h4>
         <p className="max-w-md text-sm leading-6 text-[#667085]">
-          Estamos confirmando los 12 perfumes más vendidos de Smellme.cl.
+          Estamos confirmando los {TOP_PRODUCTS_LIMIT} perfumes más vendidos de Smellme.cl.
         </p>
       </div>
     );
@@ -55,7 +55,7 @@ export function TopProductsSection({
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-[#111318]">Top 12</h3>
+          <h3 className="text-lg font-semibold text-[#111318]">Top {TOP_PRODUCTS_LIMIT}</h3>
           <p className="text-sm text-[#667085]">Los perfumes más pedidos de Smellme.cl.</p>
         </div>
       </div>

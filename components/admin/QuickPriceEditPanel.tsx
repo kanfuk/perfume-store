@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Home, RotateCcw, Save, ShoppingBag } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Coins, Home, RotateCcw, Save, ShoppingBag, X } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableBrands, filterAndSortProducts } from "@/lib/catalog-search";
 import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
+import {
+  DEFAULT_MARKUP_PERCENTAGE,
+  calculateSuggestedPrice,
+  calculateMarkupPercentageFromPrice
+} from "@/lib/product-pricing";
 import type { AdminProductRecord } from "@/lib/types";
 
 type ModoFilter = "todos" | "AUTO" | "MANUAL";
@@ -63,6 +68,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
   const [savingRow, setSavingRow] = useState<string | null>(null);
   const [savingAll, setSavingAll] = useState(false);
   const [confirmSaveAll, setConfirmSaveAll] = useState(false);
+  const [costEditProduct, setCostEditProduct] = useState<AdminProductRecord | null>(null);
 
   // Edicion masiva
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -211,6 +217,18 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
     }
   }
 
+  async function saveCostAndPrice(productId: string, costoUnitario: number, recargoPorcentaje: number) {
+    const data = await fetchJson(`/api/admin/products/${productId}/price`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "cost", costoUnitario, recargoPorcentaje })
+    });
+    setCostEditProduct(null);
+    setNotice("Costo y precio actualizados.");
+    await loadProducts();
+    return data;
+  }
+
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -302,7 +320,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                   Edición rápida de precios
                 </h1>
                 <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                  Ajusta precios sin abrir cada producto. No modifica stock, imágenes, Top 12 ni ofertas.
+                  Ajusta costo y precio sin abrir cada producto. No modifica stock, imágenes, Top 15 ni ofertas.
                 </p>
               </div>
               <Link
@@ -467,6 +485,15 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
+                            onClick={() => setCostEditProduct(product)}
+                            title="Editar costo y precio"
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#e4e7ec] px-2.5 py-1.5 text-xs font-semibold text-[#344054]"
+                          >
+                            <Coins className="h-3 w-3" />
+                            Editar costo
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => saveRow(product)}
                             disabled={!dirty || savingRow === product.id}
                             className="rounded-lg border border-[#e4e7ec] px-2.5 py-1.5 text-xs font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-40"
@@ -608,6 +635,14 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
         ) : null}
       </section>
 
+      {costEditProduct ? (
+        <CostPriceEditDialog
+          product={costEditProduct}
+          onClose={() => setCostEditProduct(null)}
+          onSave={(costo, recargo) => saveCostAndPrice(costEditProduct.id, costo, recargo)}
+        />
+      ) : null}
+
       {confirmSaveAll ? (
         <ConfirmDialog
           title="Guardar todos los cambios"
@@ -659,6 +694,144 @@ function ConfirmDialog({
             className="app-button-primary rounded-xl px-4 py-2 text-sm font-semibold"
           >
             Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Editar costo y precio - modal compacto mobile-first. Costo y recargo se
+ * editan a mano; el precio de venta resultante se recalcula en vivo con la
+ * MISMA formula unica del proyecto (lib/product-pricing.ts, la que ya usa
+ * el formulario "Agregar perfume") -- nunca se inventa un calculo aparte.
+ * Guardar siempre deja el producto en modo AUTO (precio = costo + recargo).
+ */
+function CostPriceEditDialog({
+  product,
+  onClose,
+  onSave
+}: {
+  product: AdminProductRecord;
+  onClose: () => void;
+  onSave: (costoUnitario: number, recargoPorcentaje: number) => Promise<unknown>;
+}) {
+  const costoActual = product.costoUnitario ?? 0;
+  const [costoUnitario, setCostoUnitario] = useState(String(costoActual));
+  const [recargoPorcentaje, setRecargoPorcentaje] = useState(() =>
+    String(
+      costoActual > 0
+        ? calculateMarkupPercentageFromPrice(costoActual, product.precioVenta)
+        : DEFAULT_MARKUP_PERCENTAGE
+    )
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const costoNumber = Number(costoUnitario);
+  const recargoNumber = Number(recargoPorcentaje);
+  const costoValido = costoUnitario.trim() !== "" && Number.isFinite(costoNumber) && costoNumber >= 0;
+  const recargoValido =
+    recargoPorcentaje.trim() !== "" && Number.isFinite(recargoNumber) && recargoNumber >= 0 && recargoNumber <= 300;
+  const precioResultante = costoValido && recargoValido ? calculateSuggestedPrice(costoNumber, recargoNumber) : null;
+
+  async function handleSave() {
+    if (!costoValido || !recargoValido || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(costoNumber, recargoNumber);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No fue posible guardar el costo y precio.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl sm:p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-[#111318]">Editar costo y precio</h3>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-[#98a2b3] hover:bg-[#f7f8fa]" aria-label="Cerrar">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="mt-1 line-clamp-1 text-sm text-[#667085]">{product.nombre}</p>
+
+        {error ? (
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-3 py-2.5 text-sm text-[#8a2c22]">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
+        <div className="mt-4 space-y-3">
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-[#344054]">Costo unitario (CLP)</span>
+            <input
+              type="number"
+              min={0}
+              inputMode="decimal"
+              value={costoUnitario}
+              onChange={(event) => setCostoUnitario(event.target.value)}
+              className="w-full rounded-xl border border-[#e4e7ec] px-3 py-2.5 text-sm"
+              aria-invalid={!costoValido}
+            />
+            {!costoValido ? <span className="mt-1 block text-xs text-[#8a2c22]">El costo debe ser 0 o mayor.</span> : null}
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-[#344054]">Recargo aplicado (%)</span>
+            <input
+              type="number"
+              min={0}
+              max={300}
+              inputMode="decimal"
+              value={recargoPorcentaje}
+              onChange={(event) => setRecargoPorcentaje(event.target.value)}
+              className="w-full rounded-xl border border-[#e4e7ec] px-3 py-2.5 text-sm"
+              aria-invalid={!recargoValido}
+            />
+            {!recargoValido ? (
+              <span className="mt-1 block text-xs text-[#8a2c22]">El recargo debe ser un número entre 0 y 300.</span>
+            ) : null}
+          </label>
+        </div>
+
+        <div className="mt-4 space-y-1.5 rounded-xl bg-[#f7f8fa] px-4 py-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[#667085]">Costo base</span>
+            <span className="font-semibold text-[#111318]">{costoValido ? formatCurrency(costoNumber) : "—"}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[#667085]">Recargo aplicado</span>
+            <span className="font-semibold text-[#111318]">{recargoValido ? `${recargoNumber}%` : "—"}</span>
+          </div>
+          <div className="flex items-center justify-between border-t border-[#e4e7ec] pt-1.5">
+            <span className="text-[#667085]">Precio de venta resultante</span>
+            <span className="font-bold text-[#111318]">
+              {precioResultante !== null ? formatCurrency(precioResultante) : "—"}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!costoValido || !recargoValido || saving}
+            className="app-button-primary inline-flex min-h-11 items-center justify-center px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </div>

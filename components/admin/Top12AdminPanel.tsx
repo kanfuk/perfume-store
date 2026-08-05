@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, CheckCircle2, Home, Search, Sparkles, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Home, PackagePlus, Search, Sparkles, UploadCloud, X } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { filterAndSortProducts } from "@/lib/catalog-search";
 import { getProductImageRenderConfig } from "@/lib/product-image-render";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import type { AdminProductRecord } from "@/lib/types";
 
 type Top12Producto = {
@@ -70,7 +71,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       setSlots(top12Data.slots ?? []);
       setProducts(productsData.products ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No fue posible cargar el Top 12.");
+      setError(err instanceof Error ? err.message : `No fue posible cargar el Top ${TOP_PRODUCTS_LIMIT}.`);
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "No fue posible cargar el Top 12.");
+          setError(err instanceof Error ? err.message : `No fue posible cargar el Top ${TOP_PRODUCTS_LIMIT}.`);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -189,10 +190,10 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                   <Sparkles className="h-3.5 w-3.5" />
                   Admin Smellme.cl
                 </span>
-                <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Top 12 editorial</h1>
+                <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Top {TOP_PRODUCTS_LIMIT} editorial</h1>
                 <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                  Elige a mano los 12 perfumes destacados de la portada. No se calcula por ventas: cada
-                  posición usa siempre la misma fotografía y tú eliges qué producto va en cada una.
+                  Elige a mano los {TOP_PRODUCTS_LIMIT} perfumes destacados de la portada. No se calcula por
+                  ventas: cada posición usa siempre la misma fotografía y tú eliges qué producto va en cada una.
                 </p>
               </div>
               <Link
@@ -220,6 +221,35 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         </div>
       ) : null}
 
+      <p className="text-sm font-semibold text-[#344054]">
+        Top {TOP_PRODUCTS_LIMIT}: {slots.filter((slot) => !!slot.producto).length} de {TOP_PRODUCTS_LIMIT} seleccionados
+      </p>
+
+      {!loading && products.length === 0 ? (
+        <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#e4e7ec] bg-white p-6 text-sm text-[#667085]">
+          <p>
+            Todavía no hay perfumes en el catálogo. Primero agrega o importa productos para poder elegir el
+            Top {TOP_PRODUCTS_LIMIT}.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/catalogo/productos"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+            >
+              <PackagePlus className="h-4 w-4" />
+              Ir a Productos
+            </Link>
+            <Link
+              href="/admin/importar-catalogo"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+            >
+              <UploadCloud className="h-4 w-4" />
+              Importar catálogo
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -244,7 +274,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       </div>
 
       {loading ? (
-        <p className="text-sm text-[#667085]">Cargando Top 12...</p>
+        <p className="text-sm text-[#667085]">Cargando Top {TOP_PRODUCTS_LIMIT}...</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {visibleSlots.length === 0 ? (
@@ -268,7 +298,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                       type="button"
                       onClick={() => unlink(slot.rank)}
                       disabled={unlinkingRank === slot.rank}
-                      title="Quitar del Top 12"
+                      title={`Quitar del Top ${TOP_PRODUCTS_LIMIT}`}
                       className="rounded-lg p-1 text-[#98a2b3] hover:bg-[#f7f8fa] hover:text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <X className="h-4 w-4" />
@@ -305,11 +335,11 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                     <p className="text-sm font-bold text-[#111318]">{formatCurrency(producto.precioVenta)}</p>
                     {pausado ? (
                       <p className="rounded-lg bg-[#f2f4f7] px-2 py-1 text-xs font-semibold text-[#475467]">
-                        Pausado: oculto del Top 12 público
+                        Pausado: oculto del Top {TOP_PRODUCTS_LIMIT} público
                       </p>
                     ) : sinStock ? (
                       <p className="rounded-lg bg-[#fff8ec] px-2 py-1 text-xs font-semibold text-[#8a5a00]">
-                        Sin stock: oculto del Top 12 público
+                        Sin stock: oculto del Top {TOP_PRODUCTS_LIMIT} público
                       </p>
                     ) : null}
                   </div>
@@ -369,7 +399,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                     <span className="block truncate font-semibold text-[#111318]">{product.nombre}</span>
                     <span className="block truncate text-xs text-[#667085]">
                       {product.marca} · {product.contenido}
-                      {linkedProductIds.has(product.id) ? " · Ya está en el Top 12" : ""}
+                      {linkedProductIds.has(product.id) ? ` · Ya está en el Top ${TOP_PRODUCTS_LIMIT}` : ""}
                     </span>
                   </span>
                   <span className="shrink-0 text-xs font-semibold text-[#344054]">

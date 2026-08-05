@@ -7,6 +7,8 @@
  * server-side debe pasar por estas validaciones antes de escribir.
  */
 
+import { calculateSalePrice } from "@/lib/catalog-import/supplier-import.ts";
+
 export type PriceValidationResult = { value: number; error: null } | { value: null; error: string };
 
 /** Precio de venta: entero > 0. Nunca acepta NaN, vacio o negativo. */
@@ -41,9 +43,13 @@ export function roundPriceToStep(price: number, step: RoundingStep): number {
   return Math.round(price / step) * step;
 }
 
-/** precio_venta = Math.round(costo * (1 + porcentaje / 100)) — recalculo desde costo (modo AUTO). */
+/**
+ * Recalculo desde costo (modo AUTO). Delega en la UNICA formula de recargo
+ * del proyecto (calculateSalePrice, lib/catalog-import/supplier-import.ts,
+ * la misma que usa el importador de proveedor) -- no se reimplementa aqui.
+ */
 export function calculateAutoPrice(costoUnitario: number, markupPercentage: number): number {
-  return Math.round(costoUnitario * (1 + markupPercentage / 100));
+  return calculateSalePrice(costoUnitario, markupPercentage);
 }
 
 /** Ajusta un precio existente +/- un porcentaje (no parte del costo: queda en modo MANUAL). */

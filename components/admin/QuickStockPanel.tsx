@@ -23,6 +23,7 @@ import {
 import { LoadingOverlay } from "@/components/shared/LoadingOverlay";
 import { AppToast } from "@/components/shared/AppToast";
 import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 import type { AdminProductRecord } from "@/lib/types";
 import type { BulkStockOperation, BulkStockPreview, BulkStockConfirmResult } from "@/services/productoService";
 
@@ -530,7 +531,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                 </span>
                 <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Stock rápido</h1>
                 <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                  Revisa y ajusta stock y estado sin abrir cada producto. No modifica precio, imagen ni Top 12.
+                  Revisa y ajusta stock y estado sin abrir cada producto. No modifica precio, imagen ni Top {TOP_PRODUCTS_LIMIT}.
                 </p>
               </div>
               <Link

@@ -9,6 +9,7 @@ import {
   validateBinaryContent,
   type AdminImportRow
 } from "@/lib/catalog-import/admin-import.ts";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants.ts";
 
 const HEADER =
   "sku,nombre,marca,contenido,costo_unitario,precio_venta,stock,activo,es_top,orden_destacado,es_oferta_semana,precio_anterior,image_url";
@@ -120,17 +121,17 @@ describe("admin-import - validateAdminImportRows", () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it("rechaza mas de 12 productos destacados (maximo Top 12)", () => {
-    const rows = Array.from({ length: 13 }, (_, i) =>
-      validRow({ sku: `SML-${i}`, rowNumber: i + 2, esTop: true, ordenDestacado: (i % 12) + 1 })
+  it(`rechaza mas de ${TOP_PRODUCTS_LIMIT} productos destacados (maximo Top ${TOP_PRODUCTS_LIMIT})`, () => {
+    const rows = Array.from({ length: TOP_PRODUCTS_LIMIT + 1 }, (_, i) =>
+      validRow({ sku: `SML-${i}`, rowNumber: i + 2, esTop: true, ordenDestacado: (i % TOP_PRODUCTS_LIMIT) + 1 })
     );
     const result = validateAdminImportRows(rows);
-    expect(result.globalErrors.some((e) => e.includes("máximo permitido es 12"))).toBe(true);
+    expect(result.globalErrors.some((e) => e.includes(`máximo permitido es ${TOP_PRODUCTS_LIMIT}`))).toBe(true);
   });
 
-  it("rechaza orden_destacado fuera de 1..12 (ranking 13 rechazado)", () => {
-    const result = validateAdminImportRows([validRow({ esTop: true, ordenDestacado: 13 })]);
-    expect(result.errors[0].message).toMatch(/entre 1 y 12/);
+  it(`rechaza orden_destacado fuera de 1..${TOP_PRODUCTS_LIMIT} (ranking ${TOP_PRODUCTS_LIMIT + 1} rechazado)`, () => {
+    const result = validateAdminImportRows([validRow({ esTop: true, ordenDestacado: TOP_PRODUCTS_LIMIT + 1 })]);
+    expect(result.errors[0].message).toMatch(new RegExp(`entre 1 y ${TOP_PRODUCTS_LIMIT}`));
   });
 
   it("rechaza posiciones de orden_destacado duplicadas", () => {

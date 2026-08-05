@@ -136,5 +136,7 @@ export const HORAS_EXPIRACION_PEDIDO = 72;
 /**
  * Cantidad maxima de productos destacados en la seccion Top del catalogo
  * publico. Las posiciones validas de orden_destacado son 1..TOP_PRODUCTS_LIMIT.
+ * Fase 7.2: 12 -> 15. Unica fuente de este limite en todo el proyecto; no
+ * repetir el numero en componentes, rutas ni validaciones.
  */
-export const TOP_PRODUCTS_LIMIT = 12;
+export const TOP_PRODUCTS_LIMIT = 15;

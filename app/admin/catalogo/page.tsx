@@ -3,6 +3,7 @@ import { CircleDollarSign, ClipboardList, ShieldAlert, Sparkles, UploadCloud } f
 import { getCachedCatalogSummary } from "@/lib/admin-catalog-data";
 import { buildCatalogSectionHref } from "@/lib/admin-catalog-routes";
 import { AdminCatalogSummary } from "@/components/admin/catalog-center/AdminCatalogSummary";
+import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
 
 type AdminCatalogoResumenPageProps = {
   searchParams: Promise<{ q?: string }>;
@@ -47,7 +48,7 @@ export default async function AdminCatalogoResumenPage({ searchParams }: AdminCa
     {
       href: buildCatalogSectionHref("top12", { q }),
       icon: Sparkles,
-      label: "Configurar Top 12",
+      label: `Configurar Top ${TOP_PRODUCTS_LIMIT}`,
       description: `${summary.top12Pendientes} posición(es) pendiente(s) de asignar.`
     }
   ];

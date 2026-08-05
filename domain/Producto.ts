@@ -160,7 +160,14 @@ export class Producto {
     this.validarProducto();
   }
 
-  /** Recalcula el precio desde costo+recargo y vuelve a modo AUTO. */
+  /**
+   * Recalcula el precio desde costo+recargo y vuelve a modo AUTO. Formula
+   * identica a calculateSalePrice (lib/catalog-import/supplier-import.ts),
+   * la fuente unica usada por importador, precio manual y edicion de costo.
+   * Se reimplementa aqui (no se importa) a proposito: esta entidad de
+   * dominio no depende de ningun modulo de lib/. La paridad entre ambas
+   * queda garantizada por test (productoService.pricing.test.ts).
+   */
   recalcularPrecioAutomatico(recargoPorcentaje: number) {
     this._precioVenta = Math.round(this._costoUnitario * (1 + recargoPorcentaje / 100));
     this._modoPrecio = "AUTO";
