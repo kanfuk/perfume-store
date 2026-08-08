@@ -1,4 +1,3 @@
-import { isAdminUserRole } from "@/lib/admin-users";
 import { authorizeAdminUsersRequest, adminUserErrorResponse, adminUsersJson } from "@/lib/admin-users-request";
 import { createAdminUserService } from "@/services/adminUserService";
 
@@ -31,12 +30,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       Object.keys(input).every((key) => key === "action" || key === "active")
     ) {
       await service.setActive(userId, input.active, authorization.admin.profileId);
-    } else if (
-      input.action === "set-role" &&
-      isAdminUserRole(input.role) &&
-      Object.keys(input).every((key) => key === "action" || key === "role")
-    ) {
-      await service.setRole(userId, input.role, authorization.admin.profileId);
+    } else if (input.action === "set-role") {
+      return adminUsersJson({
+        error: "Smellme utiliza un único OWNER. Los usuarios operativos deben ser ADMIN."
+      }, 409);
     } else {
       return adminUsersJson({ error: "La acción no es válida." }, 400);
     }

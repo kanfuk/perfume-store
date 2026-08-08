@@ -7,18 +7,21 @@ function source(relativePath: string) {
 }
 
 describe("UX de perfiles operativos", () => {
-  it("marca el OWNER principal y oculta sus acciones peligrosas", () => {
+  it("marca el OWNER principal y elimina sus acciones peligrosas", () => {
     const panel = source("components/admin/AdminUsersPanel.tsx");
     expect(panel).toContain("OWNER · Cuenta principal");
-    expect(panel).toContain("!user.isPrimaryOwner");
     expect(panel).toContain("Configurar cuenta");
     expect(panel).toContain("maskedAccountNumber");
+    expect(panel).not.toContain("Hacer OWNER");
+    expect(panel).not.toContain('action: "set-role"');
+    expect(panel).toContain('user.role === "ADMIN"');
   });
 
-  it("la invitación normal expone únicamente ADMIN", () => {
+  it("la invitación no permite enviar un rol desde el browser", () => {
     const panel = source("components/admin/AdminUsersPanel.tsx");
-    expect(panel).toContain('role: "ADMIN"');
+    expect(panel).toContain("JSON.stringify({ name, email })");
     expect(panel).not.toContain('<option value="OWNER">');
+    expect(panel).not.toContain('role: "OWNER"');
   });
 
   it("OWNER tiene selector explícito y ADMIN no envía identidad receptora", () => {

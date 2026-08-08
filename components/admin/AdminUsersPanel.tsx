@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CreditCard, MailPlus, RefreshCcw, Save, ShieldCheck, UserCheck, UserX, X } from "lucide-react";
+import { CreditCard, MailPlus, RefreshCcw, Save, UserCheck, UserX, X } from "lucide-react";
 import { CHILEAN_ACCOUNT_TYPES, OTRA_CUENTA_VALUE } from "@/config/chileanAccountTypes";
 import { CHILEAN_BANKS, OTRO_BANCO_VALUE } from "@/config/chileanBanks";
 import type { AdminPaymentAccountFormInput } from "@/lib/admin-payment-accounts";
@@ -110,7 +110,7 @@ export function AdminUsersPanel() {
       const response = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, role: "ADMIN" })
+        body: JSON.stringify({ name, email })
       });
       if (!response.ok) throw new Error(await readError(response));
       setName("");
@@ -265,15 +265,10 @@ export function AdminUsersPanel() {
                     <CreditCard className="h-4 w-4" /> {user.paymentAccountStatus === "PENDING" ? "Configurar cuenta" : "Editar cuenta"}
                   </button>
                 ) : null}
-                {!user.isPrimaryOwner ? (
-                  <>
-                    <button type="button" disabled={busyId === user.id} onClick={() => void mutate(user.id, { action: "set-active", active: !user.active }, user.active ? "Usuario desactivado." : "Usuario activado.")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#DDD0C1] px-3 text-sm font-semibold text-[#4D453D] disabled:opacity-50">
-                      {user.active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />} {user.active ? "Desactivar" : "Activar"}
-                    </button>
-                    <button type="button" disabled={busyId === user.id} onClick={() => void mutate(user.id, { action: "set-role", role: user.role === "OWNER" ? "ADMIN" : "OWNER" }, `Rol actualizado a ${user.role === "OWNER" ? "ADMIN" : "OWNER"}.`)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#DDD0C1] px-3 text-sm font-semibold text-[#4D453D] disabled:opacity-50">
-                      <ShieldCheck className="h-4 w-4" /> Hacer {user.role === "OWNER" ? "ADMIN" : "OWNER"}
-                    </button>
-                  </>
+                {user.role === "ADMIN" ? (
+                  <button type="button" disabled={busyId === user.id} onClick={() => void mutate(user.id, { action: "set-active", active: !user.active }, user.active ? "Usuario desactivado." : "Usuario activado.")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#DDD0C1] px-3 text-sm font-semibold text-[#4D453D] disabled:opacity-50">
+                    {user.active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />} {user.active ? "Desactivar" : "Activar"}
+                  </button>
                 ) : null}
               </div>
             </article>

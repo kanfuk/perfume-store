@@ -2,36 +2,32 @@ import { describe, expect, it } from "vitest";
 import {
   canResendAdminInvitation,
   deriveAdminUserStatus,
+  isPrimaryOwnerRole,
   normalizeAdminEmail,
-  validateInviteAdminUserInput,
-  wouldRemoveLastActiveOwner
+  validateInviteAdminUserInput
 } from "@/lib/admin-users";
 
 describe("validación de invitaciones administrativas", () => {
-  it("normaliza el correo y acepta solo OWNER o ADMIN", () => {
+  it("normaliza el correo y no acepta un rol enviado por el cliente", () => {
     expect(normalizeAdminEmail("  OWNER@Smellme.CL ")).toBe("owner@smellme.cl");
-    expect(validateInviteAdminUserInput({ name: "Ana Pérez", email: " ANA@Example.CL ", role: "ADMIN" })).toEqual({
+    expect(validateInviteAdminUserInput({ name: "Ana Pérez", email: " ANA@Example.CL " })).toEqual({
       valid: true,
-      data: { name: "Ana Pérez", email: "ana@example.cl", role: "ADMIN" }
+      data: { name: "Ana Pérez", email: "ana@example.cl" }
     });
   });
 
-  it("rechaza correo inválido, rol desconocido y campos adicionales", () => {
-    expect(validateInviteAdminUserInput({ name: "Ana", email: "ana", role: "ADMIN" }).valid).toBe(false);
-    expect(validateInviteAdminUserInput({ name: "Ana", email: "ana@example.cl", role: "SUPERADMIN" }).valid).toBe(false);
-    expect(validateInviteAdminUserInput({ name: "Ana", email: "ana@example.cl", role: "ADMIN", password: "secret" }).valid).toBe(false);
+  it("rechaza correo inválido, cualquier role inyectado y campos adicionales", () => {
+    expect(validateInviteAdminUserInput({ name: "Ana", email: "ana" }).valid).toBe(false);
+    expect(validateInviteAdminUserInput({ name: "Ana", email: "ana@example.cl", role: "OWNER" }).valid).toBe(false);
+    expect(validateInviteAdminUserInput({ name: "Ana", email: "ana@example.cl", role: "ADMIN" }).valid).toBe(false);
+    expect(validateInviteAdminUserInput({ name: "Ana", email: "ana@example.cl", password: "secret" }).valid).toBe(false);
   });
 });
 
-describe("protección del último OWNER", () => {
-  it("bloquea desactivarlo o degradarlo", () => {
-    const current = { role: "OWNER" as const, active: true };
-    expect(wouldRemoveLastActiveOwner(current, { active: false }, 1)).toBe(true);
-    expect(wouldRemoveLastActiveOwner(current, { role: "ADMIN" }, 1)).toBe(true);
-  });
-
-  it("permite el cambio cuando queda otro OWNER activo", () => {
-    expect(wouldRemoveLastActiveOwner({ role: "OWNER", active: true }, { active: false }, 2)).toBe(false);
+describe("identidad estructural del OWNER principal", () => {
+  it("identifica exclusivamente el rol OWNER sin depender del usuario actual", () => {
+    expect(isPrimaryOwnerRole("OWNER")).toBe(true);
+    expect(isPrimaryOwnerRole("ADMIN")).toBe(false);
   });
 });
 

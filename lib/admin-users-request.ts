@@ -51,7 +51,8 @@ export function adminUserErrorResponse(error: unknown) {
     NOT_FOUND: { message: "Usuario administrativo no encontrado.", status: 404 },
     NOT_PENDING: { message: "La invitación ya fue aceptada o no puede reenviarse.", status: 409 },
     SELF_LOCKOUT: { message: "No puedes quitarte tu propio acceso OWNER.", status: 409 },
-    LAST_OWNER: { message: "Debe permanecer al menos un OWNER activo.", status: 409 },
+    SINGLE_OWNER: { message: "Smellme utiliza un único OWNER. Los usuarios operativos deben ser ADMIN.", status: 409 },
+    PRIMARY_OWNER_IMMUTABLE: { message: "La cuenta OWNER principal no puede degradarse ni desactivarse.", status: 409 },
     INVITE_FAILED: { message: "Supabase no pudo enviar la invitación. Intenta nuevamente.", status: 502 },
     UPDATE_FAILED: { message: "No fue posible actualizar el usuario.", status: 500 }
   };

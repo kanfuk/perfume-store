@@ -56,12 +56,14 @@ describe("rutas OWNER de usuarios", () => {
   });
 
   it("invita sin aceptar contraseña ni campos desconocidos", async () => {
-    const response = await POST(request("POST", { name: "Ana", email: " ANA@example.cl ", role: "ADMIN" }));
+    const response = await POST(request("POST", { name: "Ana", email: " ANA@example.cl " }));
     expect(response.status).toBe(201);
-    expect(mocks.invite).toHaveBeenCalledWith({ name: "Ana", email: "ana@example.cl", role: "ADMIN" }, "https://preview.smellme.cl");
+    expect(mocks.invite).toHaveBeenCalledWith({ name: "Ana", email: "ana@example.cl" }, "https://preview.smellme.cl");
 
-    const invalid = await POST(request("POST", { name: "Ana", email: "ana@example.cl", role: "ADMIN", password: "x" }));
-    expect(invalid.status).toBe(400);
+    const ownerInjection = await POST(request("POST", { name: "Ana", email: "ana@example.cl", role: "OWNER" }));
+    const adminInjection = await POST(request("POST", { name: "Ana", email: "ana@example.cl", role: "ADMIN" }));
+    expect(ownerInjection.status).toBe(400);
+    expect(adminInjection.status).toBe(400);
     expect(mocks.invite).toHaveBeenCalledTimes(1);
   });
 
@@ -78,11 +80,14 @@ describe("rutas OWNER de usuarios", () => {
     expect(mocks.setActive).toHaveBeenNthCalledWith(2, "profile-1", true, "owner-profile-id");
   });
 
-  it("cambia rol solo a OWNER o ADMIN", async () => {
-    const valid = await PATCH(request("PATCH", { action: "set-role", role: "OWNER" }), { params: Promise.resolve({ userId: "profile-1" }) });
-    const invalid = await PATCH(request("PATCH", { action: "set-role", role: "SUPERADMIN" }), { params: Promise.resolve({ userId: "profile-1" }) });
-    expect(valid.status).toBe(200);
-    expect(invalid.status).toBe(400);
-    expect(mocks.setRole).toHaveBeenCalledWith("profile-1", "OWNER", "owner-profile-id");
+  it("rechaza cualquier mutación de rol, incluida ADMIN a OWNER", async () => {
+    const promote = await PATCH(request("PATCH", { action: "set-role", role: "OWNER" }), { params: Promise.resolve({ userId: "profile-1" }) });
+    const demote = await PATCH(request("PATCH", { action: "set-role", role: "ADMIN" }), { params: Promise.resolve({ userId: "profile-1" }) });
+    expect(promote.status).toBe(409);
+    expect(demote.status).toBe(409);
+    await expect(promote.json()).resolves.toEqual({
+      error: "Smellme utiliza un único OWNER. Los usuarios operativos deben ser ADMIN."
+    });
+    expect(mocks.setRole).not.toHaveBeenCalled();
   });
 });

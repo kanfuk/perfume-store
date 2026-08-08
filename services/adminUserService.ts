@@ -6,8 +6,8 @@ import {
   deriveAdminUserStatus,
   type InviteAdminUserInput,
   canResendAdminInvitation,
+  isPrimaryOwnerRole,
   normalizeAdminEmail,
-  wouldRemoveLastActiveOwner
 } from "@/lib/admin-users";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -33,7 +33,8 @@ export type AdminUserServiceCode =
   | "NOT_FOUND"
   | "NOT_PENDING"
   | "SELF_LOCKOUT"
-  | "LAST_OWNER"
+  | "SINGLE_OWNER"
+  | "PRIMARY_OWNER_IMMUTABLE"
   | "INVITE_FAILED"
   | "UPDATE_FAILED";
 
@@ -65,7 +66,7 @@ function toListItem(
     createdAt: profile.created_at,
     lastSignInAt: authUser?.last_sign_in_at || null,
     isCurrentUser: profile.id === actorProfileId,
-    isPrimaryOwner: profile.rol === "OWNER" && profile.id === actorProfileId,
+    isPrimaryOwner: isPrimaryOwnerRole(profile.rol),
     paymentAccountStatus: profile.rol === "ADMIN" ? paymentAccount?.status ?? "PENDING" : null,
     maskedAccountNumber:
       profile.rol === "ADMIN" ? paymentAccount?.maskedAccountNumber ?? null : null
@@ -98,27 +99,6 @@ async function getProfile(profileId: string) {
   if (error) throw new AdminUserServiceError("UPDATE_FAILED");
   if (!data) throw new AdminUserServiceError("NOT_FOUND");
   return data as AdminProfile;
-}
-
-async function assertOwnerWillRemain(profile: AdminProfile, next: { role?: AdminUserRole; active?: boolean }) {
-  const removesOwner =
-    profile.rol === "OWNER" &&
-    profile.activo &&
-    (next.role === "ADMIN" || next.active === false);
-  if (!removesOwner) return;
-
-  const client = createSupabaseServerClient();
-  const { count, error } = await client
-    .from("usuarios_admin")
-    .select("id", { count: "exact", head: true })
-    .eq("rol", "OWNER")
-    .eq("activo", true);
-  if (error) throw new AdminUserServiceError("UPDATE_FAILED");
-  if (wouldRemoveLastActiveOwner(
-    { role: profile.rol, active: profile.activo },
-    next,
-    count ?? 0
-  )) throw new AdminUserServiceError("LAST_OWNER");
 }
 
 export function createAdminUserService() {
@@ -176,7 +156,7 @@ export function createAdminUserService() {
         auth_user_id: data.user.id,
         email: input.email,
         nombre: input.name,
-        rol: input.role,
+        rol: "ADMIN",
         activo: true,
         invited_at: new Date().toISOString(),
         onboarding_completed_at: null
@@ -214,25 +194,26 @@ export function createAdminUserService() {
     async setActive(profileId: string, active: boolean, actorProfileId: string): Promise<void> {
       const client = createSupabaseServerClient();
       const profile = await getProfile(profileId);
+      if (!active && profile.rol === "OWNER") {
+        throw new AdminUserServiceError("PRIMARY_OWNER_IMMUTABLE");
+      }
       if (!active && profile.id === actorProfileId) {
         throw new AdminUserServiceError("SELF_LOCKOUT");
       }
-      await assertOwnerWillRemain(profile, { active });
       const { error } = await client.from("usuarios_admin").update({ activo: active }).eq("id", profile.id);
-      if (error?.message.includes("ADMIN_LAST_OWNER")) throw new AdminUserServiceError("LAST_OWNER");
+      if (error?.message.includes("ADMIN_PRIMARY_OWNER_IMMUTABLE")) {
+        throw new AdminUserServiceError("PRIMARY_OWNER_IMMUTABLE");
+      }
       if (error) throw new AdminUserServiceError("UPDATE_FAILED");
     },
 
     async setRole(profileId: string, role: AdminUserRole, actorProfileId: string): Promise<void> {
-      const client = createSupabaseServerClient();
+      if (role === "OWNER") throw new AdminUserServiceError("SINGLE_OWNER");
       const profile = await getProfile(profileId);
-      if (role === "ADMIN" && profile.id === actorProfileId) {
-        throw new AdminUserServiceError("SELF_LOCKOUT");
+      if (profile.rol === "OWNER") {
+        throw new AdminUserServiceError("PRIMARY_OWNER_IMMUTABLE");
       }
-      await assertOwnerWillRemain(profile, { role });
-      const { error } = await client.from("usuarios_admin").update({ rol: role }).eq("id", profile.id);
-      if (error?.message.includes("ADMIN_LAST_OWNER")) throw new AdminUserServiceError("LAST_OWNER");
-      if (error) throw new AdminUserServiceError("UPDATE_FAILED");
+      if (profile.id === actorProfileId) throw new AdminUserServiceError("SELF_LOCKOUT");
     }
   };
 }
