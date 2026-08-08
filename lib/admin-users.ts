@@ -13,6 +13,10 @@ export type AdminUserListItem = {
   invitedAt: string | null;
   createdAt: string;
   lastSignInAt: string | null;
+  isCurrentUser: boolean;
+  isPrimaryOwner: boolean;
+  paymentAccountStatus: "CONFIGURED" | "PENDING" | "INACTIVE" | null;
+  maskedAccountNumber: string | null;
 };
 
 export type InviteAdminUserInput = {

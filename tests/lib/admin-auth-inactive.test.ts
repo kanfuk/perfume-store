@@ -44,8 +44,8 @@ describe("autorización de usuario administrativo inactivo", () => {
   });
 
   it("acepta la fila activa y normaliza el correo consultado", async () => {
-    mocks.maybeSingle.mockResolvedValue({ data: { email: "admin@example.cl", nombre: "Ana", rol: "OWNER", activo: true, onboarding_completed_at: "2026-08-08T12:00:00.000Z" }, error: null });
-    expect(await getAuthenticatedAdmin()).toEqual({ userId: "auth-1", email: "admin@example.cl", nombre: "Ana", rol: "OWNER" });
+    mocks.maybeSingle.mockResolvedValue({ data: { id: "profile-1", email: "admin@example.cl", nombre: "Ana", rol: "OWNER", activo: true, onboarding_completed_at: "2026-08-08T12:00:00.000Z" }, error: null });
+    expect(await getAuthenticatedAdmin()).toEqual({ userId: "auth-1", profileId: "profile-1", email: "admin@example.cl", nombre: "Ana", rol: "OWNER" });
     expect(mocks.not).toHaveBeenCalledWith("onboarding_completed_at", "is", null);
   });
 

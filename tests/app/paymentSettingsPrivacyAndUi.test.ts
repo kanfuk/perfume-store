@@ -16,9 +16,10 @@ describe("privacidad de configuracion bancaria", () => {
     expect(content).not.toMatch(/business_settings|numero_cuenta|rut_titular/i);
   });
 
-  it("el dashboard usa solo el endpoint summary fuera de la edicion", () => {
+  it("el dashboard usa solo el contexto de cuenta del usuario fuera de la edicion", () => {
     const content = source("components/admin/AdminDashboard.tsx");
-    expect(content).toContain("/api/admin/settings/payment?summary=1");
+    expect(content).toContain("/api/admin/payment-accounts/context");
+    expect(content).not.toContain("/api/admin/settings/payment?summary=1");
     expect(content).not.toMatch(/paymentInfo|accountNumber/);
   });
 });
@@ -36,8 +37,7 @@ describe("rutas y acciones de configuracion/pedidos", () => {
     const dashboard = source("components/admin/AdminDashboard.tsx");
     const home = source("components/admin/dashboard/DashboardHomeView.tsx");
     expect(dashboard).toContain('router.push("/admin/configuracion")');
-    expect(home).toContain("Configura tus datos bancarios");
-    expect(home).toContain("/admin/configuracion?seccion=transferencia");
+    expect(home).toContain("Solicita al OWNER que la configure");
   });
 
   it("separa la mutación del CTA y no abre pestañas preliminares", () => {

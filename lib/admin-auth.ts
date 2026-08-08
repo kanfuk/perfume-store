@@ -4,6 +4,7 @@ import type { AdminUserRole } from "@/lib/admin-users";
 
 export type AuthenticatedAdmin = {
   userId: string;
+  profileId: string;
   email: string;
   nombre: string | null;
   rol: AdminUserRole;
@@ -22,7 +23,7 @@ export async function getAuthenticatedAdmin(): Promise<AuthenticatedAdmin | null
   const serviceClient = createSupabaseServerClient();
   const { data, error } = await serviceClient
     .from("usuarios_admin")
-    .select("email, nombre, rol, activo, onboarding_completed_at")
+    .select("id, email, nombre, rol, activo, onboarding_completed_at")
     .eq("email", user.email.trim().toLowerCase())
     .eq("activo", true)
     .not("onboarding_completed_at", "is", null)
@@ -34,6 +35,7 @@ export async function getAuthenticatedAdmin(): Promise<AuthenticatedAdmin | null
 
   return {
     userId: user.id,
+    profileId: data.id,
     email: data.email,
     nombre: data.nombre,
     rol: data.rol as AdminUserRole

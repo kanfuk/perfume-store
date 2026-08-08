@@ -41,7 +41,7 @@ function request(method: string, body?: unknown) {
 describe("rutas OWNER de usuarios", () => {
   beforeEach(() => {
     for (const mock of Object.values(mocks)) mock.mockReset();
-    mocks.authorize.mockResolvedValue({ admin: { userId: "owner-auth-id", rol: "OWNER" } });
+    mocks.authorize.mockResolvedValue({ admin: { userId: "owner-auth-id", profileId: "owner-profile-id", rol: "OWNER" } });
     mocks.list.mockResolvedValue([]);
     mocks.invite.mockResolvedValue(undefined);
     mocks.resend.mockResolvedValue(undefined);
@@ -52,7 +52,7 @@ describe("rutas OWNER de usuarios", () => {
   it("lista usuarios para OWNER", async () => {
     const response = await GET(request("GET"));
     expect(response.status).toBe(200);
-    expect(mocks.list).toHaveBeenCalledOnce();
+    expect(mocks.list).toHaveBeenCalledWith("owner-profile-id");
   });
 
   it("invita sin aceptar contraseña ni campos desconocidos", async () => {
@@ -74,8 +74,8 @@ describe("rutas OWNER de usuarios", () => {
   it("activa y desactiva pasando la identidad del OWNER al servicio", async () => {
     await PATCH(request("PATCH", { action: "set-active", active: false }), { params: Promise.resolve({ userId: "profile-1" }) });
     await PATCH(request("PATCH", { action: "set-active", active: true }), { params: Promise.resolve({ userId: "profile-1" }) });
-    expect(mocks.setActive).toHaveBeenNthCalledWith(1, "profile-1", false, "owner-auth-id");
-    expect(mocks.setActive).toHaveBeenNthCalledWith(2, "profile-1", true, "owner-auth-id");
+    expect(mocks.setActive).toHaveBeenNthCalledWith(1, "profile-1", false, "owner-profile-id");
+    expect(mocks.setActive).toHaveBeenNthCalledWith(2, "profile-1", true, "owner-profile-id");
   });
 
   it("cambia rol solo a OWNER o ADMIN", async () => {
@@ -83,6 +83,6 @@ describe("rutas OWNER de usuarios", () => {
     const invalid = await PATCH(request("PATCH", { action: "set-role", role: "SUPERADMIN" }), { params: Promise.resolve({ userId: "profile-1" }) });
     expect(valid.status).toBe(200);
     expect(invalid.status).toBe(400);
-    expect(mocks.setRole).toHaveBeenCalledWith("profile-1", "OWNER", "owner-auth-id");
+    expect(mocks.setRole).toHaveBeenCalledWith("profile-1", "OWNER", "owner-profile-id");
   });
 });

@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   ClipboardList,
+  CreditCard,
   HandCoins,
   MessageCircle,
   Phone,
@@ -184,6 +185,12 @@ export function AdminDashboard({
   const [paymentSettingsComplete, setPaymentSettingsComplete] = useState<boolean | null>(
     null
   );
+  const [paymentReceivers, setPaymentReceivers] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    maskedAccountNumber: string;
+  }>>([]);
   const [busyOrderId, setBusyOrderId] = useState("");
   const [busyMaintenanceAction, setBusyMaintenanceAction] = useState("");
   const [search, setSearch] = useState("");
@@ -241,15 +248,15 @@ export function AdminDashboard({
 
     async function loadPaymentSettingsStatus() {
       try {
-        const response = await fetch("/api/admin/settings/payment?summary=1", {
+        const response = await fetch("/api/admin/payment-accounts/context", {
           cache: "no-store"
         });
         const payload = (await response.json()) as {
-          completa?: boolean;
+          accountConfigured?: boolean;
         };
 
         if (!cancelled && response.ok) {
-          setPaymentSettingsComplete(payload.completa === true);
+          setPaymentSettingsComplete(payload.accountConfigured === true);
         }
       } catch {
         if (!cancelled) {
@@ -264,6 +271,31 @@ export function AdminDashboard({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    let cancelled = false;
+    async function loadPaymentReceivers() {
+      try {
+        const response = await fetch("/api/admin/payment-accounts/receivers", {
+          cache: "no-store"
+        });
+        const payload = (await response.json()) as {
+          receivers?: Array<{
+            id: string;
+            name: string;
+            email: string;
+            maskedAccountNumber: string;
+          }>;
+        };
+        if (!cancelled && response.ok) setPaymentReceivers(payload.receivers ?? []);
+      } catch {
+        if (!cancelled) setPaymentReceivers([]);
+      }
+    }
+    void loadPaymentReceivers();
+    return () => { cancelled = true; };
+  }, [isOwner]);
   const badgeSupported = useSyncExternalStore(
     subscribeToClientSnapshot,
     isAppBadgeSupported,
@@ -1511,6 +1543,7 @@ export function AdminDashboard({
       motivoCancelacion?: string;
       monto?: number;
       metodoPago?: string;
+      receiverAdminUserId?: string;
     }
     ) {
     const preparesWhatsApp = new Set<AdminOrdersAction>([
@@ -1545,26 +1578,11 @@ export function AdminDashboard({
       const currentData = (await response.json()) as {
         error?: string;
         code?: string;
-        configuracionUrl?: string;
         pedido?: AdminOrderSummary;
         whatsapp?: { message?: string };
       };
 
       if (!response.ok) {
-        if (
-          currentData.code === "CONFIG_INCOMPLETA" &&
-          currentData.configuracionUrl
-        ) {
-          feedback.notify({
-            message:
-              currentData.error ??
-              "Configura los datos bancarios antes de continuar.",
-            tone: "warning",
-            actionLabel: "Configurar ahora",
-            onAction: () => router.push(currentData.configuracionUrl!)
-          });
-        }
-
         throw new Error(currentData.error ?? "No fue posible actualizar el pedido.");
       }
 
@@ -2048,7 +2066,7 @@ export function AdminDashboard({
                       }
 
                       if (action === "reenviar-transferencia") {
-                        void runAction(order.id, action, order);
+                        setOrderModalState({ type: "reenviar-transferencia", order });
                         return;
                       }
 
@@ -2850,6 +2868,8 @@ export function AdminDashboard({
         <AdminActionModal
           state={orderModalState}
           busy={busyOrderId === orderModalState.order.id}
+          isOwner={isOwner}
+          paymentReceivers={paymentReceivers}
           onClose={() => setOrderModalState(null)}
           onConfirm={(payload) =>
             void runAction(
@@ -3374,16 +3394,26 @@ function PaymentOrderCard({
 function AdminActionModal({
   state,
   busy,
+  isOwner,
+  paymentReceivers,
   onClose,
   onConfirm
 }: {
   state: Exclude<OrderModalState, null>;
   busy: boolean;
+  isOwner: boolean;
+  paymentReceivers: Array<{
+    id: string;
+    name: string;
+    email: string;
+    maskedAccountNumber: string;
+  }>;
   onClose: () => void;
   onConfirm: (payload: {
     motivoCancelacion?: string;
     monto?: number;
     metodoPago?: string;
+    receiverAdminUserId?: string;
   }) => void;
 }) {
   const [reason, setReason] = useState(
@@ -3393,6 +3423,10 @@ function AdminActionModal({
     state.type === "abonar" ? String(state.order.saldoPendiente) : ""
   );
   const [method, setMethod] = useState("EFECTIVO");
+  const [receiverAdminUserId, setReceiverAdminUserId] = useState("");
+  const needsReceiver =
+    isOwner &&
+    (state.type === "agendar" || state.type === "reenviar-transferencia");
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-brand-950/20 px-4 py-4">
@@ -3401,6 +3435,8 @@ function AdminActionModal({
           <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700">
             {state.type === "agendar" ? (
               <CalendarClock className="h-5 w-5" />
+            ) : state.type === "reenviar-transferencia" ? (
+              <CreditCard className="h-5 w-5" />
             ) : state.type === "pagado" ? (
               <CircleDollarSign className="h-5 w-5" />
             ) : state.type === "cancelar" ? (
@@ -3412,6 +3448,8 @@ function AdminActionModal({
           <h3 className="pt-2 text-xl font-bold text-brand-950">
             {state.type === "agendar"
               ? "Agendar pedido"
+              : state.type === "reenviar-transferencia"
+                ? "Reenviar datos de pago"
               : state.type === "pagado"
                 ? "Confirmar pago"
                 : state.type === "cancelar"
@@ -3427,6 +3465,36 @@ function AdminActionModal({
               El pedido pasa a AGENDADO. La fecha y sucursal de despacho se coordinan por
               WhatsApp, no se elige aqui.
             </p>
+          ) : null}
+
+          {state.type === "reenviar-transferencia" ? (
+            <p className="text-sm text-brand-900/70">
+              Se reutilizará el snapshot bancario originalmente comunicado, sin cambiar el pedido.
+            </p>
+          ) : null}
+
+          {needsReceiver ? (
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-brand-900">Cuenta receptora</span>
+              <select
+                required
+                value={receiverAdminUserId}
+                onChange={(event) => setReceiverAdminUserId(event.target.value)}
+                className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
+              >
+                <option value="">Selecciona un ADMIN</option>
+                {paymentReceivers.map((receiver) => (
+                  <option key={receiver.id} value={receiver.id}>
+                    {receiver.name} · {receiver.maskedAccountNumber}
+                  </option>
+                ))}
+              </select>
+              {paymentReceivers.length === 0 ? (
+                <span className="block text-sm text-amber-800">
+                  No hay ADMIN activos con una cuenta de cobro configurada.
+                </span>
+              ) : null}
+            </label>
           ) : null}
 
           {state.type === "pagado" ? (
@@ -3492,7 +3560,7 @@ function AdminActionModal({
           </button>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || (needsReceiver && !receiverAdminUserId)}
             onClick={() =>
               onConfirm(
                 state.type === "cancelar"
@@ -3505,7 +3573,9 @@ function AdminActionModal({
                         monto: Number(amount),
                         metodoPago: method
                       }
-                    : {}
+                    : needsReceiver
+                      ? { receiverAdminUserId }
+                      : {}
               )
             }
             className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white"

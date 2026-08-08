@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   if (authorization.response) return authorization.response;
 
   try {
-    const users = await createAdminUserService().list();
+    const users = await createAdminUserService().list(authorization.admin!.profileId);
     return adminUsersJson({ users });
   } catch (error) {
     return adminUserErrorResponse(error);

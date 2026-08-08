@@ -26,7 +26,8 @@ function formatCurrencyValue(value: number) {
 /**
  * Mensaje para la accion "Atender y solicitar transferencia". Usa solo el
  * snapshot persistido del pedido (items/subtotal/despacho/total) y los datos
- * bancarios que la ruta servidor carga desde business_settings - nunca
+ * bancarios que el servicio servidor resuelve desde la cuenta del ADMIN y
+ * conserva en una bitacora historica - nunca
  * precios recalculados ni datos bancarios enviados por el navegador. El
  * llamador valida la configuracion antes de invocar esta funcion; aqui no se
  * rellenan valores faltantes, solo se omiten lineas vacias para nunca mostrar

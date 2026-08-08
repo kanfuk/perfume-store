@@ -10,6 +10,10 @@ import {
   wouldRemoveLastActiveOwner
 } from "@/lib/admin-users";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createAdminPaymentAccountService,
+  type AdminPaymentAccountSummary
+} from "@/services/adminPaymentAccountService";
 
 type AdminProfile = {
   id: string;
@@ -39,7 +43,12 @@ export class AdminUserServiceError extends Error {
   }
 }
 
-function toListItem(profile: AdminProfile, authUser: User | undefined): AdminUserListItem {
+function toListItem(
+  profile: AdminProfile,
+  authUser: User | undefined,
+  actorProfileId: string,
+  paymentAccount: AdminPaymentAccountSummary | undefined
+): AdminUserListItem {
   const status = deriveAdminUserStatus({
     active: profile.activo,
     onboardingCompletedAt: profile.onboarding_completed_at
@@ -54,7 +63,12 @@ function toListItem(profile: AdminProfile, authUser: User | undefined): AdminUse
     active: profile.activo,
     invitedAt: authUser?.invited_at || profile.invited_at,
     createdAt: profile.created_at,
-    lastSignInAt: authUser?.last_sign_in_at || null
+    lastSignInAt: authUser?.last_sign_in_at || null,
+    isCurrentUser: profile.id === actorProfileId,
+    isPrimaryOwner: profile.rol === "OWNER" && profile.id === actorProfileId,
+    paymentAccountStatus: profile.rol === "ADMIN" ? paymentAccount?.status ?? "PENDING" : null,
+    maskedAccountNumber:
+      profile.rol === "ADMIN" ? paymentAccount?.maskedAccountNumber ?? null : null
   };
 }
 
@@ -109,14 +123,15 @@ async function assertOwnerWillRemain(profile: AdminProfile, next: { role?: Admin
 
 export function createAdminUserService() {
   return {
-    async list(): Promise<AdminUserListItem[]> {
+    async list(actorProfileId: string): Promise<AdminUserListItem[]> {
       const client = createSupabaseServerClient();
-      const [{ data, error }, authUsers] = await Promise.all([
+      const [{ data, error }, authUsers, paymentAccounts] = await Promise.all([
         client
           .from("usuarios_admin")
           .select("id, auth_user_id, email, nombre, rol, activo, invited_at, onboarding_completed_at, created_at")
           .order("created_at", { ascending: true }),
-        listAllAuthUsers()
+        listAllAuthUsers(),
+        createAdminPaymentAccountService().listSummaries()
       ]);
       if (error) throw new AdminUserServiceError("UPDATE_FAILED");
 
@@ -127,7 +142,12 @@ export function createAdminUserService() {
           .map((user) => [normalizeAdminEmail(user.email ?? ""), user])
       );
       return ((data ?? []) as AdminProfile[]).map((profile) =>
-        toListItem(profile, byId.get(profile.auth_user_id ?? "") ?? byEmail.get(profile.email))
+        toListItem(
+          profile,
+          byId.get(profile.auth_user_id ?? "") ?? byEmail.get(profile.email),
+          actorProfileId,
+          paymentAccounts.get(profile.id)
+        )
       );
     },
 
@@ -191,10 +211,10 @@ export function createAdminUserService() {
       if (updateError) throw new AdminUserServiceError("UPDATE_FAILED");
     },
 
-    async setActive(profileId: string, active: boolean, actorUserId: string): Promise<void> {
+    async setActive(profileId: string, active: boolean, actorProfileId: string): Promise<void> {
       const client = createSupabaseServerClient();
       const profile = await getProfile(profileId);
-      if (!active && profile.auth_user_id === actorUserId) {
+      if (!active && profile.id === actorProfileId) {
         throw new AdminUserServiceError("SELF_LOCKOUT");
       }
       await assertOwnerWillRemain(profile, { active });
@@ -203,10 +223,10 @@ export function createAdminUserService() {
       if (error) throw new AdminUserServiceError("UPDATE_FAILED");
     },
 
-    async setRole(profileId: string, role: AdminUserRole, actorUserId: string): Promise<void> {
+    async setRole(profileId: string, role: AdminUserRole, actorProfileId: string): Promise<void> {
       const client = createSupabaseServerClient();
       const profile = await getProfile(profileId);
-      if (role === "ADMIN" && profile.auth_user_id === actorUserId) {
+      if (role === "ADMIN" && profile.id === actorProfileId) {
         throw new AdminUserServiceError("SELF_LOCKOUT");
       }
       await assertOwnerWillRemain(profile, { role });

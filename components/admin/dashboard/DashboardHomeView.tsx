@@ -99,16 +99,10 @@ export function DashboardHomeView({
             <div>
               <h2 className="font-bold">Faltan datos de transferencia</h2>
               <p className="mt-1 text-sm">
-                Configura tus datos bancarios para atender pedidos por transferencia.
+                No tienes una cuenta de cobro configurada. Solicita al OWNER que la configure.
               </p>
             </div>
           </div>
-          <Link
-            href="/admin/configuracion?seccion=transferencia"
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-amber-900 px-4 py-3 text-sm font-semibold text-white"
-          >
-            Configurar ahora
-          </Link>
         </div>
       ) : null}
 

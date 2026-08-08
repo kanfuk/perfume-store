@@ -30,13 +30,13 @@ export async function PATCH(request: Request, context: RouteContext) {
       typeof input.active === "boolean" &&
       Object.keys(input).every((key) => key === "action" || key === "active")
     ) {
-      await service.setActive(userId, input.active, authorization.admin.userId);
+      await service.setActive(userId, input.active, authorization.admin.profileId);
     } else if (
       input.action === "set-role" &&
       isAdminUserRole(input.role) &&
       Object.keys(input).every((key) => key === "action" || key === "role")
     ) {
-      await service.setRole(userId, input.role, authorization.admin.userId);
+      await service.setRole(userId, input.role, authorization.admin.profileId);
     } else {
       return adminUsersJson({ error: "La acción no es válida." }, 400);
     }
