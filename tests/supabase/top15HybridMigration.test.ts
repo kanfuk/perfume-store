@@ -9,18 +9,19 @@ const migration = readFileSync(
 describe("migración Top 15 híbrido", () => {
   it("parte en MANUAL para no cambiar la portada al desplegar", () => {
     expect(migration).toMatch(/top_ranking_mode text not null default 'MANUAL'/);
-    expect(migration).toMatch(/top_sales_window_days integer not null default 90/);
+    expect(migration).toMatch(/top_sales_window_days integer default 90/);
   });
 
   it("restringe modos y ventana configurable", () => {
     expect(migration).toContain("top_ranking_mode in ('MANUAL', 'AUTOMATIC', 'HYBRID')");
-    expect(migration).toContain("top_sales_window_days between 1 and 3650");
+    expect(migration).toContain("top_sales_window_days is null or top_sales_window_days between 1 and 3650");
   });
 
   it("el cálculo automático cuenta solo ventas pagadas, no canceladas y dentro de ventana", () => {
     expect(migration).toContain("pe.estado_pago = 'PAGADO'");
     expect(migration).toContain("pe.estado_pedido <> 'CANCELADO'");
     expect(migration).toMatch(/make_interval\(days => c\.window_days\)/);
+    expect(migration).toContain("c.window_days is null");
     expect(migration).toMatch(/sum\(pi\.cantidad\)::bigint as units_sold/);
   });
 

@@ -23,7 +23,9 @@ class MemoryTopProductsRankingRepository implements TopProductsRankingRepository
     return {
       mode: localStore.businessSettings.topRankingMode ?? DEFAULT_TOP_RANKING_MODE,
       salesWindowDays:
-        localStore.businessSettings.topSalesWindowDays ?? DEFAULT_TOP_SALES_WINDOW_DAYS
+        localStore.businessSettings.topSalesWindowDays === undefined
+          ? DEFAULT_TOP_SALES_WINDOW_DAYS
+          : localStore.businessSettings.topSalesWindowDays
     };
   }
 
@@ -92,7 +94,10 @@ class SupabaseTopProductsRankingRepository implements TopProductsRankingReposito
 
     return {
       mode: data.top_ranking_mode ?? DEFAULT_TOP_RANKING_MODE,
-      salesWindowDays: data.top_sales_window_days ?? DEFAULT_TOP_SALES_WINDOW_DAYS
+      salesWindowDays:
+        data.top_sales_window_days === undefined
+          ? DEFAULT_TOP_SALES_WINDOW_DAYS
+          : data.top_sales_window_days
     };
   }
 

@@ -45,7 +45,7 @@ type Top12Slot = {
 type TopRankingMode = "MANUAL" | "AUTOMATIC" | "HYBRID";
 type TopRankingConfiguration = {
   mode: TopRankingMode;
-  salesWindowDays: number;
+  salesWindowDays: number | null;
 };
 
 const DEFAULT_CONFIGURATION: TopRankingConfiguration = {
@@ -92,14 +92,14 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
   const [previewError, setPreviewError] = useState("");
   const [configuration, setConfiguration] = useState<TopRankingConfiguration>(DEFAULT_CONFIGURATION);
   const [draftMode, setDraftMode] = useState<TopRankingMode>(DEFAULT_CONFIGURATION.mode);
-  const [draftWindowDays, setDraftWindowDays] = useState(String(DEFAULT_CONFIGURATION.salesWindowDays));
+  const [draftWindowDays, setDraftWindowDays] = useState("90");
   const [savingConfiguration, setSavingConfiguration] = useState(false);
 
   function applyConfiguration(next?: Partial<TopRankingConfiguration>) {
     const normalized = { ...DEFAULT_CONFIGURATION, ...next };
     setConfiguration(normalized);
     setDraftMode(normalized.mode);
-    setDraftWindowDays(String(normalized.salesWindowDays));
+    setDraftWindowDays(normalized.salesWindowDays === null ? "HISTORICAL" : String(normalized.salesWindowDays));
   }
 
   async function togglePreview() {
@@ -185,7 +185,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: draftMode,
-          salesWindowDays: Number(draftWindowDays)
+          salesWindowDays: draftWindowDays === "HISTORICAL" ? null : Number(draftWindowDays)
         })
       });
       applyConfiguration(data.configuration);
@@ -349,19 +349,19 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
           </div>
           <div>
             <label htmlFor="top-sales-window" className="mb-1.5 block text-sm font-semibold text-[#344054]">
-              Ventas de los últimos días
+              Período de ventas
             </label>
-            <input
+            <select
               id="top-sales-window"
-              type="number"
-              min={1}
-              max={3650}
-              step={1}
               value={draftWindowDays}
               onChange={(event) => setDraftWindowDays(event.target.value)}
               disabled={draftMode === "MANUAL"}
               className="min-h-11 w-full rounded-xl border border-[#d0d5dd] bg-white px-3 text-sm text-[#111318] outline-none focus:border-[#7357ff] disabled:bg-[#f2f4f7] disabled:text-[#98a2b3]"
-            />
+            >
+              <option value="30">Últimos 30 días</option>
+              <option value="90">Últimos 90 días</option>
+              <option value="HISTORICAL">Histórico completo</option>
+            </select>
           </div>
           <button
             type="button"
@@ -530,7 +530,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                       </span>
                       {configuration.mode !== "MANUAL" ? (
                         <span className="rounded-full bg-[#f2f4f7] px-2 py-1 text-[#475467]">
-                          {slot.unitsSold} un. / {configuration.salesWindowDays} días
+                          {slot.unitsSold} un. / {configuration.salesWindowDays === null ? "histórico" : `${configuration.salesWindowDays} días`}
                         </span>
                       ) : null}
                     </div>

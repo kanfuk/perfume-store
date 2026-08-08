@@ -15,7 +15,8 @@ export const MAX_TOP_SALES_WINDOW_DAYS = 3650;
 
 export type TopRankingConfiguration = {
   mode: TopRankingMode;
-  salesWindowDays: number;
+  /** null = todo el historial de ventas pagadas. */
+  salesWindowDays: number | null;
 };
 
 export type EffectiveTopRankingEntry = {
@@ -34,10 +35,13 @@ export function validateTopRankingConfiguration(input: {
     throw new Error("El modo del Top 15 debe ser MANUAL, AUTOMATIC o HYBRID.");
   }
 
-  const salesWindowDays =
-    typeof input.salesWindowDays === "number"
-      ? input.salesWindowDays
-      : Number(input.salesWindowDays);
+  if (input.salesWindowDays === null || input.salesWindowDays === "HISTORICAL") {
+    return { mode: input.mode as TopRankingMode, salesWindowDays: null };
+  }
+
+  const salesWindowDays = typeof input.salesWindowDays === "number"
+    ? input.salesWindowDays
+    : Number(input.salesWindowDays);
 
   if (
     !Number.isInteger(salesWindowDays) ||
@@ -67,7 +71,9 @@ export function computeEffectiveTopRanking(input: {
 }): EffectiveTopRankingEntry[] {
   const { products, orders, orderItems, configuration } = input;
   const now = input.now ?? new Date();
-  const since = now.getTime() - configuration.salesWindowDays * 24 * 60 * 60 * 1000;
+  const since = configuration.salesWindowDays === null
+    ? null
+    : now.getTime() - configuration.salesWindowDays * 24 * 60 * 60 * 1000;
   const paidOrderIds = new Set(
     configuration.mode === "MANUAL"
       ? []
@@ -78,7 +84,7 @@ export function computeEffectiveTopRanking(input: {
               order.estadoPago === "PAGADO" &&
               order.estadoPedido !== "CANCELADO" &&
               Number.isFinite(date) &&
-              date >= since
+              (since === null || date >= since)
             );
           })
           .map((order) => order.id)

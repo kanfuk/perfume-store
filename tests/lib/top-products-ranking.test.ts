@@ -132,6 +132,18 @@ describe("Top 15 efectivo", () => {
 
     expect(result.map((entry) => entry.productId)).toEqual(["ok"]);
   });
+
+  it("HISTORICAL incluye ventas pagadas sin límite de fecha", () => {
+    const result = computeEffectiveTopRanking({
+      products: [product("old-sale")],
+      orders: [order("old", { fechaPedido: "2010-01-01T00:00:00.000Z" })],
+      orderItems: [item("old", "old-sale", 3)],
+      configuration: { mode: "AUTOMATIC", salesWindowDays: null },
+      now: NOW
+    });
+
+    expect(result[0]).toMatchObject({ productId: "old-sale", unitsSold: 3 });
+  });
 });
 
 describe("configuración del Top 15", () => {
@@ -139,6 +151,13 @@ describe("configuración del Top 15", () => {
     expect(validateTopRankingConfiguration({ mode: "HYBRID", salesWindowDays: "60" })).toEqual({
       mode: "HYBRID",
       salesWindowDays: 60
+    });
+  });
+
+  it("acepta histórico completo como ventana nula", () => {
+    expect(validateTopRankingConfiguration({ mode: "AUTOMATIC", salesWindowDays: null })).toEqual({
+      mode: "AUTOMATIC",
+      salesWindowDays: null
     });
   });
 

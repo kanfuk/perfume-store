@@ -201,7 +201,7 @@ create table if not exists public.business_settings (
   color_primario text,
   color_acento text,
   top_ranking_mode text not null default 'MANUAL',
-  top_sales_window_days integer not null default 90,
+  top_sales_window_days integer default 90,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint business_settings_singleton_check check (
@@ -213,7 +213,7 @@ create table if not exists public.business_settings (
     top_ranking_mode in ('MANUAL', 'AUTOMATIC', 'HYBRID')
   ),
   constraint business_settings_top_sales_window_days_check check (
-    top_sales_window_days between 1 and 3650
+    top_sales_window_days is null or top_sales_window_days between 1 and 3650
   )
 );
 
@@ -677,8 +677,11 @@ as $$
       and c.mode in ('AUTOMATIC', 'HYBRID')
       and pe.estado_pago = 'PAGADO'
       and pe.estado_pedido <> 'CANCELADO'
-      and coalesce(pe.fecha_pago, pe.fecha_pedido, pe.created_at)
-        >= now() - make_interval(days => c.window_days)
+      and (
+        c.window_days is null
+        or coalesce(pe.fecha_pago, pe.fecha_pedido, pe.created_at)
+          >= now() - make_interval(days => c.window_days)
+      )
     group by pi.producto_id
   ),
   manual_candidates as (

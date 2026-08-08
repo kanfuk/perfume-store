@@ -2,7 +2,7 @@
 -- MANUAL mantiene exactamente el comportamiento productivo existente.
 alter table public.business_settings
   add column if not exists top_ranking_mode text not null default 'MANUAL',
-  add column if not exists top_sales_window_days integer not null default 90;
+  add column if not exists top_sales_window_days integer default 90;
 
 alter table public.business_settings
   drop constraint if exists business_settings_top_ranking_mode_check,
@@ -10,7 +10,7 @@ alter table public.business_settings
     check (top_ranking_mode in ('MANUAL', 'AUTOMATIC', 'HYBRID')),
   drop constraint if exists business_settings_top_sales_window_days_check,
   add constraint business_settings_top_sales_window_days_check
-    check (top_sales_window_days between 1 and 3650);
+    check (top_sales_window_days is null or top_sales_window_days between 1 and 3650);
 
 grant select (top_ranking_mode, top_sales_window_days)
 on table public.business_settings to service_role;
@@ -47,8 +47,11 @@ as $$
       and c.mode in ('AUTOMATIC', 'HYBRID')
       and pe.estado_pago = 'PAGADO'
       and pe.estado_pedido <> 'CANCELADO'
-      and coalesce(pe.fecha_pago, pe.fecha_pedido, pe.created_at)
-        >= now() - make_interval(days => c.window_days)
+      and (
+        c.window_days is null
+        or coalesce(pe.fecha_pago, pe.fecha_pedido, pe.created_at)
+          >= now() - make_interval(days => c.window_days)
+      )
     group by pi.producto_id
   ),
   manual_candidates as (
