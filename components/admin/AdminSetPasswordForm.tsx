@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveAdminPasswordSession } from "@/lib/admin-invite-session";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { validateAdminNewPassword } from "@/lib/validators";
 
@@ -25,23 +26,16 @@ export function AdminSetPasswordForm() {
     const supabase = createSupabaseBrowserClient();
     let active = true;
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (!active) return;
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-        clearUrlFragment();
-        setStatus("ready");
-      }
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      clearUrlFragment();
-      setStatus(data.session ? "ready" : "no-session");
+    void resolveAdminPasswordSession(
+      supabase.auth,
+      window.location.hash,
+      clearUrlFragment
+    ).then((sessionReady) => {
+      if (active) setStatus(sessionReady ? "ready" : "no-session");
     });
 
     return () => {
       active = false;
-      listener.subscription.unsubscribe();
     };
   }, []);
 

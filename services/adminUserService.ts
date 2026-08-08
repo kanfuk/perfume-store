@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import {
   type AdminUserListItem,
   type AdminUserRole,
+  buildAdminInviteRedirectUrl,
   deriveAdminUserStatus,
   type InviteAdminUserInput,
   canResendAdminInvitation,
@@ -145,10 +146,8 @@ export function createAdminUserService() {
         throw new AdminUserServiceError("USER_EXISTS");
       }
 
-      const redirectTo = new URL("/auth/callback", redirectOrigin);
-      redirectTo.searchParams.set("next", "/admin/set-password");
       const { data, error } = await client.auth.admin.inviteUserByEmail(input.email, {
-        redirectTo: redirectTo.toString(),
+        redirectTo: buildAdminInviteRedirectUrl(redirectOrigin),
         data: { nombre: input.name }
       });
       if (error || !data.user) throw new AdminUserServiceError("INVITE_FAILED");
@@ -179,10 +178,8 @@ export function createAdminUserService() {
         throw new AdminUserServiceError("NOT_PENDING");
       }
 
-      const redirectTo = new URL("/auth/callback", redirectOrigin);
-      redirectTo.searchParams.set("next", "/admin/set-password");
       const { error } = await client.auth.admin.inviteUserByEmail(profile.email, {
-        redirectTo: redirectTo.toString(),
+        redirectTo: buildAdminInviteRedirectUrl(redirectOrigin),
         data: { nombre: profile.nombre }
       });
       if (error) throw new AdminUserServiceError("INVITE_FAILED");

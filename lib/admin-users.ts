@@ -54,6 +54,10 @@ export function canResendAdminInvitation(onboardingCompletedAt: string | null) {
   return onboardingCompletedAt === null;
 }
 
+export function buildAdminInviteRedirectUrl(origin: string) {
+  return new URL("/admin/set-password", origin).toString();
+}
+
 export function validateInviteAdminUserInput(value: unknown):
   | { valid: true; data: InviteAdminUserInput }
   | { valid: false; message: string } {
