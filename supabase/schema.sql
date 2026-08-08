@@ -49,6 +49,7 @@ create table if not exists public.usuarios_admin (
   activo boolean not null default true,
   auth_user_id uuid references auth.users(id) on delete set null,
   invited_at timestamptz,
+  onboarding_completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint usuarios_admin_rol_check check (rol in ('OWNER', 'ADMIN')),

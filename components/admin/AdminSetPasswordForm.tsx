@@ -65,6 +65,16 @@ export function AdminSetPasswordForm() {
         throw new Error("No fue posible guardar la contraseña. Intenta nuevamente.");
       }
 
+      const onboardingResponse = await fetch("/api/admin/complete-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+
+      if (!onboardingResponse.ok) {
+        throw new Error("La contraseña se guardó, pero no fue posible habilitar el acceso. Intenta nuevamente.");
+      }
+
       await supabase.auth.signOut();
       setStatus("success");
       setTimeout(() => {

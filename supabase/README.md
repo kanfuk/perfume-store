@@ -31,7 +31,7 @@ El primer OWNER se provisiona una sola vez durante el bootstrap. Desde ese
 momento, las altas se hacen exclusivamente en `/admin/usuarios`: un OWNER
 envía una invitación de Supabase y cada invitado define su propia contraseña.
 No existe `signUp` público y la autorización siempre exige una fila activa en
-`usuarios_admin`.
+`usuarios_admin` con `onboarding_completed_at` informado.
 
 ## 5. Trabajo desde terminal
 

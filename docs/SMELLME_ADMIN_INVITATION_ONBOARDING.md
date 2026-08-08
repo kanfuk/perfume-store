@@ -7,7 +7,9 @@ Auth envía el enlace. La contraseña la define el invitado en
 
 La identidad vive en Supabase Auth y la autorización en `usuarios_admin`. Un
 usuario inactivo o sin esa fila activa no puede operar el panel, aunque tenga
-una sesión Auth válida. Las rutas de gestión validan `OWNER`, origen, JSON,
+una sesión Auth válida. Tampoco puede operar mientras
+`onboarding_completed_at` sea `NULL`: esa marca se completa server-side sólo
+después de que el propio invitado define su contraseña. Las rutas de gestión validan `OWNER`, origen, JSON,
 correo y rol en servidor. La base impide desactivar, degradar o eliminar al
 último OWNER activo.
 

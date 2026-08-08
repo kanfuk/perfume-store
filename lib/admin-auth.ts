@@ -22,9 +22,10 @@ export async function getAuthenticatedAdmin(): Promise<AuthenticatedAdmin | null
   const serviceClient = createSupabaseServerClient();
   const { data, error } = await serviceClient
     .from("usuarios_admin")
-    .select("email, nombre, rol, activo")
+    .select("email, nombre, rol, activo, onboarding_completed_at")
     .eq("email", user.email.trim().toLowerCase())
     .eq("activo", true)
+    .not("onboarding_completed_at", "is", null)
     .maybeSingle();
 
   if (error || !data) {

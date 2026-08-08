@@ -42,6 +42,18 @@ export function wouldRemoveLastActiveOwner(
     activeOwnerCount <= 1;
 }
 
+export function deriveAdminUserStatus(input: {
+  active: boolean;
+  onboardingCompletedAt: string | null;
+}): AdminUserStatus {
+  if (!input.active) return "INACTIVE";
+  return input.onboardingCompletedAt ? "ACTIVE" : "PENDING_INVITATION";
+}
+
+export function canResendAdminInvitation(onboardingCompletedAt: string | null) {
+  return onboardingCompletedAt === null;
+}
+
 export function validateInviteAdminUserInput(value: unknown):
   | { valid: true; data: InviteAdminUserInput }
   | { valid: false; message: string } {

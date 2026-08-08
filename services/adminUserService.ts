@@ -2,7 +2,9 @@ import type { User } from "@supabase/supabase-js";
 import {
   type AdminUserListItem,
   type AdminUserRole,
+  deriveAdminUserStatus,
   type InviteAdminUserInput,
+  canResendAdminInvitation,
   normalizeAdminEmail,
   wouldRemoveLastActiveOwner
 } from "@/lib/admin-users";
@@ -16,6 +18,7 @@ type AdminProfile = {
   rol: AdminUserRole;
   activo: boolean;
   invited_at: string | null;
+  onboarding_completed_at: string | null;
   created_at: string;
 };
 
@@ -35,16 +38,11 @@ export class AdminUserServiceError extends Error {
   }
 }
 
-function hasAcceptedInvitation(user: User | undefined) {
-  return Boolean(user?.email_confirmed_at);
-}
-
 function toListItem(profile: AdminProfile, authUser: User | undefined): AdminUserListItem {
-  const status = !profile.activo
-    ? "INACTIVE"
-    : hasAcceptedInvitation(authUser)
-      ? "ACTIVE"
-      : "PENDING_INVITATION";
+  const status = deriveAdminUserStatus({
+    active: profile.activo,
+    onboardingCompletedAt: profile.onboarding_completed_at
+  });
 
   return {
     id: profile.id,
@@ -79,7 +77,7 @@ async function getProfile(profileId: string) {
   const client = createSupabaseServerClient();
   const { data, error } = await client
     .from("usuarios_admin")
-    .select("id, auth_user_id, email, nombre, rol, activo, invited_at, created_at")
+    .select("id, auth_user_id, email, nombre, rol, activo, invited_at, onboarding_completed_at, created_at")
     .eq("id", profileId)
     .maybeSingle();
   if (error) throw new AdminUserServiceError("UPDATE_FAILED");
@@ -115,7 +113,7 @@ export function createAdminUserService() {
       const [{ data, error }, authUsers] = await Promise.all([
         client
           .from("usuarios_admin")
-          .select("id, auth_user_id, email, nombre, rol, activo, invited_at, created_at")
+          .select("id, auth_user_id, email, nombre, rol, activo, invited_at, onboarding_completed_at, created_at")
           .order("created_at", { ascending: true }),
         listAllAuthUsers()
       ]);
@@ -161,7 +159,8 @@ export function createAdminUserService() {
         nombre: input.name,
         rol: input.role,
         activo: true,
-        invited_at: new Date().toISOString()
+        invited_at: new Date().toISOString(),
+        onboarding_completed_at: null
       });
       if (insertError) {
         await client.auth.admin.deleteUser(data.user.id).catch(() => undefined);
@@ -176,7 +175,7 @@ export function createAdminUserService() {
       const authUser = authUsers.find(
         (user) => user.id === profile.auth_user_id || normalizeAdminEmail(user.email ?? "") === profile.email
       );
-      if (!authUser || hasAcceptedInvitation(authUser)) {
+      if (!authUser || !canResendAdminInvitation(profile.onboarding_completed_at)) {
         throw new AdminUserServiceError("NOT_PENDING");
       }
 
