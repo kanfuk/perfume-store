@@ -2,6 +2,7 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { Building2, CalendarClock, Home, NotebookPen, Phone, Search, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
+import { SmellmeMonogram } from "@/components/SmellmeBrand";
 import { formatChileanMobileInput } from "@/lib/chile-phone";
 import {
   normalizeCustomerDisplayName,
@@ -296,17 +297,15 @@ export function AdminCustomOrder({
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1600px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1600px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+      <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(184,139,88,0.34),transparent_28%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-4">
               <div className="flex w-fit items-center gap-3">
-                <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white">
-                  <span className="text-lg font-bold text-[#17191f]">S</span>
-                </div>
+                <SmellmeMonogram className="h-11 w-11 rounded-xl" />
                 <div className="space-y-1">
-                  <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                  <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
                     <Sparkles className="h-3.5 w-3.5" />
                     Admin Smellme.cl
                   </span>
@@ -352,20 +351,20 @@ export function AdminCustomOrder({
             subtitle="Registra pedidos especiales como queques enteros, preparaciones a pedido u otros productos."
           >
             <div className="space-y-2">
-              <span className="text-sm font-medium text-[#111318]">Cliente existente opcional</span>
+              <span className="text-sm font-medium text-[#191714]">Cliente existente opcional</span>
               <label className="relative block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#667085]" />
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6258]" />
                 <input
                   value={customCustomerSearch}
                   onChange={(event) => handleCustomCustomerSearchChange(event.target.value)}
                   placeholder="Busca por nombre, telefono o lugar de trabajo"
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white py-3 pl-11 pr-4 text-base text-[#111318] outline-none"
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#DDD0C1] bg-white py-3 pl-11 pr-4 text-base text-[#191714] outline-none"
                 />
               </label>
               <select
                 value={customSelectedCustomerId}
                 onChange={(event) => syncCustomExistingCustomer(event.target.value)}
-                className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
+                className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714]"
               >
                 <option value="">
                   {customers.length === 0
@@ -382,11 +381,11 @@ export function AdminCustomOrder({
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#111318]">Producto</span>
+                <span className="text-sm font-medium text-[#191714]">Producto</span>
                 <select
                   value={customForm.productoBaseId}
                   onChange={(event) => syncCustomProduct(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714]"
                 >
                   <option value="">Selecciona producto del catálogo</option>
                   {products.map((product) => (
@@ -397,11 +396,11 @@ export function AdminCustomOrder({
                 </select>
               </label>
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#111318]">Cantidad</span>
+                <span className="text-sm font-medium text-[#191714]">Cantidad</span>
                 <select
                   value={customQuantityChoice}
                   onChange={(event) => syncCustomQuantityChoice(event.target.value)}
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714]"
                 >
                   {QUICK_QUANTITY_OPTIONS.map((quantity) => (
                     <option key={quantity} value={quantity}>
@@ -414,20 +413,20 @@ export function AdminCustomOrder({
             </div>
             {customQuantityChoice === OTHER_QUANTITY_VALUE ? (
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#111318]">Otra cantidad</span>
+                <span className="text-sm font-medium text-[#191714]">Otra cantidad</span>
                 <input
                   type="number"
                   min={1}
                   value={customManualQuantity}
                   onChange={(event) => syncCustomManualQuantity(event.target.value)}
                   placeholder="Ejemplo: 7"
-                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+                  className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
                 />
               </label>
             ) : null}
             {selectedCustomCatalogProduct ? (
-              <div className="rounded-[18px] border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm text-[#667085]">
-                <strong className="text-[#111318]">{selectedCustomCatalogProduct.nombre}</strong>
+              <div className="rounded-[18px] border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3 text-sm text-[#6B6258]">
+                <strong className="text-[#191714]">{selectedCustomCatalogProduct.nombre}</strong>
                 {" · "}
                 {selectedCustomCatalogProduct.activo ? "Activo" : "Inactivo"}
                 {" · "}
@@ -474,7 +473,7 @@ export function AdminCustomOrder({
                 Este pedido se asociara al cliente existente {matchedCustomCustomer.nombre}.
               </div>
             ) : normalizedCustomCustomerName ? (
-              <div className="rounded-[18px] border border-dashed border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm text-[#667085]">
+              <div className="rounded-[18px] border border-dashed border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3 text-sm text-[#6B6258]">
                 Si no coincide con un cliente existente, se registrara como cliente nuevo.
               </div>
             ) : null}
@@ -490,11 +489,11 @@ export function AdminCustomOrder({
                 icon={<NotebookPen className="h-4 w-4" />}
               />
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#111318]">
+                <span className="text-sm font-medium text-[#191714]">
                   Fecha de entrega opcional
                 </span>
-                <div className="flex items-center gap-3 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3">
-                  <span className="text-[#667085]">
+                <div className="flex items-center gap-3 rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3">
+                  <span className="text-[#6B6258]">
                     <CalendarClock className="h-4 w-4" />
                   </span>
                   <input
@@ -507,7 +506,7 @@ export function AdminCustomOrder({
                         fechaEntrega: event.target.value
                       }))
                     }
-                    className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#111318] outline-none"
+                    className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#191714] outline-none"
                   />
                   <button
                     type="button"
@@ -520,7 +519,7 @@ export function AdminCustomOrder({
                         : undefined
                     }
                     disabled={!todayDate}
-                    className="shrink-0 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2 text-sm font-semibold text-[#5434e6]"
+                    className="shrink-0 rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-3 py-2 text-sm font-semibold text-[#8A6036]"
                   >
                     Hoy
                   </button>
@@ -529,14 +528,14 @@ export function AdminCustomOrder({
             </div>
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#111318]">Descripción / observación</span>
+              <span className="text-sm font-medium text-[#191714]">Descripción / observación</span>
               <textarea
                 value={customForm.descripcion}
                 onChange={(event) =>
                   setCustomForm((current) => ({ ...current, descripcion: event.target.value }))
                 }
                 rows={4}
-                className="w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+                className="w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
                 placeholder="Detalles del pedido, sabores, relleno o instrucciones."
               />
             </label>
@@ -567,7 +566,7 @@ export function AdminCustomOrder({
             </div>
 
             <div className="space-y-3">
-              <div className="text-sm font-medium text-[#111318]">Estado inicial del pedido</div>
+              <div className="text-sm font-medium text-[#191714]">Estado inicial del pedido</div>
               <div className="grid gap-3 sm:auto-rows-fr sm:grid-cols-3">
                 <ChoiceButton
                   active={customForm.estadoInicial === "NUEVO"}
@@ -599,11 +598,11 @@ export function AdminCustomOrder({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-6 xl:h-fit">
-          <div className="rounded-[30px] border border-[#e4e7ec] bg-white/95 p-5 shadow-soft">
+          <div className="rounded-[30px] border border-[#DDD0C1] bg-white/95 p-5 shadow-soft">
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold text-[#111318]">Resumen antes de guardar</h3>
-                <p className="mt-1 text-sm text-[#667085]">
+                <h3 className="text-lg font-semibold text-[#191714]">Resumen antes de guardar</h3>
+                <p className="mt-1 text-sm text-[#6B6258]">
                   Cliente, producto, total y estado en una sola vista.
                 </p>
               </div>
@@ -647,7 +646,7 @@ export function AdminCustomOrder({
 
       <Link
         href="/admin"
-        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4e7ec] bg-white/95 text-[#667085] shadow-soft backdrop-blur md:hidden"
+        className="fixed bottom-[calc(24px+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#DDD0C1] bg-white/95 text-[#6B6258] shadow-soft backdrop-blur md:hidden"
         aria-label="Inicio admin"
       >
         <Home className="h-4 w-4" />
@@ -668,14 +667,14 @@ function CardSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-[30px] border border-[#e4e7ec] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
+    <section className="space-y-4 rounded-[30px] border border-[#DDD0C1] bg-white/95 p-5 shadow-soft backdrop-blur sm:p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#7357ff] shadow-sm">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#B88B58] shadow-sm">
           {icon}
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[#111318]">{title}</h2>
-          <p className="copy-justified text-sm text-[#667085]">{subtitle}</p>
+          <h2 className="text-lg font-semibold text-[#191714]">{title}</h2>
+          <p className="copy-justified text-sm text-[#6B6258]">{subtitle}</p>
         </div>
       </div>
       {children}
@@ -699,11 +698,11 @@ function ChoiceButton({
       type="button"
       onClick={onClick}
       className={`flex h-full flex-col justify-between rounded-[22px] border px-4 py-4 text-left transition ${
-        active ? "border-brand-200 bg-brand-50 shadow-soft" : "border-[#e4e7ec] bg-white"
+        active ? "border-brand-200 bg-brand-50 shadow-soft" : "border-[#DDD0C1] bg-white"
       }`}
     >
-      <div className="font-semibold text-[#111318]">{title}</div>
-      <div className="mt-1 text-sm leading-6 text-[#667085]">{text}</div>
+      <div className="font-semibold text-[#191714]">{title}</div>
+      <div className="mt-1 text-sm leading-6 text-[#6B6258]">{text}</div>
     </button>
   );
 }
@@ -723,14 +722,14 @@ function TextField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#111318]">{label}</span>
-      <div className="flex items-center gap-3 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3">
-        <span className="text-[#667085]">{icon}</span>
+      <span className="text-sm font-medium text-[#191714]">{label}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3">
+        <span className="text-[#6B6258]">{icon}</span>
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#111318] outline-none placeholder:text-[#667085]"
+          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#191714] outline-none placeholder:text-[#6B6258]"
         />
       </div>
     </label>
@@ -748,13 +747,13 @@ function NumberField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#111318]">{label}</span>
+      <span className="text-sm font-medium text-[#191714]">{label}</span>
       <input
         type="number"
         min={0}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+        className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
       />
     </label>
   );
@@ -762,9 +761,9 @@ function NumberField({
 
 function SummaryFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
-      <span className="text-sm text-[#667085]">{label}</span>
-      <span className="text-right text-sm font-semibold text-[#111318]">{value}</span>
+    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3">
+      <span className="text-sm text-[#6B6258]">{label}</span>
+      <span className="text-right text-sm font-semibold text-[#191714]">{value}</span>
     </div>
   );
 }

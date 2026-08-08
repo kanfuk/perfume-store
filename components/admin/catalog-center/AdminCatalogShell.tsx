@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Home, Sparkles, UploadCloud } from "lucide-react";
+import { SmellmeMonogram } from "@/components/SmellmeBrand";
 import { AdminCatalogNavigation } from "@/components/admin/catalog-center/AdminCatalogNavigation";
 import { AdminCatalogSearch } from "@/components/admin/catalog-center/AdminCatalogSearch";
 import { AdminCatalogSummary } from "@/components/admin/catalog-center/AdminCatalogSummary";
@@ -63,12 +64,13 @@ export function AdminCatalogShell({ initialSummary, children }: AdminCatalogShel
   const effectiveQuery = useMemo(() => (urlQuery || undefined), [urlQuery]);
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-5 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-        <div className="space-y-4 bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-5 sm:p-6">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-5 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+      <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+        <div className="space-y-4 bg-[radial-gradient(circle_at_80%_20%,rgba(203,148,120,0.24),transparent_28%)] p-5 sm:p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 space-y-1.5">
-              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
+                <SmellmeMonogram className="h-8 w-8 rounded-lg" />
                 <Sparkles className="h-3.5 w-3.5" />
                 Admin Smellme.cl
               </span>

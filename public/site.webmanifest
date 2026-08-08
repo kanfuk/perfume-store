@@ -1,6 +1,7 @@
 {
   "name": "Smellme.cl",
   "short_name": "Smellme",
+  "description": "Perfumería boutique, testers y fragancias seleccionadas.",
   "id": "/",
   "icons": [
     {
@@ -19,8 +20,9 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#6b4a26",
-  "background_color": "#faf7f1",
+  "theme_color": "#0b0b0b",
+  "background_color": "#0b0b0b",
   "display": "standalone",
-  "start_url": "/"
+  "start_url": "/",
+  "categories": ["shopping", "lifestyle"]
 }

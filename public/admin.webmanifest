@@ -6,8 +6,8 @@
   "start_url": "/admin",
   "scope": "/admin",
   "display": "standalone",
-  "background_color": "#faf7f1",
-  "theme_color": "#6b4a26",
+  "background_color": "#0b0b0b",
+  "theme_color": "#0b0b0b",
   "icons": [
     {
       "src": "/icons/android-chrome-192x192.png",

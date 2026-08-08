@@ -78,7 +78,7 @@ export function BulkImagePreview({
 
   if (visibleRows.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-[#e4e7ec] bg-white px-4 py-6 text-center text-sm text-[#667085]">
+      <p className="rounded-xl border border-dashed border-[#DDD0C1] bg-white px-4 py-6 text-center text-sm text-[#6B6258]">
         {showOnlyFailed ? "No hay filas fallidas." : "No hay archivos seleccionados."}
       </p>
     );
@@ -96,10 +96,10 @@ export function BulkImagePreview({
           <li
             key={row.fileId}
             className={`flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:flex-row sm:items-start ${
-              row.blocking ? "border-[#f3c6c0]" : "border-[#e4e7ec]"
+              row.blocking ? "border-[#f3c6c0]" : "border-[#DDD0C1]"
             }`}
           >
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f7f8fa]">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#F7F1E8]">
               {previewUrls[row.fileId] ? (
                 // eslint-disable-next-line @next/next/no-img-element -- miniatura local (object URL), nunca pasa por next/image ni por Storage.
                 <img src={previewUrls[row.fileId]} alt={row.fileName} className="h-full w-full object-cover" />
@@ -109,8 +109,8 @@ export function BulkImagePreview({
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#111318]">{row.fileName}</p>
-                  <p className="text-xs text-[#98a2b3]">
+                  <p className="truncate text-sm font-semibold text-[#191714]">{row.fileName}</p>
+                  <p className="text-xs text-[#8C8175]">
                     {formatFileSize(row.fileSize)} · {row.mimeType || "formato desconocido"}
                   </p>
                 </div>
@@ -119,7 +119,7 @@ export function BulkImagePreview({
                     <button
                       type="button"
                       onClick={() => onExclude(row.fileId, row.status !== "EXCLUDED")}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#e4e7ec] px-2.5 py-1.5 text-xs font-semibold text-[#344054] hover:bg-[#f7f8fa]"
+                      className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#DDD0C1] px-2.5 py-1.5 text-xs font-semibold text-[#4D453D] hover:bg-[#F7F1E8]"
                     >
                       {row.status === "EXCLUDED" ? (
                         <>
@@ -138,7 +138,7 @@ export function BulkImagePreview({
                       onClick={() => onRemove(row.fileId)}
                       title="Quitar de la selección"
                       aria-label={`Quitar ${row.fileName} de la selección`}
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#e4e7ec] text-[#98a2b3] hover:bg-[#f7f8fa] hover:text-[#8a2c22]"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#DDD0C1] text-[#8C8175] hover:bg-[#F7F1E8] hover:text-[#8a2c22]"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -153,23 +153,23 @@ export function BulkImagePreview({
                       ? "bg-[#fdf1ef] text-[#8a2c22]"
                       : row.ready
                         ? "bg-[#eefbf1] text-[#1f6d33]"
-                        : "bg-[#f2f4f7] text-[#475467]"
+                        : "bg-[#EEE5DA] text-[#475467]"
                   }`}
                 >
                   {STATUS_LABELS[row.status]}
                 </span>
-                <span className="rounded-full bg-[#f7f8fa] px-2.5 py-1 font-semibold text-[#344054]">
+                <span className="rounded-full bg-[#F7F1E8] px-2.5 py-1 font-semibold text-[#4D453D]">
                   {ACTION_LABELS[row.action]}
                 </span>
                 {execution ? (
-                  <span className="rounded-full bg-[#eeebff] px-2.5 py-1 font-semibold text-[#5434e6]">
+                  <span className="rounded-full bg-[#F4E8DB] px-2.5 py-1 font-semibold text-[#8A6036]">
                     {EXECUTION_LABELS[execution.state]}
                   </span>
                 ) : null}
               </div>
 
               {matchedProduct ? (
-                <div className="flex flex-wrap items-center gap-3 rounded-xl bg-[#f7f8fa] px-3 py-2 text-xs text-[#344054]">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl bg-[#F7F1E8] px-3 py-2 text-xs text-[#4D453D]">
                   {matchedProduct.imageUrl ? (
                     <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
                       <ProductImage
@@ -182,8 +182,8 @@ export function BulkImagePreview({
                     </div>
                   ) : null}
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-[#111318]">{matchedProduct.nombre}</p>
-                    <p className="truncate text-[#667085]">
+                    <p className="truncate font-semibold text-[#191714]">{matchedProduct.nombre}</p>
+                    <p className="truncate text-[#6B6258]">
                       {[matchedProduct.sku, matchedProduct.marca, matchedProduct.contenido].filter(Boolean).join(" · ")}
                     </p>
                   </div>
@@ -191,7 +191,7 @@ export function BulkImagePreview({
               ) : null}
 
               {canOfferReplace && !disabled ? (
-                <label className="flex items-center gap-2 text-xs font-semibold text-[#344054]">
+                <label className="flex items-center gap-2 text-xs font-semibold text-[#4D453D]">
                   <input
                     type="checkbox"
                     checked={Boolean(row.action === "REPLACE")}
@@ -232,7 +232,7 @@ export function BulkImagePreview({
                 <button
                   type="button"
                   onClick={() => onManualMatch(row.fileId, null)}
-                  className="inline-flex min-h-9 items-center gap-1 self-start rounded-lg border border-[#e4e7ec] px-2.5 py-1.5 text-xs font-semibold text-[#344054] hover:bg-[#f7f8fa]"
+                  className="inline-flex min-h-9 items-center gap-1 self-start rounded-lg border border-[#DDD0C1] px-2.5 py-1.5 text-xs font-semibold text-[#4D453D] hover:bg-[#F7F1E8]"
                 >
                   <Undo2 className="h-3.5 w-3.5" />
                   Deshacer asociación manual
@@ -280,7 +280,7 @@ function ManualMatchPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-9 items-center gap-1.5 self-start rounded-lg bg-[#5434e6] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4327c4]"
+        className="inline-flex min-h-9 items-center gap-1.5 self-start rounded-lg bg-[#8A6036] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4327c4]"
       >
         <Search className="h-3.5 w-3.5" />
         Asociar manualmente
@@ -289,7 +289,7 @@ function ManualMatchPicker({
   }
 
   return (
-    <div className="rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] p-3">
+    <div className="rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] p-3">
       <div className="flex items-center gap-2">
         <input
           type="search"
@@ -298,20 +298,20 @@ function ManualMatchPicker({
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Buscar por SKU, marca, nombre o contenido"
           aria-label="Buscar producto para asociar"
-          className="w-full rounded-lg border border-[#e4e7ec] bg-white px-2.5 py-1.5 text-xs"
+          className="w-full rounded-lg border border-[#DDD0C1] bg-white px-2.5 py-1.5 text-xs"
         />
         <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Cerrar búsqueda"
-          className="shrink-0 rounded-lg p-1.5 text-[#98a2b3] hover:bg-white"
+          className="shrink-0 rounded-lg p-1.5 text-[#8C8175] hover:bg-white"
         >
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
       <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <li className="px-2 py-1.5 text-xs text-[#98a2b3]">Sin resultados.</li>
+          <li className="px-2 py-1.5 text-xs text-[#8C8175]">Sin resultados.</li>
         ) : (
           filtered.map((product) => (
             <li key={product.id}>
@@ -324,8 +324,8 @@ function ManualMatchPicker({
                 }}
                 className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs hover:bg-white"
               >
-                <span className="min-w-0 truncate font-semibold text-[#111318]">{product.nombre}</span>
-                <span className="shrink-0 text-[#667085]">
+                <span className="min-w-0 truncate font-semibold text-[#191714]">{product.nombre}</span>
+                <span className="shrink-0 text-[#6B6258]">
                   {[product.sku, product.marca, product.contenido].filter(Boolean).join(" · ")}
                 </span>
               </button>

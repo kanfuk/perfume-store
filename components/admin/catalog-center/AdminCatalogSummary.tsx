@@ -29,7 +29,7 @@ const METRICS: MetricDef[] = [
 ];
 
 const TILE_TONE_CLASSES: Record<MetricTone, string> = {
-  neutral: "bg-[#f7f8fa] text-[#344054] hover:border-[#c1b6ff]",
+  neutral: "bg-[#F7F1E8] text-[#4D453D] hover:border-[#D8BEA2]",
   good: "bg-[#eefbf1] text-[#1f6d33] hover:border-[#bfe6c6]",
   warn: "bg-[#fff8ec] text-[#8a5a00] hover:border-[#f3d38a]",
   bad: "bg-[#fdf1ef] text-[#8a2c22] hover:border-[#f3c6c0]"

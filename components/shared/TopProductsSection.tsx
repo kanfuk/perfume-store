@@ -35,13 +35,13 @@ export function TopProductsSection({
   if (topFamilies.length === 0) {
     return (
       <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eeebff] text-[#7357ff]">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F4E8DB] text-[#B88B58]">
           <Sparkles className="h-5 w-5" />
         </span>
-        <h4 className="text-base font-semibold text-[#111318]">
+        <h4 className="text-base font-semibold text-[#191714]">
           El Top {TOP_PRODUCTS_LIMIT} se publicará muy pronto
         </h4>
-        <p className="max-w-md text-sm leading-6 text-[#667085]">
+        <p className="max-w-md text-sm leading-6 text-[#6B6258]">
           Estamos confirmando los {TOP_PRODUCTS_LIMIT} perfumes más vendidos de Smellme.cl.
         </p>
       </div>
@@ -51,12 +51,12 @@ export function TopProductsSection({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eeebff] text-[#7357ff]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F4E8DB] text-[#B88B58]">
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-[#111318]">Top {TOP_PRODUCTS_LIMIT}</h3>
-          <p className="text-sm text-[#667085]">Los perfumes más pedidos de Smellme.cl.</p>
+          <h3 className="text-lg font-semibold text-[#191714]">Top {TOP_PRODUCTS_LIMIT}</h3>
+          <p className="text-sm text-[#6B6258]">Los perfumes más pedidos de Smellme.cl.</p>
         </div>
       </div>
       <div className="grid w-full max-w-full min-w-0 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">

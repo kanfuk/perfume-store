@@ -109,13 +109,13 @@ function ProductImageInstance({
     if (compact) {
       return (
         <div
-          className={`flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#f5f3ff_0%,#eeebff_100%)] ${fallbackClassName}`}
+          className={`flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#F7F1E8_0%,#F4E8DB_100%)] ${fallbackClassName}`}
           title={alt}
         >
           {initials ? (
-            <span className="text-sm font-bold tracking-wide text-[#5434e6]">{initials}</span>
+            <span className="text-sm font-bold tracking-wide text-[#8A6036]">{initials}</span>
           ) : (
-            <FlaskConical className="h-5 w-5 text-[#7357ff]" strokeWidth={1.5} />
+            <FlaskConical className="h-5 w-5 text-[#B88B58]" strokeWidth={1.5} />
           )}
         </div>
       );
@@ -123,21 +123,21 @@ function ProductImageInstance({
 
     return (
       <div
-        className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,#f7f8fa_0%,#f5f3ff_58%,#eeebff_100%)] px-6 text-center ${fallbackClassName}`}
+        className={`flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_top,#F7F1E8_0%,#EEE5DA_58%,#F4E8DB_100%)] px-6 text-center ${fallbackClassName}`}
       >
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/80 text-[#7357ff] shadow-sm">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/80 text-[#B88B58] shadow-sm">
           <FlaskConical className="h-6 w-6" strokeWidth={1.5} />
         </span>
         {initials ? (
-          <span className="text-lg font-bold tracking-wide text-[#5434e6]">{initials}</span>
+          <span className="text-lg font-bold tracking-wide text-[#8A6036]">{initials}</span>
         ) : null}
         {brand ? (
-          <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#5434e6] shadow-sm">
+          <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#8A6036] shadow-sm">
             {brand}
           </span>
         ) : null}
-        <span className="max-w-[14rem] text-sm font-semibold text-[#667085]">{alt}</span>
-        <span className="text-[11px] font-medium text-[#98a2b3]">Imagen próximamente</span>
+        <span className="max-w-[14rem] text-sm font-semibold text-[#6B6258]">{alt}</span>
+        <span className="text-[11px] font-medium text-[#8C8175]">Imagen próximamente</span>
       </div>
     );
   }

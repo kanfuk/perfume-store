@@ -126,9 +126,9 @@ export function MaintenancePanel() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fa] px-4 py-6 text-[#17191f] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#F7F1E8] px-4 py-6 text-[#171613] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-[26px] bg-[#17191f] p-5 text-white shadow-soft sm:p-7">
+        <header className="rounded-[26px] bg-[#171613] p-5 text-white shadow-soft sm:p-7">
           <Link href="/admin" className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/15 px-4 py-2 text-sm font-semibold text-white/85"><ChevronLeft className="h-4 w-4" />Centro de control</Link>
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-bold sm:text-3xl">Mantenimiento seguro</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-white/65">Previsualiza, respalda y confirma por texto. Abrir esta página nunca modifica datos.</p></div><span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold">Smellme {appInfo.version}</span></div>
         </header>
@@ -146,7 +146,7 @@ export function MaintenancePanel() {
 
         <MaintenanceCard icon={<Archive className="h-5 w-5" />} title="Reinicio seguro del catálogo" description="ELIMINABLE no tiene historial; ARCHIVABLE conserva su fila pausada y los snapshots; BLOQUEADO tiene reservas o pedidos abiertos e impide toda ejecución.">
           <button className="inline-flex min-h-11 rounded-[18px] border border-[#d0d5dd] px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void loadPreview("reset")}>{busy === "reset" ? "Clasificando…" : "Clasificar catálogo"}</button>
-          {reset ? <><Summary rows={[["Eliminables", reset.eliminable], ["Archivables", reset.archivable], ["Bloqueados", reset.blocked], ["Pedidos históricos", reset.historicalOrders], ["Items históricos", reset.historicalItems]]} /><p className="mt-3 text-sm text-[#667085]">{reset.message}</p></> : null}
+          {reset ? <><Summary rows={[["Eliminables", reset.eliminable], ["Archivables", reset.archivable], ["Bloqueados", reset.blocked], ["Pedidos históricos", reset.historicalOrders], ["Items históricos", reset.historicalItems]]} /><p className="mt-3 text-sm text-[#6B6258]">{reset.message}</p></> : null}
           <ConfirmControls phrase={resetPhrase} setPhrase={setResetPhrase} expected={CATALOG_RESET_CONFIRMATION} disabled={!reset?.canExecute || !backupDownloaded || Boolean(busy)} onConfirm={() => void mutate("reset")} />
         </MaintenanceCard>
 
@@ -174,11 +174,11 @@ export function MaintenancePanel() {
 }
 
 function MaintenanceCard({ icon, title, description, children }: { icon: React.ReactNode; title: string; description: string; children: React.ReactNode }) {
-  return <section className="rounded-[24px] border border-[#e4e7ec] bg-white p-5 shadow-soft sm:p-7"><div className="flex items-center gap-3"><span className="rounded-xl bg-[#f2f4f7] p-2">{icon}</span><h2 className="text-xl font-bold">{title}</h2></div><p className="mt-3 max-w-4xl text-sm leading-6 text-[#667085]">{description}</p><div className="mt-5">{children}</div></section>;
+  return <section className="rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft sm:p-7"><div className="flex items-center gap-3"><span className="rounded-xl bg-[#EEE5DA] p-2">{icon}</span><h2 className="text-xl font-bold">{title}</h2></div><p className="mt-3 max-w-4xl text-sm leading-6 text-[#6B6258]">{description}</p><div className="mt-5">{children}</div></section>;
 }
 
 function Summary({ rows }: { rows: Array<[string, unknown]> }) {
-  return <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{rows.map(([label, value]) => <div key={label} className="rounded-2xl bg-[#f7f8fa] p-4"><dt className="text-xs font-semibold uppercase tracking-wide text-[#667085]">{label}</dt><dd className="mt-1 text-xl font-bold">{String(value ?? 0)}</dd></div>)}</dl>;
+  return <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{rows.map(([label, value]) => <div key={label} className="rounded-2xl bg-[#F7F1E8] p-4"><dt className="text-xs font-semibold uppercase tracking-wide text-[#6B6258]">{label}</dt><dd className="mt-1 text-xl font-bold">{String(value ?? 0)}</dd></div>)}</dl>;
 }
 
 function ConfirmControls({ phrase, setPhrase, expected, disabled, onConfirm }: { phrase: string; setPhrase: (value: string) => void; expected: string; disabled: boolean; onConfirm: () => void }) {

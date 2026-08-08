@@ -31,8 +31,8 @@ export function OffersSection({ products, quantities, onAdd, onDecrease, onRemov
           <Tag className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-[#111318]">Ofertas de la semana</h3>
-          <p className="text-sm text-[#667085]">Precios especiales por tiempo limitado.</p>
+          <h3 className="text-lg font-semibold text-[#191714]">Ofertas de la semana</h3>
+          <p className="text-sm text-[#6B6258]">Precios especiales por tiempo limitado.</p>
         </div>
       </div>
       <div className="grid w-full max-w-full min-w-0 gap-4 md:auto-rows-fr md:grid-cols-2">

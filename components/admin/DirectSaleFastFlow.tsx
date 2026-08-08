@@ -432,11 +432,11 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
   }
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+      <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
         <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
           <div className="space-y-2">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
               <ShoppingBag className="h-3.5 w-3.5" />
               Admin Smellme.cl
             </span>
@@ -490,9 +490,9 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
           <div className="space-y-4">
             <div ref={resultsContainerRef} className="relative space-y-2">
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#111318]">Buscar producto</span>
+                <span className="text-sm font-medium text-[#191714]">Buscar producto</span>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#667085]" />
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6258]" />
                   <input
                     ref={searchInputRef}
                     value={query}
@@ -504,17 +504,17 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                     onFocus={() => setResultsOpen(true)}
                     onKeyDown={handleSearchKeyDown}
                     placeholder="Buscar por perfume, marca, contenido o SKU..."
-                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#e4e7ec] bg-white py-3 pl-11 pr-4 text-base text-[#111318] outline-none"
+                    className="block min-h-11 w-full min-w-0 max-w-full rounded-[18px] border border-[#DDD0C1] bg-white py-3 pl-11 pr-4 text-base text-[#191714] outline-none"
                   />
                 </div>
               </label>
 
               {resultsOpen && debouncedQuery.trim() ? (
-                <div className="absolute z-20 max-h-80 w-full overflow-y-auto rounded-[18px] border border-[#e4e7ec] bg-white shadow-lg">
+                <div className="absolute z-20 max-h-80 w-full overflow-y-auto rounded-[18px] border border-[#DDD0C1] bg-white shadow-lg">
                   {loadingProducts ? (
-                    <div className="px-4 py-3 text-sm text-[#667085]">Cargando catálogo...</div>
+                    <div className="px-4 py-3 text-sm text-[#6B6258]">Cargando catálogo...</div>
                   ) : results.length === 0 ? (
-                    <div className="px-4 py-3 text-sm text-[#667085]">Sin resultados.</div>
+                    <div className="px-4 py-3 text-sm text-[#6B6258]">Sin resultados.</div>
                   ) : (
                     results.map((family, index) => {
                       const variants = getSelectableVariants(family);
@@ -528,17 +528,17 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                           type="button"
                           onClick={() => selectFamily(family)}
                           onMouseEnter={() => setHighlightedIndex(index)}
-                          className={`block w-full border-b border-[#f2f4f7] px-4 py-3 text-left last:border-b-0 ${
+                          className={`block w-full border-b border-[#EEE5DA] px-4 py-3 text-left last:border-b-0 ${
                             index === activeIndex ? "bg-brand-50" : "bg-white"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="font-semibold text-[#111318]">{family.nombre}</span>
-                            <span className="text-sm font-semibold text-[#111318]">
+                            <span className="font-semibold text-[#191714]">{family.nombre}</span>
+                            <span className="text-sm font-semibold text-[#191714]">
                               {formatCurrency(minPrice)}
                             </span>
                           </div>
-                          <div className="mt-0.5 flex items-center justify-between gap-3 text-xs text-[#667085]">
+                          <div className="mt-0.5 flex items-center justify-between gap-3 text-xs text-[#6B6258]">
                             <span>
                               {family.marca}
                               {variants.length > 1 ? ` · ${variants.length} presentaciones` : ""}
@@ -561,19 +561,19 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
             ) : null}
 
             {selectedFamily && selectedVariant ? (
-              <div className="space-y-4 rounded-[24px] border border-[#e4e7ec] bg-white p-5 shadow-soft">
+              <div className="space-y-4 rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#667085]">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
                     Producto seleccionado
                   </p>
-                  <p className="text-lg font-semibold text-[#111318]">
+                  <p className="text-lg font-semibold text-[#191714]">
                     {selectedFamily.marca} · {selectedFamily.nombre}
                   </p>
                 </div>
 
                 {selectableVariants.length > 1 ? (
                   <label className="block space-y-2">
-                    <span className="text-sm font-medium text-[#111318]">Presentación</span>
+                    <span className="text-sm font-medium text-[#191714]">Presentación</span>
                     <select
                       value={selectedVariantId}
                       onChange={(event) => {
@@ -581,7 +581,7 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                         setQuantityInput("1");
                         setSelectionError("");
                       }}
-                      className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
+                      className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714]"
                     >
                       {selectableVariants.map((variant) => (
                         <option
@@ -596,11 +596,11 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                     </select>
                   </label>
                 ) : (
-                  <p className="text-sm text-[#667085]">{selectedVariant.contenido}</p>
+                  <p className="text-sm text-[#6B6258]">{selectedVariant.contenido}</p>
                 )}
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-[#667085]">
-                  <span className="font-semibold text-[#111318]">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-[#6B6258]">
+                  <span className="font-semibold text-[#191714]">
                     {formatCurrency(selectedVariant.precioVenta)}
                   </span>
                   <span>
@@ -611,13 +611,13 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-[#111318]">Cantidad</span>
+                  <span className="text-sm font-medium text-[#191714]">Cantidad</span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => stepQuantity(-1)}
                       aria-label="Disminuir cantidad"
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] bg-white text-[#111318]"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DDD0C1] bg-white text-[#191714]"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
@@ -630,13 +630,13 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                         setQuantityInput(event.target.value.replace(/[^0-9]/g, ""));
                         setSelectionError("");
                       }}
-                      className="h-11 w-16 rounded-xl border border-[#e4e7ec] text-center text-base text-[#111318] outline-none"
+                      className="h-11 w-16 rounded-xl border border-[#DDD0C1] text-center text-base text-[#191714] outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => stepQuantity(1)}
                       aria-label="Aumentar cantidad"
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] bg-white text-[#111318]"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DDD0C1] bg-white text-[#191714]"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -659,7 +659,7 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                   <button
                     type="button"
                     onClick={clearSelection}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e4e7ec] bg-white px-4 py-2.5 text-sm font-semibold text-[#667085]"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#DDD0C1] bg-white px-4 py-2.5 text-sm font-semibold text-[#6B6258]"
                   >
                     Cancelar
                   </button>
@@ -667,21 +667,21 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
               </div>
             ) : null}
 
-            <div className="space-y-3 rounded-[24px] border border-[#e4e7ec] bg-white p-5 shadow-soft">
-              <h2 className="text-base font-semibold text-[#111318]">Resumen de venta</h2>
+            <div className="space-y-3 rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft">
+              <h2 className="text-base font-semibold text-[#191714]">Resumen de venta</h2>
 
               {cartLines.length === 0 ? (
-                <p className="text-sm text-[#667085]">Aún no agregas productos.</p>
+                <p className="text-sm text-[#6B6258]">Aún no agregas productos.</p>
               ) : (
-                <ul className="divide-y divide-[#f2f4f7]">
+                <ul className="divide-y divide-[#EEE5DA]">
                   {cartLines.map((line) => (
                     <li key={line.productId} className="flex items-center justify-between gap-3 py-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#111318]">
+                        <p className="truncate text-sm font-semibold text-[#191714]">
                           {line.marca ? `${line.marca} · ` : ""}
                           {line.nombre} · {line.contenido}
                         </p>
-                        <p className="text-xs text-[#667085]">
+                        <p className="text-xs text-[#6B6258]">
                           {line.cantidad} × {formatCurrency(line.precioVenta)} ={" "}
                           {formatCurrency(line.precioVenta * line.cantidad)}
                         </p>
@@ -691,7 +691,7 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                           type="button"
                           aria-label="Disminuir"
                           onClick={() => updateLineQuantity(line.productId, line.cantidad - 1)}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e4e7ec]"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DDD0C1]"
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
@@ -700,7 +700,7 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                           type="button"
                           aria-label="Aumentar"
                           onClick={() => updateLineQuantity(line.productId, line.cantidad + 1)}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e4e7ec]"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DDD0C1]"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
@@ -717,7 +717,7 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                 </ul>
               )}
 
-              <div className="flex items-center justify-between border-t border-[#f2f4f7] pt-3 text-sm font-semibold text-[#111318]">
+              <div className="flex items-center justify-between border-t border-[#EEE5DA] pt-3 text-sm font-semibold text-[#191714]">
                 <span>Total</span>
                 <span>{formatCurrency(total)}</span>
               </div>
@@ -725,8 +725,8 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-6 lg:h-fit">
-            <div className="space-y-4 rounded-[24px] border border-[#e4e7ec] bg-white p-5 shadow-soft">
-              <h2 className="text-base font-semibold text-[#111318]">Datos de la venta</h2>
+            <div className="space-y-4 rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft">
+              <h2 className="text-base font-semibold text-[#191714]">Datos de la venta</h2>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <ChoiceButton
@@ -755,12 +755,12 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
                       setSelectedCustomerId("");
                     }}
                     placeholder="Buscar cliente por nombre o teléfono"
-                    className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+                    className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
                   />
                   <select
                     value={selectedCustomerId}
                     onChange={(event) => syncExistingCustomer(event.target.value)}
-                    className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
+                    className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714]"
                   >
                     <option value="">
                       {customers.length === 0 ? "No hay clientes registrados" : "Selecciona cliente"}
@@ -807,11 +807,11 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
 
               {paymentState === "PAGADO" ? (
                 <label className="block space-y-2">
-                  <span className="text-sm font-medium text-[#111318]">Forma de pago</span>
+                  <span className="text-sm font-medium text-[#191714]">Forma de pago</span>
                   <select
                     value={formaPago}
                     onChange={(event) => setFormaPago(event.target.value as "EFECTIVO" | "TRANSFERENCIA")}
-                    className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318]"
+                    className="block min-h-11 w-full max-w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714]"
                   >
                     <option value="EFECTIVO">Efectivo</option>
                     <option value="TRANSFERENCIA">Transferencia</option>
@@ -820,12 +820,12 @@ export function DirectSaleFastFlow({ initialCustomers }: DirectSaleFastFlowProps
               ) : null}
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-[#111318]">Observación opcional</span>
+                <span className="text-sm font-medium text-[#191714]">Observación opcional</span>
                 <textarea
                   value={observacion}
                   onChange={(event) => setObservacion(event.target.value)}
                   rows={2}
-                  className="w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+                  className="w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
                 />
               </label>
 
@@ -866,7 +866,7 @@ function ChoiceButton({
       type="button"
       onClick={onClick}
       className={`min-h-11 rounded-[16px] border px-3 py-2 text-sm font-semibold transition ${
-        active ? "border-brand-200 bg-brand-50 text-brand-800" : "border-[#e4e7ec] bg-white text-[#667085]"
+        active ? "border-brand-200 bg-brand-50 text-brand-800" : "border-[#DDD0C1] bg-white text-[#6B6258]"
       }`}
     >
       {label}
@@ -887,13 +887,13 @@ function TextField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#111318]">{label}</span>
-      <div className="flex items-center gap-3 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3">
-        <span className="text-[#667085]">{icon}</span>
+      <span className="text-sm font-medium text-[#191714]">{label}</span>
+      <div className="flex items-center gap-3 rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3">
+        <span className="text-[#6B6258]">{icon}</span>
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#111318] outline-none"
+          className="w-full min-w-0 border-0 bg-transparent p-0 text-base text-[#191714] outline-none"
         />
       </div>
     </label>
@@ -903,8 +903,8 @@ function TextField({
 function SummaryFact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[14px] border border-brand-200 bg-white px-3 py-2">
-      <p className="text-xs text-[#667085]">{label}</p>
-      <p className="text-sm font-semibold text-[#111318]">{value}</p>
+      <p className="text-xs text-[#6B6258]">{label}</p>
+      <p className="text-sm font-semibold text-[#191714]">{value}</p>
     </div>
   );
 }

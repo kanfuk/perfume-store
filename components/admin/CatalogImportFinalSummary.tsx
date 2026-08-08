@@ -36,7 +36,7 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
         type="button"
         onClick={onBack}
         disabled={busy}
-        className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#8A6036] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <ChevronLeft className="h-4 w-4" /> Volver a la revisión
       </button>
@@ -64,19 +64,19 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
 
       {corregidos.length > 0 ? (
         <div className="space-y-2 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#7357ff]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#B88B58]">
             Productos corregidos durante la revisión
           </p>
           <div className="space-y-2">
             {corregidos.map((row) => (
-              <div key={row.sku} className="rounded-lg border border-[#e4e7ec] bg-white p-3 text-sm">
-                <p className="font-semibold text-[#111318]">
+              <div key={row.sku} className="rounded-lg border border-[#DDD0C1] bg-white p-3 text-sm">
+                <p className="font-semibold text-[#191714]">
                   {row.nombre} · {row.marca} · {row.contenido}
                 </p>
                 <div className="mt-1 grid gap-1 sm:grid-cols-2">
                   {row.corrections!.map((correction, index) => (
-                    <div key={`${row.sku}-${correction.field}-${index}`} className="text-xs text-[#667085]">
-                      <span className="font-semibold text-[#344054]">{FIELD_LABELS[correction.field]}:</span>{" "}
+                    <div key={`${row.sku}-${correction.field}-${index}`} className="text-xs text-[#6B6258]">
+                      <span className="font-semibold text-[#4D453D]">{FIELD_LABELS[correction.field]}:</span>{" "}
                       <span className="text-[#b44b43] line-through">{correction.before || "vacío"}</span>
                       {" → "}
                       <span className="font-semibold text-[#1f6d33]">{correction.after}</span>
@@ -89,21 +89,21 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
         </div>
       ) : null}
 
-      <p className="text-xs text-[#667085]">
+      <p className="text-xs text-[#6B6258]">
         Precio de venta calculado con el recargo vigente (salvo productos con precio manual, que se preservan).
         Stock inicial para productos nuevos: 1.
       </p>
 
       {familiasConVariantes.length > 0 ? (
-        <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">Variantes agrupadas</p>
+        <div className="space-y-2 rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8C8175]">Variantes agrupadas</p>
           {familiasConVariantes.map((family) => (
             <div key={family.key} className="text-sm">
-              <span className="font-semibold text-[#111318]">{family.nombre}</span>
-              <span className="ml-2 text-[#667085]">
+              <span className="font-semibold text-[#191714]">{family.nombre}</span>
+              <span className="ml-2 text-[#6B6258]">
                 {family.items.length} presentaciones: {family.items.map((r) => r.contenido).join(", ")}
               </span>
-              <p className="text-xs text-[#667085]">
+              <p className="text-xs text-[#6B6258]">
                 Se crearán {family.items.length} productos internos y una sola tarjeta en el catálogo público.
               </p>
             </div>
@@ -114,15 +114,15 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#5434e6]"
+        className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#8A6036]"
       >
         {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} Ver cambios
       </button>
 
       {expanded ? (
-        <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
+        <div className="overflow-x-auto rounded-xl border border-[#DDD0C1]">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+            <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
               <tr>
                 <th className="px-3 py-2">Filas origen</th>
                 <th className="px-3 py-2">Después</th>
@@ -135,14 +135,14 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
             <tbody className="divide-y divide-[#eef0f3]">
               {plan.map((row) => (
                 <tr key={row.sku}>
-                  <td className="px-3 py-2 text-[#667085]">{row.rowNumbers.join(", ")}</td>
-                  <td className="px-3 py-2 text-[#111318]">
+                  <td className="px-3 py-2 text-[#6B6258]">{row.rowNumbers.join(", ")}</td>
+                  <td className="px-3 py-2 text-[#191714]">
                     {row.nombre} · {row.marca} · {row.contenido}
                   </td>
-                  <td className="px-3 py-2 text-[#667085]">{row.action}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-[#344054]">{row.sku}</td>
-                  <td className="px-3 py-2 text-[#111318]">{formatCurrency(row.costoUnitario)}</td>
-                  <td className="px-3 py-2 text-[#111318]">
+                  <td className="px-3 py-2 text-[#6B6258]">{row.action}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-[#4D453D]">{row.sku}</td>
+                  <td className="px-3 py-2 text-[#191714]">{formatCurrency(row.costoUnitario)}</td>
+                  <td className="px-3 py-2 text-[#191714]">
                     {formatCurrency(row.precioVentaFinal)}
                     {row.modoPrecio === "MANUAL" ? (
                       <span className="ml-1 rounded-full bg-[#fff3c4] px-1.5 py-0.5 text-[10px] font-semibold text-[#8a5a00]">
@@ -174,7 +174,7 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
 
 function SummaryTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-[#f7f8fa] px-3 py-2 text-[#344054]">
+    <div className="rounded-xl bg-[#F7F1E8] px-3 py-2 text-[#4D453D]">
       <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</div>
       <div className="text-lg font-bold">{value}</div>
     </div>

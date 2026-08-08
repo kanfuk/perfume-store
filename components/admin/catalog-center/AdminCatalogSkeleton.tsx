@@ -11,15 +11,15 @@ export function AdminCatalogSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite" className="space-y-4" role="status">
       <span className="sr-only">Cargando…</span>
-      <div className="h-10 w-48 animate-pulse rounded-xl bg-[#e4e7ec]" />
+      <div className="h-10 w-48 animate-pulse rounded-xl bg-[#DDD0C1]" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="h-16 animate-pulse rounded-xl bg-[#e4e7ec]" />
+          <div key={index} className="h-16 animate-pulse rounded-xl bg-[#DDD0C1]" />
         ))}
       </div>
-      <div className="space-y-3 rounded-2xl border border-[#e4e7ec] bg-white p-5">
+      <div className="space-y-3 rounded-2xl border border-[#DDD0C1] bg-white p-5">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-14 animate-pulse rounded-xl bg-[#f2f4f7]" />
+          <div key={index} className="h-14 animate-pulse rounded-xl bg-[#EEE5DA]" />
         ))}
       </div>
     </div>

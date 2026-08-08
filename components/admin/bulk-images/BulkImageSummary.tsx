@@ -8,7 +8,7 @@ function Tile({ label, value, tone = "neutral" }: { label: string; value: number
     good: "bg-[#eefbf1] text-[#1f6d33]",
     bad: "bg-[#fdf1ef] text-[#8a2c22]",
     warn: "bg-[#fff8ec] text-[#8a5a00]",
-    neutral: "bg-[#f7f8fa] text-[#344054]"
+    neutral: "bg-[#F7F1E8] text-[#4D453D]"
   };
   return (
     <div className={`rounded-xl px-3 py-2.5 ${toneClasses[tone]}`}>
@@ -69,8 +69,8 @@ export function BulkImageFinalSummaryPanel({
   retrying
 }: BulkImageFinalSummaryPanelProps) {
   return (
-    <div className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5">
-      <h3 className="text-lg font-bold text-[#111318]">Resumen final</h3>
+    <div className="space-y-4 rounded-2xl border border-[#DDD0C1] bg-white p-5">
+      <h3 className="text-lg font-bold text-[#191714]">Resumen final</h3>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Tile label="Procesados" value={summary.totalProcessed} />
         <Tile label="Subidas exitosas" value={summary.uploaded} tone="good" />
@@ -83,7 +83,7 @@ export function BulkImageFinalSummaryPanel({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <label className="flex items-center gap-2 text-sm font-semibold text-[#344054]">
+        <label className="flex items-center gap-2 text-sm font-semibold text-[#4D453D]">
           <input
             type="checkbox"
             checked={showOnlyFailed}
@@ -95,21 +95,21 @@ export function BulkImageFinalSummaryPanel({
           type="button"
           disabled={summary.failed === 0 || retrying}
           onClick={onRetryFailed}
-          className="inline-flex min-h-10 items-center rounded-xl bg-[#5434e6] px-3.5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-10 items-center rounded-xl bg-[#8A6036] px-3.5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {retrying ? "Reintentando…" : "Reintentar fallidos"}
         </button>
         <button
           type="button"
           onClick={onStartNewBatch}
-          className="inline-flex min-h-10 items-center rounded-xl border border-[#e4e7ec] px-3.5 py-2 text-sm font-semibold text-[#344054]"
+          className="inline-flex min-h-10 items-center rounded-xl border border-[#DDD0C1] px-3.5 py-2 text-sm font-semibold text-[#4D453D]"
         >
           Iniciar un lote nuevo
         </button>
         <button
           type="button"
           onClick={onExportJson}
-          className="inline-flex min-h-10 items-center rounded-xl border border-[#e4e7ec] px-3.5 py-2 text-sm font-semibold text-[#344054]"
+          className="inline-flex min-h-10 items-center rounded-xl border border-[#DDD0C1] px-3.5 py-2 text-sm font-semibold text-[#4D453D]"
         >
           Exportar resumen JSON
         </button>

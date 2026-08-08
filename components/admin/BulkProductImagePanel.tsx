@@ -344,14 +344,14 @@ export function BulkProductImagePanel() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-[#111318]">Carga masiva de imágenes</h2>
-          <p className="text-sm text-[#667085]">
+          <h2 className="text-lg font-bold text-[#191714]">Carga masiva de imágenes</h2>
+          <p className="text-sm text-[#6B6258]">
             Selecciona muchas fotos a la vez, revisa la asociación con cada producto y confirma antes de subir nada.
           </p>
         </div>
         <Link
           href="/admin/catalogo/productos"
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
         >
           Volver a Productos
         </Link>
@@ -365,19 +365,19 @@ export function BulkProductImagePanel() {
       ) : null}
 
       {!productsLoading && products.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#e4e7ec] bg-white p-6 text-sm text-[#667085]">
+        <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#DDD0C1] bg-white p-6 text-sm text-[#6B6258]">
           <p>No hay productos disponibles para asociar imágenes.</p>
           <div className="flex flex-wrap gap-2">
             <Link
               href="/admin/catalogo/productos"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
             >
               <PackagePlus className="h-4 w-4" />
               Ir a Productos
             </Link>
             <Link
               href="/admin/importar-catalogo"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
             >
               <UploadCloud className="h-4 w-4" />
               Importar catálogo
@@ -388,8 +388,8 @@ export function BulkProductImagePanel() {
 
       {stage !== "summary" ? (
         <>
-          <p className="rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-xs leading-5 text-[#667085]">
-            <span className="font-semibold text-[#344054]">Cómo nombrar cada archivo:</span> usa el mismo nombre
+          <p className="rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3 text-xs leading-5 text-[#6B6258]">
+            <span className="font-semibold text-[#4D453D]">Cómo nombrar cada archivo:</span> usa el mismo nombre
             del perfume tal como aparece en el CSV importado (ej.: &quot;Acqua Di Gio Profondo.jpg&quot;,
             &quot;Lattafa Asad.png&quot;). No hace falta escribir el SKU en el nombre del archivo — es opcional y
             solo se usa como respaldo si el nombre coincide con más de un producto.
@@ -406,14 +406,14 @@ export function BulkProductImagePanel() {
 
           {files.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-[#667085]">
+              <p className="text-sm text-[#6B6258]">
                 {files.length} de {BULK_PRODUCT_IMAGE_MAX_FILES} imágenes seleccionadas
               </p>
               {stage === "select" ? (
                 <button
                   type="button"
                   onClick={clearSelection}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#e4e7ec] px-3 py-1.5 text-xs font-semibold text-[#344054] hover:bg-[#f7f8fa]"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#DDD0C1] px-3 py-1.5 text-xs font-semibold text-[#4D453D] hover:bg-[#F7F1E8]"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Limpiar selección
@@ -425,7 +425,7 @@ export function BulkProductImagePanel() {
           {files.length > 0 ? <BulkImagePreviewSummaryBar rows={displayRows} /> : null}
 
           {files.length > 0 && stage === "select" ? (
-            <label className="flex items-start gap-2 rounded-xl border border-[#e4e7ec] bg-white p-3 text-sm text-[#344054]">
+            <label className="flex items-start gap-2 rounded-xl border border-[#DDD0C1] bg-white p-3 text-sm text-[#4D453D]">
               <input
                 type="checkbox"
                 checked={globalReplaceAuthorized}
@@ -470,7 +470,7 @@ export function BulkProductImagePanel() {
                 <button
                   type="button"
                   onClick={cancelUpload}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
                 >
                   <X className="h-4 w-4" />
                   Cancelar pendientes
@@ -480,22 +480,22 @@ export function BulkProductImagePanel() {
           ) : null}
 
           {stage === "uploading" ? (
-            <div className="space-y-2 rounded-2xl border border-[#e4e7ec] bg-white p-4">
-              <div className="flex items-center justify-between text-sm font-semibold text-[#344054]">
+            <div className="space-y-2 rounded-2xl border border-[#DDD0C1] bg-white p-4">
+              <div className="flex items-center justify-between text-sm font-semibold text-[#4D453D]">
                 <span>Subiendo imágenes…</span>
                 <span>{progressPercent}%</span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-[#f2f4f7]">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[#EEE5DA]">
                 <div
-                  className="h-full rounded-full bg-[#5434e6] transition-all"
+                  className="h-full rounded-full bg-[#8A6036] transition-all"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <p className="text-xs text-[#667085]">
+              <p className="text-xs text-[#6B6258]">
                 {completedCount} de {totalQueued} completados · {successCount} exitosas · {failedCount} fallidas
               </p>
               {currentlyUploadingProductNames.length > 0 ? (
-                <p className="text-xs text-[#667085]">
+                <p className="text-xs text-[#6B6258]">
                   Producto actual: {currentlyUploadingProductNames.join(", ")}
                 </p>
               ) : null}

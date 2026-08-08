@@ -29,10 +29,10 @@ export function ProductCatalog({
   if (products.length === 0) {
     return (
       <div className="flex min-h-56 flex-col items-center justify-center border-y border-dashed border-[#d0d5dd] px-5 py-10 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eeebff] text-[#7357ff]">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4E8DB] text-[#B88B58]">
           <PackageOpen className="h-6 w-6" />
         </span>
-        <p className="mt-4 max-w-md text-sm leading-6 text-[#667085]">
+        <p className="mt-4 max-w-md text-sm leading-6 text-[#6B6258]">
           Estamos actualizando nuestro catálogo. Vuelve pronto para descubrir las fragancias disponibles.
         </p>
       </div>

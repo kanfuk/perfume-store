@@ -63,24 +63,24 @@ export default async function AdminCatalogoResumenPage({ searchParams }: AdminCa
     <div className="space-y-5">
       <AdminCatalogSummary summary={summary} q={q} />
 
-      <section className="space-y-3 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-[#111318]">Acciones rápidas</h2>
+      <section className="space-y-3 rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-[#191714]">Acciones rápidas</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {quickActions.map((action) => (
             <Link
               key={action.href}
               href={action.href}
-              className="flex min-h-[88px] flex-col gap-1.5 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] p-4 transition hover:border-[#c1b6ff] hover:bg-white"
+              className="flex min-h-[88px] flex-col gap-1.5 rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] p-4 transition hover:border-[#D8BEA2] hover:bg-white"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-[#111318]">
-                <action.icon className="h-4 w-4 text-[#7357ff]" />
+              <span className="flex items-center gap-2 text-sm font-semibold text-[#191714]">
+                <action.icon className="h-4 w-4 text-[#B88B58]" />
                 {action.label}
               </span>
-              <span className="text-xs leading-5 text-[#667085]">{action.description}</span>
+              <span className="text-xs leading-5 text-[#6B6258]">{action.description}</span>
             </Link>
           ))}
         </div>
-        <p className="text-xs text-[#98a2b3]">
+        <p className="text-xs text-[#8C8175]">
           Las acciones masivas (activar, pausar, ajustar stock o precio) solo se ejecutan dentro de cada
           módulo, con vista previa y confirmación — nunca desde este resumen.
         </p>

@@ -11,10 +11,10 @@ type AppToastProps = {
 export function AppToast({ message, tone, onClose }: AppToastProps) {
   const palette =
     tone === "success"
-      ? "border-[#c1b6ff] bg-[#f5f3ff] text-[#5c431f]"
+      ? "border-[#D8BEA2] bg-[#F4E8DB] text-[#5c431f]"
       : tone === "error"
         ? "border-[#f2b8b3] bg-[#fff2f1] text-[#b44b43]"
-        : "border-[#e4e7ec] bg-white text-[#111318]";
+        : "border-[#DDD0C1] bg-white text-[#191714]";
 
   return (
     <div

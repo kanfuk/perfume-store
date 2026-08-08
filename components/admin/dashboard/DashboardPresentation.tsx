@@ -75,9 +75,9 @@ export function HomeActionCard({
         }
       : tone === "violet"
         ? {
-            gradientClass: "from-violet-50 to-white",
-            iconTextClass: "text-violet-700",
-            iconBgClass: "bg-violet-100"
+            gradientClass: "from-brand-50 to-white",
+            iconTextClass: "text-brand-700",
+            iconBgClass: "bg-brand-100"
           }
         : tone === "amber"
           ? {
@@ -177,13 +177,13 @@ export function AdminSectionTab({
       onClick={onClick}
       className={`inline-flex min-h-12 min-w-max items-center gap-2 rounded-xl border px-4 py-2 text-left text-sm font-semibold transition ${
         active
-          ? "border-[#7357ff] bg-[#7357ff] text-white"
-          : "border-[#e4e7ec] bg-white text-[#344054] hover:border-[#c1b6ff]"
+          ? "border-[#B88B58] bg-[#B88B58] text-white"
+          : "border-[#DDD0C1] bg-white text-[#4D453D] hover:border-[#D8BEA2]"
       }`}
     >
       <Icon className="h-4 w-4" />
       <span>{label}</span>
-      <span className={`rounded-full px-2 py-0.5 text-[11px] ${active ? "bg-white/15 text-white/85" : "bg-[#f2f4f7] text-[#667085]"}`}>
+      <span className={`rounded-full px-2 py-0.5 text-[11px] ${active ? "bg-white/15 text-white/85" : "bg-[#EEE5DA] text-[#6B6258]"}`}>
         {badge}
       </span>
     </button>
@@ -321,9 +321,9 @@ export function HeroMetric({
         }
       : tone === "violet"
         ? {
-            gradientClass: "from-white to-violet-50",
-            iconBgClass: "bg-violet-100",
-            iconTextClass: "text-violet-700"
+            gradientClass: "from-white to-brand-50",
+            iconBgClass: "bg-brand-100",
+            iconTextClass: "text-brand-700"
           }
         : tone === "amber"
           ? {
@@ -375,7 +375,7 @@ export function FocusCard({
     tone === "rose"
       ? "border-brand-100 bg-brand-50 text-brand-800"
       : tone === "violet"
-        ? "border-violet-200 bg-violet-50 text-violet-800"
+        ? "border-brand-200 bg-brand-50 text-brand-800"
         : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
@@ -415,8 +415,8 @@ export function MiniHomeTab({
         : "bg-brand-50 text-brand-800"
       : tone === "violet"
         ? active
-          ? "bg-violet-600 text-white"
-          : "bg-violet-50 text-violet-800"
+          ? "bg-brand-600 text-white"
+          : "bg-brand-50 text-brand-800"
         : active
           ? "bg-amber-500 text-white"
           : "bg-amber-50 text-amber-800";
@@ -513,7 +513,7 @@ export function ProfitabilityBar({
 }) {
   const width = maxAmount > 0 ? Math.max(8, Math.min(100, (amount / maxAmount) * 100)) : 0;
   const barClassName =
-    tone === "violet" ? "bg-violet-500" : tone === "amber" ? "bg-amber-500" : "bg-brand-500";
+    tone === "violet" ? "bg-brand-500" : tone === "amber" ? "bg-amber-500" : "bg-brand-500";
 
   return (
     <div className="space-y-2">
@@ -613,12 +613,12 @@ export function BadgeStatusChip({
     ? "border-brand-200 bg-brand-50 text-brand-800"
     : !badgeSupported || notificationPermission === "denied"
       ? "border-amber-200 bg-amber-50 text-amber-800"
-      : "border-violet-200 bg-violet-50 text-violet-800";
+      : "border-brand-200 bg-brand-50 text-brand-800";
   const indicatorClassName = badgeEnabled
     ? "bg-brand-500"
     : !badgeSupported || notificationPermission === "denied"
       ? "bg-amber-500"
-      : "bg-violet-500";
+      : "bg-brand-500";
   const content = (
     <>
       <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-white/80 p-[2px]">

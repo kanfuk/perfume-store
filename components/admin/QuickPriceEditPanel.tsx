@@ -304,15 +304,15 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
       className={
         embedded
           ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden pb-[calc(88px+env(safe-area-inset-bottom))]"
-          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
       }
     >
       {!embedded ? (
-        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+        <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(184,139,88,0.34),transparent_28%)] p-6 sm:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-2">
-                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
                   <ShoppingBag className="h-3.5 w-3.5" />
                   Admin Smellme.cl
                 </span>
@@ -348,7 +348,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
         </div>
       ) : null}
 
-      <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
+      <section className="space-y-4 rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-sm sm:p-6">
         <div className={embedded ? "grid gap-3 sm:grid-cols-2" : "grid gap-3 sm:grid-cols-[1fr_auto_auto]"}>
           {!embedded ? (
             <input
@@ -357,14 +357,14 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Buscar por nombre, marca o SKU"
               aria-label="Buscar productos"
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+              className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
             />
           ) : null}
           <select
             value={brandFilter}
             onChange={(event) => setBrandFilter(event.target.value)}
             aria-label="Filtrar por marca"
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
           >
             <option value="">Todas las marcas</option>
             {brands.map((brand) => (
@@ -377,7 +377,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
             value={modoFilter}
             onChange={(event) => setModoFilter(event.target.value as ModoFilter)}
             aria-label="Filtrar por modo de precio"
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
           >
             <option value="todos">Automático y manual</option>
             <option value="AUTO">Solo automático</option>
@@ -386,7 +386,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm text-[#667085]">
+          <span className="text-sm text-[#6B6258]">
             {dirtyCount > 0 ? `${dirtyCount} cambio(s) pendiente(s)` : "Sin cambios pendientes"}
           </span>
           <button
@@ -401,11 +401,11 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
         </div>
 
         {loading ? (
-          <p className="text-sm text-[#667085]">Cargando catálogo...</p>
+          <p className="text-sm text-[#6B6258]">Cargando catálogo...</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
+          <div className="overflow-x-auto rounded-xl border border-[#DDD0C1]">
             <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+              <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
                 <tr>
                   <th className="px-3 py-3">
                     <span className="sr-only">Seleccionar</span>
@@ -443,8 +443,8 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                           aria-label={`Seleccionar ${product.nombre}`}
                         />
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-[#344054]">{product.sku}</td>
-                      <td className="px-3 py-2.5 text-[#111318]">
+                      <td className="px-3 py-2.5 font-mono text-xs text-[#4D453D]">{product.sku}</td>
+                      <td className="px-3 py-2.5 text-[#191714]">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span>{product.nombre}</span>
                           {missingFields.length > 0 ? (
@@ -457,25 +457,25 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-[#667085]">{product.marca}</td>
-                      <td className="px-3 py-2.5 text-[#667085]">{formatCurrency(costo)}</td>
+                      <td className="px-3 py-2.5 text-[#6B6258]">{product.marca}</td>
+                      <td className="px-3 py-2.5 text-[#6B6258]">{formatCurrency(costo)}</td>
                       <td className="px-3 py-2.5">
                         <input
                           type="number"
                           min={1}
                           value={displayPrice}
                           onChange={(event) => handlePriceInputChange(product.id, event.target.value)}
-                          className="w-28 rounded-lg border border-[#e4e7ec] px-2 py-1.5 text-sm"
+                          className="w-28 rounded-lg border border-[#DDD0C1] px-2 py-1.5 text-sm"
                         />
                       </td>
-                      <td className="px-3 py-2.5 text-[#667085]">{formatCurrency(utilidad)}</td>
-                      <td className="px-3 py-2.5 text-[#667085]">
+                      <td className="px-3 py-2.5 text-[#6B6258]">{formatCurrency(utilidad)}</td>
+                      <td className="px-3 py-2.5 text-[#6B6258]">
                         {recargoEfectivo !== null ? `${recargoEfectivo.toFixed(1)}%` : "—"}
                       </td>
                       <td className="px-3 py-2.5">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            modo === "MANUAL" ? "bg-[#fff3c4] text-[#8a5a00]" : "bg-[#eeebff] text-[#5434e6]"
+                            modo === "MANUAL" ? "bg-[#fff3c4] text-[#8a5a00]" : "bg-[#F4E8DB] text-[#8A6036]"
                           }`}
                         >
                           {modo}
@@ -487,7 +487,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                             type="button"
                             onClick={() => setCostEditProduct(product)}
                             title="Editar costo y precio"
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#e4e7ec] px-2.5 py-1.5 text-xs font-semibold text-[#344054]"
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#DDD0C1] px-2.5 py-1.5 text-xs font-semibold text-[#4D453D]"
                           >
                             <Coins className="h-3 w-3" />
                             Editar costo
@@ -496,7 +496,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                             type="button"
                             onClick={() => saveRow(product)}
                             disabled={!dirty || savingRow === product.id}
-                            className="rounded-lg border border-[#e4e7ec] px-2.5 py-1.5 text-xs font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-lg border border-[#DDD0C1] px-2.5 py-1.5 text-xs font-semibold text-[#8A6036] disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             Guardar
                           </button>
@@ -506,7 +506,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                               onClick={() => resetToAutomatic(product)}
                               disabled={savingRow === product.id}
                               title="Volver a precio automático"
-                              className="inline-flex items-center gap-1 rounded-lg border border-[#e4e7ec] px-2.5 py-1.5 text-xs font-semibold text-[#667085] disabled:cursor-not-allowed disabled:opacity-40"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#DDD0C1] px-2.5 py-1.5 text-xs font-semibold text-[#6B6258] disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <RotateCcw className="h-3 w-3" />
                               Auto
@@ -519,7 +519,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                 })}
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-3 py-6 text-center text-sm text-[#667085]">
+                    <td colSpan={10} className="px-3 py-6 text-center text-sm text-[#6B6258]">
                       Sin productos que coincidan con la búsqueda.
                     </td>
                   </tr>
@@ -530,8 +530,8 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
         )}
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-[#111318]">Edición masiva ({selectedIds.size} seleccionados)</h2>
+      <section className="space-y-4 rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-[#191714]">Edición masiva ({selectedIds.size} seleccionados)</h2>
         <div className="grid gap-3 sm:grid-cols-[auto_1fr_auto]">
           <select
             value={bulkOperation}
@@ -539,7 +539,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
               setBulkOperation(event.target.value as BulkOperationType);
               setBulkPreview(null);
             }}
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
           >
             <option value="recargo">Aplicar recargo sobre costo (%)</option>
             <option value="ajuste-porcentaje">Ajustar precio por porcentaje (%)</option>
@@ -554,7 +554,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                 setBulkRoundingStep(Number(event.target.value) as 100 | 500 | 1000);
                 setBulkPreview(null);
               }}
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+              className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
             >
               <option value={100}>Redondear a $100</option>
               <option value={500}>Redondear a $500</option>
@@ -569,7 +569,7 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                 setBulkPreview(null);
               }}
               placeholder={bulkOperation === "ajuste-monto" ? "Monto en $ (puede ser negativo)" : "Porcentaje (puede ser negativo)"}
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+              className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
             />
           )}
 
@@ -594,9 +594,9 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
             ) : null}
 
             {bulkPreview.productos.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
+              <div className="overflow-x-auto rounded-xl border border-[#DDD0C1]">
                 <table className="w-full min-w-[600px] text-left text-sm">
-                  <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+                  <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
                     <tr>
                       <th className="px-4 py-2.5">Producto</th>
                       <th className="px-4 py-2.5">Precio anterior</th>
@@ -607,9 +607,9 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                   <tbody className="divide-y divide-[#eef0f3]">
                     {bulkPreview.productos.map((row) => (
                       <tr key={row.id}>
-                        <td className="px-4 py-2.5 text-[#111318]">{row.nombre}</td>
-                        <td className="px-4 py-2.5 text-[#667085]">{formatCurrency(row.precioAnterior)}</td>
-                        <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(row.precioNuevo)}</td>
+                        <td className="px-4 py-2.5 text-[#191714]">{row.nombre}</td>
+                        <td className="px-4 py-2.5 text-[#6B6258]">{formatCurrency(row.precioAnterior)}</td>
+                        <td className="px-4 py-2.5 text-[#191714]">{formatCurrency(row.precioNuevo)}</td>
                         <td className={`px-4 py-2.5 ${row.diferencia >= 0 ? "text-[#1f6d33]" : "text-[#8a2c22]"}`}>
                           {row.diferencia >= 0 ? "+" : ""}
                           {formatCurrency(row.diferencia)}
@@ -678,13 +678,13 @@ function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <h3 className="text-lg font-semibold text-[#111318]">{title}</h3>
-        <p className="mt-2 text-sm text-[#667085]">{message}</p>
+        <h3 className="text-lg font-semibold text-[#191714]">{title}</h3>
+        <p className="mt-2 text-sm text-[#6B6258]">{message}</p>
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054]"
+            className="rounded-xl border border-[#DDD0C1] px-4 py-2 text-sm font-semibold text-[#4D453D]"
           >
             Cancelar
           </button>
@@ -752,12 +752,12 @@ function CostPriceEditDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl sm:p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[#111318]">Editar costo y precio</h3>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-[#98a2b3] hover:bg-[#f7f8fa]" aria-label="Cerrar">
+          <h3 className="text-lg font-semibold text-[#191714]">Editar costo y precio</h3>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-[#8C8175] hover:bg-[#F7F1E8]" aria-label="Cerrar">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <p className="mt-1 line-clamp-1 text-sm text-[#667085]">{product.nombre}</p>
+        <p className="mt-1 line-clamp-1 text-sm text-[#6B6258]">{product.nombre}</p>
 
         {error ? (
           <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-3 py-2.5 text-sm text-[#8a2c22]">
@@ -768,21 +768,21 @@ function CostPriceEditDialog({
 
         <div className="mt-4 space-y-3">
           <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-[#344054]">Costo unitario (CLP)</span>
+            <span className="mb-1 block font-semibold text-[#4D453D]">Costo unitario (CLP)</span>
             <input
               type="number"
               min={0}
               inputMode="decimal"
               value={costoUnitario}
               onChange={(event) => setCostoUnitario(event.target.value)}
-              className="w-full rounded-xl border border-[#e4e7ec] px-3 py-2.5 text-sm"
+              className="w-full rounded-xl border border-[#DDD0C1] px-3 py-2.5 text-sm"
               aria-invalid={!costoValido}
             />
             {!costoValido ? <span className="mt-1 block text-xs text-[#8a2c22]">El costo debe ser 0 o mayor.</span> : null}
           </label>
 
           <label className="block text-sm">
-            <span className="mb-1 block font-semibold text-[#344054]">Recargo aplicado (%)</span>
+            <span className="mb-1 block font-semibold text-[#4D453D]">Recargo aplicado (%)</span>
             <input
               type="number"
               min={0}
@@ -790,7 +790,7 @@ function CostPriceEditDialog({
               inputMode="decimal"
               value={recargoPorcentaje}
               onChange={(event) => setRecargoPorcentaje(event.target.value)}
-              className="w-full rounded-xl border border-[#e4e7ec] px-3 py-2.5 text-sm"
+              className="w-full rounded-xl border border-[#DDD0C1] px-3 py-2.5 text-sm"
               aria-invalid={!recargoValido}
             />
             {!recargoValido ? (
@@ -799,18 +799,18 @@ function CostPriceEditDialog({
           </label>
         </div>
 
-        <div className="mt-4 space-y-1.5 rounded-xl bg-[#f7f8fa] px-4 py-3 text-sm">
+        <div className="mt-4 space-y-1.5 rounded-xl bg-[#F7F1E8] px-4 py-3 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[#667085]">Costo base</span>
-            <span className="font-semibold text-[#111318]">{costoValido ? formatCurrency(costoNumber) : "—"}</span>
+            <span className="text-[#6B6258]">Costo base</span>
+            <span className="font-semibold text-[#191714]">{costoValido ? formatCurrency(costoNumber) : "—"}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[#667085]">Recargo aplicado</span>
-            <span className="font-semibold text-[#111318]">{recargoValido ? `${recargoNumber}%` : "—"}</span>
+            <span className="text-[#6B6258]">Recargo aplicado</span>
+            <span className="font-semibold text-[#191714]">{recargoValido ? `${recargoNumber}%` : "—"}</span>
           </div>
-          <div className="flex items-center justify-between border-t border-[#e4e7ec] pt-1.5">
-            <span className="text-[#667085]">Precio de venta resultante</span>
-            <span className="font-bold text-[#111318]">
+          <div className="flex items-center justify-between border-t border-[#DDD0C1] pt-1.5">
+            <span className="text-[#6B6258]">Precio de venta resultante</span>
+            <span className="font-bold text-[#191714]">
               {precioResultante !== null ? formatCurrency(precioResultante) : "—"}
             </span>
           </div>
@@ -821,7 +821,7 @@ function CostPriceEditDialog({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-[#DDD0C1] px-4 py-2 text-sm font-semibold text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancelar
           </button>
