@@ -200,13 +200,21 @@ create table if not exists public.business_settings (
   umbral_stock_bajo integer not null default 0,
   color_primario text,
   color_acento text,
+  top_ranking_mode text not null default 'MANUAL',
+  top_sales_window_days integer not null default 90,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint business_settings_singleton_check check (
     id = '00000000-0000-0000-0000-000000000001'::uuid
   ),
   constraint business_settings_costo_despacho_check check (costo_despacho_semanal >= 0),
-  constraint business_settings_umbral_stock_check check (umbral_stock_bajo >= 0)
+  constraint business_settings_umbral_stock_check check (umbral_stock_bajo >= 0),
+  constraint business_settings_top_ranking_mode_check check (
+    top_ranking_mode in ('MANUAL', 'AUTOMATIC', 'HYBRID')
+  ),
+  constraint business_settings_top_sales_window_days_check check (
+    top_sales_window_days between 1 and 3650
+  )
 );
 
 insert into public.business_settings (id)
@@ -611,8 +619,8 @@ to authenticated
 using (public.is_active_admin())
 with check (public.is_active_admin());
 
--- Fase 3B.1A: el repositorio servidor lee la fila singleton y actualiza
--- exclusivamente las seis columnas de pago. No hay acceso directo publico.
+-- El servidor lee la fila singleton y actualiza exclusivamente las columnas
+-- de pago y la configuracion del Top 15. No hay acceso directo publico.
 revoke all on table public.business_settings from anon;
 revoke all on table public.business_settings from authenticated;
 revoke truncate, references, trigger
@@ -625,7 +633,9 @@ grant select (
   numero_cuenta,
   titular_cuenta,
   rut_titular,
-  correo
+  correo,
+  top_ranking_mode,
+  top_sales_window_days
 ) on table public.business_settings to service_role;
 grant update (
   banco,
@@ -633,8 +643,108 @@ grant update (
   numero_cuenta,
   titular_cuenta,
   rut_titular,
-  correo
+  correo,
+  top_ranking_mode,
+  top_sales_window_days
 ) on table public.business_settings to service_role;
+
+-- Ranking efectivo usado por la portada y por el panel administrativo.
+create or replace function public.get_effective_top_products_v1(p_limit integer)
+returns table (
+  rank integer,
+  product_id uuid,
+  source text,
+  units_sold bigint,
+  revenue bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with configuration as (
+    select top_ranking_mode as mode, top_sales_window_days as window_days
+    from public.business_settings
+    where id = '00000000-0000-0000-0000-000000000001'::uuid
+  ),
+  sales as (
+    select pi.producto_id, sum(pi.cantidad)::bigint as units_sold,
+      sum(pi.subtotal)::bigint as revenue
+    from public.pedido_items pi
+    join public.pedidos pe on pe.id = pi.pedido_id
+    cross join configuration c
+    where pi.producto_id is not null
+      and c.mode in ('AUTOMATIC', 'HYBRID')
+      and pe.estado_pago = 'PAGADO'
+      and pe.estado_pedido <> 'CANCELADO'
+      and coalesce(pe.fecha_pago, pe.fecha_pedido, pe.created_at)
+        >= now() - make_interval(days => c.window_days)
+    group by pi.producto_id
+  ),
+  manual_candidates as (
+    select distinct on (p.orden_destacado)
+      p.orden_destacado::integer as rank, p.id as product_id
+    from public.productos p
+    where p.es_top and p.orden_destacado between 1 and p_limit
+    order by p.orden_destacado, p.id
+  ),
+  manual_result as (
+    select m.rank, m.product_id, 'MANUAL'::text as source,
+      coalesce(s.units_sold, 0)::bigint as units_sold,
+      coalesce(s.revenue, 0)::bigint as revenue
+    from manual_candidates m
+    left join sales s on s.producto_id = m.product_id
+    cross join configuration c
+    where c.mode in ('MANUAL', 'HYBRID')
+  ),
+  open_ranks as (
+    select generated.rank::integer as rank,
+      row_number() over (order by generated.rank)::bigint as position
+    from generate_series(1, p_limit) as generated(rank)
+    cross join configuration c
+    where c.mode in ('AUTOMATIC', 'HYBRID')
+      and (c.mode = 'AUTOMATIC' or not exists (
+        select 1 from manual_result m where m.rank = generated.rank
+      ))
+  ),
+  automatic_candidates as (
+    select s.producto_id, s.units_sold, s.revenue,
+      row_number() over (
+        order by s.units_sold desc, s.revenue desc, p.nombre asc, p.id asc
+      )::bigint as position
+    from sales s
+    join public.productos p on p.id = s.producto_id
+    cross join configuration c
+    where c.mode in ('AUTOMATIC', 'HYBRID')
+      and s.units_sold > 0 and p.activo and p.stock_actual > 0
+      and p.precio_venta > 0
+      and nullif(btrim(p.nombre), '') is not null
+      and nullif(btrim(p.marca), '') is not null
+      and nullif(btrim(p.contenido), '') is not null
+      and (c.mode = 'AUTOMATIC' or not exists (
+        select 1 from manual_result m where m.product_id = p.id
+      ))
+  ),
+  automatic_result as (
+    select r.rank, a.producto_id, 'AUTOMATIC'::text as source,
+      a.units_sold, a.revenue
+    from automatic_candidates a
+    join open_ranks r on r.position = a.position
+  )
+  select result.rank, result.product_id, result.source,
+    result.units_sold, result.revenue
+  from (
+    select * from manual_result
+    union all
+    select * from automatic_result
+  ) result
+  order by result.rank;
+$$;
+
+revoke all on function public.get_effective_top_products_v1(integer)
+from public, anon, authenticated;
+grant execute on function public.get_effective_top_products_v1(integer)
+to service_role;
 
 -- pedidos: sin politica publica de insercion ni lectura en esta fase. La
 -- creacion publica de pedidos se hace mediante create_perfume_order_v1

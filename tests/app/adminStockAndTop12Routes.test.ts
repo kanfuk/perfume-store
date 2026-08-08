@@ -19,6 +19,8 @@ const {
   confirmarAjusteMasivoStock,
   asignarImagenProducto,
   obtenerEstadoTop12,
+  obtenerConfiguracionTopProductos,
+  guardarConfiguracionTopProductos,
   vincularProductoTop12,
   desvincularProductoTop12
 } = vi.hoisted(() => ({
@@ -55,6 +57,8 @@ const {
       return { rank, producto: null };
     })
   ),
+  obtenerConfiguracionTopProductos: vi.fn(async () => ({ mode: "MANUAL", salesWindowDays: 90 })),
+  guardarConfiguracionTopProductos: vi.fn(async (input) => input),
   vincularProductoTop12: vi.fn(async () => ({ rank: 3, producto: { id: "prod-1" } })),
   desvincularProductoTop12: vi.fn(async () => ({ rank: 3, producto: null }))
 }));
@@ -72,6 +76,8 @@ vi.mock("@/services/productoService", () => ({
     confirmarAjusteMasivoStock,
     asignarImagenProducto,
     obtenerEstadoTop12,
+    obtenerConfiguracionTopProductos,
+    guardarConfiguracionTopProductos,
     vincularProductoTop12,
     desvincularProductoTop12
   })
@@ -80,7 +86,7 @@ vi.mock("@/services/productoService", () => ({
 import { PATCH as stockPatch } from "@/app/api/admin/products/[productId]/stock/route";
 import { POST as bulkStockPost } from "@/app/api/admin/products/bulk-stock/route";
 import { PATCH as imagePatch } from "@/app/api/admin/products/[productId]/image/route";
-import { GET as top12Get, POST as top12Post } from "@/app/api/admin/top12/route";
+import { GET as top12Get, POST as top12Post, PUT as top12Put } from "@/app/api/admin/top12/route";
 
 function makeRequest(url: string, body: unknown, method = "POST") {
   return new Request(url, {
@@ -377,6 +383,8 @@ describe("GET/POST /api/admin/top12", () => {
   beforeEach(() => {
     isAdminAuthenticated.mockClear();
     obtenerEstadoTop12.mockClear();
+    obtenerConfiguracionTopProductos.mockClear();
+    guardarConfiguracionTopProductos.mockClear();
     vincularProductoTop12.mockClear();
     desvincularProductoTop12.mockClear();
   });
@@ -396,6 +404,21 @@ describe("GET/POST /api/admin/top12", () => {
     expect(data.slots[2].imageUrl).toBe("/images/mi-propia-foto.webp");
     expect(data.slots[0].producto).toBeNull();
     expect(data.slots[0].imageUrl).toBeNull();
+    expect(data.configuration).toEqual({ mode: "MANUAL", salesWindowDays: 90 });
+  });
+
+  it("PUT guarda el modo híbrido y su ventana de ventas", async () => {
+    const response = await top12Put(
+      makeRequest("http://localhost/api/admin/top12", {
+        mode: "HYBRID",
+        salesWindowDays: 60
+      })
+    );
+    expect(response.status).toBe(200);
+    expect(guardarConfiguracionTopProductos).toHaveBeenCalledWith({
+      mode: "HYBRID",
+      salesWindowDays: 60
+    });
   });
 
   it("POST rechaza con 401 sin sesion", async () => {

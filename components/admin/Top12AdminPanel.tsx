@@ -37,6 +37,20 @@ type Top12Slot = {
   rank: number;
   imageUrl: string | null;
   producto: Top12Producto | null;
+  source: "MANUAL" | "AUTOMATIC" | null;
+  unitsSold: number;
+  revenue: number;
+};
+
+type TopRankingMode = "MANUAL" | "AUTOMATIC" | "HYBRID";
+type TopRankingConfiguration = {
+  mode: TopRankingMode;
+  salesWindowDays: number;
+};
+
+const DEFAULT_CONFIGURATION: TopRankingConfiguration = {
+  mode: "MANUAL",
+  salesWindowDays: 90
 };
 
 async function fetchJson(url: string, init?: RequestInit) {
@@ -76,6 +90,17 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
   const [previewProducts, setPreviewProducts] = useState<ProductRecord[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
+  const [configuration, setConfiguration] = useState<TopRankingConfiguration>(DEFAULT_CONFIGURATION);
+  const [draftMode, setDraftMode] = useState<TopRankingMode>(DEFAULT_CONFIGURATION.mode);
+  const [draftWindowDays, setDraftWindowDays] = useState(String(DEFAULT_CONFIGURATION.salesWindowDays));
+  const [savingConfiguration, setSavingConfiguration] = useState(false);
+
+  function applyConfiguration(next?: Partial<TopRankingConfiguration>) {
+    const normalized = { ...DEFAULT_CONFIGURATION, ...next };
+    setConfiguration(normalized);
+    setDraftMode(normalized.mode);
+    setDraftWindowDays(String(normalized.salesWindowDays));
+  }
 
   async function togglePreview() {
     if (previewOpen) {
@@ -110,6 +135,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         fetchJson("/api/admin/products")
       ]);
       setSlots(top12Data.slots ?? []);
+      applyConfiguration(top12Data.configuration);
       setProducts(productsData.products ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : `No fue posible cargar el Top ${TOP_PRODUCTS_LIMIT}.`);
@@ -131,6 +157,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         ]);
         if (!cancelled) {
           setSlots(top12Data.slots ?? []);
+          applyConfiguration(top12Data.configuration);
           setProducts(productsData.products ?? []);
         }
       } catch (err) {
@@ -147,6 +174,29 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       cancelled = true;
     };
   }, []);
+
+  async function saveConfiguration() {
+    setSavingConfiguration(true);
+    setError("");
+    setNotice("");
+    try {
+      const data = await fetchJson("/api/admin/top12", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: draftMode,
+          salesWindowDays: Number(draftWindowDays)
+        })
+      });
+      applyConfiguration(data.configuration);
+      setNotice("Configuración del Top 15 guardada.");
+      await loadAll();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No fue posible guardar la configuración.");
+    } finally {
+      setSavingConfiguration(false);
+    }
+  }
 
   const visibleSlots = useMemo(() => {
     if (slotFilter === "pendiente") return slots.filter((slot) => !slot.producto);
@@ -251,8 +301,8 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                 </span>
                 <h1 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">Top {TOP_PRODUCTS_LIMIT} editorial</h1>
                 <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                  Elige a mano los {TOP_PRODUCTS_LIMIT} perfumes destacados de la portada. No se calcula por
-                  ventas: cada posición usa siempre la misma fotografía y tú eliges qué producto va en cada una.
+                  Configura un ranking manual, automático por ventas pagadas o híbrido. La fotografía siempre
+                  pertenece al producto y las asignaciones manuales se conservan al cambiar de modo.
                 </p>
               </div>
               <Link
@@ -279,6 +329,57 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
           <span>{notice}</span>
         </div>
       ) : null}
+
+      <section className="rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm sm:p-5">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
+          <div>
+            <label htmlFor="top-ranking-mode" className="mb-1.5 block text-sm font-semibold text-[#344054]">
+              Modo del Top {TOP_PRODUCTS_LIMIT}
+            </label>
+            <select
+              id="top-ranking-mode"
+              value={draftMode}
+              onChange={(event) => setDraftMode(event.target.value as TopRankingMode)}
+              className="min-h-11 w-full rounded-xl border border-[#d0d5dd] bg-white px-3 text-sm text-[#111318] outline-none focus:border-[#7357ff]"
+            >
+              <option value="MANUAL">Manual</option>
+              <option value="AUTOMATIC">Automático por ventas</option>
+              <option value="HYBRID">Híbrido: manual + automático</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="top-sales-window" className="mb-1.5 block text-sm font-semibold text-[#344054]">
+              Ventas de los últimos días
+            </label>
+            <input
+              id="top-sales-window"
+              type="number"
+              min={1}
+              max={3650}
+              step={1}
+              value={draftWindowDays}
+              onChange={(event) => setDraftWindowDays(event.target.value)}
+              disabled={draftMode === "MANUAL"}
+              className="min-h-11 w-full rounded-xl border border-[#d0d5dd] bg-white px-3 text-sm text-[#111318] outline-none focus:border-[#7357ff] disabled:bg-[#f2f4f7] disabled:text-[#98a2b3]"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => void saveConfiguration()}
+            disabled={savingConfiguration}
+            className="app-button-primary min-h-11 px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {savingConfiguration ? "Guardando..." : "Guardar configuración"}
+          </button>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-[#667085]">
+          {draftMode === "MANUAL"
+            ? "Tú controlas todas las posiciones; funciona igual que el Top 15 actual."
+            : draftMode === "AUTOMATIC"
+              ? "Ordena productos vendibles por unidades de pedidos pagados. Los empates se resuelven por facturación y nombre."
+              : "Mantiene las posiciones fijadas manualmente y completa los huecos con los productos más vendidos."}
+        </p>
+      </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-semibold text-[#344054]">
@@ -382,15 +483,17 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                     {slot.rank}
                   </span>
                   {producto ? (
-                    <button
-                      type="button"
-                      onClick={() => unlink(slot.rank)}
-                      disabled={unlinkingRank === slot.rank}
-                      title={`Quitar del Top ${TOP_PRODUCTS_LIMIT}`}
-                      className="rounded-lg p-1 text-[#98a2b3] hover:bg-[#f7f8fa] hover:text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    slot.source === "MANUAL" ? (
+                      <button
+                        type="button"
+                        onClick={() => unlink(slot.rank)}
+                        disabled={unlinkingRank === slot.rank}
+                        title={`Quitar del Top ${TOP_PRODUCTS_LIMIT}`}
+                        className="rounded-lg p-1 text-[#98a2b3] hover:bg-[#f7f8fa] hover:text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    ) : null
                   ) : null}
                 </div>
 
@@ -421,6 +524,16 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                     <p className="line-clamp-2 text-sm font-semibold text-[#111318]">{producto.nombre}</p>
                     <p className="text-xs text-[#667085]">{producto.contenido}</p>
                     <p className="text-sm font-bold text-[#111318]">{formatCurrency(producto.precioVenta)}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] font-semibold">
+                      <span className={slot.source === "AUTOMATIC" ? "rounded-full bg-[#e9f7ef] px-2 py-1 text-[#18794e]" : "rounded-full bg-[#eeebff] px-2 py-1 text-[#5434e6]"}>
+                        {slot.source === "AUTOMATIC" ? "Automático" : "Manual"}
+                      </span>
+                      {configuration.mode !== "MANUAL" ? (
+                        <span className="rounded-full bg-[#f2f4f7] px-2 py-1 text-[#475467]">
+                          {slot.unitsSold} un. / {configuration.salesWindowDays} días
+                        </span>
+                      ) : null}
+                    </div>
                     {pausado ? (
                       <p className="rounded-lg bg-[#f2f4f7] px-2 py-1 text-xs font-semibold text-[#475467]">
                         Pausado: oculto del Top {TOP_PRODUCTS_LIMIT} público
@@ -435,13 +548,23 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                   <p className="text-sm text-[#98a2b3]">Posición vacía</p>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => openPicker(slot.rank)}
-                  className="mt-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e4e7ec] px-3 py-2 text-sm font-semibold text-[#5434e6]"
-                >
-                  {producto ? "Cambiar producto" : "Vincular producto"}
-                </button>
+                {configuration.mode === "AUTOMATIC" ? (
+                  <p className="mt-auto rounded-xl bg-[#f7f8fa] px-3 py-2.5 text-center text-xs font-semibold text-[#667085]">
+                    Gestionado por ventas
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openPicker(slot.rank)}
+                    className="mt-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e4e7ec] px-3 py-2 text-sm font-semibold text-[#5434e6]"
+                  >
+                    {slot.source === "AUTOMATIC"
+                      ? "Fijar manualmente"
+                      : producto
+                        ? "Cambiar producto"
+                        : "Vincular producto"}
+                  </button>
+                )}
               </div>
             );
           })}
