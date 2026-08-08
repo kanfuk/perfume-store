@@ -54,6 +54,23 @@ type EffectiveTopRow = {
   revenue: number | string;
 };
 
+type SupabaseErrorLike = {
+  code?: string;
+  message?: string;
+};
+
+/** Permite desplegar código antes que la migración sin romper el Top manual productivo. */
+export function isMissingTopRankingMigrationError(error: SupabaseErrorLike | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "PGRST202" ||
+    error.code === "42703" ||
+    error.message?.includes("get_effective_top_products_v1") === true ||
+    error.message?.includes("top_ranking_mode") === true ||
+    error.message?.includes("top_sales_window_days") === true
+  );
+}
+
 class SupabaseTopProductsRankingRepository implements TopProductsRankingRepository {
   async obtenerConfiguracion(): Promise<TopRankingConfiguration> {
     const { data, error } = await createSupabaseServerClient()
@@ -61,6 +78,13 @@ class SupabaseTopProductsRankingRepository implements TopProductsRankingReposito
       .select("top_ranking_mode, top_sales_window_days")
       .eq("id", BUSINESS_SETTINGS_SINGLETON_ID)
       .single();
+
+    if (isMissingTopRankingMigrationError(error)) {
+      return {
+        mode: DEFAULT_TOP_RANKING_MODE,
+        salesWindowDays: DEFAULT_TOP_SALES_WINDOW_DAYS
+      };
+    }
 
     if (error || !data) {
       throw new Error("No fue posible cargar la configuración del Top 15.");
@@ -83,6 +107,12 @@ class SupabaseTopProductsRankingRepository implements TopProductsRankingReposito
       })
       .eq("id", BUSINESS_SETTINGS_SINGLETON_ID);
 
+    if (isMissingTopRankingMigrationError(error)) {
+      throw new Error(
+        "Aplica la migración del Top 15 antes de activar el modo automático o híbrido."
+      );
+    }
+
     if (error) {
       throw new Error("No fue posible guardar la configuración del Top 15.");
     }
@@ -96,6 +126,10 @@ class SupabaseTopProductsRankingRepository implements TopProductsRankingReposito
       { p_limit: TOP_PRODUCTS_LIMIT }
     );
 
+    if (isMissingTopRankingMigrationError(error)) {
+      return this.obtenerRankingManualLegado();
+    }
+
     if (error) {
       throw new Error(`No fue posible calcular el Top 15. ${error.message}`);
     }
@@ -107,6 +141,43 @@ class SupabaseTopProductsRankingRepository implements TopProductsRankingReposito
       unitsSold: Number(row.units_sold),
       revenue: Number(row.revenue)
     }));
+  }
+
+  private async obtenerRankingManualLegado(): Promise<EffectiveTopRankingEntry[]> {
+    const { data, error } = await createSupabaseServerClient()
+      .from("productos")
+      .select("id, orden_destacado")
+      .eq("es_top", true)
+      .not("orden_destacado", "is", null)
+      .order("orden_destacado", { ascending: true })
+      .order("id", { ascending: true });
+
+    if (error) {
+      throw new Error(`No fue posible cargar el Top 15 manual. ${error.message}`);
+    }
+
+    const usedRanks = new Set<number>();
+    const ranking: EffectiveTopRankingEntry[] = [];
+    for (const product of data ?? []) {
+      const rank = Number(product.orden_destacado);
+      if (
+        !Number.isInteger(rank) ||
+        rank < 1 ||
+        rank > TOP_PRODUCTS_LIMIT ||
+        usedRanks.has(rank)
+      ) {
+        continue;
+      }
+      usedRanks.add(rank);
+      ranking.push({
+        rank,
+        productId: product.id,
+        source: "MANUAL",
+        unitsSold: 0,
+        revenue: 0
+      });
+    }
+    return ranking;
   }
 }
 
