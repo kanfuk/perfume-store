@@ -139,8 +139,7 @@ end;
 $$;
 
 -- ============================================================
--- [3] usuarios_admin conserva exactamente la matriz de la migracion
--- anterior (20260728000000_grant_select_usuarios_admin.sql).
+-- [3] usuarios_admin permite altas/cambios solo al servicio server-side.
 -- ============================================================
 
 \echo '[3] usuarios_admin conserva su matriz previa'
@@ -154,15 +153,15 @@ begin
   perform pg_temp.assert_priv('authenticated', 'usuarios_admin', 'REFERENCES', false);
   perform pg_temp.assert_priv('authenticated', 'usuarios_admin', 'TRIGGER', false);
   perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'SELECT', true);
-  perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'INSERT', false);
-  perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'UPDATE', false);
+  perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'INSERT', true);
+  perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'UPDATE', true);
   perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'DELETE', false);
   perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'TRUNCATE', false);
   perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'REFERENCES', false);
   perform pg_temp.assert_priv('service_role', 'usuarios_admin', 'TRIGGER', false);
   perform pg_temp.assert_priv('anon', 'usuarios_admin', 'SELECT', false);
   perform pg_temp.assert_no_public_grant('usuarios_admin');
-  raise notice 'OK: usuarios_admin sin cambios';
+  raise notice 'OK: usuarios_admin con escritura server-only';
 end;
 $$;
 

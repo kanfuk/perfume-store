@@ -109,6 +109,7 @@ export type AdminDashboardProps = {
   initialData: AdminPageData;
   initialView?: AdminView;
   initialCustomers?: AdminCustomerOption[];
+  isOwner?: boolean;
 };
 
 export type OrderSectionProps = {

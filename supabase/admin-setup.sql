@@ -1,7 +1,7 @@
--- Reemplaza el correo por el mismo que crearas en Supabase Auth.
+-- Bootstrap excepcional del primer OWNER. Después, usar /admin/usuarios.
 
 insert into usuarios_admin (email, nombre, rol, activo)
-values ('admin@paulistore.com', 'Pauli Admin', 'ADMIN', true)
+values ('owner@smellme.cl', 'Smellme Owner', 'OWNER', true)
 on conflict (email) do update
 set
   nombre = excluded.nombre,

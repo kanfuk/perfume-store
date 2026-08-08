@@ -47,9 +47,21 @@ create table if not exists public.usuarios_admin (
   nombre text,
   rol text not null default 'ADMIN',
   activo boolean not null default true,
+  auth_user_id uuid references auth.users(id) on delete set null,
+  invited_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint usuarios_admin_rol_check check (rol in ('OWNER', 'ADMIN')),
+  constraint usuarios_admin_email_normalized_check
+    check (email = lower(btrim(email)) and length(email) between 3 and 254)
 );
+
+create unique index if not exists usuarios_admin_auth_user_id_unique_idx
+  on public.usuarios_admin (auth_user_id)
+  where auth_user_id is not null;
+
+create unique index if not exists usuarios_admin_email_normalized_unique_idx
+  on public.usuarios_admin (lower(email));
 
 -- is_active_admin() debe definirse DESPUES de crear usuarios_admin: al ser
 -- "language sql" (no plpgsql), Postgres analiza su cuerpo contra el catalogo
@@ -66,7 +78,7 @@ as $$
   select exists (
     select 1
     from public.usuarios_admin
-    where usuarios_admin.email = auth.email()
+    where usuarios_admin.email = lower(auth.email())
       and usuarios_admin.activo = true
   );
 $$;
@@ -507,6 +519,38 @@ create trigger usuarios_admin_set_updated_at
 before update on public.usuarios_admin
 for each row execute function public.set_updated_at();
 
+create or replace function public.prevent_last_active_owner_change_v1()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+begin
+  if old.activo = true and old.rol = 'OWNER'
+     and (
+       tg_op = 'DELETE'
+       or new.activo = false
+       or new.rol <> 'OWNER'
+     )
+     and (
+       select count(*) from public.usuarios_admin
+       where activo = true and rol = 'OWNER'
+     ) <= 1
+  then
+    raise exception using errcode = 'P0001', message = 'ADMIN_LAST_OWNER';
+  end if;
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_last_active_owner_change_v1() from public, anon, authenticated;
+
+drop trigger if exists usuarios_admin_protect_last_owner on public.usuarios_admin;
+create trigger usuarios_admin_protect_last_owner
+before update or delete on public.usuarios_admin
+for each row execute function public.prevent_last_active_owner_change_v1();
+
 drop trigger if exists clientes_set_updated_at on public.clientes;
 create trigger clientes_set_updated_at
 before update on public.clientes
@@ -583,7 +627,7 @@ revoke all on table public.usuarios_admin from anon;
 revoke references, trigger, truncate on table public.usuarios_admin from authenticated;
 revoke references, trigger, truncate on table public.usuarios_admin from service_role;
 grant select on table public.usuarios_admin to authenticated;
-grant select on table public.usuarios_admin to service_role;
+grant select, insert, update on table public.usuarios_admin to service_role;
 
 -- productos: lectura publica solo de productos activos; admin gestiona todo.
 drop policy if exists "public_can_read_active_products" on public.productos;
