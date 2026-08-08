@@ -45,11 +45,23 @@ as $$
     cross join configuration c
     where pi.producto_id is not null
       and c.mode in ('AUTOMATIC', 'HYBRID')
-      and pe.estado_pago = 'PAGADO'
+      and (
+        pe.estado_pago = 'PAGADO'
+        or (
+          pe.estado_pedido = 'ENTREGADO'
+          and pe.estado_pago = 'SIN_PAGO'
+          and pe.origen_pedido = 'ADMIN_DIRECTO'
+          and exists (
+            select 1
+            from public.fiados f
+            where f.pedido_id = pe.id
+          )
+        )
+      )
       and pe.estado_pedido <> 'CANCELADO'
       and (
         c.window_days is null
-        or coalesce(pe.fecha_pago, pe.fecha_pedido, pe.created_at)
+        or coalesce(pe.fecha_entrega, pe.fecha_pago, pe.fecha_pedido, pe.created_at)
           >= now() - make_interval(days => c.window_days)
       )
     group by pi.producto_id

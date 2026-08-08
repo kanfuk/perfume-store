@@ -17,11 +17,19 @@ describe("migración Top 15 híbrido", () => {
     expect(migration).toContain("top_sales_window_days is null or top_sales_window_days between 1 and 3650");
   });
 
-  it("el cálculo automático cuenta solo ventas pagadas, no canceladas y dentro de ventana", () => {
+  it("el cálculo automático cuenta ventas pagadas y fiados entregados sin duplicarlos", () => {
     expect(migration).toContain("pe.estado_pago = 'PAGADO'");
+    expect(migration).toContain("pe.estado_pedido = 'ENTREGADO'");
+    expect(migration).toContain("pe.estado_pago = 'SIN_PAGO'");
+    expect(migration).toContain("pe.origen_pedido = 'ADMIN_DIRECTO'");
+    expect(migration).toMatch(/exists \(\s*select 1\s*from public\.fiados f/);
+    expect(migration).not.toMatch(/join public\.fiados/i);
     expect(migration).toContain("pe.estado_pedido <> 'CANCELADO'");
     expect(migration).toMatch(/make_interval\(days => c\.window_days\)/);
     expect(migration).toContain("c.window_days is null");
+    expect(migration).toContain(
+      "coalesce(pe.fecha_entrega, pe.fecha_pago, pe.fecha_pedido, pe.created_at)"
+    );
     expect(migration).toMatch(/sum\(pi\.cantidad\)::bigint as units_sold/);
   });
 

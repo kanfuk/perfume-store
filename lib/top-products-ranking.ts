@@ -1,5 +1,6 @@
 import type { ProductoProps } from "@/domain/Producto";
 import type {
+  LocalFiadoRecord,
   LocalOrderItemRecord,
   LocalOrderRecord
 } from "@/lib/local-store";
@@ -15,7 +16,7 @@ export const MAX_TOP_SALES_WINDOW_DAYS = 3650;
 
 export type TopRankingConfiguration = {
   mode: TopRankingMode;
-  /** null = todo el historial de ventas pagadas. */
+  /** null = todo el historial de ventas concretadas. */
   salesWindowDays: number | null;
 };
 
@@ -58,14 +59,16 @@ export function validateTopRankingConfiguration(input: {
 
 /**
  * Implementación equivalente a la función SQL de producción para el modo
- * local y para pruebas puras. Solo cuentan pedidos pagados, no cancelados y
- * dentro de la ventana configurada. Manual conserva las posiciones actuales;
- * híbrido rellena únicamente sus huecos.
+ * local y para pruebas puras. Cuentan pedidos pagados y ventas directas fiadas
+ * ya entregadas, siempre que no estén cancelados y estén dentro de la ventana
+ * configurada. Manual conserva las posiciones actuales; híbrido rellena
+ * únicamente sus huecos.
  */
 export function computeEffectiveTopRanking(input: {
   products: ProductoProps[];
   orders: LocalOrderRecord[];
   orderItems: LocalOrderItemRecord[];
+  fiados?: LocalFiadoRecord[];
   configuration: TopRankingConfiguration;
   now?: Date;
 }): EffectiveTopRankingEntry[] {
@@ -74,14 +77,20 @@ export function computeEffectiveTopRanking(input: {
   const since = configuration.salesWindowDays === null
     ? null
     : now.getTime() - configuration.salesWindowDays * 24 * 60 * 60 * 1000;
-  const paidOrderIds = new Set(
+  const fiadoOrderIds = new Set((input.fiados ?? []).map((fiado) => fiado.pedidoId));
+  const concreteSaleOrderIds = new Set(
     configuration.mode === "MANUAL"
       ? []
       : orders
           .filter((order) => {
-            const date = Date.parse(order.fechaPago ?? order.fechaPedido);
+            const date = Date.parse(order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido);
+            const isDeliveredDirectFiado =
+              order.estadoPedido === "ENTREGADO" &&
+              order.estadoPago === "SIN_PAGO" &&
+              order.origenPedido === "ADMIN_DIRECTO" &&
+              fiadoOrderIds.has(order.id);
             return (
-              order.estadoPago === "PAGADO" &&
+              (order.estadoPago === "PAGADO" || isDeliveredDirectFiado) &&
               order.estadoPedido !== "CANCELADO" &&
               Number.isFinite(date) &&
               (since === null || date >= since)
@@ -92,7 +101,7 @@ export function computeEffectiveTopRanking(input: {
 
   const sales = new Map<string, { unitsSold: number; revenue: number }>();
   for (const item of orderItems) {
-    if (!item.productoId || !paidOrderIds.has(item.pedidoId)) continue;
+    if (!item.productoId || !concreteSaleOrderIds.has(item.pedidoId)) continue;
     const current = sales.get(item.productoId) ?? { unitsSold: 0, revenue: 0 };
     current.unitsSold += item.cantidad;
     current.revenue += item.subtotal;

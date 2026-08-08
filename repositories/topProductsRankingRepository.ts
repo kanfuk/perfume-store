@@ -43,6 +43,7 @@ class MemoryTopProductsRankingRepository implements TopProductsRankingRepository
       products: localStore.products,
       orders: localStore.orders,
       orderItems: localStore.orderItems,
+      fiados: localStore.fiados,
       configuration: await this.obtenerConfiguracion()
     });
   }

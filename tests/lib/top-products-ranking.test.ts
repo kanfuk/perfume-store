@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ProductoProps } from "@/domain/Producto";
-import type { LocalOrderItemRecord, LocalOrderRecord } from "@/lib/local-store";
+import type {
+  LocalFiadoRecord,
+  LocalOrderItemRecord,
+  LocalOrderRecord
+} from "@/lib/local-store";
 import {
   computeEffectiveTopRanking,
   validateTopRankingConfiguration
@@ -54,6 +58,17 @@ function item(
   };
 }
 
+function fiado(pedidoId: string): LocalFiadoRecord {
+  return {
+    id: `fiado-${pedidoId}`,
+    pedidoId,
+    clienteId: "cliente-1",
+    montoPendiente: 10000,
+    estado: "PENDIENTE",
+    fechaFiado: "2026-08-01T12:00:00.000Z"
+  };
+}
+
 describe("Top 15 efectivo", () => {
   it("MANUAL conserva las posiciones editoriales sin calcular ventas", () => {
     const result = computeEffectiveTopRanking({
@@ -95,6 +110,66 @@ describe("Top 15 efectivo", () => {
       { rank: 2, productId: "a", source: "AUTOMATIC" },
       { rank: 3, productId: "c", source: "AUTOMATIC" }
     ]);
+  });
+
+  it("incluye una venta directa fiada ya entregada sin exigir que esté cobrada", () => {
+    const result = computeEffectiveTopRanking({
+      products: [product("fiado")],
+      orders: [
+        order("fiado-entregado", {
+          estadoPago: "SIN_PAGO",
+          origenPedido: "ADMIN_DIRECTO",
+          fechaEntrega: "2026-08-03T12:00:00.000Z"
+        })
+      ],
+      orderItems: [item("fiado-entregado", "fiado", 2)],
+      fiados: [fiado("fiado-entregado")],
+      configuration: { mode: "AUTOMATIC", salesWindowDays: 30 },
+      now: NOW
+    });
+
+    expect(result).toEqual([
+      { rank: 1, productId: "fiado", source: "AUTOMATIC", unitsSold: 2, revenue: 20000 }
+    ]);
+  });
+
+  it("no trata como venta un SIN_PAGO entregado sin respaldo de fiado", () => {
+    const result = computeEffectiveTopRanking({
+      products: [product("unpaid")],
+      orders: [
+        order("unpaid", {
+          estadoPago: "SIN_PAGO",
+          origenPedido: "ADMIN_DIRECTO",
+          fechaEntrega: "2026-08-03T12:00:00.000Z"
+        })
+      ],
+      orderItems: [item("unpaid", "unpaid", 20)],
+      fiados: [],
+      configuration: { mode: "AUTOMATIC", salesWindowDays: 30 },
+      now: NOW
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it("cuenta una sola vez un fiado después de quedar PAGADO", () => {
+    const result = computeEffectiveTopRanking({
+      products: [product("fiado-pagado")],
+      orders: [
+        order("fiado-pagado", {
+          estadoPago: "PAGADO",
+          origenPedido: "ADMIN_DIRECTO",
+          fechaEntrega: "2026-08-03T12:00:00.000Z",
+          fechaPago: "2026-08-06T12:00:00.000Z"
+        })
+      ],
+      orderItems: [item("fiado-pagado", "fiado-pagado", 3)],
+      fiados: [fiado("fiado-pagado"), { ...fiado("fiado-pagado"), id: "duplicado-histórico" }],
+      configuration: { mode: "AUTOMATIC", salesWindowDays: 30 },
+      now: NOW
+    });
+
+    expect(result[0]).toMatchObject({ productId: "fiado-pagado", unitsSold: 3 });
   });
 
   it("HYBRID fija manuales y rellena solo los huecos sin duplicar productos", () => {
