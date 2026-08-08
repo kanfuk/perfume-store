@@ -118,6 +118,9 @@ export type LocalBusinessSettingsRecord = {
   titularCuenta: string | null;
   rutTitular: string | null;
   correo: string | null;
+  topRankingMode?: "MANUAL" | "AUTOMATIC" | "HYBRID";
+  /** null = histórico completo. */
+  topSalesWindowDays?: number | null;
   updatedAt: string;
 };
 

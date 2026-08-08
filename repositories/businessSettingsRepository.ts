@@ -39,6 +39,7 @@ class MemoryBusinessSettingsRepository implements BusinessSettingsRepository {
     data: BusinessPaymentSettings
   ): Promise<BusinessPaymentSettings> {
     localStore.businessSettings = {
+      ...localStore.businessSettings,
       banco: data.banco,
       tipoCuenta: data.tipoCuenta,
       numeroCuenta: data.numeroCuenta,

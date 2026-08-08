@@ -15,12 +15,12 @@ type TopProductsSectionProps = {
 };
 
 /**
- * Ranking 1..12 de familias destacadas (es_top + orden_destacado). Si dos
+ * Ranking de familias destacadas (es_top + orden_destacado efectivos). Si dos
  * variantes de la MISMA familia estan vinculadas a posiciones distintas del
- * Top 12 (ej. Lady Million 30ML en la posicion 3 y 80ML en la 7), se
+ * Top (ej. Lady Million 30ML en la posicion 3 y 80ML en la 7), se
  * muestra UNA sola tarjeta publica: la posicion mas alta (numero menor) gana
  * el ranking mostrado, y esa variante queda preseleccionada en el selector
- * de tamano (conservando su imagen Top 12 propia).
+ * de tamano (conservando la imagen propia del producto).
  */
 export function TopProductsSection({
   products,

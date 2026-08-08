@@ -18,6 +18,13 @@ import { validateImageUrlInput } from "@/lib/image-url";
 import type { AdminProductRecord, ProductRecord } from "@/lib/types";
 import type { ProductRepository } from "@/repositories/productRepository";
 import { getProductRepository } from "@/repositories/productRepository";
+import type { TopProductsRankingRepository } from "@/repositories/topProductsRankingRepository";
+import { getTopProductsRankingRepository } from "@/repositories/topProductsRankingRepository";
+import {
+  DEFAULT_TOP_SALES_WINDOW_DAYS,
+  validateTopRankingConfiguration,
+  type TopRankingConfiguration
+} from "@/lib/top-products-ranking";
 import {
   buildAdminImportPreview,
   validateFileSize,
@@ -116,7 +123,10 @@ function mapProductoToAdminRecord(domainProduct: Producto): AdminProductRecord {
 }
 
 export class ProductoService {
-  constructor(private readonly productRepository: ProductRepository) {}
+  constructor(
+    private readonly productRepository: ProductRepository,
+    private readonly topProductsRankingRepository?: TopProductsRankingRepository
+  ) {}
 
   /**
    * Catalogo publico (Fase 2B.8, familias de producto): ya NO filtra
@@ -137,8 +147,14 @@ export class ProductoService {
    * storefront hasta que se corrija (ver lib/catalog-completeness.ts).
    */
   async obtenerProductosActivos() {
-    const products = await this.productRepository.buscarTodosProductos();
+    const [products, effectiveRanking] = await Promise.all([
+      this.productRepository.buscarTodosProductos(),
+      this.topProductsRankingRepository?.obtenerRankingEfectivo() ?? Promise.resolve(null)
+    ]);
     const domainProducts = products.map((product) => new Producto(product));
+    const effectiveRankingByProductId = effectiveRanking
+      ? new Map(effectiveRanking.map((entry) => [entry.productId, entry]))
+      : null;
 
     const esVendible = (product: Producto) =>
       product.activo &&
@@ -176,9 +192,13 @@ export class ProductoService {
           stockAgenda: getUnifiedProductStock(product),
           stockReservado: product.stockReservado,
           stockMinimo: product.stockMinimo,
-          esTop: product.esTop,
+          esTop: effectiveRankingByProductId
+            ? effectiveRankingByProductId.has(product.id)
+            : product.esTop,
           esOfertaSemana: product.esOfertaSemana,
-          ordenDestacado: product.ordenDestacado ?? undefined,
+          ordenDestacado:
+            effectiveRankingByProductId?.get(product.id)?.rank ??
+            (effectiveRankingByProductId ? undefined : product.ordenDestacado ?? undefined),
           tipoProducto: product.tipoProducto
         };
       });
@@ -240,8 +260,14 @@ export class ProductoService {
    * completo solo para contar.
    */
   async obtenerResumenCatalogo(): Promise<CatalogSummary> {
-    const products = await this.productRepository.buscarTodosProductos();
+    const [products, effectiveRanking] = await Promise.all([
+      this.productRepository.buscarTodosProductos(),
+      this.topProductsRankingRepository?.obtenerRankingEfectivo() ?? Promise.resolve(null)
+    ]);
     const domainProducts = products.map((product) => new Producto(product));
+    const effectiveTopIds = effectiveRanking
+      ? new Set(effectiveRanking.map((entry) => entry.productId))
+      : null;
 
     return computeCatalogSummary(
       domainProducts.map((product) => ({
@@ -252,7 +278,7 @@ export class ProductoService {
         activo: product.activo,
         stockActual: getUnifiedProductStock(product),
         modoPrecio: product.modoPrecio,
-        esTop: product.esTop,
+        esTop: effectiveTopIds ? effectiveTopIds.has(product.id) : product.esTop,
         esOfertaSemana: product.esOfertaSemana
       }))
     );
@@ -1064,12 +1090,33 @@ export class ProductoService {
   }
 
   /**
-   * Top 15 editorial: estado de las TOP_PRODUCTS_LIMIT posiciones (producto
-   * vinculado o null en cada una). Se deriva de es_top/orden_destacado -- no
-   * crea tablas nuevas.
+   * Estado efectivo de las TOP_PRODUCTS_LIMIT posiciones. Con el repositorio
+   * de ranking usa el modo configurado (manual, automático o híbrido); las
+   * instancias unitarias antiguas sin esa dependencia conservan exactamente
+   * la derivación histórica desde es_top/orden_destacado.
    */
   async obtenerEstadoTop12(): Promise<Top12Slot[]> {
-    const productos = await this.productRepository.buscarTodosProductos();
+    const [productos, ranking] = await Promise.all([
+      this.productRepository.buscarTodosProductos(),
+      this.topProductsRankingRepository?.obtenerRankingEfectivo() ?? Promise.resolve(null)
+    ]);
+    if (ranking) {
+      const porId = new Map(productos.map((producto) => [producto.id, producto]));
+      const porRank = new Map(ranking.map((entry) => [entry.rank, entry]));
+
+      return Array.from({ length: TOP_PRODUCTS_LIMIT }, (_, index) => {
+        const rank = index + 1;
+        const entry = porRank.get(rank);
+        return {
+          rank,
+          producto: entry ? porId.get(entry.productId) ?? null : null,
+          source: entry?.source ?? null,
+          unitsSold: entry?.unitsSold ?? 0,
+          revenue: entry?.revenue ?? 0
+        };
+      });
+    }
+
     const porRank = new Map<number, ProductoProps>();
 
     for (const producto of productos) {
@@ -1082,6 +1129,24 @@ export class ProductoService {
       const rank = index + 1;
       return { rank, producto: porRank.get(rank) ?? null };
     });
+  }
+
+  async obtenerConfiguracionTopProductos(): Promise<TopRankingConfiguration> {
+    if (!this.topProductsRankingRepository) {
+      return { mode: "MANUAL", salesWindowDays: DEFAULT_TOP_SALES_WINDOW_DAYS };
+    }
+    return this.topProductsRankingRepository.obtenerConfiguracion();
+  }
+
+  async guardarConfiguracionTopProductos(input: {
+    mode?: unknown;
+    salesWindowDays?: unknown;
+  }): Promise<TopRankingConfiguration> {
+    if (!this.topProductsRankingRepository) {
+      throw new Error("El repositorio de configuración del Top 15 no está disponible.");
+    }
+    const configuration = validateTopRankingConfiguration(input);
+    return this.topProductsRankingRepository.guardarConfiguracion(configuration);
   }
 
   /**
@@ -1277,6 +1342,9 @@ export class ProductoService {
 export type Top12Slot = {
   rank: number;
   producto: ProductoProps | null;
+  source?: "MANUAL" | "AUTOMATIC" | null;
+  unitsSold?: number;
+  revenue?: number;
 };
 
 export type BulkStockOperation =
@@ -1476,5 +1544,8 @@ function computeBulkNewPrice(
 }
 
 export function createProductoService() {
-  return new ProductoService(getProductRepository());
+  return new ProductoService(
+    getProductRepository(),
+    getTopProductsRankingRepository()
+  );
 }
