@@ -58,14 +58,10 @@ describe("normalizeBulkImageIdentity", () => {
     expect(normalizeBulkImageIdentity("Acqua   Di    Gio")).toBe("ACQUA-DI-GIO");
   });
 
-  it(
-    "NO normaliza tildes (comportamiento actual documentado en Fase 7.4: " +
-      "'Acquá' y 'Acqua' se consideran identidades distintas, a diferencia de " +
-      "normalizeProductKey en lib/product-catalog.ts que sí las unifica)",
-    () => {
-      expect(normalizeBulkImageIdentity("Acquá Di Gio")).not.toBe(normalizeBulkImageIdentity("Acqua Di Gio"));
-    }
-  );
+  it("normaliza Unicode NFD y elimina marcas combinadas solo para matching", () => {
+    expect(normalizeBulkImageIdentity("Éclat")).toBe(normalizeBulkImageIdentity("Eclat"));
+    expect(normalizeBulkImageIdentity("Acquá Di Gio")).toBe(normalizeBulkImageIdentity("Acqua Di Gio"));
+  });
 });
 
 describe("stripFileExtension", () => {

@@ -25,11 +25,10 @@ export function BulkImagePreviewSummaryBar({ rows }: { rows: BulkImageRow[] }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
       <Tile label="Seleccionados" value={summary.totalFiles} />
-      <Tile label="Automáticos" value={summary.automaticMatches} tone="good" />
-      <Tile label="Manuales" value={summary.manualMatches} tone="good" />
-      <Tile label="Ambiguos" value={summary.ambiguous} tone="bad" />
-      <Tile label="Sin coincidencia" value={summary.unmatched} tone="warn" />
-      <Tile label="Duplicados" value={summary.duplicates} tone="bad" />
+      <Tile label="Matched" value={summary.automaticMatches + summary.manualMatches} tone="good" />
+      <Tile label="Unmatched" value={summary.unmatched} tone="warn" />
+      <Tile label="Ambiguous" value={summary.ambiguous} tone="bad" />
+      <Tile label="Duplicated" value={summary.duplicates} tone="bad" />
       <Tile label="Con imagen previa" value={summary.alreadyHasImage} tone="warn" />
       <Tile label="Excluidos" value={summary.excluded} />
       <Tile label="Listos para cargar" value={summary.readyToUpload} tone="good" />
@@ -76,7 +75,7 @@ export function BulkImageFinalSummaryPanel({
         <Tile label="Subidas exitosas" value={summary.uploaded} tone="good" />
         <Tile label="Reemplazos exitosos" value={summary.replaced} tone="good" />
         <Tile label="Omitidos" value={summary.skipped} />
-        <Tile label="Fallidos" value={summary.failed} tone="bad" />
+        <Tile label="Failed upload" value={summary.failed} tone="bad" />
         <Tile label="Cancelados" value={summary.cancelled} tone="warn" />
         <Tile label="No iniciados" value={summary.notStarted} tone="warn" />
         <Tile label="Productos actualizados" value={summary.productsUpdated} tone="good" />

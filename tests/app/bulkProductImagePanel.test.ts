@@ -87,6 +87,17 @@ describe("Object URLs (seccion 16): liberadas en los 3 puntos exigidos", () => {
     expect(panelSource).toMatch(/return \(\) => \{[\s\S]{0,150}revokeObjectURL/);
   });
 
+  it("después de completar el lote revoca previews y limpia archivos seleccionados", () => {
+    expect(panelSource).toMatch(/const results = await runQueueFor\(jobs\)[\s\S]{0,500}revokeObjectURL/);
+    expect(panelSource).toMatch(/const results = await runQueueFor\(jobs\)[\s\S]{0,700}setFiles\(\[\]\)/);
+    expect(panelSource).toMatch(/result\.state !== "FAILED"[\s\S]{0,100}fileObjectsRef\.current\.delete/);
+  });
+
+  it("el cleanup de desmontaje usa un ref vigente y restaura overflow del body", () => {
+    expect(panelSource).toContain("previewUrlsRef.current");
+    expect(panelSource).toContain('document.body.style.removeProperty("overflow")');
+  });
+
   it("nunca sube una imagen solo para generar el Preview (createObjectURL no viaja a fetch)", () => {
     // El unico uso de createObjectURL para miniaturas ocurre en handleFilesSelected,
     // nunca dentro de uploadOne (que es la unica funcion que llama a fetch con FormData).

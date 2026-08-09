@@ -45,6 +45,8 @@ const IGNORED_TRAILING_SUFFIXES = new Set([
 export function normalizeBulkImageIdentity(raw: string): string {
   const tokens = raw
     .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
     .split(/[-_\s]+/)
     .filter((token) => token.length > 0);
