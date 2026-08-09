@@ -36,17 +36,17 @@ export function CompactFamilyRow({ family, quantities, onAdd, onDecrease, onRemo
   const hasMultipleVariants = selectableVariants.length > 1;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-4">
+    <div className="flex flex-col gap-3 rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{family.marca}</p>
+          <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#8C8175]">{family.marca}</p>
           {isTop12 ? (
-            <span className="shrink-0 rounded-full bg-[#eeebff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5434e6]">
+            <span className="shrink-0 rounded-full bg-[#F4E8DB] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#8A6036]">
               Top {TOP_PRODUCTS_LIMIT}
             </span>
           ) : null}
         </div>
-        <h4 className="truncate text-sm font-semibold text-[#111318] sm:text-base">{family.nombre}</h4>
+        <h4 className="truncate text-sm font-semibold text-[#191714] sm:text-base">{family.nombre}</h4>
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:w-52">
@@ -59,7 +59,7 @@ export function CompactFamilyRow({ family, quantities, onAdd, onDecrease, onRemo
               id={selectorId}
               value={selectedId}
               onChange={(event) => setSelectedId(event.target.value)}
-              className="min-h-11 w-full rounded-lg border border-[#e4e7ec] bg-white px-2.5 py-2 text-sm text-[#111318] outline-none focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
+              className="min-h-11 w-full rounded-lg border border-[#DDD0C1] bg-white px-2.5 py-2 text-sm text-[#191714] outline-none focus:border-[#B88B58] focus:ring-2 focus:ring-[#F4E8DB]"
             >
               {selectableVariants.map((variant) => (
                 <option key={variant.productId} value={variant.productId} disabled={!variant.disponible}>
@@ -71,8 +71,8 @@ export function CompactFamilyRow({ family, quantities, onAdd, onDecrease, onRemo
           </div>
         ) : (
           <div className="w-full text-sm">
-            <span className="text-[#98a2b3]">{selected.contenido}</span>
-            <span className="ml-2 font-semibold text-[#111318]">{formatCurrency(selected.precioVenta)}</span>
+            <span className="text-[#8C8175]">{selected.contenido}</span>
+            <span className="ml-2 font-semibold text-[#191714]">{formatCurrency(selected.precioVenta)}</span>
           </div>
         )}
       </div>
@@ -88,22 +88,22 @@ export function CompactFamilyRow({ family, quantities, onAdd, onDecrease, onRemo
         </span>
 
         {quantity > 0 && onDecrease && onRemove ? (
-          <div className="flex items-center gap-1 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-1.5 py-1">
+          <div className="flex items-center gap-1 rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-1.5 py-1">
             <button
               type="button"
               onClick={() => onDecrease(selected.productId)}
               aria-label={`Quitar una unidad de ${family.nombre}`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#344054] hover:bg-white"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#4D453D] hover:bg-white"
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="min-w-6 text-center text-sm font-semibold text-[#111318]">{quantity}</span>
+            <span className="min-w-6 text-center text-sm font-semibold text-[#191714]">{quantity}</span>
             <button
               type="button"
               onClick={() => onAdd(selected.productId)}
               disabled={isOutOfStock || quantity >= availableStock}
               aria-label={`Agregar una unidad de ${family.nombre}`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#344054] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#4D453D] hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>

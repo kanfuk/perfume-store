@@ -34,9 +34,7 @@ export function AdminLoginForm({
         password
       });
 
-      if (authError) {
-        throw new Error(authError.message);
-      }
+      if (authError) throw new Error("Correo o contraseña incorrectos.");
 
       router.push(nextPath);
       router.refresh();
@@ -79,19 +77,19 @@ export function AdminLoginForm({
       className="w-full space-y-6"
     >
       <div className="space-y-3">
-        <span className="inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-[#7357ff]">
+        <span className="inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-[#B88B58]">
           Smellme.cl
         </span>
-        <h1 className="text-3xl font-bold leading-tight text-[#111318] sm:text-4xl">
+        <h1 className="text-3xl font-bold leading-tight text-[#191714] sm:text-4xl">
           Administración
         </h1>
-        <p className="copy-justified text-sm leading-6 text-[#667085]">
+        <p className="copy-justified text-sm leading-6 text-[#6B6258]">
           Inicia sesión para administrar tu catálogo de fragancias.
         </p>
       </div>
 
       <label className="block space-y-2">
-        <span className="text-sm font-medium text-[#111318]">Correo admin</span>
+        <span className="text-sm font-medium text-[#191714]">Correo admin</span>
         <input
           type="email"
           autoComplete="email"
@@ -102,7 +100,7 @@ export function AdminLoginForm({
       </label>
 
       <label className="block space-y-2">
-        <span className="text-sm font-medium text-[#111318]">Clave admin</span>
+        <span className="text-sm font-medium text-[#191714]">Clave admin</span>
         <input
           type="password"
           autoComplete="current-password"
@@ -122,17 +120,17 @@ export function AdminLoginForm({
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-      <div className="border-t border-[#e4e7ec] pt-4 text-center">
+      <div className="border-t border-[#DDD0C1] pt-4 text-center">
         <button
           type="button"
           onClick={handleRecoveryRequest}
           disabled={recoverySubmitting}
-          className="text-sm font-medium text-[#5434e6] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-[#c1b6ff]"
+          className="text-sm font-medium text-[#8A6036] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-[#D8BEA2]"
         >
-          {recoverySubmitting ? "Enviando..." : "Crear o recuperar contraseña"}
+          {recoverySubmitting ? "Enviando..." : "Recuperar contraseña"}
         </button>
         {recoveryMessage ? (
-          <p className="mt-2 text-sm text-[#667085]">{recoveryMessage}</p>
+          <p className="mt-2 text-sm text-[#6B6258]">{recoveryMessage}</p>
         ) : null}
       </div>
     </form>

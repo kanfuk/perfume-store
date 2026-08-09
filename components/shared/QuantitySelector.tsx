@@ -22,7 +22,7 @@ export function QuantitySelector({
       <QuantityButton label={minLabel} onClick={onDecrease}>
         <Minus className="h-4 w-4" />
       </QuantityButton>
-      <div className="min-w-10 text-center text-sm font-semibold text-[#111318]">
+      <div className="min-w-10 text-center text-sm font-semibold text-[#191714]">
         {quantity}
       </div>
       <QuantityButton label={maxLabel} onClick={onIncrease}>
@@ -45,7 +45,7 @@ function QuantityButton({
     <button
       type="button"
       aria-label={label}
-      className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-2xl border border-[#e4e7ec] bg-white text-[#111318] transition-colors hover:border-[#7357ff] hover:text-[#5434e6]"
+      className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-2xl border border-[#DDD0C1] bg-white text-[#191714] transition-colors hover:border-[#B88B58] hover:text-[#8A6036]"
       onClick={onClick}
     >
       {children}

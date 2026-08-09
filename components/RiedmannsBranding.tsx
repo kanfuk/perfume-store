@@ -18,7 +18,7 @@ export function RiedmannsBranding({
 
   return (
     <div
-      className={`flex w-full flex-col items-center justify-between gap-3 border-t border-[#e4e7ec] py-6 text-center text-xs text-[#667085] sm:flex-row sm:text-left ${className}`.trim()}
+      className={`flex w-full flex-col items-center justify-between gap-3 border-t border-[#ddd0c1] py-6 text-center text-xs text-[#6b6258] sm:flex-row sm:text-left ${className}`.trim()}
     >
       <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
         <span className="relative h-5 w-5 overflow-hidden rounded-md">
@@ -34,7 +34,7 @@ export function RiedmannsBranding({
           href={RIEDMANN_APPS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-[#344054] underline-offset-4 hover:underline"
+          className="font-semibold text-[#4d3020] underline-offset-4 hover:text-[#956a3f] hover:underline"
         >
           {footerDeveloper}
         </a>

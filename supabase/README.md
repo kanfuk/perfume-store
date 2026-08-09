@@ -27,9 +27,11 @@ La clave recomendada hoy por Supabase para servidor es la `secret key`. La `serv
 
 ## 4. Admin Auth real
 
-1. Crear un usuario en `Authentication -> Users` con email y password.
-2. Ejecutar `supabase/admin-setup.sql` ajustando el email al mismo usuario.
-3. Ese email debe existir en `usuarios_admin` y estar `activo = true`.
+El primer OWNER se provisiona una sola vez durante el bootstrap. Desde ese
+momento, las altas se hacen exclusivamente en `/admin/usuarios`: un OWNER
+envía una invitación de Supabase y cada invitado define su propia contraseña.
+No existe `signUp` público y la autorización siempre exige una fila activa en
+`usuarios_admin` con `onboarding_completed_at` informado.
 
 ## 5. Trabajo desde terminal
 

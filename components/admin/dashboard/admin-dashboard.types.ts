@@ -25,6 +25,7 @@ export type ReportSalesFilter =
 
 export type OrderModalState =
   | { type: "agendar"; order: AdminOrderSummary }
+  | { type: "reenviar-transferencia"; order: AdminOrderSummary }
   | { type: "pagado"; order: AdminOrderSummary }
   | { type: "cancelar"; order: AdminOrderSummary }
   | { type: "abonar"; order: AdminOrderSummary }
@@ -109,6 +110,7 @@ export type AdminDashboardProps = {
   initialData: AdminPageData;
   initialView?: AdminView;
   initialCustomers?: AdminCustomerOption[];
+  isOwner?: boolean;
 };
 
 export type OrderSectionProps = {

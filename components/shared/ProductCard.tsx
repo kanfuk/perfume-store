@@ -46,10 +46,10 @@ export function ProductCard({
   const hasPreviousPrice = hasVisiblePreviousPrice(product);
 
   return (
-    <article className="interactive-card flex h-full max-w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-[#e4e7ec] bg-white shadow-sm">
+    <article className="interactive-card flex h-full max-w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-[#DDD0C1] bg-white shadow-sm">
       <div
         className={`relative min-w-0 ${
-          imageFit === "contain" ? "aspect-square bg-white sm:aspect-[3/4]" : "aspect-[4/3] bg-[#f7f8fa]"
+          imageFit === "contain" ? "aspect-square bg-white sm:aspect-[3/4]" : "aspect-[4/3] bg-[#F7F1E8]"
         }`}
       >
         <ProductImage
@@ -70,7 +70,7 @@ export function ProductCard({
           <div className="flex items-center gap-2">
             {typeof rank === "number" ? (
               <span
-                className={`flex items-center justify-center rounded-full bg-[#7357ff] font-bold text-white shadow-sm ${
+                className={`flex items-center justify-center rounded-full bg-[#B88B58] font-bold text-white shadow-sm ${
                   imageFit === "contain" ? "h-6 w-6 text-xs sm:h-8 sm:w-8 sm:text-sm" : "h-8 w-8 text-sm"
                 }`}
               >
@@ -80,15 +80,15 @@ export function ProductCard({
             <span
               className={`rounded-full border font-semibold uppercase tracking-wide shadow-sm backdrop-blur-md ${
                 imageFit === "contain"
-                  ? "hidden border-[#e4e7ec] bg-white/90 px-3 py-1 text-xs text-[#111318] sm:inline-block"
-                  : "border-white/15 bg-[#111318]/82 px-3 py-1 text-xs text-white"
+                  ? "hidden border-[#DDD0C1] bg-white/90 px-3 py-1 text-xs text-[#191714] sm:inline-block"
+                  : "border-white/15 bg-[#191714]/82 px-3 py-1 text-xs text-white"
               }`}
             >
               {product.badgeLabel || product.tipoProducto || "PERFUME"}
             </span>
           </div>
           {quantity > 0 ? (
-            <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#392694] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
+            <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
               En carrito x{quantity}
             </span>
           ) : null}
@@ -107,13 +107,13 @@ export function ProductCard({
         {/* blanco (&nbsp; oculto a lectores de pantalla) pero conserva su altura. */}
         <div className="space-y-1">
           <p
-            className="truncate text-xs font-semibold uppercase tracking-wide text-[#98a2b3]"
+            className="truncate text-xs font-semibold uppercase tracking-wide text-[#8C8175]"
             aria-hidden={metadata.hasBrand ? undefined : true}
           >
             {metadata.hasBrand ? metadata.brandLabel : " "}
           </p>
           <h4
-            className={`line-clamp-2 font-semibold leading-tight text-[#111318] sm:min-h-11 sm:text-[1.1rem] ${
+            className={`line-clamp-2 font-semibold leading-tight text-[#191714] sm:min-h-11 sm:text-[1.1rem] ${
               imageFit === "contain" ? "min-h-9 text-sm" : "min-h-10 text-base"
             }`}
           >
@@ -121,7 +121,7 @@ export function ProductCard({
           </h4>
           <div className={imageFit === "contain" ? "flex min-h-16 flex-col" : "flex min-h-[1.25rem] flex-col"}>
             {sizeSelector ?? (
-              <p className="text-xs text-[#98a2b3]" aria-hidden={metadata.hasContent ? undefined : true}>
+              <p className="text-xs text-[#8C8175]" aria-hidden={metadata.hasContent ? undefined : true}>
                 {metadata.hasContent ? metadata.contentLabel : " "}
               </p>
             )}
@@ -130,7 +130,7 @@ export function ProductCard({
         {imageFit !== "contain" ? (
           <div className="space-y-2">
             <p
-              className={`product-description break-words text-sm leading-relaxed text-[#667085] ${
+              className={`product-description break-words text-sm leading-relaxed text-[#6B6258] ${
                 descriptionExpanded ? "" : "line-clamp-2"
               }`}
             >
@@ -140,7 +140,7 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={() => setDescriptionExpanded((current) => !current)}
-                className="inline-flex text-sm font-semibold text-[#6547fa] transition-colors hover:text-[#5434e6]"
+                className="inline-flex text-sm font-semibold text-[#9B6E3F] transition-colors hover:text-[#8A6036]"
               >
                 {descriptionExpanded ? "Ver menos" : "Ver más"}
               </button>
@@ -151,14 +151,14 @@ export function ProductCard({
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 flex flex-wrap items-baseline gap-2">
             <span
-              className={`font-bold text-[#111318] ${
+              className={`font-bold text-[#191714] ${
                 imageFit === "contain" ? "text-lg sm:text-2xl" : "text-xl sm:text-2xl"
               }`}
             >
               {formatCurrency(product.precioVenta)}
             </span>
             {hasPreviousPrice ? (
-              <span className="text-sm font-medium text-[#98a2b3] line-through">
+              <span className="text-sm font-medium text-[#8C8175] line-through">
                 {formatCurrency(product.precioAnterior as number)}
               </span>
             ) : null}
@@ -166,7 +166,7 @@ export function ProductCard({
 
           {quantity > 0 && onDecrease && onRemove ? (
             <div
-              className={`flex items-center border border-[#e4e7ec] bg-[#f7f8fa] shadow-sm ${
+              className={`flex items-center border border-[#DDD0C1] bg-[#F7F1E8] shadow-sm ${
                 imageFit === "contain" ? "gap-1 rounded-full px-1.5 py-1.5" : "gap-2 rounded-[22px] px-2 py-2"
               }`}
             >
@@ -178,7 +178,7 @@ export function ProductCard({
                 <Minus className={imageFit === "contain" ? "h-3.5 w-3.5" : "h-4 w-4"} />
               </ProductActionButton>
               <div
-                className={`text-center font-semibold text-[#111318] ${
+                className={`text-center font-semibold text-[#191714] ${
                   imageFit === "contain" ? "min-w-5 text-xs" : "min-w-8 text-sm"
                 }`}
               >
@@ -195,7 +195,7 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={onRemove}
-                className={`inline-flex items-center justify-center text-[#667085] transition-colors hover:bg-white hover:text-[#b44b43] ${
+                className={`inline-flex items-center justify-center text-[#6B6258] transition-colors hover:bg-white hover:text-[#b44b43] ${
                   imageFit === "contain" ? "h-8 w-8 rounded-full" : "h-10 w-10 rounded-2xl"
                 }`}
                 aria-label={`Quitar ${product.nombre} del pedido`}
@@ -208,7 +208,7 @@ export function ProductCard({
               type="button"
               onClick={onAdd}
               disabled={isOutOfStock}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#7357ff] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(115,87,255,0.22)] transition hover:bg-[#5b3ff2] disabled:cursor-not-allowed disabled:bg-[#c7bfff] disabled:shadow-none"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#B88B58] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_6px_14px_rgba(184,139,88,0.22)] transition hover:bg-[#9B6E3F] disabled:cursor-not-allowed disabled:bg-[#c7bfff] disabled:shadow-none"
             >
               <Plus className="h-3.5 w-3.5" />
               {isOutOfStock ? "Sin stock" : actionLabel ?? "Elegir"}
@@ -227,9 +227,9 @@ export function ProductCard({
         </div>
 
         {showStockCount ? (
-          <div className="rounded-xl bg-[#f7f8fa] px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm">
-            <div className="truncate font-medium text-[#667085]">{footerLabel}</div>
-            <div className="truncate font-semibold text-[#344054]">{availableStock}</div>
+          <div className="rounded-xl bg-[#F7F1E8] px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm">
+            <div className="truncate font-medium text-[#6B6258]">{footerLabel}</div>
+            <div className="truncate font-semibold text-[#4D453D]">{availableStock}</div>
           </div>
         ) : (
           <div
@@ -266,7 +266,7 @@ function ProductActionButton({
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center border border-[#e4e7ec] bg-white text-[#111318] transition-colors hover:border-[#7357ff] hover:text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-45 ${
+      className={`inline-flex items-center justify-center border border-[#DDD0C1] bg-white text-[#191714] transition-colors hover:border-[#B88B58] hover:text-[#8A6036] disabled:cursor-not-allowed disabled:opacity-45 ${
         compact ? "h-8 w-8 rounded-full" : "h-10 w-10 rounded-2xl"
       }`}
     >

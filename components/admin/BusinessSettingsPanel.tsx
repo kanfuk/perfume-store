@@ -210,9 +210,9 @@ export function BusinessSettingsPanel({
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fa] px-4 py-6 text-[#17191f] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#F7F1E8] px-4 py-6 text-[#171613] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-[26px] bg-[#17191f] p-5 text-white shadow-soft sm:p-7">
+        <header className="rounded-[26px] bg-[#171613] p-5 text-white shadow-soft sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <Link
@@ -250,7 +250,7 @@ export function BusinessSettingsPanel({
         <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           <nav
             aria-label="Secciones de configuración"
-            className="h-fit rounded-[24px] border border-[#e4e7ec] bg-white p-3 shadow-soft"
+            className="h-fit rounded-[24px] border border-[#DDD0C1] bg-white p-3 shadow-soft"
           >
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
               {SECTIONS.map(({ key, label, icon: Icon }) => (
@@ -260,8 +260,8 @@ export function BusinessSettingsPanel({
                   onClick={() => setSection(key)}
                   className={`inline-flex min-h-12 items-center gap-3 rounded-[18px] px-4 py-3 text-left text-sm font-semibold transition ${
                     section === key
-                      ? "bg-[#17191f] text-white"
-                      : "bg-[#f7f8fa] text-[#344054] hover:bg-[#eef0f4]"
+                      ? "bg-[#171613] text-white"
+                      : "bg-[#F7F1E8] text-[#4D453D] hover:bg-[#eef0f4]"
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
@@ -284,9 +284,9 @@ export function BusinessSettingsPanel({
               onSubmit={savePaymentSettings}
             />
           ) : section === "seguridad" ? (
-            <section className="rounded-[24px] border border-[#e4e7ec] bg-white p-5 shadow-soft sm:p-7">
+            <section className="rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft sm:p-7">
               <h2 className="text-xl font-bold">Seguridad</h2>
-              <p className="mt-2 text-sm leading-6 text-[#667085]">
+              <p className="mt-2 text-sm leading-6 text-[#6B6258]">
                 Cambia tu contraseña o cierra la sesión administrativa de este dispositivo.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -299,7 +299,7 @@ export function BusinessSettingsPanel({
                 </Link>
                 <Link
                   href="/admin/set-password"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-[#17191f] px-4 py-3 text-sm font-semibold text-white"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-[18px] bg-[#171613] px-4 py-3 text-sm font-semibold text-white"
                 >
                   <LockKeyhole className="h-4 w-4" />
                   Cambiar contraseña
@@ -307,7 +307,7 @@ export function BusinessSettingsPanel({
                 <button
                   type="button"
                   onClick={() => void logout()}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-[#d0d5dd] px-4 py-3 text-sm font-semibold text-[#344054]"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-[18px] border border-[#d0d5dd] px-4 py-3 text-sm font-semibold text-[#4D453D]"
                 >
                   <LogOut className="h-4 w-4" />
                   Cerrar sesión
@@ -315,11 +315,11 @@ export function BusinessSettingsPanel({
               </div>
             </section>
           ) : (
-            <section className="rounded-[24px] border border-[#e4e7ec] bg-white p-5 shadow-soft sm:p-7">
+            <section className="rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft sm:p-7">
               <h2 className="text-xl font-bold">
                 {SECTIONS.find((item) => item.key === section)?.label}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#667085]">
+              <p className="mt-2 text-sm leading-6 text-[#6B6258]">
                 Esta sección queda visible para la navegación del negocio. Su configuración
                 se implementará en una fase posterior.
               </p>
@@ -359,7 +359,7 @@ function PaymentSettingsForm({
 }: PaymentSettingsFormProps) {
   if (loading) {
     return (
-      <section className="rounded-[24px] border border-[#e4e7ec] bg-white p-7 shadow-soft">
+      <section className="rounded-[24px] border border-[#DDD0C1] bg-white p-7 shadow-soft">
         Cargando configuración…
       </section>
     );
@@ -377,16 +377,16 @@ function PaymentSettingsForm({
     <form
       noValidate
       onSubmit={onSubmit}
-      className="rounded-[24px] border border-[#e4e7ec] bg-white p-5 shadow-soft sm:p-7"
+      className="rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft sm:p-7"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">Datos de transferencia</h2>
-          <p className="mt-2 text-sm leading-6 text-[#667085]">
+          <p className="mt-2 text-sm leading-6 text-[#6B6258]">
             Se usarán al atender un pedido y solicitar el pago por WhatsApp.
           </p>
         </div>
-        <span className="rounded-full bg-[#f2f4f7] px-3 py-2 text-xs font-semibold text-[#475467]">
+        <span className="rounded-full bg-[#EEE5DA] px-3 py-2 text-xs font-semibold text-[#475467]">
           {complete ? "Validada" : "Pendiente"}
         </span>
       </div>
@@ -461,8 +461,8 @@ function PaymentSettingsForm({
         />
       </div>
 
-      <div className="mt-6 rounded-[20px] border border-[#e4e7ec] bg-[#f8fafc] p-4">
-        <h3 className="text-sm font-bold text-[#344054]">Vista previa del mensaje</h3>
+      <div className="mt-6 rounded-[20px] border border-[#DDD0C1] bg-[#f8fafc] p-4">
+        <h3 className="text-sm font-bold text-[#4D453D]">Vista previa del mensaje</h3>
         <pre className="mt-3 whitespace-pre-wrap break-words font-sans text-sm leading-6 text-[#475467]">
           {preview}
         </pre>
@@ -471,7 +471,7 @@ function PaymentSettingsForm({
       <button
         type="submit"
         disabled={saving}
-        className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[#17191f] px-5 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[#171613] px-5 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
         <Save className="h-5 w-5" />
         {saving ? "Guardando…" : "Guardar y validar"}
@@ -501,7 +501,7 @@ function FormInput({
 >) {
   return (
     <label className="space-y-2">
-      <span className="block text-sm font-semibold text-[#344054]">{label}</span>
+      <span className="block text-sm font-semibold text-[#4D453D]">{label}</span>
       <input
         {...props}
         type={type}
@@ -509,7 +509,7 @@ function FormInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}
-        className="min-h-12 w-full rounded-[16px] border border-[#d0d5dd] bg-white px-4 py-3 text-base text-[#17191f] outline-none focus:border-[#7357ff] read-only:bg-[#f2f4f7]"
+        className="min-h-12 w-full rounded-[16px] border border-[#d0d5dd] bg-white px-4 py-3 text-base text-[#171613] outline-none focus:border-[#B88B58] read-only:bg-[#EEE5DA]"
       />
       {error ? <span className="block text-sm text-rose-700">{error}</span> : null}
     </label>
@@ -531,12 +531,12 @@ function FormSelect({
 }) {
   return (
     <label className="space-y-2">
-      <span className="block text-sm font-semibold text-[#344054]">{label}</span>
+      <span className="block text-sm font-semibold text-[#4D453D]">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}
-        className="min-h-12 w-full rounded-[16px] border border-[#d0d5dd] bg-white px-4 py-3 text-base text-[#17191f] outline-none focus:border-[#7357ff]"
+        className="min-h-12 w-full rounded-[16px] border border-[#d0d5dd] bg-white px-4 py-3 text-base text-[#171613] outline-none focus:border-[#B88B58]"
       >
         <option value="">Selecciona una opción</option>
         {options.map((option) => (

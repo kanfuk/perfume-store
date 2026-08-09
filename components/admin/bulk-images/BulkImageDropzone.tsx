@@ -49,15 +49,15 @@ export function BulkImageDropzone({ disabled = false, onFilesSelected }: BulkIma
       }}
       className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition ${
         disabled
-          ? "cursor-not-allowed border-[#e4e7ec] bg-[#f7f8fa] opacity-60"
+          ? "cursor-not-allowed border-[#DDD0C1] bg-[#F7F1E8] opacity-60"
           : dragOver
-            ? "cursor-pointer border-[#7357ff] bg-[#f5f3ff]"
-            : "cursor-pointer border-[#e4e7ec] bg-white hover:border-[#c1b6ff]"
+            ? "cursor-pointer border-[#B88B58] bg-[#F4E8DB]"
+            : "cursor-pointer border-[#DDD0C1] bg-white hover:border-[#D8BEA2]"
       }`}
     >
-      <UploadCloud className="h-8 w-8 text-[#7357ff]" strokeWidth={1.5} />
-      <p className="text-sm font-semibold text-[#111318]">Arrastra tus imágenes aquí</p>
-      <p className="text-xs text-[#667085]">o haz clic para elegirlas · JPG, PNG, WebP o AVIF</p>
+      <UploadCloud className="h-8 w-8 text-[#B88B58]" strokeWidth={1.5} />
+      <p className="text-sm font-semibold text-[#191714]">Arrastra tus imágenes aquí</p>
+      <p className="text-xs text-[#6B6258]">o haz clic para elegirlas · JPG, PNG, WebP o AVIF</p>
       <input
         ref={inputRef}
         type="file"

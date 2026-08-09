@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getAuthenticatedAdmin } from "@/lib/admin-auth";
 import { getAdminPageData } from "@/lib/admin-dashboard-data";
 
 export default async function AdminPedidosPage() {
-  if (!(await isAdminAuthenticated())) {
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) {
     redirect("/admin/login");
   }
 
   const initialData = await getAdminPageData();
 
-  return <AdminDashboard initialData={initialData} initialView="agenda" />;
+  return <AdminDashboard initialData={initialData} initialView="agenda" isOwner={admin.rol === "OWNER"} />;
 }

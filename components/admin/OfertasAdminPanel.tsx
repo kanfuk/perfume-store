@@ -187,15 +187,15 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
       className={
         embedded
           ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden"
-          : "mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
       }
     >
       {!embedded ? (
-        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+        <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(184,139,88,0.34),transparent_28%)] p-6 sm:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-2">
-                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
                   <Tag className="h-3.5 w-3.5" />
                   Admin Smellme.cl
                 </span>
@@ -231,13 +231,13 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-[#344054]">
+        <p className="text-sm font-semibold text-[#4D453D]">
           Ofertas: {ofertasCount} de {OFFERS_LIMIT} seleccionadas
         </p>
         <button
           type="button"
           onClick={() => void togglePreview()}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2 text-sm font-semibold text-[#344054]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] bg-white px-3 py-2 text-sm font-semibold text-[#4D453D]"
           aria-expanded={previewOpen}
         >
           {previewOpen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -252,12 +252,12 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
       ) : null}
 
       {previewOpen ? (
-        <section className="rounded-2xl border border-[#e4e7ec] bg-[#f7f8fa] p-4 sm:p-5" aria-label="Vista previa pública de Ofertas de la semana">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
+        <section className="rounded-2xl border border-[#DDD0C1] bg-[#F7F1E8] p-4 sm:p-5" aria-label="Vista previa pública de Ofertas de la semana">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#8C8175]">
             Así se ve en la portada (mismo componente y datos que el catálogo público)
           </p>
           {previewLoading ? (
-            <p className="text-sm text-[#667085]">Cargando vista previa...</p>
+            <p className="text-sm text-[#6B6258]">Cargando vista previa...</p>
           ) : previewError ? (
             <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -270,19 +270,19 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
       ) : null}
 
       {!loading && products.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#e4e7ec] bg-white p-6 text-sm text-[#667085]">
+        <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#DDD0C1] bg-white p-6 text-sm text-[#6B6258]">
           <p>Todavía no hay perfumes en el catálogo. Primero agrega o importa productos para poder elegir ofertas.</p>
           <div className="flex flex-wrap gap-2">
             <Link
               href="/admin/catalogo/productos"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
             >
               <PackagePlus className="h-4 w-4" />
               Ir a Productos
             </Link>
             <Link
               href="/admin/importar-catalogo"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
             >
               <UploadCloud className="h-4 w-4" />
               Importar catálogo
@@ -305,8 +305,8 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
             onClick={() => setFilter(option.id)}
             className={`min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold ${
               filter === option.id
-                ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                : "border-[#e4e7ec] bg-white text-[#667085]"
+                ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]"
+                : "border-[#DDD0C1] bg-white text-[#6B6258]"
             }`}
           >
             {option.label}
@@ -315,23 +315,23 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
       </div>
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a2b3]" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8C8175]" />
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Buscar por nombre, marca o SKU"
           aria-label="Buscar producto para agregar a ofertas"
-          className="w-full rounded-xl border border-[#e4e7ec] bg-white py-2.5 pl-9 pr-3 text-sm text-[#111318] outline-none focus:border-[#7357ff]"
+          className="w-full rounded-xl border border-[#DDD0C1] bg-white py-2.5 pl-9 pr-3 text-sm text-[#191714] outline-none focus:border-[#B88B58]"
         />
       </div>
 
       {loading ? (
-        <p className="text-sm text-[#667085]">Cargando ofertas...</p>
+        <p className="text-sm text-[#6B6258]">Cargando ofertas...</p>
       ) : (
         <div className="flex flex-col gap-2">
           {visibleProducts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-[#667085]">Sin resultados.</p>
+            <p className="py-6 text-center text-sm text-[#6B6258]">Sin resultados.</p>
           ) : null}
           {visibleProducts.map((product) => {
             const enOferta = product.esOfertaSemana;
@@ -342,16 +342,16 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
             return (
               <div
                 key={product.id}
-                className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-3 shadow-sm sm:flex-nowrap"
+                className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#DDD0C1] bg-white p-3 shadow-sm sm:flex-nowrap"
               >
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#f7f8fa]">
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F7F1E8]">
                   <ProductImage src={product.imageUrl} alt={product.nombre} brand={product.marca} compact sizes="56px" />
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
-                  <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
-                  <p className="text-xs text-[#667085]">
+                  <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#8C8175]">{product.marca}</p>
+                  <p className="truncate text-sm font-semibold text-[#191714]">{product.nombre}</p>
+                  <p className="text-xs text-[#6B6258]">
                     {formatCurrency(product.precioVenta)}
                     {pausado ? " · Pausado" : sinStock ? " · Sin stock" : ""}
                   </p>
@@ -369,13 +369,13 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
                       }
                       placeholder="Precio anterior"
                       aria-label={`Precio anterior de ${product.nombre}`}
-                      className="w-28 rounded-lg border border-[#e4e7ec] px-2 py-2 text-sm text-[#111318] outline-none focus:border-[#7357ff]"
+                      className="w-28 rounded-lg border border-[#DDD0C1] px-2 py-2 text-sm text-[#191714] outline-none focus:border-[#B88B58]"
                     />
                     <button
                       type="button"
                       onClick={() => void guardarPrecioAnterior(product)}
                       disabled={pendingId === product.id}
-                      className="min-h-11 rounded-lg border border-[#e4e7ec] px-2.5 py-2 text-xs font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="min-h-11 rounded-lg border border-[#DDD0C1] px-2.5 py-2 text-xs font-semibold text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Guardar
                     </button>
@@ -388,7 +388,7 @@ export function OfertasAdminPanel({ embedded = false }: OfertasAdminPanelProps =
                     onClick={() => void desactivar(product)}
                     disabled={pendingId === product.id}
                     title="Quitar de Ofertas de la semana"
-                    className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-[#e4e7ec] px-3 py-2 text-sm font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-[#DDD0C1] px-3 py-2 text-sm font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <X className="h-4 w-4" />
                     Quitar

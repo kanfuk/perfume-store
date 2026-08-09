@@ -89,7 +89,7 @@ function severityChip(severity: QualityFinding["severity"]) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[#eeebff] px-2.5 py-0.5 text-xs font-semibold text-[#5434e6]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#F4E8DB] px-2.5 py-0.5 text-xs font-semibold text-[#8A6036]">
       <Info className="h-3 w-3" /> Informativo
     </span>
   );
@@ -180,12 +180,12 @@ export function CatalogQualityReview({
           type="button"
           onClick={onBack}
           disabled={busy}
-          className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#8A6036] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ChevronLeft className="h-4 w-4" /> Volver a la vista previa
         </button>
-        <h2 className="text-xl font-bold text-[#111318]">Revisión del catálogo</h2>
-        <p className="text-sm text-[#667085]">
+        <h2 className="text-xl font-bold text-[#191714]">Revisión del catálogo</h2>
+        <p className="text-sm text-[#6B6258]">
           Revisamos nombres, variantes y posibles duplicados antes de importar.
         </p>
       </div>
@@ -203,7 +203,7 @@ export function CatalogQualityReview({
       </div>
 
       {pendingFindings.length > 0 ? (
-        <div className="rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-2 text-sm font-medium text-[#344054]">
+        <div className="rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-2 text-sm font-medium text-[#4D453D]">
           Conflicto {Math.min(focusIndex + 1, pendingFindings.length)} de {pendingFindings.length}
         </div>
       ) : (
@@ -213,16 +213,16 @@ export function CatalogQualityReview({
       )}
 
       {safeNormalizations.length > 0 && !safeAcknowledged ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e4e7ec] bg-white px-4 py-3">
-          <div className="flex items-center gap-2 text-sm text-[#344054]">
-            <BadgeCheck className="h-4 w-4 text-[#5434e6]" />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#DDD0C1] bg-white px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-[#4D453D]">
+            <BadgeCheck className="h-4 w-4 text-[#8A6036]" />
             {safeNormalizations.length} normalizaciones seguras se aplicaron automáticamente (espacios, capitalización,
             formato de contenido). No cambian el significado comercial.
           </div>
           <button
             type="button"
             onClick={acceptAllSafeNormalizations}
-            className="min-h-11 shrink-0 rounded-lg border border-[#5434e6] px-3 py-2 text-xs font-semibold text-[#5434e6]"
+            className="min-h-11 shrink-0 rounded-lg border border-[#8A6036] px-3 py-2 text-xs font-semibold text-[#8A6036]"
           >
             Aceptar todas las normalizaciones seguras
           </button>
@@ -245,8 +245,8 @@ export function CatalogQualityReview({
               onClick={() => setActiveTab(tab.id)}
               className={`min-h-11 shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition ${
                 active
-                  ? "border-[#5434e6] bg-[#5434e6] text-white"
-                  : "border-[#e4e7ec] bg-white text-[#344054]"
+                  ? "border-[#8A6036] bg-[#8A6036] text-white"
+                  : "border-[#DDD0C1] bg-white text-[#4D453D]"
               }`}
             >
               {tab.label} ({count})
@@ -257,7 +257,7 @@ export function CatalogQualityReview({
 
       <div className="space-y-3">
         {visibleFindings.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-[#e4e7ec] px-4 py-6 text-center text-sm text-[#667085]">
+          <p className="rounded-xl border border-dashed border-[#DDD0C1] px-4 py-6 text-center text-sm text-[#6B6258]">
             No hay hallazgos en esta categoría.
           </p>
         ) : (
@@ -275,8 +275,8 @@ export function CatalogQualityReview({
         )}
       </div>
 
-      <div className="hidden items-center justify-between rounded-xl border border-[#e4e7ec] bg-white px-4 py-3 sm:flex">
-        <p className="text-sm text-[#667085]">
+      <div className="hidden items-center justify-between rounded-xl border border-[#DDD0C1] bg-white px-4 py-3 sm:flex">
+        <p className="text-sm text-[#6B6258]">
           {canContinue
             ? "No quedan conflictos bloqueantes. Puedes continuar al resumen final."
             : `Resuelve ${unresolvedBlockers.length} conflicto(s) bloqueante(s) para continuar.`}
@@ -292,12 +292,12 @@ export function CatalogQualityReview({
       </div>
 
       {/* Barra inferior fija (mobile) */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-[#e4e7ec] bg-white px-3 py-2 shadow-[0_-4px_12px_rgba(17,19,24,0.08)] sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-[#DDD0C1] bg-white px-3 py-2 shadow-[0_-4px_12px_rgba(17,19,24,0.08)] sm:hidden">
         <button
           type="button"
           onClick={() => goToStep(-1)}
           disabled={focusIndex <= 0}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#e4e7ec] disabled:opacity-40"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#DDD0C1] disabled:opacity-40"
           aria-label="Anterior"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -314,7 +314,7 @@ export function CatalogQualityReview({
           type="button"
           onClick={() => goToStep(1)}
           disabled={focusIndex >= pendingFindings.length - 1}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#e4e7ec] disabled:opacity-40"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-[#DDD0C1] disabled:opacity-40"
           aria-label="Siguiente"
         >
           <ArrowRight className="h-4 w-4" />
@@ -331,7 +331,7 @@ function SummaryStat({ label, value, tone }: { label: string; value: number; ton
       ? "bg-[#fdf1ef] text-[#8a2c22]"
       : tone === "ok"
         ? "bg-[#eefbf1] text-[#1f6d33]"
-        : "bg-[#f7f8fa] text-[#344054]";
+        : "bg-[#F7F1E8] text-[#4D453D]";
   return (
     <div className={`rounded-xl px-3 py-2 ${toneClass}`}>
       <div className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</div>
@@ -344,23 +344,23 @@ function RowsComparison({ finding }: { finding: QualityFinding }) {
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {finding.rows.map((row) => (
-        <div key={row.rowNumber} className="rounded-lg border border-[#e4e7ec] bg-[#f7f8fa] p-3 text-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">Fila {row.rowNumber}</div>
-          <div className="font-semibold text-[#111318]">
+        <div key={row.rowNumber} className="rounded-lg border border-[#DDD0C1] bg-[#F7F1E8] p-3 text-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[#8C8175]">Fila {row.rowNumber}</div>
+          <div className="font-semibold text-[#191714]">
             {row.nombre || <span className="italic text-[#b44b43]">(sin nombre)</span>}
           </div>
-          <div className="text-[#667085]">{row.marca || <span className="italic text-[#b44b43]">(sin marca)</span>}</div>
-          <div className="text-[#667085]">
+          <div className="text-[#6B6258]">{row.marca || <span className="italic text-[#b44b43]">(sin marca)</span>}</div>
+          <div className="text-[#6B6258]">
             {row.contenido || <span className="italic text-[#b44b43]">(sin contenido)</span>} · {formatCurrency(row.costo)}
           </div>
         </div>
       ))}
       {finding.existing ? (
         <div className="rounded-lg border border-[#d8cdfe] bg-[#f5f2ff] p-3 text-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[#7357ff]">Producto existente</div>
-          <div className="font-semibold text-[#111318]">{finding.existing.nombre}</div>
-          <div className="text-[#667085]">{finding.existing.marca}</div>
-          <div className="text-[#667085]">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[#B88B58]">Producto existente</div>
+          <div className="font-semibold text-[#191714]">{finding.existing.nombre}</div>
+          <div className="text-[#6B6258]">{finding.existing.marca}</div>
+          <div className="text-[#6B6258]">
             {finding.existing.contenido} · {formatCurrency(finding.existing.costoUnitario)} · SKU {finding.existing.sku}
           </div>
         </div>
@@ -421,17 +421,17 @@ function FindingCard({
   return (
     <div
       className={`space-y-3 rounded-xl border p-4 ${
-        focused ? "border-[#5434e6] ring-2 ring-[#5434e6]/20" : "border-[#e4e7ec]"
+        focused ? "border-[#8A6036] ring-2 ring-[#8A6036]/20" : "border-[#DDD0C1]"
       } ${isResolved ? "bg-[#fbfbff]" : "bg-white"}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[#8C8175]">
           {TYPE_LABELS[finding.type]}
         </span>
         {severityChip(finding.severity)}
       </div>
 
-      <p className="text-sm text-[#344054]">{finding.explanation}</p>
+      <p className="text-sm text-[#4D453D]">{finding.explanation}</p>
 
       <RowsComparison finding={finding} />
 
@@ -443,8 +443,8 @@ function FindingCard({
                 key={option.id}
                 className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${
                   optionId === option.id
-                    ? "border-[#5434e6] bg-[#eeebff] text-[#5434e6]"
-                    : "border-[#e4e7ec] text-[#344054]"
+                    ? "border-[#8A6036] bg-[#F4E8DB] text-[#8A6036]"
+                    : "border-[#DDD0C1] text-[#4D453D]"
                 }`}
               >
                 <input
@@ -461,7 +461,7 @@ function FindingCard({
           </div>
 
           {needsCostChoice ? (
-            <div className="flex flex-wrap gap-3 text-xs text-[#344054]">
+            <div className="flex flex-wrap gap-3 text-xs text-[#4D453D]">
               <span className="font-semibold">Costo a conservar:</span>
               {[rowA, rowB].map((rn) => (
                 <label key={rn} className="flex items-center gap-1">
@@ -483,7 +483,7 @@ function FindingCard({
               value={textValue}
               onChange={(event) => setTextValue(event.target.value)}
               placeholder="Nombre canónico final"
-              className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#DDD0C1] px-3 py-2 text-sm"
             />
           ) : null}
 
@@ -493,7 +493,7 @@ function FindingCard({
               value={textValue}
               onChange={(event) => setTextValue(event.target.value)}
               placeholder={`Nuevo nombre final para la fila ${rowB}`}
-              className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#DDD0C1] px-3 py-2 text-sm"
             />
           ) : null}
 
@@ -503,7 +503,7 @@ function FindingCard({
               value={textValue}
               onChange={(event) => setTextValue(event.target.value)}
               placeholder="Marca final"
-              className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#DDD0C1] px-3 py-2 text-sm"
             />
           ) : null}
 
@@ -513,7 +513,7 @@ function FindingCard({
               value={textValue}
               onChange={(event) => setTextValue(event.target.value)}
               placeholder="Nombre editado"
-              className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#DDD0C1] px-3 py-2 text-sm"
             />
           ) : null}
 
@@ -523,7 +523,7 @@ function FindingCard({
               value={numberValue}
               onChange={(event) => setNumberValue(event.target.value)}
               placeholder="Costo corregido"
-              className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#DDD0C1] px-3 py-2 text-sm"
             />
           ) : null}
 
@@ -533,12 +533,12 @@ function FindingCard({
               value={textValue}
               onChange={(event) => setTextValue(event.target.value)}
               placeholder="Contenido corregido (ej. 100ML)"
-              className="w-full rounded-lg border border-[#e4e7ec] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#DDD0C1] px-3 py-2 text-sm"
             />
           ) : null}
 
           {finding.type === "BRAND_INCONSISTENCY" ? (
-            <label className="flex items-center gap-2 text-xs text-[#344054]">
+            <label className="flex items-center gap-2 text-xs text-[#4D453D]">
               <input
                 type="checkbox"
                 checked={applyToAllInFile}
@@ -553,7 +553,7 @@ function FindingCard({
               type="button"
               onClick={handleApply}
               disabled={!optionId}
-              className="min-h-11 rounded-lg bg-[#111318] px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-11 rounded-lg bg-[#191714] px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               Aplicar
             </button>
@@ -561,7 +561,7 @@ function FindingCard({
               <button
                 type="button"
                 onClick={handleIgnore}
-                className="min-h-11 rounded-lg border border-[#e4e7ec] px-4 py-2 text-xs font-semibold text-[#667085]"
+                className="min-h-11 rounded-lg border border-[#DDD0C1] px-4 py-2 text-xs font-semibold text-[#6B6258]"
               >
                 Omitir advertencia
               </button>
@@ -570,7 +570,7 @@ function FindingCard({
               <button
                 type="button"
                 onClick={onClear}
-                className="min-h-11 rounded-lg border border-[#e4e7ec] px-4 py-2 text-xs font-semibold text-[#667085]"
+                className="min-h-11 rounded-lg border border-[#DDD0C1] px-4 py-2 text-xs font-semibold text-[#6B6258]"
               >
                 Volver
               </button>
@@ -578,7 +578,7 @@ function FindingCard({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-[#98a2b3]">No requiere ninguna acción.</p>
+        <p className="text-xs text-[#8C8175]">No requiere ninguna acción.</p>
       )}
     </div>
   );

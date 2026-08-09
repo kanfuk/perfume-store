@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedAdmin } from "@/lib/admin-auth";
-import {
-  resolveAccountTypeDisplayName,
-  resolveBankDisplayName,
-  type BusinessPaymentSettings
-} from "@/lib/businessPaymentSettings";
 import type { MetodoDespacho } from "@/lib/constants";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { httpStatusForPerfumeOrderError } from "@/lib/perfumeOrderErrors";
 import type { AdminOrderSummary, AdminOrdersAction } from "@/lib/types";
 import { buildOrderPaymentConfirmedMessage } from "@/lib/whatsapp/buildOrderPaymentConfirmedMessage";
-import { buildOrderPaymentRequestMessage } from "@/lib/whatsapp/buildOrderPaymentRequestMessage";
-import { createBusinessSettingsService } from "@/services/businessSettingsService";
+import { AdminPaymentAccountServiceError } from "@/services/adminPaymentAccountService";
+import {
+  AdminPaymentMessageServiceError,
+  createAdminPaymentMessageService
+} from "@/services/adminPaymentMessageService";
 import { createPedidoService } from "@/services/pedidoService";
 
 /** Estados donde "Coordinar entrega por WhatsApp" sigue teniendo sentido. */
@@ -21,33 +19,9 @@ const ORDER_ACTION_FIELDS = new Set([
   "motivoCancelacion",
   "confirmarPagoPerdido",
   "monto",
-  "metodoPago"
+  "metodoPago",
+  "receiverAdminUserId"
 ]);
-
-function buildPaymentRequestMessageForOrder(
-  pedido: AdminOrderSummary,
-  settings: BusinessPaymentSettings
-) {
-  return buildOrderPaymentRequestMessage({
-    customerName: pedido.clienteNombre,
-    codigo: pedido.codigo,
-    items: pedido.items.map((item) => ({
-      name: item.productoNombre,
-      quantity: item.cantidad
-    })),
-    subtotal: pedido.total - (pedido.costoDespacho ?? 0),
-    costoDespacho: pedido.costoDespacho,
-    total: pedido.total,
-    bankData: {
-      accountHolder: settings.titularCuenta,
-      rut: settings.rutTitular,
-      bank: resolveBankDisplayName(settings.banco),
-      accountType: resolveAccountTypeDisplayName(settings.tipoCuenta),
-      accountNumber: settings.numeroCuenta,
-      email: settings.correo
-    }
-  });
-}
 
 function buildPaymentConfirmedMessageForOrder(pedido: AdminOrderSummary) {
   return buildOrderPaymentConfirmedMessage({
@@ -65,7 +39,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ pedidoId: string }> }
 ) {
-  if (!(await getAuthenticatedAdmin())) {
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
@@ -114,7 +89,28 @@ export async function PATCH(
       confirmarPagoPerdido?: boolean;
       monto?: number;
       metodoPago?: string;
+      receiverAdminUserId?: string;
     };
+    if (
+      body.receiverAdminUserId !== undefined &&
+      (typeof body.receiverAdminUserId !== "string" || !body.receiverAdminUserId.trim())
+    ) {
+      return NextResponse.json(
+        { error: "La cuenta receptora no es válida." },
+        { status: 400 }
+      );
+    }
+    if (
+      body.receiverAdminUserId &&
+      body.action !== "agendar" &&
+      body.action !== "reenviar-transferencia"
+    ) {
+      return NextResponse.json(
+        { error: "La cuenta receptora no corresponde a esta acción." },
+        { status: 400 }
+      );
+    }
+    const receiverAdminUserId = body.receiverAdminUserId?.trim();
     const { pedidoId } = await context.params;
     const pedidoService = createPedidoService();
     let whatsapp: { message: string } | undefined;
@@ -122,27 +118,24 @@ export async function PATCH(
 
     switch (body.action) {
       case "agendar": {
-        // El servidor carga y valida la configuracion bancaria: nunca se
-        // confia en datos bancarios enviados por el cliente. Si falta algo,
-        // el pedido NO se toca (ni estado, ni stock, ni reserva).
-        const { settings, completa } =
-          await createBusinessSettingsService().obtenerEstadoConfiguracionPago();
-
-        if (!completa) {
-          return NextResponse.json(
-            {
-              error: "Completa los datos bancarios antes de atender pedidos.",
-              code: "CONFIG_INCOMPLETA",
-              configuracionUrl: "/admin/configuracion?seccion=transferencia"
-            },
-            { status: 422 }
-          );
-        }
+        // La identidad autenticada determina la cuenta. El OWNER debe
+        // seleccionar explicitamente un ADMIN receptor; para ADMIN no se
+        // acepta ninguna identidad bancaria enviada por el navegador.
+        const paymentMessageService = createAdminPaymentMessageService();
+        const paymentContext = await paymentMessageService.authorize({
+          pedidoId,
+          admin,
+          receiverAdminUserId,
+          action: "AGENDAR",
+          preserveOriginalSnapshot: false
+        });
 
         await pedidoService.agendarPedido(pedidoId);
         const pedido = await pedidoService.obtenerPedidoAdminPorId(pedidoId);
         pedidoRespuesta = pedido;
-        whatsapp = { message: buildPaymentRequestMessageForOrder(pedido, settings) };
+        whatsapp = {
+          message: await paymentMessageService.recordAndBuild(pedido, paymentContext)
+        };
         break;
       }
       case "reenviar-transferencia": {
@@ -157,22 +150,19 @@ export async function PATCH(
           );
         }
 
-        const { settings, completa } =
-          await createBusinessSettingsService().obtenerEstadoConfiguracionPago();
-
-        if (!completa) {
-          return NextResponse.json(
-            {
-              error: "Completa los datos bancarios antes de reenviarlos.",
-              code: "CONFIG_INCOMPLETA",
-              configuracionUrl: "/admin/configuracion?seccion=transferencia"
-            },
-            { status: 422 }
-          );
-        }
+        const paymentMessageService = createAdminPaymentMessageService();
+        const paymentContext = await paymentMessageService.authorize({
+          pedidoId,
+          admin,
+          receiverAdminUserId,
+          action: "REENVIAR_TRANSFERENCIA",
+          preserveOriginalSnapshot: true
+        });
 
         pedidoRespuesta = pedido;
-        whatsapp = { message: buildPaymentRequestMessageForOrder(pedido, settings) };
+        whatsapp = {
+          message: await paymentMessageService.recordAndBuild(pedido, paymentContext)
+        };
         break;
       }
       case "coordinar-entrega": {
@@ -244,6 +234,56 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true, pedido: pedidoRespuesta, whatsapp });
   } catch (error) {
+    if (error instanceof AdminPaymentAccountServiceError) {
+      const adminAccountProblem =
+        error.code === "ACCOUNT_REQUIRED" || error.code === "ACCOUNT_INACTIVE";
+      return NextResponse.json(
+        {
+          error: adminAccountProblem
+            ? admin.rol === "ADMIN"
+              ? "No tienes una cuenta de cobro configurada. Solicita al OWNER que la configure."
+              : "La cuenta receptora seleccionada no está activa y completa."
+            : "La cuenta receptora debe pertenecer a un ADMIN activo.",
+          code: adminAccountProblem ? "PAYMENT_ACCOUNT_REQUIRED" : "PAYMENT_RECEIVER_INVALID"
+        },
+        { status: adminAccountProblem ? 422 : 403 }
+      );
+    }
+
+    if (error instanceof AdminPaymentMessageServiceError) {
+      const responseByCode = {
+        RECEIVER_REQUIRED: {
+          error: "Selecciona explícitamente una cuenta receptora.",
+          code: "PAYMENT_RECEIVER_REQUIRED",
+          status: 422
+        },
+        RECEIVER_NOT_ALLOWED: {
+          error: "Un ADMIN solo puede utilizar su propia cuenta de cobro.",
+          code: "PAYMENT_RECEIVER_FORBIDDEN",
+          status: 403
+        },
+        ORIGINAL_RECEIVER_MISMATCH: {
+          error: "Este pedido fue comunicado con otra cuenta receptora. Selecciona la cuenta original.",
+          code: "PAYMENT_RECEIVER_MISMATCH",
+          status: 409
+        },
+        INVALID_AUDIT: {
+          error: "El registro histórico de cobro no es válido.",
+          code: "PAYMENT_AUDIT_INVALID",
+          status: 500
+        },
+        AUDIT_FAILED: {
+          error: "No fue posible registrar la trazabilidad del mensaje de pago.",
+          code: "PAYMENT_AUDIT_FAILED",
+          status: 500
+        }
+      }[error.code];
+      return NextResponse.json(
+        { error: responseByCode.error, code: responseByCode.code },
+        { status: responseByCode.status }
+      );
+    }
+
     // Los errores de mark_perfume_order_paid_v1 / cancel_perfume_order_v1 /
     // advance_perfume_order_status_v1 ya llegan aqui traducidos a espanol y
     // sin detalles internos de PostgreSQL (ver

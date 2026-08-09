@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { getAuthenticatedAdmin } = vi.hoisted(() => ({
   getAuthenticatedAdmin: vi.fn()
 }));
-const { obtenerEstadoConfiguracionPago } = vi.hoisted(() => ({
-  obtenerEstadoConfiguracionPago: vi.fn()
+const { authorizePaymentMessage, recordAndBuildPaymentMessage } = vi.hoisted(() => ({
+  authorizePaymentMessage: vi.fn(),
+  recordAndBuildPaymentMessage: vi.fn()
 }));
 const {
   agendarPedido,
@@ -33,9 +34,13 @@ vi.mock("@/lib/http-security", () => ({
   validateTrustedOrigin: () => null,
   validateJsonRequest: () => null
 }));
-vi.mock("@/services/businessSettingsService", () => ({
-  createBusinessSettingsService: () => ({
-    obtenerEstadoConfiguracionPago
+vi.mock("@/services/adminPaymentMessageService", () => ({
+  AdminPaymentMessageServiceError: class AdminPaymentMessageServiceError extends Error {
+    constructor(public code: string) { super(code); }
+  },
+  createAdminPaymentMessageService: () => ({
+    authorize: authorizePaymentMessage,
+    recordAndBuild: recordAndBuildPaymentMessage
   })
 }));
 vi.mock("@/services/pedidoService", () => ({
@@ -53,15 +58,7 @@ vi.mock("@/services/pedidoService", () => ({
 }));
 
 import { PATCH } from "@/app/api/admin/orders/[pedidoId]/route";
-
-const settings = {
-  banco: "BANCOESTADO",
-  tipoCuenta: "CUENTA_VISTA",
-  titularCuenta: "Smellme SpA",
-  rutTitular: "12345678-5",
-  numeroCuenta: "001234",
-  correo: "pagos@smellme.cl"
-};
+import { AdminPaymentAccountServiceError } from "@/services/adminPaymentAccountService";
 
 const order = {
   id: "pedido-1",
@@ -102,12 +99,21 @@ const context = { params: Promise.resolve({ pedidoId: "pedido-1" }) };
 describe("PATCH operaciones administrativas de pedidos", () => {
   beforeEach(() => {
     getAuthenticatedAdmin.mockReset();
-    getAuthenticatedAdmin.mockResolvedValue({ userId: "admin-1" });
-    obtenerEstadoConfiguracionPago.mockReset();
-    obtenerEstadoConfiguracionPago.mockResolvedValue({
-      settings,
-      completa: true
+    getAuthenticatedAdmin.mockResolvedValue({
+      userId: "auth-admin-1",
+      profileId: "admin-1",
+      rol: "ADMIN"
     });
+    authorizePaymentMessage.mockReset();
+    authorizePaymentMessage.mockResolvedValue({
+      operatorAdminUserId: "admin-1",
+      receiverAdminUserId: "admin-1",
+      paymentAccountId: "account-1",
+      snapshot: {},
+      action: "AGENDAR"
+    });
+    recordAndBuildPaymentMessage.mockReset();
+    recordAndBuildPaymentMessage.mockResolvedValue("Datos cuenta 001234");
     for (const mock of [
       agendarPedido,
       marcarPedidoPagado,
@@ -132,27 +138,30 @@ describe("PATCH operaciones administrativas de pedidos", () => {
     expect(agendarPedido).not.toHaveBeenCalled();
   });
 
-  it("configuracion incompleta bloquea Atender antes de mutar", async () => {
-    obtenerEstadoConfiguracionPago.mockResolvedValueOnce({
-      settings: { ...settings, banco: "" },
-      completa: false
-    });
+  it("ADMIN sin cuenta bloquea Atender antes de mutar", async () => {
+    authorizePaymentMessage.mockRejectedValueOnce(
+      new AdminPaymentAccountServiceError("ACCOUNT_REQUIRED")
+    );
     const response = await PATCH(request({ action: "agendar" }), context);
     const payload = await response.json();
     expect(response.status).toBe(422);
-    expect(payload.code).toBe("CONFIG_INCOMPLETA");
-    expect(payload.configuracionUrl).toContain("/admin/configuracion");
+    expect(payload.code).toBe("PAYMENT_ACCOUNT_REQUIRED");
+    expect(payload.error).toContain("Solicita al OWNER");
     expect(agendarPedido).not.toHaveBeenCalled();
     expect(obtenerPedidoAdminPorId).not.toHaveBeenCalled();
   });
 
-  it("configuracion completa permite Atender y devuelve pedido + mensaje", async () => {
+  it("cuenta autorizada permite Atender, audita y devuelve pedido + mensaje", async () => {
     const response = await PATCH(request({ action: "agendar" }), context);
     const payload = await response.json();
     expect(response.status).toBe(200);
     expect(agendarPedido).toHaveBeenCalledWith("pedido-1");
     expect(payload.pedido.id).toBe("pedido-1");
     expect(payload.whatsapp.message).toContain("001234");
+    expect(recordAndBuildPaymentMessage).toHaveBeenCalledWith(
+      order,
+      expect.objectContaining({ paymentAccountId: "account-1" })
+    );
   });
 
   it("Reenviar genera el mensaje sin mutar estado, pago o stock", async () => {
@@ -165,6 +174,25 @@ describe("PATCH operaciones administrativas de pedidos", () => {
     expect(agendarPedido).not.toHaveBeenCalled();
     expect(marcarPedidoPagado).not.toHaveBeenCalled();
     expect(cancelarPedido).not.toHaveBeenCalled();
+    expect(authorizePaymentMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ preserveOriginalSnapshot: true })
+    );
+  });
+
+  it("OWNER debe enviar un receptor explícito y el servidor lo autoriza", async () => {
+    getAuthenticatedAdmin.mockResolvedValueOnce({
+      userId: "auth-owner",
+      profileId: "owner-profile",
+      rol: "OWNER"
+    });
+    const response = await PATCH(
+      request({ action: "agendar", receiverAdminUserId: "admin-2" }),
+      context
+    );
+    expect(response.status).toBe(200);
+    expect(authorizePaymentMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ receiverAdminUserId: "admin-2" })
+    );
   });
 
   it("Coordinar entrega es repetible y no muta el pedido", async () => {

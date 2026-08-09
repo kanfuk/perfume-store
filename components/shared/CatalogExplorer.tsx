@@ -32,7 +32,7 @@ const INITIAL_BRAND_COUNT = 8;
 
 function brandChipClass(active: boolean): string {
   return `flex h-9 w-full items-center justify-center truncate rounded-full border px-2.5 text-xs font-semibold transition ${
-    active ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]" : "border-[#e4e7ec] bg-white text-[#667085] hover:border-[#c9bdff]"
+    active ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]" : "border-[#DDD0C1] bg-white text-[#6B6258] hover:border-[#c9bdff]"
   }`;
 }
 
@@ -97,7 +97,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
   if (families.length === 0) {
     return (
       <div className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
-        <h4 className="text-base font-semibold text-[#111318]">No hay perfumes disponibles por ahora</h4>
+        <h4 className="text-base font-semibold text-[#191714]">No hay perfumes disponibles por ahora</h4>
       </div>
     );
   }
@@ -105,12 +105,12 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-[#111318]">Encuentra tu perfume</h3>
-        <p className="text-sm text-[#667085]">Busca por nombre, marca o tamaño.</p>
+        <h3 className="text-lg font-semibold text-[#191714]">Encuentra tu perfume</h3>
+        <p className="text-sm text-[#6B6258]">Busca por nombre, marca o tamaño.</p>
       </div>
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#98a2b3]" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8C8175]" />
         <input
           type="search"
           value={query}
@@ -120,23 +120,23 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
           }}
           placeholder="Busca tu perfume o marca"
           aria-label="Buscar en el catálogo"
-          className="w-full rounded-2xl border border-[#e4e7ec] bg-white py-3.5 pl-12 pr-11 text-base text-[#111318] shadow-sm outline-none transition focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
+          className="w-full rounded-2xl border border-[#DDD0C1] bg-white py-3.5 pl-12 pr-11 text-base text-[#191714] shadow-sm outline-none transition focus:border-[#B88B58] focus:ring-2 focus:ring-[#F4E8DB]"
         />
         {isSearching ? (
           <button
             type="button"
             onClick={clearQuery}
             aria-label="Limpiar búsqueda"
-            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#98a2b3] hover:bg-[#f2f4f7] hover:text-[#344054]"
+            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#8C8175] hover:bg-[#EEE5DA] hover:text-[#4D453D]"
           >
             <X className="h-4 w-4" />
           </button>
         ) : null}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+      <div className="space-y-3 rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8C8175]">
             Filtrar por marca
           </span>
           <div className="flex items-center gap-3">
@@ -144,7 +144,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
               value={sort}
               onChange={(event) => setSort(event.target.value as SortOption)}
               aria-label="Ordenar catálogo"
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2 text-sm text-[#111318] shadow-sm outline-none transition focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff]"
+              className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2 text-sm text-[#191714] shadow-sm outline-none transition focus:border-[#B88B58] focus:ring-2 focus:ring-[#F4E8DB]"
             >
               <option value="recomendados">Recomendados</option>
               <option value="nombre-asc">Nombre A-Z</option>
@@ -155,7 +155,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
               <button
                 type="button"
                 onClick={clearFilters}
-                className="shrink-0 text-sm font-semibold text-[#5434e6] hover:text-[#392694]"
+                className="shrink-0 text-sm font-semibold text-[#8A6036] hover:text-[#6F472C]"
               >
                 Limpiar filtros
               </button>
@@ -194,7 +194,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
               type="button"
               onClick={() => setShowAllBrands((current) => !current)}
               aria-expanded={showAllBrands}
-              className="flex h-9 w-full items-center justify-center truncate rounded-full border border-dashed border-[#c9bdff] bg-[#faf9ff] px-2.5 text-xs font-semibold text-[#5434e6] transition hover:border-[#7357ff]"
+              className="flex h-9 w-full items-center justify-center truncate rounded-full border border-dashed border-[#c9bdff] bg-[#faf9ff] px-2.5 text-xs font-semibold text-[#8A6036] transition hover:border-[#B88B58]"
             >
               {showAllBrands ? "Ver menos" : `+${hiddenBrandCount} marcas`}
             </button>
@@ -202,7 +202,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
         </div>
       </div>
 
-      <p className="text-sm text-[#667085]" aria-live="polite">
+      <p className="text-sm text-[#6B6258]" aria-live="polite">
         {isSearching
           ? `${filtered.length} ${filtered.length === 1 ? "perfume encontrado" : "perfumes encontrados"}`
           : hiddenByDefaultCount > 0
@@ -212,14 +212,14 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
 
       {filtered.length === 0 ? (
         <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
-          <h4 className="text-base font-semibold text-[#111318]">No encontramos ese perfume</h4>
-          <p className="max-w-md text-sm leading-6 text-[#667085]">
+          <h4 className="text-base font-semibold text-[#191714]">No encontramos ese perfume</h4>
+          <p className="max-w-md text-sm leading-6 text-[#6B6258]">
             Prueba con otra marca, una parte del nombre o el tamaño.
           </p>
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-xl border border-[#e4e7ec] bg-white px-4 py-2 text-sm font-semibold text-[#5434e6] shadow-sm hover:border-[#7357ff]"
+            className="rounded-xl border border-[#DDD0C1] bg-white px-4 py-2 text-sm font-semibold text-[#8A6036] shadow-sm hover:border-[#B88B58]"
           >
             Limpiar búsqueda
           </button>
@@ -239,7 +239,7 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
               <button
                 type="button"
                 onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                className="rounded-xl border border-[#e4e7ec] bg-white px-5 py-2.5 text-sm font-semibold text-[#5434e6] shadow-sm transition hover:border-[#7357ff] hover:bg-[#f7f5ff]"
+                className="rounded-xl border border-[#DDD0C1] bg-white px-5 py-2.5 text-sm font-semibold text-[#8A6036] shadow-sm transition hover:border-[#B88B58] hover:bg-[#f7f5ff]"
               >
                 Ver {Math.min(PAGE_SIZE, filtered.length - visibleCount)} más
               </button>

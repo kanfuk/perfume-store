@@ -287,15 +287,15 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       className={
         embedded
           ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden"
-          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
       }
     >
       {!embedded ? (
-        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+        <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(184,139,88,0.34),transparent_28%)] p-6 sm:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-2">
-                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
                   <Sparkles className="h-3.5 w-3.5" />
                   Admin Smellme.cl
                 </span>
@@ -330,17 +330,17 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm sm:p-5">
+      <section className="rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
           <div>
-            <label htmlFor="top-ranking-mode" className="mb-1.5 block text-sm font-semibold text-[#344054]">
+            <label htmlFor="top-ranking-mode" className="mb-1.5 block text-sm font-semibold text-[#4D453D]">
               Modo del Top {TOP_PRODUCTS_LIMIT}
             </label>
             <select
               id="top-ranking-mode"
               value={draftMode}
               onChange={(event) => setDraftMode(event.target.value as TopRankingMode)}
-              className="min-h-11 w-full rounded-xl border border-[#d0d5dd] bg-white px-3 text-sm text-[#111318] outline-none focus:border-[#7357ff]"
+              className="min-h-11 w-full rounded-xl border border-[#d0d5dd] bg-white px-3 text-sm text-[#191714] outline-none focus:border-[#B88B58]"
             >
               <option value="MANUAL">Manual</option>
               <option value="AUTOMATIC">Automático por ventas</option>
@@ -348,7 +348,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
             </select>
           </div>
           <div>
-            <label htmlFor="top-sales-window" className="mb-1.5 block text-sm font-semibold text-[#344054]">
+            <label htmlFor="top-sales-window" className="mb-1.5 block text-sm font-semibold text-[#4D453D]">
               Período de ventas
             </label>
             <select
@@ -356,7 +356,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
               value={draftWindowDays}
               onChange={(event) => setDraftWindowDays(event.target.value)}
               disabled={draftMode === "MANUAL"}
-              className="min-h-11 w-full rounded-xl border border-[#d0d5dd] bg-white px-3 text-sm text-[#111318] outline-none focus:border-[#7357ff] disabled:bg-[#f2f4f7] disabled:text-[#98a2b3]"
+              className="min-h-11 w-full rounded-xl border border-[#d0d5dd] bg-white px-3 text-sm text-[#191714] outline-none focus:border-[#B88B58] disabled:bg-[#EEE5DA] disabled:text-[#8C8175]"
             >
               <option value="30">Últimos 30 días</option>
               <option value="90">Últimos 90 días</option>
@@ -372,7 +372,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
             {savingConfiguration ? "Guardando..." : "Guardar configuración"}
           </button>
         </div>
-        <p className="mt-3 text-sm leading-6 text-[#667085]">
+        <p className="mt-3 text-sm leading-6 text-[#6B6258]">
           {draftMode === "MANUAL"
             ? "Tú controlas todas las posiciones; funciona igual que el Top 15 actual."
             : draftMode === "AUTOMATIC"
@@ -382,13 +382,13 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-[#344054]">
+        <p className="text-sm font-semibold text-[#4D453D]">
           Top {TOP_PRODUCTS_LIMIT}: {slots.filter((slot) => !!slot.producto).length} de {TOP_PRODUCTS_LIMIT} seleccionados
         </p>
         <button
           type="button"
           onClick={() => void togglePreview()}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2 text-sm font-semibold text-[#344054]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] bg-white px-3 py-2 text-sm font-semibold text-[#4D453D]"
           aria-expanded={previewOpen}
         >
           {previewOpen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -397,12 +397,12 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       </div>
 
       {previewOpen ? (
-        <section className="rounded-2xl border border-[#e4e7ec] bg-[#f7f8fa] p-4 sm:p-5" aria-label="Vista previa pública del Top 15">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
+        <section className="rounded-2xl border border-[#DDD0C1] bg-[#F7F1E8] p-4 sm:p-5" aria-label="Vista previa pública del Top 15">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#8C8175]">
             Así se ve en la portada (mismo componente y datos que el catálogo público)
           </p>
           {previewLoading ? (
-            <p className="text-sm text-[#667085]">Cargando vista previa...</p>
+            <p className="text-sm text-[#6B6258]">Cargando vista previa...</p>
           ) : previewError ? (
             <div className="flex items-start gap-2 rounded-xl border border-[#f3c6c0] bg-[#fdf1ef] px-4 py-3 text-sm text-[#8a2c22]">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -415,7 +415,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       ) : null}
 
       {!loading && products.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#e4e7ec] bg-white p-6 text-sm text-[#667085]">
+        <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-[#DDD0C1] bg-white p-6 text-sm text-[#6B6258]">
           <p>
             Todavía no hay perfumes en el catálogo. Primero agrega o importa productos para poder elegir el
             Top {TOP_PRODUCTS_LIMIT}.
@@ -423,14 +423,14 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
           <div className="flex flex-wrap gap-2">
             <Link
               href="/admin/catalogo/productos"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
             >
               <PackagePlus className="h-4 w-4" />
               Ir a Productos
             </Link>
             <Link
               href="/admin/importar-catalogo"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
             >
               <UploadCloud className="h-4 w-4" />
               Importar catálogo
@@ -453,8 +453,8 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
             onClick={() => setSlotFilter(option.id)}
             className={`min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold ${
               slotFilter === option.id
-                ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                : "border-[#e4e7ec] bg-white text-[#667085]"
+                ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]"
+                : "border-[#DDD0C1] bg-white text-[#6B6258]"
             }`}
           >
             {option.label}
@@ -463,11 +463,11 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
       </div>
 
       {loading ? (
-        <p className="text-sm text-[#667085]">Cargando Top {TOP_PRODUCTS_LIMIT}...</p>
+        <p className="text-sm text-[#6B6258]">Cargando Top {TOP_PRODUCTS_LIMIT}...</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {visibleSlots.length === 0 ? (
-            <p className="col-span-full py-6 text-center text-sm text-[#667085]">
+            <p className="col-span-full py-6 text-center text-sm text-[#6B6258]">
               Sin posiciones en esta categoría.
             </p>
           ) : null}
@@ -477,9 +477,9 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
             const pausado = !!producto && producto.activo === false;
 
             return (
-              <div key={slot.rank} className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+              <div key={slot.rank} className="flex flex-col gap-3 rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#eeebff] text-xs font-bold text-[#5434e6]">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#F4E8DB] text-xs font-bold text-[#8A6036]">
                     {slot.rank}
                   </span>
                   {producto ? (
@@ -489,7 +489,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                         onClick={() => unlink(slot.rank)}
                         disabled={unlinkingRank === slot.rank}
                         title={`Quitar del Top ${TOP_PRODUCTS_LIMIT}`}
-                        className="rounded-lg p-1 text-[#98a2b3] hover:bg-[#f7f8fa] hover:text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg p-1 text-[#8C8175] hover:bg-[#F7F1E8] hover:text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -497,7 +497,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                   ) : null}
                 </div>
 
-                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f7f8fa]">
+                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#F7F1E8]">
                   {slot.imageUrl
                     ? (() => {
                         // Misma URL same-origin que usa ProductImage en el resto del admin
@@ -520,22 +520,22 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
 
                 {producto ? (
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{producto.marca}</p>
-                    <p className="line-clamp-2 text-sm font-semibold text-[#111318]">{producto.nombre}</p>
-                    <p className="text-xs text-[#667085]">{producto.contenido}</p>
-                    <p className="text-sm font-bold text-[#111318]">{formatCurrency(producto.precioVenta)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8C8175]">{producto.marca}</p>
+                    <p className="line-clamp-2 text-sm font-semibold text-[#191714]">{producto.nombre}</p>
+                    <p className="text-xs text-[#6B6258]">{producto.contenido}</p>
+                    <p className="text-sm font-bold text-[#191714]">{formatCurrency(producto.precioVenta)}</p>
                     <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] font-semibold">
-                      <span className={slot.source === "AUTOMATIC" ? "rounded-full bg-[#e9f7ef] px-2 py-1 text-[#18794e]" : "rounded-full bg-[#eeebff] px-2 py-1 text-[#5434e6]"}>
+                      <span className={slot.source === "AUTOMATIC" ? "rounded-full bg-[#e9f7ef] px-2 py-1 text-[#18794e]" : "rounded-full bg-[#F4E8DB] px-2 py-1 text-[#8A6036]"}>
                         {slot.source === "AUTOMATIC" ? "Automático" : "Manual"}
                       </span>
                       {configuration.mode !== "MANUAL" ? (
-                        <span className="rounded-full bg-[#f2f4f7] px-2 py-1 text-[#475467]">
+                        <span className="rounded-full bg-[#EEE5DA] px-2 py-1 text-[#475467]">
                           {slot.unitsSold} un. / {configuration.salesWindowDays === null ? "histórico" : `${configuration.salesWindowDays} días`}
                         </span>
                       ) : null}
                     </div>
                     {pausado ? (
-                      <p className="rounded-lg bg-[#f2f4f7] px-2 py-1 text-xs font-semibold text-[#475467]">
+                      <p className="rounded-lg bg-[#EEE5DA] px-2 py-1 text-xs font-semibold text-[#475467]">
                         Pausado: oculto del Top {TOP_PRODUCTS_LIMIT} público
                       </p>
                     ) : sinStock ? (
@@ -545,18 +545,18 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#98a2b3]">Posición vacía</p>
+                  <p className="text-sm text-[#8C8175]">Posición vacía</p>
                 )}
 
                 {configuration.mode === "AUTOMATIC" ? (
-                  <p className="mt-auto rounded-xl bg-[#f7f8fa] px-3 py-2.5 text-center text-xs font-semibold text-[#667085]">
+                  <p className="mt-auto rounded-xl bg-[#F7F1E8] px-3 py-2.5 text-center text-xs font-semibold text-[#6B6258]">
                     Gestionado por ventas
                   </p>
                 ) : (
                   <button
                     type="button"
                     onClick={() => openPicker(slot.rank)}
-                    className="mt-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-[#e4e7ec] px-3 py-2 text-sm font-semibold text-[#5434e6]"
+                    className="mt-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-[#DDD0C1] px-3 py-2 text-sm font-semibold text-[#8A6036]"
                   >
                     {slot.source === "AUTOMATIC"
                       ? "Fijar manualmente"
@@ -575,14 +575,14 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="flex max-h-[80vh] w-full max-w-lg flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[#111318]">Posición {activeRank}</h3>
-              <button type="button" onClick={closePicker} className="rounded-lg p-1 text-[#98a2b3] hover:bg-[#f7f8fa]">
+              <h3 className="text-lg font-semibold text-[#191714]">Posición {activeRank}</h3>
+              <button type="button" onClick={closePicker} className="rounded-lg p-1 text-[#8C8175] hover:bg-[#F7F1E8]">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a2b3]" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8C8175]" />
               <input
                 type="search"
                 autoFocus
@@ -590,7 +590,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                 onChange={(event) => setPickerQuery(event.target.value)}
                 placeholder="Buscar por nombre, marca o SKU"
                 aria-label="Buscar producto para vincular"
-                className="w-full rounded-xl border border-[#e4e7ec] bg-white py-2.5 pl-9 pr-3 text-sm text-[#111318] outline-none focus:border-[#7357ff]"
+                className="w-full rounded-xl border border-[#DDD0C1] bg-white py-2.5 pl-9 pr-3 text-sm text-[#191714] outline-none focus:border-[#B88B58]"
               />
             </div>
 
@@ -605,24 +605,24 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
                   }}
                   className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm ${
                     selectedProductId === product.id
-                      ? "border-[#7357ff] bg-[#f7f5ff]"
-                      : "border-transparent hover:bg-[#f7f8fa]"
+                      ? "border-[#B88B58] bg-[#f7f5ff]"
+                      : "border-transparent hover:bg-[#F7F1E8]"
                   }`}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold text-[#111318]">{product.nombre}</span>
-                    <span className="block truncate text-xs text-[#667085]">
+                    <span className="block truncate font-semibold text-[#191714]">{product.nombre}</span>
+                    <span className="block truncate text-xs text-[#6B6258]">
                       {product.marca} · {product.contenido}
                       {linkedProductIds.has(product.id) ? ` · Ya está en el Top ${TOP_PRODUCTS_LIMIT}` : ""}
                     </span>
                   </span>
-                  <span className="shrink-0 text-xs font-semibold text-[#344054]">
+                  <span className="shrink-0 text-xs font-semibold text-[#4D453D]">
                     {formatCurrency(product.precioVenta)}
                   </span>
                 </button>
               ))}
               {pickerResults.length === 0 ? (
-                <p className="px-3 py-6 text-center text-sm text-[#667085]">Sin resultados.</p>
+                <p className="px-3 py-6 text-center text-sm text-[#6B6258]">Sin resultados.</p>
               ) : null}
             </div>
 
@@ -643,7 +643,7 @@ export function Top12AdminPanel({ embedded = false, initialFilter }: Top12AdminP
               <button
                 type="button"
                 onClick={closePicker}
-                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054]"
+                className="rounded-xl border border-[#DDD0C1] px-4 py-2 text-sm font-semibold text-[#4D453D]"
               >
                 Cancelar
               </button>

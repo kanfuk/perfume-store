@@ -4,13 +4,35 @@ import { appInfo } from "@/lib/app-info";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: `${appInfo.name} — ${appInfo.tagline}`,
+  metadataBase: new URL("https://smellme.cl"),
+  applicationName: appInfo.name,
+  title: {
+    default: `${appInfo.name} — ${appInfo.tagline}`,
+    template: `%s · ${appInfo.name}`
+  },
   description: "Perfumes, testers y fragancias exclusivas a precio conveniente.",
+  keywords: ["perfumes", "fragancias", "testers", "Smellme", "perfumería"],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "es_CL",
+    url: "/",
+    siteName: appInfo.name,
+    title: `${appInfo.name} — ${appInfo.tagline}`,
+    description: "Perfumes, testers y ofertas seleccionadas con atención personalizada.",
+    images: [{ url: "/brand/smellme-social.jpg", width: 1200, height: 630, alt: "Smellme.cl" }]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${appInfo.name} — ${appInfo.tagline}`,
+    description: "Perfumes, testers y ofertas seleccionadas con atención personalizada.",
+    images: ["/brand/smellme-social.jpg"]
+  },
   manifest: "/site.webmanifest",
   appleWebApp: {
     capable: true,
     title: appInfo.name,
-    statusBarStyle: "default"
+    statusBarStyle: "black-translucent"
   },
   formatDetection: {
     telephone: false
@@ -48,7 +70,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#17191f"
+  themeColor: "#0B0B0B",
+  colorScheme: "light"
 };
 
 type RootLayoutProps = Readonly<{

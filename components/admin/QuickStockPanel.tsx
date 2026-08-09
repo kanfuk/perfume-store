@@ -496,7 +496,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
       className={
         embedded
           ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden pb-[calc(88px+env(safe-area-inset-bottom))]"
-          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
       }
     >
       {toast ? (
@@ -521,11 +521,11 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
       ) : null}
 
       {!embedded ? (
-        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+        <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(184,139,88,0.34),transparent_28%)] p-6 sm:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-2">
-                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
                   <ShoppingBag className="h-3.5 w-3.5" />
                   Admin Smellme.cl
                 </span>
@@ -552,7 +552,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
           <span>{error}</span>
         </div>
       ) : null}
-      <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
+      <section className="space-y-4 rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-sm sm:p-6">
         <div className={embedded ? "grid gap-3" : "grid gap-3 sm:grid-cols-[1fr_auto]"}>
           {!embedded ? (
             <input
@@ -561,14 +561,14 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
               onChange={(event) => resetFilters({ query: event.target.value })}
               placeholder="Buscar por nombre, marca o SKU"
               aria-label="Buscar productos"
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+              className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
             />
           ) : null}
           <select
             value={brandFilter}
             onChange={(event) => resetFilters({ brandFilter: event.target.value })}
             aria-label="Filtrar por marca"
-            className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
           >
             <option value="">Todas las marcas</option>
             {brands.map((brand) => (
@@ -587,8 +587,8 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
               onClick={() => resetFilters({ quickFilter: filterOption.id })}
               className={`min-h-9 rounded-full border px-3 py-1.5 text-xs font-semibold ${
                 quickFilter === filterOption.id
-                  ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                  : "border-[#e4e7ec] bg-white text-[#667085]"
+                  ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]"
+                  : "border-[#DDD0C1] bg-white text-[#6B6258]"
               }`}
             >
               {filterOption.label}
@@ -606,16 +606,16 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
           }`}
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <label className="flex min-h-11 w-fit cursor-pointer items-center gap-3 rounded-xl border-2 border-[#7357ff] bg-white px-3.5 py-2 shadow-sm">
+            <label className="flex min-h-11 w-fit cursor-pointer items-center gap-3 rounded-xl border-2 border-[#B88B58] bg-white px-3.5 py-2 shadow-sm">
               <input
                 ref={masterCheckboxRef}
                 type="checkbox"
                 checked={isWholeCatalogSelected}
                 onChange={(event) => handleMasterCheckboxChange(event.target.checked)}
                 aria-label="Seleccionar todos los productos del catálogo"
-                className="h-5 w-5 accent-[#7357ff]"
+                className="h-5 w-5 accent-[#B88B58]"
               />
-              <span className="text-sm font-bold text-[#392694]">
+              <span className="text-sm font-bold text-[#6F472C]">
                 <span className="hidden sm:inline">Seleccionar todo el catálogo</span>
                 <span className="sm:hidden">Todo el catálogo</span>
                 {" · "}
@@ -624,20 +624,20 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
             </label>
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
-              <span className="font-semibold text-[#344054]" aria-live="polite">
+              <span className="font-semibold text-[#4D453D]" aria-live="polite">
                 {selectedIds.size} seleccionado(s) · {visibleSelectedCount} visibles
               </span>
               <button
                 type="button"
                 onClick={handleSelectFiltered}
-                className="min-h-9 rounded-lg border border-[#d8cdfe] bg-white px-3 py-1.5 font-semibold text-[#5434e6]"
+                className="min-h-9 rounded-lg border border-[#d8cdfe] bg-white px-3 py-1.5 font-semibold text-[#8A6036]"
               >
                 Seleccionar resultados{hasActiveFilter ? `: ${filtered.length}` : ""}
               </button>
               <button
                 type="button"
                 onClick={handleSelectVisible}
-                className="font-semibold text-[#667085] underline decoration-dotted underline-offset-2"
+                className="font-semibold text-[#6B6258] underline decoration-dotted underline-offset-2"
               >
                 Seleccionar visibles
               </button>
@@ -645,7 +645,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                 type="button"
                 onClick={handleClearSelection}
                 disabled={selectedIds.size === 0}
-                className="min-h-9 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
+                className="min-h-9 rounded-lg border border-[#DDD0C1] bg-white px-3 py-1.5 font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Limpiar
               </button>
@@ -653,7 +653,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
           </div>
         </div>
 
-        <p className="text-sm font-medium text-[#344054]" aria-live="polite">
+        <p className="text-sm font-medium text-[#4D453D]" aria-live="polite">
           {loading ? "Cargando catálogo…" : `${filtered.length} producto(s) encontrado(s)`}
         </p>
 
@@ -663,21 +663,21 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
           <div aria-busy="true" aria-live="polite" role="status" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <span className="sr-only">Cargando catálogo…</span>
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+              <div key={index} className="flex flex-col gap-3 rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className="mt-1 h-5 w-5 shrink-0 animate-pulse rounded bg-[#e4e7ec]" />
+                  <div className="mt-1 h-5 w-5 shrink-0 animate-pulse rounded bg-[#DDD0C1]" />
                   <div className="min-w-0 flex-1 space-y-2">
-                    <div className="h-3 w-16 animate-pulse rounded bg-[#e4e7ec]" />
-                    <div className="h-4 w-3/4 animate-pulse rounded bg-[#e4e7ec]" />
-                    <div className="h-3 w-1/2 animate-pulse rounded bg-[#f2f4f7]" />
+                    <div className="h-3 w-16 animate-pulse rounded bg-[#DDD0C1]" />
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-[#DDD0C1]" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-[#EEE5DA]" />
                   </div>
-                  <div className="h-5 w-14 shrink-0 animate-pulse rounded-full bg-[#f2f4f7]" />
+                  <div className="h-5 w-14 shrink-0 animate-pulse rounded-full bg-[#EEE5DA]" />
                 </div>
-                <div className="h-5 w-24 animate-pulse rounded-full bg-[#f2f4f7]" />
+                <div className="h-5 w-24 animate-pulse rounded-full bg-[#EEE5DA]" />
                 <div className="flex items-center gap-2">
-                  <div className="h-11 w-11 animate-pulse rounded-xl bg-[#f2f4f7]" />
-                  <div className="h-11 w-20 animate-pulse rounded-xl bg-[#f2f4f7]" />
-                  <div className="h-11 w-11 animate-pulse rounded-xl bg-[#f2f4f7]" />
+                  <div className="h-11 w-11 animate-pulse rounded-xl bg-[#EEE5DA]" />
+                  <div className="h-11 w-20 animate-pulse rounded-xl bg-[#EEE5DA]" />
+                  <div className="h-11 w-11 animate-pulse rounded-xl bg-[#EEE5DA]" />
                 </div>
               </div>
             ))}
@@ -692,7 +692,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                 const missingFields = getMissingCatalogFields(product);
 
                 return (
-                  <div key={product.id} className="flex flex-col gap-3 rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+                  <div key={product.id} className="flex flex-col gap-3 rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm">
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
@@ -702,23 +702,23 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                         className="mt-1 h-5 w-5"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
-                        <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
-                        <p className="text-xs text-[#98a2b3]">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#8C8175]">{product.marca}</p>
+                        <p className="truncate text-sm font-semibold text-[#191714]">{product.nombre}</p>
+                        <p className="text-xs text-[#8C8175]">
                           {product.contenido}
                           {product.sku ? <span className="ml-1 font-mono text-[#c0c5cf]">· {product.sku}</span> : null}
                         </p>
                       </div>
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          product.activo ? "bg-[#eefbf1] text-[#1f6d33]" : "bg-[#f2f4f7] text-[#475467]"
+                          product.activo ? "bg-[#eefbf1] text-[#1f6d33]" : "bg-[#EEE5DA] text-[#475467]"
                         }`}
                       >
                         {product.activo ? "Activo" : "Pausado"}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#667085]">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#6B6258]">
                       <span
                         className={`rounded-full px-2 py-0.5 font-semibold ${
                           product.stockActual <= 0
@@ -748,7 +748,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                         onClick={() => decrement(product)}
                         disabled={saving || product.stockActual <= 0}
                         aria-label={`Restar stock a ${etiqueta}`}
-                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DDD0C1] text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -760,14 +760,14 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                         onBlur={() => commitDraft(product)}
                         disabled={saving}
                         aria-label={`Stock de ${etiqueta}`}
-                        className="h-11 w-20 rounded-xl border border-[#e4e7ec] px-2 text-center text-sm font-semibold"
+                        className="h-11 w-20 rounded-xl border border-[#DDD0C1] px-2 text-center text-sm font-semibold"
                       />
                       <button
                         type="button"
                         onClick={() => increment(product)}
                         disabled={saving}
                         aria-label={`Sumar stock a ${etiqueta}`}
-                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#e4e7ec] text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#DDD0C1] text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -778,7 +778,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                         type="button"
                         onClick={() => agotar(product)}
                         disabled={saving || product.stockActual <= 0}
-                        className="min-h-9 rounded-lg border border-[#e4e7ec] px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="min-h-9 rounded-lg border border-[#DDD0C1] px-3 py-1.5 text-xs font-semibold text-[#8a2c22] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         Agotar
                       </button>
@@ -786,17 +786,17 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                         type="button"
                         onClick={() => toggleActivo(product)}
                         disabled={saving || (!product.activo && product.stockActual <= 0)}
-                        className="min-h-9 rounded-lg border border-[#e4e7ec] px-3 py-1.5 text-xs font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="min-h-9 rounded-lg border border-[#DDD0C1] px-3 py-1.5 text-xs font-semibold text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {product.activo ? "Pausar" : "Activar"}
                       </button>
-                      {saving ? <span className="self-center text-xs text-[#98a2b3]">Guardando…</span> : null}
+                      {saving ? <span className="self-center text-xs text-[#8C8175]">Guardando…</span> : null}
                     </div>
                   </div>
                 );
               })}
               {filtered.length === 0 ? (
-                <p className="col-span-full py-6 text-center text-sm text-[#667085]">
+                <p className="col-span-full py-6 text-center text-sm text-[#6B6258]">
                   Sin productos que coincidan con la búsqueda.
                 </p>
               ) : null}
@@ -806,7 +806,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                 <button
                   type="button"
                   onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                  className="min-h-11 rounded-xl border border-[#e4e7ec] bg-white px-5 py-2.5 text-sm font-semibold text-[#5434e6] shadow-sm"
+                  className="min-h-11 rounded-xl border border-[#DDD0C1] bg-white px-5 py-2.5 text-sm font-semibold text-[#8A6036] shadow-sm"
                 >
                   Cargar más productos
                 </button>
@@ -817,8 +817,8 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
       </section>
 
       {/* Acciones rapidas destacadas (seccion 6) + selector completo (seccion 5) */}
-      <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-[#111318]">Acciones sobre la selección</h2>
+      <section className="space-y-4 rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-[#191714]">Acciones sobre la selección</h2>
 
         <div className="flex flex-wrap gap-2">
           <button
@@ -833,7 +833,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
             type="button"
             onClick={() => chooseQuickAction("pausar")}
             disabled={selectedIds.size === 0 || bulkLoading}
-            className="min-h-11 rounded-xl border border-[#e4e7ec] bg-[#f2f4f7] px-4 py-2.5 text-sm font-semibold text-[#475467] disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-11 rounded-xl border border-[#DDD0C1] bg-[#EEE5DA] px-4 py-2.5 text-sm font-semibold text-[#475467] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Pausar seleccionados
           </button>
@@ -841,14 +841,14 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
             type="button"
             onClick={() => chooseQuickAction("disponibleUno")}
             disabled={selectedIds.size === 0 || bulkLoading}
-            className="min-h-11 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] px-4 py-2.5 text-sm font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-11 rounded-xl border border-[#d8cdfe] bg-[#f5f2ff] px-4 py-2.5 text-sm font-semibold text-[#8A6036] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Dejar stock disponible en 1
           </button>
         </div>
 
-        <details className="rounded-xl border border-[#e4e7ec] p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-[#344054]">Más acciones</summary>
+        <details className="rounded-xl border border-[#DDD0C1] p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-[#4D453D]">Más acciones</summary>
           <div className="mt-3 grid gap-3 sm:grid-cols-[auto_1fr_auto]">
             <select
               value={bulkAction}
@@ -857,7 +857,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                 setBulkPreview(null);
               }}
               aria-label="Elegir acción masiva"
-              className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+              className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
             >
               {(Object.keys(ACTION_LABELS) as BulkActionChoice[]).map((action) => (
                 <option key={action} value={action}>
@@ -876,7 +876,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                 }}
                 min={0}
                 aria-label="Valor de la acción masiva"
-                className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+                className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
               />
             ) : (
               <div />
@@ -904,8 +904,8 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
 
       {/* Barra sticky de accion masiva (movil), seccion 5 */}
       {selectedIds.size > 0 && !bulkConfirmOpen && !bulkResult ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-[#e4e7ec] bg-white px-3 py-2 shadow-[0_-4px_12px_rgba(17,19,24,0.08)] sm:hidden">
-          <span className="text-xs font-semibold text-[#344054]" aria-live="polite">
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-[#DDD0C1] bg-white px-3 py-2 shadow-[0_-4px_12px_rgba(17,19,24,0.08)] sm:hidden">
+          <span className="text-xs font-semibold text-[#4D453D]" aria-live="polite">
             {selectedIds.size} seleccionado(s)
           </span>
           <button
@@ -918,7 +918,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
           <button
             type="button"
             onClick={() => chooseQuickAction("pausar")}
-            className="min-h-11 flex-1 rounded-lg bg-[#f2f4f7] px-2 text-xs font-semibold text-[#475467]"
+            className="min-h-11 flex-1 rounded-lg bg-[#EEE5DA] px-2 text-xs font-semibold text-[#475467]"
           >
             Pausar
           </button>
@@ -926,7 +926,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
             type="button"
             onClick={handleClearSelection}
             aria-label="Limpiar selección"
-            className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#e4e7ec]"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#DDD0C1]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -950,17 +950,17 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
             tabIndex={-1}
             className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
           >
-            <h3 id="bulk-preview-title" className="text-lg font-semibold text-[#111318]">
+            <h3 id="bulk-preview-title" className="text-lg font-semibold text-[#191714]">
               {actionTitle(bulkAction, bulkPreview?.totalSeleccionados ?? selectedIds.size)}
             </h3>
-            <p className="mt-2 text-sm text-[#667085]">{actionConsequence(bulkAction)}</p>
+            <p className="mt-2 text-sm text-[#6B6258]">{actionConsequence(bulkAction)}</p>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-lg bg-[#eeebff] px-2 py-2">
-                <div className="font-bold text-[#5434e6]">{previewCambian}</div>
-                <div className="text-[#5434e6]">cambiarán</div>
+              <div className="rounded-lg bg-[#F4E8DB] px-2 py-2">
+                <div className="font-bold text-[#8A6036]">{previewCambian}</div>
+                <div className="text-[#8A6036]">cambiarán</div>
               </div>
-              <div className="rounded-lg bg-[#f2f4f7] px-2 py-2">
+              <div className="rounded-lg bg-[#EEE5DA] px-2 py-2">
                 <div className="font-bold text-[#475467]">{previewSinCambios}</div>
                 <div className="text-[#475467]">ya cumplen</div>
               </div>
@@ -1009,7 +1009,7 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                 type="button"
                 onClick={closeConfirmModal}
                 disabled={bulkConfirming}
-                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[#DDD0C1] px-4 py-2 text-sm font-semibold text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -1035,11 +1035,11 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
           <div role="dialog" aria-modal="true" aria-labelledby="bulk-result-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-[#1f6d33]" />
-              <h3 id="bulk-result-title" className="text-lg font-semibold text-[#111318]">
+              <h3 id="bulk-result-title" className="text-lg font-semibold text-[#191714]">
                 Acción completada
               </h3>
             </div>
-            <div className="mt-4 space-y-1 text-sm text-[#344054]" aria-live="polite">
+            <div className="mt-4 space-y-1 text-sm text-[#4D453D]" aria-live="polite">
               <p>{bulkResult.total} seleccionados</p>
               <p>{bulkResult.actualizados} modificados</p>
               <p>{bulkResult.sinCambios} ya estaban en ese estado</p>
@@ -1049,14 +1049,14 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
               <button
                 type="button"
                 onClick={keepSelectionAfterResult}
-                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054]"
+                className="rounded-xl border border-[#DDD0C1] px-4 py-2 text-sm font-semibold text-[#4D453D]"
               >
                 Mantener selección
               </button>
               <button
                 type="button"
                 onClick={clearSelectionAfterResult}
-                className="rounded-xl border border-[#e4e7ec] px-4 py-2 text-sm font-semibold text-[#344054]"
+                className="rounded-xl border border-[#DDD0C1] px-4 py-2 text-sm font-semibold text-[#4D453D]"
               >
                 Limpiar selección
               </button>

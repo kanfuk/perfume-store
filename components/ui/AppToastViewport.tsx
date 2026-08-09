@@ -51,7 +51,7 @@ function getToastPalette(tone: AppToastTone) {
     return "border-slate-200 bg-white text-slate-900";
   }
 
-  return "border-[#e4e7ec] bg-white text-[#111318]";
+  return "border-[#DDD0C1] bg-white text-[#191714]";
 }
 
 export function AppToastViewport({

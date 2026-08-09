@@ -68,8 +68,8 @@ function isWarningChip(id: ChipFilter): boolean {
 function filterChipClass(active: boolean): string {
   return `flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border px-2.5 text-center text-xs font-semibold transition ${
     active
-      ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-      : "border-[#e4e7ec] bg-white text-[#667085] hover:border-[#c9bdff]"
+      ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]"
+      : "border-[#DDD0C1] bg-white text-[#6B6258] hover:border-[#c9bdff]"
   }`;
 }
 
@@ -286,15 +286,15 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
       className={
         embedded
           ? "flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden"
-          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
+          : "mx-auto flex min-h-[100dvh] w-full max-w-[1400px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8"
       }
     >
       {!embedded ? (
-        <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+        <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+          <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(184,139,88,0.34),transparent_28%)] p-6 sm:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-2">
-                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+                <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
                   <Sparkles className="h-3.5 w-3.5" />
                   Admin Smellme.cl
                 </span>
@@ -350,13 +350,13 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
       {embedded ? (
         <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[#111318]">Centro de productos</h2>
-            <p className="text-sm text-[#667085]">Crea, revisa y ajusta cada perfume del catálogo.</p>
+            <h2 className="text-lg font-bold text-[#191714]">Centro de productos</h2>
+            <p className="text-sm text-[#6B6258]">Crea, revisa y ajusta cada perfume del catálogo.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Link
               href="/admin/catalogo/imagenes"
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054] transition hover:bg-[#f7f8fa] sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D] transition hover:bg-[#F7F1E8] sm:w-auto"
             >
               <ImagePlus className="h-4 w-4" />
               Carga masiva de imágenes
@@ -364,7 +364,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#5434e6] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4327c4] sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#8A6036] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4327c4] sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Agregar perfume
@@ -390,7 +390,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
         <IndicatorTile label="Ficha incompleta" value={indicators.fichaIncompleta} tone="warn" />
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
+      <section className="space-y-4 rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-sm sm:p-6">
         {/* Fase 3A.1: grilla controlada (2/3/4 columnas) en vez de wrap libre -- */}
         {/* cada chip ocupa el ancho completo de su celda, misma altura, texto centrado. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -421,20 +421,20 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar por nombre, marca o SKU"
             aria-label="Buscar productos"
-            className="w-full rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054]"
+            className="w-full rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D]"
           />
         ) : null}
 
         {/* Selector de marca integrado al mismo contenedor y sistema visual que los chips (seccion 4). */}
         <div className="space-y-1.5">
-          <label htmlFor="catalog-brand-filter" className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">
+          <label htmlFor="catalog-brand-filter" className="text-xs font-semibold uppercase tracking-wide text-[#8C8175]">
             Marca
           </label>
           <select
             id="catalog-brand-filter"
             value={brandFilter}
             onChange={(event) => setBrandFilter(event.target.value)}
-            className="h-11 w-full rounded-xl border border-[#e4e7ec] bg-white px-3 text-sm font-medium text-[#344054]"
+            className="h-11 w-full rounded-xl border border-[#DDD0C1] bg-white px-3 text-sm font-medium text-[#4D453D]"
           >
             <option value="">Todas las marcas</option>
             {brands.map((brand) => (
@@ -448,10 +448,10 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
         {/* Filtros activos y limpieza (seccion 5): solo estado local de chip/marca -- */}
         {/* nunca toca `query`/`q`, que es la busqueda comun del shell y sigue distinta. */}
         {hasActiveChipOrBrandFilter ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#f7f8fa] px-3 py-2 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#F7F1E8] px-3 py-2 text-xs">
             {activeFilterLabels.length > 1 ? (
-              <span className="text-[#667085]">
-                Filtros activos: <span className="font-semibold text-[#344054]">{activeFilterLabels.join(" · ")}</span>
+              <span className="text-[#6B6258]">
+                Filtros activos: <span className="font-semibold text-[#4D453D]">{activeFilterLabels.join(" · ")}</span>
               </span>
             ) : (
               <span />
@@ -459,22 +459,22 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
             <button
               type="button"
               onClick={clearChipAndBrandFilters}
-              className="shrink-0 text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+              className="shrink-0 text-xs font-semibold text-[#8A6036] hover:text-[#6F472C]"
             >
               Limpiar filtros
             </button>
           </div>
         ) : null}
 
-        <p className="text-sm text-[#667085]">{filtered.length} producto(s)</p>
+        <p className="text-sm text-[#6B6258]">{filtered.length} producto(s)</p>
 
         {loading ? (
-          <p className="text-sm text-[#667085]">Cargando catálogo...</p>
+          <p className="text-sm text-[#6B6258]">Cargando catálogo...</p>
         ) : (
           <>
-            <div className="hidden overflow-x-auto rounded-xl border border-[#e4e7ec] md:block">
+            <div className="hidden overflow-x-auto rounded-xl border border-[#DDD0C1] md:block">
               <table className="w-full min-w-[900px] text-left text-sm">
-                <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+                <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
                   <tr>
                     <th className="px-4 py-3">Nombre</th>
                     <th className="px-4 py-3">Marca</th>
@@ -519,7 +519,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                   )}
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-6 text-center text-sm text-[#667085]">
+                      <td colSpan={7} className="px-4 py-6 text-center text-sm text-[#6B6258]">
                         {indicators.total === 0 ? (
                           <EmptyCatalogMessage onAddPerfume={() => setShowAddModal(true)} />
                         ) : (
@@ -529,7 +529,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                               <button
                                 type="button"
                                 onClick={clearChipAndBrandFilters}
-                                className="mt-2 text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+                                className="mt-2 text-xs font-semibold text-[#8A6036] hover:text-[#6F472C]"
                               >
                                 Limpiar filtros
                               </button>
@@ -576,7 +576,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                 )
               )}
               {filtered.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-[#667085]">
+                <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-[#6B6258]">
                   {indicators.total === 0 ? (
                     <EmptyCatalogMessage onAddPerfume={() => setShowAddModal(true)} />
                   ) : (
@@ -586,7 +586,7 @@ export function CatalogControlCenter({ embedded = false, initialSearch = "", ini
                         <button
                           type="button"
                           onClick={clearChipAndBrandFilters}
-                          className="text-xs font-semibold text-[#5434e6] hover:text-[#392694]"
+                          className="text-xs font-semibold text-[#8A6036] hover:text-[#6F472C]"
                         >
                           Limpiar filtros
                         </button>
@@ -836,20 +836,20 @@ function ImageCellEditor({
           value={imageDraft}
           onChange={(event) => onImageDraftChange(event.target.value)}
           placeholder="https://... o /images/..."
-          className="w-48 min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs"
+          className="w-48 min-h-9 rounded-lg border border-[#DDD0C1] px-2 py-1 text-xs"
         />
         <button
           type="button"
           onClick={() => onSaveImage(product)}
           disabled={savingImage}
-          className="min-h-9 rounded-lg bg-[#5434e6] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
+          className="min-h-9 rounded-lg bg-[#8A6036] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
         >
           Guardar
         </button>
         <button
           type="button"
           onClick={onCancelEditingImage}
-          className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054]"
+          className="min-h-9 rounded-lg border border-[#DDD0C1] px-2 py-1 text-xs font-semibold text-[#4D453D]"
         >
           Cancelar
         </button>
@@ -861,7 +861,7 @@ function ImageCellEditor({
           setAdvancedOpen(false);
           onStartEditingImage(product);
         }}
-        className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#98a2b3] hover:text-[#667085]"
+        className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-[#8C8175] hover:text-[#6B6258]"
       >
         <Link2 className="h-3 w-3" />
         Usar dirección de imagen
@@ -873,7 +873,7 @@ function ImageCellEditor({
       <button
         type="button"
         onClick={() => setAdvancedOpen((current) => !current)}
-        className="mt-1 text-[11px] font-medium text-[#98a2b3] underline-offset-2 hover:text-[#667085] hover:underline"
+        className="mt-1 text-[11px] font-medium text-[#8C8175] underline-offset-2 hover:text-[#6B6258] hover:underline"
       >
         Opciones avanzadas
       </button>
@@ -892,7 +892,7 @@ function ImageCellEditor({
       {selectedFile ? (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-[#e4e7ec] bg-[#f7f8fa]">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-[#DDD0C1] bg-[#F7F1E8]">
               <ProductImage
                 src={previewUrl}
                 alt={product.nombre}
@@ -900,22 +900,22 @@ function ImageCellEditor({
                 className="object-contain"
               />
             </div>
-            <div className="min-w-0 text-[11px] text-[#667085]">
-              <p className="truncate font-medium text-[#111318]">{selectedFile.name}</p>
+            <div className="min-w-0 text-[11px] text-[#6B6258]">
+              <p className="truncate font-medium text-[#191714]">{selectedFile.name}</p>
               <p>{formatFileSize(selectedFile.size)}</p>
             </div>
           </div>
-          <p className="text-[11px] text-[#98a2b3]">
+          <p className="text-[11px] text-[#8C8175]">
             La imagen se ajustará automáticamente al formato del catálogo.
           </p>
-          {verifying ? <p className="text-[11px] font-medium text-[#5434e6]">Verificando imagen…</p> : null}
+          {verifying ? <p className="text-[11px] font-medium text-[#8A6036]">Verificando imagen…</p> : null}
           {localError ? <p className="text-[11px] font-medium text-[#b3261e]">{localError}</p> : null}
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={confirmUpload}
               disabled={uploading || verifying}
-              className="min-h-9 rounded-lg bg-[#5434e6] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
+              className="min-h-9 rounded-lg bg-[#8A6036] px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
             >
               {uploading ? "Procesando imagen…" : verifying ? "Verificando imagen…" : "Procesar y guardar"}
             </button>
@@ -924,7 +924,7 @@ function ImageCellEditor({
                 type="button"
                 onClick={retryVisualCheck}
                 disabled={verifying}
-                className="min-h-9 rounded-lg border border-[#5434e6] px-2 py-1 text-xs font-semibold text-[#5434e6] disabled:opacity-50"
+                className="min-h-9 rounded-lg border border-[#8A6036] px-2 py-1 text-xs font-semibold text-[#8A6036] disabled:opacity-50"
               >
                 {verifying ? "Verificando…" : "Reintentar visualización"}
               </button>
@@ -933,7 +933,7 @@ function ImageCellEditor({
               type="button"
               onClick={cancelSelection}
               disabled={uploading || verifying}
-              className="min-h-9 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054] disabled:opacity-50"
+              className="min-h-9 rounded-lg border border-[#DDD0C1] px-2 py-1 text-xs font-semibold text-[#4D453D] disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -942,7 +942,7 @@ function ImageCellEditor({
       ) : product.imageUrl ? (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-[#e4e7ec] bg-[#f7f8fa]">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-[#DDD0C1] bg-[#F7F1E8]">
               <ProductImage
                 src={product.imageUrl}
                 alt={product.nombre}
@@ -955,7 +955,7 @@ function ImageCellEditor({
                 type="button"
                 onClick={openFilePicker}
                 disabled={uploading}
-                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#344054] disabled:opacity-50"
+                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#DDD0C1] px-2 py-1 text-xs font-semibold text-[#4D453D] disabled:opacity-50"
               >
                 <RefreshCw className="h-3 w-3" />
                 Reemplazar
@@ -964,14 +964,14 @@ function ImageCellEditor({
                 type="button"
                 onClick={confirmDelete}
                 disabled={uploading}
-                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#b3261e] disabled:opacity-50"
+                className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#DDD0C1] px-2 py-1 text-xs font-semibold text-[#b3261e] disabled:opacity-50"
               >
                 <Trash2 className="h-3 w-3" />
                 Eliminar
               </button>
             </div>
           </div>
-          {uploading ? <p className="text-[11px] text-[#98a2b3]">Procesando imagen…</p> : null}
+          {uploading ? <p className="text-[11px] text-[#8C8175]">Procesando imagen…</p> : null}
           {localError ? <p className="text-[11px] font-medium text-[#b3261e]">{localError}</p> : null}
           {advancedToggle}
           {advancedOpen ? advancedPanel : null}
@@ -982,7 +982,7 @@ function ImageCellEditor({
             type="button"
             onClick={openFilePicker}
             disabled={uploading}
-            className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#e4e7ec] px-2 py-1 text-xs font-semibold text-[#5434e6] disabled:opacity-50"
+            className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#DDD0C1] px-2 py-1 text-xs font-semibold text-[#8A6036] disabled:opacity-50"
           >
             <UploadCloud className="h-3.5 w-3.5" />
             Subir imagen
@@ -999,18 +999,18 @@ function ImageCellEditor({
 function AdminProductRow({ product, ...imageProps }: ImageEditorProps & { product: AdminProductRecord }) {
   return (
     <tr>
-      <td className="px-4 py-2.5 text-[#111318]">{product.nombre}</td>
-      <td className="px-4 py-2.5 text-[#667085]">{product.marca}</td>
-      <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(product.precioVenta)}</td>
-      <td className="px-4 py-2.5 text-[#667085]">{product.stockActual}</td>
+      <td className="px-4 py-2.5 text-[#191714]">{product.nombre}</td>
+      <td className="px-4 py-2.5 text-[#6B6258]">{product.marca}</td>
+      <td className="px-4 py-2.5 text-[#191714]">{formatCurrency(product.precioVenta)}</td>
+      <td className="px-4 py-2.5 text-[#6B6258]">{product.stockActual}</td>
       <td className="px-4 py-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <EstadoBadge product={product} />
           <IncompleteBadge product={product} />
         </div>
       </td>
-      <td className="px-4 py-2.5 text-[#667085]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
-      <td className="px-4 py-2.5 text-[#667085]">
+      <td className="px-4 py-2.5 text-[#6B6258]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
+      <td className="px-4 py-2.5 text-[#6B6258]">
         <ImageCellEditor product={product} {...imageProps} />
       </td>
     </tr>
@@ -1026,7 +1026,7 @@ function FamilyGroupRows({
 }: ImageEditorProps & { group: AdminFamilyGroup; expanded: boolean; onToggle: () => void }) {
   return (
     <>
-      <tr className="bg-[#f7f8fa]/70">
+      <tr className="bg-[#F7F1E8]/70">
         <td colSpan={7} className="px-4 py-2.5">
           <button
             type="button"
@@ -1034,34 +1034,34 @@ function FamilyGroupRows({
             className="flex min-h-9 w-full items-center justify-between gap-2 text-left"
           >
             <span className="flex items-center gap-2">
-              <span className="font-semibold text-[#111318]">{group.nombre}</span>
-              <span className="text-xs text-[#98a2b3]">{group.marca}</span>
-              <span className="rounded-full bg-[#eeebff] px-2 py-0.5 text-xs font-semibold text-[#5434e6]">
+              <span className="font-semibold text-[#191714]">{group.nombre}</span>
+              <span className="text-xs text-[#8C8175]">{group.marca}</span>
+              <span className="rounded-full bg-[#F4E8DB] px-2 py-0.5 text-xs font-semibold text-[#8A6036]">
                 {group.items.length} presentaciones
               </span>
             </span>
-            {expanded ? <ChevronUp className="h-4 w-4 text-[#667085]" /> : <ChevronDown className="h-4 w-4 text-[#667085]" />}
+            {expanded ? <ChevronUp className="h-4 w-4 text-[#6B6258]" /> : <ChevronDown className="h-4 w-4 text-[#6B6258]" />}
           </button>
         </td>
       </tr>
       {expanded
         ? group.items.map((product) => (
             <tr key={product.id} className="bg-white">
-              <td className="px-4 py-2.5 pl-8 text-[#111318]">
+              <td className="px-4 py-2.5 pl-8 text-[#191714]">
                 {product.contenido || "—"}
-                <span className="ml-2 font-mono text-[10px] text-[#98a2b3]">{product.sku}</span>
+                <span className="ml-2 font-mono text-[10px] text-[#8C8175]">{product.sku}</span>
               </td>
-              <td className="px-4 py-2.5 text-[#667085]">{product.marca}</td>
-              <td className="px-4 py-2.5 text-[#111318]">{formatCurrency(product.precioVenta)}</td>
-              <td className="px-4 py-2.5 text-[#667085]">{product.stockActual}</td>
+              <td className="px-4 py-2.5 text-[#6B6258]">{product.marca}</td>
+              <td className="px-4 py-2.5 text-[#191714]">{formatCurrency(product.precioVenta)}</td>
+              <td className="px-4 py-2.5 text-[#6B6258]">{product.stockActual}</td>
               <td className="px-4 py-2.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <EstadoBadge product={product} />
                   <IncompleteBadge product={product} />
                 </div>
               </td>
-              <td className="px-4 py-2.5 text-[#667085]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
-              <td className="px-4 py-2.5 text-[#667085]">
+              <td className="px-4 py-2.5 text-[#6B6258]">{product.esTop ? `#${product.ordenDestacado}` : "—"}</td>
+              <td className="px-4 py-2.5 text-[#6B6258]">
                 <ImageCellEditor product={product} {...imageProps} />
               </td>
             </tr>
@@ -1073,19 +1073,19 @@ function FamilyGroupRows({
 
 function AdminProductMobileCard({ product, ...imageProps }: ImageEditorProps & { product: AdminProductRecord }) {
   return (
-    <div className="rounded-2xl border border-[#e4e7ec] bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{product.marca}</p>
-          <p className="truncate text-sm font-semibold text-[#111318]">{product.nombre}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8C8175]">{product.marca}</p>
+          <p className="truncate text-sm font-semibold text-[#191714]">{product.nombre}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
           <EstadoBadge product={product} />
           <IncompleteBadge product={product} />
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#667085]">
-        <span className="font-semibold text-[#111318]">{formatCurrency(product.precioVenta)}</span>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#6B6258]">
+        <span className="font-semibold text-[#191714]">{formatCurrency(product.precioVenta)}</span>
         <span>Stock: {product.stockActual}</span>
         {product.esTop ? <span>Top #{product.ordenDestacado}</span> : null}
       </div>
@@ -1104,36 +1104,36 @@ function FamilyGroupMobileCard({
   ...imageProps
 }: ImageEditorProps & { group: AdminFamilyGroup; expanded: boolean; onToggle: () => void }) {
   return (
-    <div className="rounded-2xl border border-[#e4e7ec] bg-white shadow-sm">
+    <div className="rounded-2xl border border-[#DDD0C1] bg-white shadow-sm">
       <button
         type="button"
         onClick={onToggle}
         className="flex min-h-11 w-full items-center justify-between gap-2 p-4 text-left"
       >
         <span className="min-w-0">
-          <span className="block text-xs font-semibold uppercase tracking-wide text-[#98a2b3]">{group.marca}</span>
-          <span className="block truncate text-sm font-semibold text-[#111318]">{group.nombre}</span>
-          <span className="mt-1 inline-block rounded-full bg-[#eeebff] px-2 py-0.5 text-xs font-semibold text-[#5434e6]">
+          <span className="block text-xs font-semibold uppercase tracking-wide text-[#8C8175]">{group.marca}</span>
+          <span className="block truncate text-sm font-semibold text-[#191714]">{group.nombre}</span>
+          <span className="mt-1 inline-block rounded-full bg-[#F4E8DB] px-2 py-0.5 text-xs font-semibold text-[#8A6036]">
             {group.items.length} presentaciones
           </span>
         </span>
-        {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-[#667085]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#667085]" />}
+        {expanded ? <ChevronUp className="h-4 w-4 shrink-0 text-[#6B6258]" /> : <ChevronDown className="h-4 w-4 shrink-0 text-[#6B6258]" />}
       </button>
       {expanded ? (
-        <div className="space-y-2 border-t border-[#e4e7ec] p-4 pt-3">
+        <div className="space-y-2 border-t border-[#DDD0C1] p-4 pt-3">
           {group.items.map((product) => (
-            <div key={product.id} className="rounded-xl bg-[#f7f8fa] p-3">
+            <div key={product.id} className="rounded-xl bg-[#F7F1E8] p-3">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="font-semibold text-[#111318]">{product.contenido || "—"}</span>
+                <span className="font-semibold text-[#191714]">{product.contenido || "—"}</span>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <EstadoBadge product={product} />
                   <IncompleteBadge product={product} />
                 </div>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#667085]">
-                <span className="font-semibold text-[#111318]">{formatCurrency(product.precioVenta)}</span>
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#6B6258]">
+                <span className="font-semibold text-[#191714]">{formatCurrency(product.precioVenta)}</span>
                 <span>Stock: {product.stockActual}</span>
-                <span className="font-mono text-[10px] text-[#98a2b3]">{product.sku}</span>
+                <span className="font-mono text-[10px] text-[#8C8175]">{product.sku}</span>
               </div>
               <div className="mt-2">
                 <ImageCellEditor product={product} {...imageProps} />
@@ -1164,7 +1164,7 @@ function IncompleteBadge({ product }: { product: AdminProductRecord }) {
 function EstadoBadge({ product }: { product: AdminProductRecord }) {
   if (!product.activo) {
     return (
-      <span className="inline-flex rounded-full bg-[#f2f4f7] px-2.5 py-0.5 text-xs font-semibold text-[#475467]">
+      <span className="inline-flex rounded-full bg-[#EEE5DA] px-2.5 py-0.5 text-xs font-semibold text-[#475467]">
         Pausado
       </span>
     );
@@ -1205,7 +1205,7 @@ function IndicatorTile({
     good: "bg-[#eefbf1] text-[#1f6d33]",
     bad: "bg-[#fdf1ef] text-[#8a2c22]",
     warn: "bg-[#fff8ec] text-[#8a5a00]",
-    neutral: "bg-[#f7f8fa] text-[#344054]"
+    neutral: "bg-[#F7F1E8] text-[#4D453D]"
   };
 
   return (
@@ -1232,14 +1232,14 @@ function EmptyCatalogMessage({ onAddPerfume }: { onAddPerfume: () => void }) {
         <button
           type="button"
           onClick={onAddPerfume}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5434e6] px-4 py-2.5 text-sm font-semibold text-white"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#8A6036] px-4 py-2.5 text-sm font-semibold text-white"
         >
           <Plus className="h-4 w-4" />
           Agregar perfume
         </button>
         <Link
           href="/admin/importar-catalogo"
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e4e7ec] px-4 py-2.5 text-sm font-semibold text-[#344054]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDD0C1] px-4 py-2.5 text-sm font-semibold text-[#4D453D]"
         >
           <UploadCloud className="h-4 w-4" />
           Importar catálogo

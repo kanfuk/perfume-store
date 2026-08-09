@@ -429,12 +429,12 @@ export function CatalogImportPanel() {
     result?.perfil === "canonico" && !!preview && preview.erroresGlobales.length === 0 && preview.plan.length > 0 && !confirmResult;
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1200px] flex-col gap-6 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-2xl bg-[#17191f] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
-        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(115,87,255,0.34),transparent_28%)] p-6 sm:p-8">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1200px] flex-col gap-6 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+      <section className="overflow-hidden rounded-2xl bg-[#171613] text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)]">
+        <div className="bg-[radial-gradient(circle_at_80%_20%,rgba(184,139,88,0.34),transparent_28%)] p-6 sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
-              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+              <span className="inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
                 <ShoppingBag className="h-3.5 w-3.5" />
                 Admin Smellme.cl
               </span>
@@ -458,7 +458,7 @@ export function CatalogImportPanel() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-sm sm:p-6">
+      <section className="space-y-4 rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-sm sm:p-6">
         {step === "preview" ? (
           <>
             <fieldset disabled={busy} className="contents">
@@ -468,17 +468,17 @@ export function CatalogImportPanel() {
                   accept=".csv,text/csv"
                   onChange={handleFileChange}
                   aria-label="Seleccionar archivo CSV"
-                  className="block w-full rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="block w-full rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-3 py-2.5 text-sm text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-60"
                 />
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="profile-choice" className="text-xs font-semibold text-[#667085]">
+                  <label htmlFor="profile-choice" className="text-xs font-semibold text-[#6B6258]">
                     Tipo de archivo
                   </label>
                   <select
                     id="profile-choice"
                     value={profileChoice}
                     onChange={(event) => handleProfileChange(event.target.value as ProfileChoice)}
-                    className="rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="auto">Detección automática</option>
                     <option value="proveedor">CSV de proveedor</option>
@@ -486,7 +486,7 @@ export function CatalogImportPanel() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#667085]">
+                  <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#6B6258]">
                     Recargo sobre costo (%)
                   </label>
                   <input
@@ -496,12 +496,12 @@ export function CatalogImportPanel() {
                     max={300}
                     value={markupPercentage}
                     onChange={(event) => handleMarkupChange(event.target.value)}
-                    className="w-28 rounded-xl border border-[#e4e7ec] bg-white px-3 py-2.5 text-sm text-[#344054] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-28 rounded-xl border border-[#DDD0C1] bg-white px-3 py-2.5 text-sm text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
               </div>
 
-              <p className="text-xs text-[#667085]">
+              <p className="text-xs text-[#6B6258]">
                 El precio de venta se calcula agregando este porcentaje al costo. El archivo habitual del
                 proveedor no necesita SKU ni precio de venta: el sistema genera ambos automáticamente.
               </p>
@@ -524,11 +524,11 @@ export function CatalogImportPanel() {
             </fieldset>
 
             {busy ? (
-              <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+              <div className="space-y-2 rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3">
                 <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la importación">
                   <div className="indeterminate-progress-fill" />
                 </div>
-                <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
+                <p aria-live="polite" role="status" className="text-sm font-medium text-[#4D453D]">
                   {stageLabel}
                 </p>
               </div>
@@ -555,7 +555,7 @@ export function CatalogImportPanel() {
 
             {result ? (
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#eeebff] px-4 py-1.5 text-xs font-semibold text-[#5434e6]">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#F4E8DB] px-4 py-1.5 text-xs font-semibold text-[#8A6036]">
                   Perfil detectado: {result.perfil === "proveedor" ? "CSV de proveedor" : "Catálogo canónico"}
                   {result.perfil === "proveedor" ? ` · Recargo aplicado: ${result.preview.porcentajeAplicado}%` : null}
                 </div>
@@ -638,11 +638,11 @@ export function CatalogImportPanel() {
         {step === "quality-review" && summary ? (
           <>
             {busy ? (
-              <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+              <div className="space-y-2 rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3">
                 <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la revisión">
                   <div className="indeterminate-progress-fill" />
                 </div>
-                <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
+                <p aria-live="polite" role="status" className="text-sm font-medium text-[#4D453D]">
                   {stageLabel}
                 </p>
               </div>
@@ -697,11 +697,11 @@ export function CatalogImportPanel() {
               </div>
             ) : null}
             {busy ? (
-              <div className="space-y-2 rounded-xl border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3">
+              <div className="space-y-2 rounded-xl border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3">
                 <div className="indeterminate-progress-track" role="progressbar" aria-label="Progreso de la importación">
                   <div className="indeterminate-progress-fill" />
                 </div>
-                <p aria-live="polite" role="status" className="text-sm font-medium text-[#344054]">
+                <p aria-live="polite" role="status" className="text-sm font-medium text-[#4D453D]">
                   {stageLabel}
                 </p>
               </div>
@@ -765,9 +765,9 @@ export function CatalogImportPanel() {
 function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
   if (plan.length === 0) return null;
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
+    <div className="overflow-x-auto rounded-xl border border-[#DDD0C1]">
       <table className="w-full min-w-[820px] text-left text-sm">
-        <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+        <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
           <tr>
             <th className="px-4 py-3">Acción</th>
             <th className="px-4 py-3">SKU generado</th>
@@ -786,14 +786,14 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
               <td className="px-4 py-3">
                 <ActionBadge action={item.action} />
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-[#344054]">{item.sku}</td>
-              <td className="px-4 py-3 text-[#111318]">{item.nombre}</td>
-              <td className="px-4 py-3 text-[#667085]">{item.marca}</td>
-              <td className="px-4 py-3 text-[#111318]">{formatCurrency(item.costoUnitario)}</td>
-              <td className="px-4 py-3 text-[#111318]">
+              <td className="px-4 py-3 font-mono text-xs text-[#4D453D]">{item.sku}</td>
+              <td className="px-4 py-3 text-[#191714]">{item.nombre}</td>
+              <td className="px-4 py-3 text-[#6B6258]">{item.marca}</td>
+              <td className="px-4 py-3 text-[#191714]">{formatCurrency(item.costoUnitario)}</td>
+              <td className="px-4 py-3 text-[#191714]">
                 {formatCurrency(item.precioVentaFinal)}
                 {item.modoPrecio === "MANUAL" && item.precioVentaFinal !== item.precioVentaSugerido ? (
-                  <div className="text-xs text-[#98a2b3]">
+                  <div className="text-xs text-[#8C8175]">
                     Sugerido: {formatCurrency(item.precioVentaSugerido)}
                   </div>
                 ) : null}
@@ -801,23 +801,23 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
               <td className="px-4 py-3">
                 <span
                   className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    item.modoPrecio === "MANUAL" ? "bg-[#fff3c4] text-[#8a5a00]" : "bg-[#eeebff] text-[#5434e6]"
+                    item.modoPrecio === "MANUAL" ? "bg-[#fff3c4] text-[#8a5a00]" : "bg-[#F4E8DB] text-[#8A6036]"
                   }`}
                 >
                   {item.modoPrecio}
                 </span>
               </td>
-              <td className="px-4 py-3 text-[#667085]">
+              <td className="px-4 py-3 text-[#6B6258]">
                 {item.action === "ACTUALIZAR" ? "Se conserva" : "Inicial: 1"}
               </td>
-              <td className="px-4 py-3 text-[#667085]">
+              <td className="px-4 py-3 text-[#6B6258]">
                 {item.action === "ACTUALIZAR" ? "Se conserva" : "Nuevo: activo"}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="border-t border-[#e4e7ec] bg-[#f7f8fa] px-4 py-2 text-xs text-[#667085]">
+      <p className="border-t border-[#DDD0C1] bg-[#F7F1E8] px-4 py-2 text-xs text-[#6B6258]">
         Este SKU es provisional: puede cambiar tras la revisión de calidad si se excluyen, unifican o
         renombran filas. Producto nuevo: se creará activo y con stock 1. Producto existente: stock, imagen
         y Top {TOP_PRODUCTS_LIMIT} se conservan sin cambios.
@@ -829,9 +829,9 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
 function CanonicalPlanTable({ plan }: { plan: CanonicalPlanRow[] }) {
   if (plan.length === 0) return null;
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#e4e7ec]">
+    <div className="overflow-x-auto rounded-xl border border-[#DDD0C1]">
       <table className="w-full min-w-[720px] text-left text-sm">
-        <thead className="bg-[#f7f8fa] text-xs font-semibold uppercase tracking-wide text-[#667085]">
+        <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
           <tr>
             <th className="px-4 py-3">Acción</th>
             <th className="px-4 py-3">SKU</th>
@@ -848,14 +848,14 @@ function CanonicalPlanTable({ plan }: { plan: CanonicalPlanRow[] }) {
               <td className="px-4 py-3">
                 <ActionBadge action={item.action} />
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-[#344054]">{item.row.sku}</td>
-              <td className="px-4 py-3 text-[#111318]">{item.row.nombre}</td>
-              <td className="px-4 py-3 text-[#667085]">{item.row.marca}</td>
-              <td className="px-4 py-3 text-[#111318]">
+              <td className="px-4 py-3 font-mono text-xs text-[#4D453D]">{item.row.sku}</td>
+              <td className="px-4 py-3 text-[#191714]">{item.row.nombre}</td>
+              <td className="px-4 py-3 text-[#6B6258]">{item.row.marca}</td>
+              <td className="px-4 py-3 text-[#191714]">
                 {item.row.precioVenta !== null ? formatCurrency(item.row.precioVenta) : "—"}
               </td>
-              <td className="px-4 py-3 text-[#111318]">{item.row.stock ?? "—"}</td>
-              <td className="px-4 py-3 text-[#111318]">
+              <td className="px-4 py-3 text-[#191714]">{item.row.stock ?? "—"}</td>
+              <td className="px-4 py-3 text-[#191714]">
                 {item.row.esTop ? `#${item.row.ordenDestacado}` : "—"}
               </td>
             </tr>
@@ -877,9 +877,9 @@ function SummaryTile({
 }) {
   const toneClasses: Record<typeof tone, string> = {
     create: "bg-[#eefbf1] text-[#1f6d33]",
-    update: "bg-[#eeebff] text-[#5434e6]",
+    update: "bg-[#F4E8DB] text-[#8A6036]",
     block: "bg-[#fdf1ef] text-[#8a2c22]",
-    neutral: "bg-[#f7f8fa] text-[#344054]"
+    neutral: "bg-[#F7F1E8] text-[#4D453D]"
   };
 
   return (
@@ -893,7 +893,7 @@ function SummaryTile({
 function ActionBadge({ action }: { action: PlanAction }) {
   const styles: Record<PlanAction, string> = {
     CREAR: "bg-[#eefbf1] text-[#1f6d33]",
-    ACTUALIZAR: "bg-[#eeebff] text-[#5434e6]",
+    ACTUALIZAR: "bg-[#F4E8DB] text-[#8A6036]",
     BLOQUEADO: "bg-[#fdf1ef] text-[#8a2c22]"
   };
 

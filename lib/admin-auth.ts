@@ -1,11 +1,13 @@
 import { createSupabaseAuthServerClient } from "@/lib/supabase/auth-server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { AdminUserRole } from "@/lib/admin-users";
 
 export type AuthenticatedAdmin = {
   userId: string;
+  profileId: string;
   email: string;
   nombre: string | null;
-  rol: string;
+  rol: AdminUserRole;
 };
 
 export async function getAuthenticatedAdmin(): Promise<AuthenticatedAdmin | null> {
@@ -21,9 +23,10 @@ export async function getAuthenticatedAdmin(): Promise<AuthenticatedAdmin | null
   const serviceClient = createSupabaseServerClient();
   const { data, error } = await serviceClient
     .from("usuarios_admin")
-    .select("email, nombre, rol, activo")
-    .eq("email", user.email)
+    .select("id, email, nombre, rol, activo, onboarding_completed_at")
+    .eq("email", user.email.trim().toLowerCase())
     .eq("activo", true)
+    .not("onboarding_completed_at", "is", null)
     .maybeSingle();
 
   if (error || !data) {
@@ -32,10 +35,15 @@ export async function getAuthenticatedAdmin(): Promise<AuthenticatedAdmin | null
 
   return {
     userId: user.id,
+    profileId: data.id,
     email: data.email,
     nombre: data.nombre,
-    rol: data.rol
+    rol: data.rol as AdminUserRole
   };
+}
+
+export function isOwnerAdmin(admin: AuthenticatedAdmin | null): admin is AuthenticatedAdmin {
+  return admin?.rol === "OWNER";
 }
 
 export async function isAdminAuthenticated() {

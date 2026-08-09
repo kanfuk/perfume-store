@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   ClipboardList,
+  CreditCard,
   HandCoins,
   MessageCircle,
   Phone,
@@ -36,6 +37,7 @@ import {
   WalletCards
 } from "lucide-react";
 import { AppFooter } from "@/components/AppFooter";
+import { SmellmeMonogram } from "@/components/SmellmeBrand";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import {
@@ -163,7 +165,8 @@ const notificationService = createNotificationService();
 export function AdminDashboard({
   initialData,
   initialView = "home",
-  initialCustomers = []
+  initialCustomers = [],
+  isOwner = false
 }: AdminDashboardProps) {
   const feedback = useAppFeedback();
   const router = useRouter();
@@ -182,6 +185,12 @@ export function AdminDashboard({
   const [paymentSettingsComplete, setPaymentSettingsComplete] = useState<boolean | null>(
     null
   );
+  const [paymentReceivers, setPaymentReceivers] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    maskedAccountNumber: string;
+  }>>([]);
   const [busyOrderId, setBusyOrderId] = useState("");
   const [busyMaintenanceAction, setBusyMaintenanceAction] = useState("");
   const [search, setSearch] = useState("");
@@ -239,15 +248,15 @@ export function AdminDashboard({
 
     async function loadPaymentSettingsStatus() {
       try {
-        const response = await fetch("/api/admin/settings/payment?summary=1", {
+        const response = await fetch("/api/admin/payment-accounts/context", {
           cache: "no-store"
         });
         const payload = (await response.json()) as {
-          completa?: boolean;
+          accountConfigured?: boolean;
         };
 
         if (!cancelled && response.ok) {
-          setPaymentSettingsComplete(payload.completa === true);
+          setPaymentSettingsComplete(payload.accountConfigured === true);
         }
       } catch {
         if (!cancelled) {
@@ -262,6 +271,31 @@ export function AdminDashboard({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    let cancelled = false;
+    async function loadPaymentReceivers() {
+      try {
+        const response = await fetch("/api/admin/payment-accounts/receivers", {
+          cache: "no-store"
+        });
+        const payload = (await response.json()) as {
+          receivers?: Array<{
+            id: string;
+            name: string;
+            email: string;
+            maskedAccountNumber: string;
+          }>;
+        };
+        if (!cancelled && response.ok) setPaymentReceivers(payload.receivers ?? []);
+      } catch {
+        if (!cancelled) setPaymentReceivers([]);
+      }
+    }
+    void loadPaymentReceivers();
+    return () => { cancelled = true; };
+  }, [isOwner]);
   const badgeSupported = useSyncExternalStore(
     subscribeToClientSnapshot,
     isAppBadgeSupported,
@@ -1509,6 +1543,7 @@ export function AdminDashboard({
       motivoCancelacion?: string;
       monto?: number;
       metodoPago?: string;
+      receiverAdminUserId?: string;
     }
     ) {
     const preparesWhatsApp = new Set<AdminOrdersAction>([
@@ -1543,26 +1578,11 @@ export function AdminDashboard({
       const currentData = (await response.json()) as {
         error?: string;
         code?: string;
-        configuracionUrl?: string;
         pedido?: AdminOrderSummary;
         whatsapp?: { message?: string };
       };
 
       if (!response.ok) {
-        if (
-          currentData.code === "CONFIG_INCOMPLETA" &&
-          currentData.configuracionUrl
-        ) {
-          feedback.notify({
-            message:
-              currentData.error ??
-              "Configura los datos bancarios antes de continuar.",
-            tone: "warning",
-            actionLabel: "Configurar ahora",
-            onAction: () => router.push(currentData.configuracionUrl!)
-          });
-        }
-
         throw new Error(currentData.error ?? "No fue posible actualizar el pedido.");
       }
 
@@ -1790,20 +1810,18 @@ export function AdminDashboard({
   const currentViewMeta = ADMIN_VIEW_META[view];
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1600px] flex-col gap-5 overflow-x-hidden bg-[#f7f8fa] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-[1600px] flex-col gap-5 overflow-x-hidden bg-[#F7F1E8] px-4 py-4 pb-[calc(88px+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
       <AdminNotificationBadge count={attentionCount} onClick={openAttentionOrders} />
 
-      <section className="max-w-full overflow-x-hidden rounded-2xl bg-[#17191f] p-5 text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)] sm:p-6">
+      <section className="max-w-full overflow-x-hidden rounded-2xl bg-[#171613] p-5 text-white shadow-[0_16px_36px_rgba(17,19,24,0.16)] sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 space-y-3">
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#c8c0ff]">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#E8C79E]">
               <Store className="h-4 w-4" />
               Panel admin
             </span>
             <div className="flex items-center gap-4">
-              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white">
-                <span className="text-lg font-bold text-[#17191f]">S</span>
-              </div>
+              <SmellmeMonogram className="h-12 w-12" priority />
               <div className="space-y-1">
                 <div className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">
                   Smellme.cl
@@ -1865,16 +1883,16 @@ export function AdminDashboard({
         </div>
       </section>
 
-      <AdminNav />
+      <AdminNav isOwner={isOwner} />
 
       {error ? (
-        <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           {error}
         </div>
       ) : null}
 
       {successMessage ? (
-        <div className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {successMessage}
         </div>
       ) : null}
@@ -2048,7 +2066,7 @@ export function AdminDashboard({
                       }
 
                       if (action === "reenviar-transferencia") {
-                        void runAction(order.id, action, order);
+                        setOrderModalState({ type: "reenviar-transferencia", order });
                         return;
                       }
 
@@ -2108,7 +2126,7 @@ export function AdminDashboard({
             </div>
 
             {statusFilter !== "historial" ? (
-              <aside className="rounded-lg border border-brand-200 bg-[linear-gradient(180deg,#f7f8fa_0%,#ffffff_100%)] p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
+              <aside className="rounded-lg border border-brand-200 bg-[linear-gradient(180deg,#F7F1E8_0%,#ffffff_100%)] p-5 shadow-soft xl:sticky xl:top-5 xl:h-fit">
                 <div className="mb-4 rounded-2xl border border-brand-100 bg-white px-4 py-3">
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700/70">
                     Resumen del pedido seleccionado
@@ -2341,18 +2359,18 @@ export function AdminDashboard({
             helper="Sirve para ubicar rápido a cada cliente antes de confirmar o cobrar."
           />
 
-          <section className="overflow-hidden rounded-[30px] border border-[#e4e7ec] bg-[linear-gradient(135deg,#f7f8fa_0%,#f5f3ff_55%,#f7f8fa_100%)] p-4 shadow-[0_20px_40px_rgba(17, 19, 24,0.08)] sm:p-5">
+          <section className="overflow-hidden rounded-[30px] border border-[#DDD0C1] bg-[linear-gradient(135deg,#F7F1E8_0%,#F4E8DB_55%,#F7F1E8_100%)] p-4 shadow-[0_20px_40px_rgba(17, 19, 24,0.08)] sm:p-5">
             <div className="space-y-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div className="min-w-0 space-y-3">
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#e4e7ec] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#5434e6]">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#DDD0C1] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#8A6036]">
                     Clientes
                   </span>
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-[#111318] sm:text-3xl">
+                    <h2 className="text-2xl font-bold text-[#191714] sm:text-3xl">
                       Administra tus clientes y revisa su actividad
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-[#667085]">
+                    <p className="max-w-2xl text-sm leading-6 text-[#6B6258]">
                       Busca rápido, revisa fiados y ubica a cada cliente desde una vista
                       cómoda para celular y escritorio.
                     </p>
@@ -2370,7 +2388,7 @@ export function AdminDashboard({
               />
 
               {customersLoading ? (
-                <p className="text-sm text-[#667085]">Cargando clientes...</p>
+                <p className="text-sm text-[#6B6258]">Cargando clientes...</p>
               ) : null}
             </div>
           </section>
@@ -2850,6 +2868,8 @@ export function AdminDashboard({
         <AdminActionModal
           state={orderModalState}
           busy={busyOrderId === orderModalState.order.id}
+          isOwner={isOwner}
+          paymentReceivers={paymentReceivers}
           onClose={() => setOrderModalState(null)}
           onConfirm={(payload) =>
             void runAction(
@@ -3113,7 +3133,7 @@ function OrderDetailPanel({
       </div>
 
       {relatedGroup && relatedGroup.totalPedidos > 1 ? (
-        <div className="rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900">
           Este cliente tiene {relatedGroup.totalPedidos} pedidos para el{" "}
           {formatDateOnly(relatedGroup.fechaEntrega)} por un total de{" "}
           {formatCurrency(relatedGroup.totalMonto)}.
@@ -3374,16 +3394,26 @@ function PaymentOrderCard({
 function AdminActionModal({
   state,
   busy,
+  isOwner,
+  paymentReceivers,
   onClose,
   onConfirm
 }: {
   state: Exclude<OrderModalState, null>;
   busy: boolean;
+  isOwner: boolean;
+  paymentReceivers: Array<{
+    id: string;
+    name: string;
+    email: string;
+    maskedAccountNumber: string;
+  }>;
   onClose: () => void;
   onConfirm: (payload: {
     motivoCancelacion?: string;
     monto?: number;
     metodoPago?: string;
+    receiverAdminUserId?: string;
   }) => void;
 }) {
   const [reason, setReason] = useState(
@@ -3393,6 +3423,10 @@ function AdminActionModal({
     state.type === "abonar" ? String(state.order.saldoPendiente) : ""
   );
   const [method, setMethod] = useState("EFECTIVO");
+  const [receiverAdminUserId, setReceiverAdminUserId] = useState("");
+  const needsReceiver =
+    isOwner &&
+    (state.type === "agendar" || state.type === "reenviar-transferencia");
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-brand-950/20 px-4 py-4">
@@ -3401,6 +3435,8 @@ function AdminActionModal({
           <div className="inline-flex rounded-2xl bg-brand-100 p-3 text-brand-700">
             {state.type === "agendar" ? (
               <CalendarClock className="h-5 w-5" />
+            ) : state.type === "reenviar-transferencia" ? (
+              <CreditCard className="h-5 w-5" />
             ) : state.type === "pagado" ? (
               <CircleDollarSign className="h-5 w-5" />
             ) : state.type === "cancelar" ? (
@@ -3412,6 +3448,8 @@ function AdminActionModal({
           <h3 className="pt-2 text-xl font-bold text-brand-950">
             {state.type === "agendar"
               ? "Agendar pedido"
+              : state.type === "reenviar-transferencia"
+                ? "Reenviar datos de pago"
               : state.type === "pagado"
                 ? "Confirmar pago"
                 : state.type === "cancelar"
@@ -3427,6 +3465,36 @@ function AdminActionModal({
               El pedido pasa a AGENDADO. La fecha y sucursal de despacho se coordinan por
               WhatsApp, no se elige aqui.
             </p>
+          ) : null}
+
+          {state.type === "reenviar-transferencia" ? (
+            <p className="text-sm text-brand-900/70">
+              Se reutilizará el snapshot bancario originalmente comunicado, sin cambiar el pedido.
+            </p>
+          ) : null}
+
+          {needsReceiver ? (
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-brand-900">Cuenta receptora</span>
+              <select
+                required
+                value={receiverAdminUserId}
+                onChange={(event) => setReceiverAdminUserId(event.target.value)}
+                className="w-full rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-950"
+              >
+                <option value="">Selecciona un ADMIN</option>
+                {paymentReceivers.map((receiver) => (
+                  <option key={receiver.id} value={receiver.id}>
+                    {receiver.name} · {receiver.maskedAccountNumber}
+                  </option>
+                ))}
+              </select>
+              {paymentReceivers.length === 0 ? (
+                <span className="block text-sm text-amber-800">
+                  No hay ADMIN activos con una cuenta de cobro configurada.
+                </span>
+              ) : null}
+            </label>
           ) : null}
 
           {state.type === "pagado" ? (
@@ -3492,7 +3560,7 @@ function AdminActionModal({
           </button>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || (needsReceiver && !receiverAdminUserId)}
             onClick={() =>
               onConfirm(
                 state.type === "cancelar"
@@ -3505,7 +3573,9 @@ function AdminActionModal({
                         monto: Number(amount),
                         metodoPago: method
                       }
-                    : {}
+                    : needsReceiver
+                      ? { receiverAdminUserId }
+                      : {}
               )
             }
             className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
@@ -3533,7 +3603,7 @@ function ClientStatsCards({
       label: "Total clientes",
       value: String(summary.total),
       detail: "Contactos visibles en el panel",
-      accent: "bg-[#7357ff]"
+      accent: "bg-[#B88B58]"
     },
     {
       label: "Con pedidos",
@@ -3551,7 +3621,7 @@ function ClientStatsCards({
       label: "Recientes",
       value: String(summary.recientes),
       detail: "Movimiento dentro de 14 dias",
-      accent: "bg-[#5434e6]"
+      accent: "bg-[#8A6036]"
     }
   ];
 
@@ -3560,16 +3630,16 @@ function ClientStatsCards({
       {items.map((item) => (
         <article
           key={item.label}
-          className="rounded-[24px] border border-[#e4e7ec] bg-white p-4 shadow-[0_12px_30px_rgba(17, 19, 24,0.08)]"
+          className="rounded-[24px] border border-[#DDD0C1] bg-white p-4 shadow-[0_12px_30px_rgba(17, 19, 24,0.08)]"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-[#667085]">{item.label}</p>
-              <p className="mt-2 text-3xl font-bold text-[#111318]">{item.value}</p>
+              <p className="text-sm font-medium text-[#6B6258]">{item.label}</p>
+              <p className="mt-2 text-3xl font-bold text-[#191714]">{item.value}</p>
             </div>
             <span className={`mt-1 h-3 w-3 rounded-full ${item.accent}`} />
           </div>
-          <p className="mt-3 text-sm leading-5 text-[#667085]">{item.detail}</p>
+          <p className="mt-3 text-sm leading-5 text-[#6B6258]">{item.detail}</p>
         </article>
       ))}
     </div>
@@ -3584,13 +3654,13 @@ function ClientSearchBar({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex w-full max-w-xl items-center gap-3 rounded-[22px] border border-[#e4e7ec] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(17, 19, 24,0.08)]">
-      <Search className="h-5 w-5 text-[#5434e6]" />
+    <label className="flex w-full max-w-xl items-center gap-3 rounded-[22px] border border-[#DDD0C1] bg-white px-4 py-3 shadow-[0_10px_24px_rgba(17, 19, 24,0.08)]">
+      <Search className="h-5 w-5 text-[#8A6036]" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Buscar por nombre, teléfono o unidad..."
-        className="w-full border-0 bg-transparent p-0 text-[15px] text-[#111318] outline-none placeholder:text-[#667085]"
+        className="w-full border-0 bg-transparent p-0 text-[15px] text-[#191714] outline-none placeholder:text-[#6B6258]"
       />
     </label>
   );
@@ -3631,14 +3701,14 @@ function ClientFilterChips({
             onClick={() => onChange(filter.value)}
             className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
               active
-                ? "border-[#7357ff] bg-[#7357ff] text-white shadow-[0_10px_24px_rgba(115, 87, 255,0.22)]"
-                : "border-[#e4e7ec] bg-white text-[#5434e6]"
+                ? "border-[#B88B58] bg-[#B88B58] text-white shadow-[0_10px_24px_rgba(115, 87, 255,0.22)]"
+                : "border-[#DDD0C1] bg-white text-[#8A6036]"
             }`}
           >
             <span>{filter.label}</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${
-                active ? "bg-white/20 text-white" : "bg-[#eeebff] text-[#5434e6]"
+                active ? "bg-white/20 text-white" : "bg-[#F4E8DB] text-[#8A6036]"
               }`}
             >
               {filter.count}
@@ -3674,15 +3744,15 @@ function ClientCard({
     : "Sin pedidos";
 
   return (
-    <article className="overflow-hidden rounded-[28px] border border-[#e4e7ec] bg-white shadow-[0_18px_40px_rgba(17, 19, 24,0.08)]">
-      <div className="border-b border-[#e4e7ec] bg-[linear-gradient(135deg,#f7f8fa_0%,#f5f3ff_72%,#FFFFFF_100%)] p-5">
+    <article className="overflow-hidden rounded-[28px] border border-[#DDD0C1] bg-white shadow-[0_18px_40px_rgba(17, 19, 24,0.08)]">
+      <div className="border-b border-[#DDD0C1] bg-[linear-gradient(135deg,#F7F1E8_0%,#F4E8DB_72%,#FFFFFF_100%)] p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#eeebff] text-lg font-bold text-[#5434e6] shadow-[0_10px_20px_rgba(115, 87, 255,0.15)]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F4E8DB] text-lg font-bold text-[#8A6036] shadow-[0_10px_20px_rgba(115, 87, 255,0.15)]">
               {initial}
             </div>
             <div className="min-w-0 space-y-2">
-              <h3 className="text-xl font-bold text-[#111318]">{customer.nombre}</h3>
+              <h3 className="text-xl font-bold text-[#191714]">{customer.nombre}</h3>
               <div className="flex flex-wrap gap-2">
                 <ClientPill label={`${customer.pedidos} pedido(s)`} tone="neutral" />
                 <ClientPill
@@ -3694,7 +3764,7 @@ function ClientCard({
               </div>
             </div>
           </div>
-          <span className="rounded-full border border-[#e4e7ec] bg-white px-3 py-1 text-xs font-semibold text-[#5434e6]">
+          <span className="rounded-full border border-[#DDD0C1] bg-white px-3 py-1 text-xs font-semibold text-[#8A6036]">
             {lastMovementLabel}
           </span>
         </div>
@@ -3747,18 +3817,18 @@ function ClientCard({
           <MiniMetric label="Último pedido" value={lastOrderLabel} />
         </div>
 
-        <div className="rounded-[22px] border border-[#e4e7ec] bg-[#f7f8fa] p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5434e6]">
+        <div className="rounded-[22px] border border-[#DDD0C1] bg-[#F7F1E8] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6036]">
             Fechas agendadas
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {customer.proximasFechas.length === 0 ? (
-              <span className="text-sm text-[#667085]">Sin pedidos agendados por ahora</span>
+              <span className="text-sm text-[#6B6258]">Sin pedidos agendados por ahora</span>
             ) : (
               customer.proximasFechas.slice(0, 4).map((fecha) => (
                 <span
                   key={`${customer.clienteId}-${fecha}`}
-                  className="rounded-full border border-[#e4e7ec] bg-white px-3 py-1 text-xs font-semibold text-[#5434e6]"
+                  className="rounded-full border border-[#DDD0C1] bg-white px-3 py-1 text-xs font-semibold text-[#8A6036]"
                 >
                   {formatDateOnly(fecha)}
                 </span>
@@ -3771,21 +3841,21 @@ function ClientCard({
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#5434e6]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-sm font-semibold text-[#8A6036]"
           >
             Editar cliente
           </button>
           <button
             type="button"
             onClick={onOpenOrders}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-[#7357ff] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(115, 87, 255,0.2)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-[#B88B58] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(115, 87, 255,0.2)]"
           >
             Ver pedidos
           </button>
           <button
             type="button"
             onClick={onOpenPayments}
-            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-3 text-sm font-semibold text-[#5434e6]"
+            className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-3 text-sm font-semibold text-[#8A6036]"
           >
             Revisar cobros
           </button>
@@ -3793,7 +3863,7 @@ function ClientCard({
             <button
               type="button"
               onClick={onUnblock}
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#1f6d33]"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-sm font-semibold text-[#1f6d33]"
             >
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
               Desbloquear
@@ -3835,16 +3905,16 @@ function CustomerEditModal({
   const [lugarTrabajo, setLugarTrabajo] = useState(state.customer.lugarTrabajo);
 
   return (
-    <div className="fixed inset-0 z-[110] bg-[#111318]/35 p-4 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[110] bg-[#191714]/35 p-4 backdrop-blur-[2px]">
       <div className="mx-auto flex min-h-full w-full max-w-xl items-center justify-center">
-        <div className="w-full overflow-hidden rounded-[30px] border border-[#e4e7ec] bg-white shadow-[0_30px_60px_rgba(17, 19, 24,0.22)]">
-          <div className="border-b border-[#e4e7ec] bg-[linear-gradient(135deg,#f7f8fa_0%,#f5f3ff_72%,#FFFFFF_100%)] p-5">
+        <div className="w-full overflow-hidden rounded-[30px] border border-[#DDD0C1] bg-white shadow-[0_30px_60px_rgba(17, 19, 24,0.22)]">
+          <div className="border-b border-[#DDD0C1] bg-[linear-gradient(135deg,#F7F1E8_0%,#F4E8DB_72%,#FFFFFF_100%)] p-5">
             <div className="space-y-2">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#e4e7ec] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#5434e6]">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#DDD0C1] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6036]">
                 Editar cliente
               </span>
-              <h3 className="text-xl font-bold text-[#111318]">Actualiza datos sin tocar pedidos</h3>
-              <p className="text-sm leading-6 text-[#667085]">
+              <h3 className="text-xl font-bold text-[#191714]">Actualiza datos sin tocar pedidos</h3>
+              <p className="text-sm leading-6 text-[#6B6258]">
                 Este cambio solo actualiza el cliente seleccionado. Si el telefono o la identidad ya
                 existen en otro registro, bloqueamos el guardado para evitar cruces.
               </p>
@@ -3853,42 +3923,42 @@ function CustomerEditModal({
 
           <div className="space-y-4 p-5">
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#111318]">Nombre</span>
+              <span className="text-sm font-medium text-[#191714]">Nombre</span>
               <input
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
-                className="block min-h-11 w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+                className="block min-h-11 w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
                 placeholder="Ejemplo: Claudia"
               />
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#111318]">Telefono</span>
+              <span className="text-sm font-medium text-[#191714]">Telefono</span>
               <input
                 value={telefono}
                 onChange={(event) => setTelefono(formatChileanMobileInput(event.target.value))}
-                className="block min-h-11 w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+                className="block min-h-11 w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
                 placeholder="9 1234 5678"
               />
-              <p className="text-xs text-[#667085]">Puedes dejarlo vacio si no corresponde.</p>
+              <p className="text-xs text-[#6B6258]">Puedes dejarlo vacio si no corresponde.</p>
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#111318]">Unidad o lugar de trabajo</span>
+              <span className="text-sm font-medium text-[#191714]">Unidad o lugar de trabajo</span>
               <input
                 value={lugarTrabajo}
                 onChange={(event) => setLugarTrabajo(event.target.value)}
-                className="block min-h-11 w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none"
+                className="block min-h-11 w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
                 placeholder="Ejemplo: Finanzas"
               />
             </label>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-[#e4e7ec] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DDD0C1] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="min-h-11 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#5434e6]"
+              className="min-h-11 rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-sm font-semibold text-[#8A6036]"
             >
               Cerrar
             </button>
@@ -3903,7 +3973,7 @@ function CustomerEditModal({
                   lugarTrabajo
                 })
               }
-              className="min-h-11 rounded-[18px] bg-[#7357ff] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(115, 87, 255,0.2)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="min-h-11 rounded-[18px] bg-[#B88B58] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(115, 87, 255,0.2)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {busy ? "Guardando..." : "Guardar cliente"}
             </button>
@@ -3939,19 +4009,19 @@ function CustomerBlockModal({
   const canConfirm = trimmedLength >= MOTIVO_BLOQUEO_MIN_LENGTH && reason.length <= MOTIVO_BLOQUEO_MAX_LENGTH;
 
   return (
-    <div className="fixed inset-0 z-[110] bg-[#111318]/35 p-4 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[110] bg-[#191714]/35 p-4 backdrop-blur-[2px]">
       <div className="mx-auto flex min-h-full w-full max-w-xl items-center justify-center">
-        <div className="w-full overflow-hidden rounded-[30px] border border-[#e4e7ec] bg-white shadow-[0_30px_60px_rgba(17, 19, 24,0.22)]">
-          <div className="border-b border-[#e4e7ec] bg-[linear-gradient(135deg,#fdf1ef_0%,#fff_72%,#FFFFFF_100%)] p-5">
+        <div className="w-full overflow-hidden rounded-[30px] border border-[#DDD0C1] bg-white shadow-[0_30px_60px_rgba(17, 19, 24,0.22)]">
+          <div className="border-b border-[#DDD0C1] bg-[linear-gradient(135deg,#fdf1ef_0%,#fff_72%,#FFFFFF_100%)] p-5">
             <div className="space-y-2">
               <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f3c6c0] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a2c22]">
                 <Ban className="h-3.5 w-3.5" aria-hidden="true" />
                 Bloquear cliente
               </span>
-              <h3 className="text-xl font-bold text-[#111318]">
+              <h3 className="text-xl font-bold text-[#191714]">
                 Bloquear a {state.customer.nombre}
               </h3>
-              <p className="text-sm leading-6 text-[#667085]">
+              <p className="text-sm leading-6 text-[#6B6258]">
                 No podrá generar nuevos pedidos públicos. Sus pedidos, ventas, pagos y fiado
                 anteriores se conservan sin cambios. El motivo es exclusivamente administrativo:
                 nunca se muestra al cliente.
@@ -3961,7 +4031,7 @@ function CustomerBlockModal({
 
           <div className="space-y-2 p-5">
             <label className="block space-y-2" htmlFor="motivo-bloqueo-textarea">
-              <span className="text-sm font-medium text-[#111318]">Motivo interno (obligatorio)</span>
+              <span className="text-sm font-medium text-[#191714]">Motivo interno (obligatorio)</span>
               <textarea
                 id="motivo-bloqueo-textarea"
                 autoFocus
@@ -3972,13 +4042,13 @@ function CustomerBlockModal({
                 aria-describedby="motivo-bloqueo-counter"
                 aria-invalid={tooShort || undefined}
                 placeholder="Ejemplo: pedidos repetidos sin retiro ni aviso."
-                className="block w-full rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-base text-[#111318] outline-none focus:border-[#7357ff]"
+                className="block w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none focus:border-[#B88B58]"
               />
             </label>
             <p
               id="motivo-bloqueo-counter"
               aria-live="polite"
-              className={`text-xs ${tooShort ? "text-[#8a2c22]" : "text-[#667085]"}`}
+              className={`text-xs ${tooShort ? "text-[#8a2c22]" : "text-[#6B6258]"}`}
             >
               {tooShort
                 ? `Escribe al menos ${MOTIVO_BLOQUEO_MIN_LENGTH} caracteres.`
@@ -3986,12 +4056,12 @@ function CustomerBlockModal({
             </p>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-[#e4e7ec] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DDD0C1] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={busy}
-              className="min-h-11 rounded-[18px] border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#5434e6] disabled:cursor-not-allowed disabled:opacity-70"
+              className="min-h-11 rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-sm font-semibold text-[#8A6036] disabled:cursor-not-allowed disabled:opacity-70"
             >
               Cancelar
             </button>
@@ -4020,12 +4090,12 @@ function ClientFact({
   value: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-[#e4e7ec] bg-[#f7f8fa] p-4">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#5434e6]">
+    <div className="rounded-[20px] border border-[#DDD0C1] bg-[#F7F1E8] p-4">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8A6036]">
         <Icon className="h-4 w-4" />
         {label}
       </div>
-      <div className="mt-3 text-sm font-semibold leading-6 text-[#111318]">{value}</div>
+      <div className="mt-3 text-sm font-semibold leading-6 text-[#191714]">{value}</div>
     </div>
   );
 }
@@ -4039,12 +4109,12 @@ function ClientPill({
 }) {
   const className =
     tone === "success"
-      ? "border-[#e4e7ec] bg-[#eeebff] text-[#5434e6]"
+      ? "border-[#DDD0C1] bg-[#F4E8DB] text-[#8A6036]"
       : tone === "danger"
         ? "border-[#F5C0BB] bg-[#FFF0EF] text-[#D66D63]"
         : tone === "accent"
           ? "border-[#F0E2AA] bg-[#FFF8DE] text-[#8A6A14]"
-          : "border-[#e4e7ec] bg-white text-[#5434e6]";
+          : "border-[#DDD0C1] bg-white text-[#8A6036]";
 
   return (
     <span
@@ -4057,14 +4127,14 @@ function ClientPill({
 
 function ClientEmptyState({ hasSearch }: { hasSearch: boolean }) {
   return (
-    <div className="rounded-[28px] border border-dashed border-[#e4e7ec] bg-[#f7f8fa] p-8 text-center shadow-soft">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#5434e6] shadow-[0_12px_24px_rgba(17, 19, 24,0.08)]">
+    <div className="rounded-[28px] border border-dashed border-[#DDD0C1] bg-[#F7F1E8] p-8 text-center shadow-soft">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#8A6036] shadow-[0_12px_24px_rgba(17, 19, 24,0.08)]">
         <UserRound className="h-6 w-6" />
       </div>
-      <h3 className="mt-4 text-xl font-bold text-[#111318]">
+      <h3 className="mt-4 text-xl font-bold text-[#191714]">
         {hasSearch ? "No encontramos coincidencias." : "Aún no hay clientes registrados."}
       </h3>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#667085]">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#6B6258]">
         {hasSearch
           ? "Prueba con otro nombre, teléfono o lugar de trabajo para seguir buscando."
           : "Cuando ingresen pedidos, aparecerán aquí automáticamente."}

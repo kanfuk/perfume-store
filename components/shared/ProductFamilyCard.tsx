@@ -74,7 +74,7 @@ export function ProductFamilyCard({
 
   const sizeSelector = hasMultipleVariants ? (
     <div className="space-y-1" onClick={(event) => event.stopPropagation()}>
-      <label htmlFor={selectorId} className="truncate text-xs font-semibold text-[#98a2b3]">
+      <label htmlFor={selectorId} className="truncate text-xs font-semibold text-[#8C8175]">
         Tamaño
       </label>
       <select
@@ -82,7 +82,7 @@ export function ProductFamilyCard({
         aria-label={`Elige el tamaño de ${family.nombre}`}
         value={selectedId}
         onChange={(event) => setSelectedId(event.target.value)}
-        className="min-h-11 w-full rounded-lg border border-[#e4e7ec] bg-white px-2.5 py-2 text-sm text-[#111318] outline-none focus:border-[#7357ff] focus:ring-2 focus:ring-[#eeebff] sm:px-3"
+        className="min-h-11 w-full rounded-lg border border-[#DDD0C1] bg-white px-2.5 py-2 text-sm text-[#191714] outline-none focus:border-[#B88B58] focus:ring-2 focus:ring-[#F4E8DB] sm:px-3"
       >
         {selectableVariants.map((variant) => (
           <option key={variant.productId} value={variant.productId} disabled={!variant.disponible}>

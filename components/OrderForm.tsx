@@ -727,12 +727,12 @@ export function OrderForm() {
           className="max-w-full space-y-8 overflow-x-hidden xl:col-span-7"
           onSubmit={handleSubmit}
         >
-          <div id="como-comprar" className="scroll-mt-8 border-b border-[#e4e7ec] pb-8">
+          <div id="como-comprar" className="scroll-mt-8 border-b border-[#DDD0C1] pb-8">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#5434e6]">
+              <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6036]">
                 Reserva guiada
               </div>
-              <p className="text-sm text-[#667085]">
+              <p className="text-sm text-[#6B6258]">
                 Elige tus perfumes, completa tus datos de despacho y envía en minutos.
               </p>
             </div>
@@ -745,14 +745,14 @@ export function OrderForm() {
           </div>
 
           {recentCustomers.length > 0 ? (
-            <div className="rounded-[26px] border border-[#e4e7ec] bg-[#f7f8fa] p-4 sm:p-5">
+            <div className="rounded-[26px] border border-[#DDD0C1] bg-[#F7F1E8] p-4 sm:p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#7357ff] shadow-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#B88B58] shadow-sm">
                   <BadgeCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#111318]">Clientes frecuentes</h3>
-                  <p className="text-sm text-[#667085]">
+                  <h3 className="text-lg font-semibold text-[#191714]">Clientes frecuentes</h3>
+                  <p className="text-sm text-[#6B6258]">
                     Si ya pediste desde este equipo, toca tu nombre y seguimos.
                   </p>
                 </div>
@@ -763,10 +763,10 @@ export function OrderForm() {
                     key={customer.telefono}
                     type="button"
                     onClick={() => applyRecentCustomer(customer)}
-                    className="max-w-full rounded-full border border-[#e4e7ec] bg-white px-4 py-3 text-left transition hover:border-[#7357ff] hover:shadow-sm"
+                    className="max-w-full rounded-full border border-[#DDD0C1] bg-white px-4 py-3 text-left transition hover:border-[#B88B58] hover:shadow-sm"
                   >
-                    <div className="text-sm font-semibold text-[#111318]">{customer.nombre}</div>
-                    <div className="text-xs text-[#667085]">{customer.comuna || customer.telefono}</div>
+                    <div className="text-sm font-semibold text-[#191714]">{customer.nombre}</div>
+                    <div className="text-xs text-[#6B6258]">{customer.comuna || customer.telefono}</div>
                   </button>
                 ))}
               </div>
@@ -778,29 +778,29 @@ export function OrderForm() {
             id="catalogo-section"
             className={`space-y-5 rounded-2xl border bg-white p-5 shadow-soft sm:p-6 ${
               highlightedArea === "cart" || highlightedArea === "stock"
-                ? "border-[#7357ff] ring-4 ring-[#eeebff]"
-                : "border-[#e4e7ec]"
+                ? "border-[#B88B58] ring-4 ring-[#F4E8DB]"
+                : "border-[#DDD0C1]"
             }`}
           >
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#7357ff] shadow-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#B88B58] shadow-sm">
                   <ShoppingBag className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5434e6]">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6036]">
                     Paso 1
                   </div>
-                  <h3 className="text-lg font-semibold text-[#111318]">Catálogo</h3>
-                  <p className="text-sm text-[#667085]">
+                  <h3 className="text-lg font-semibold text-[#191714]">Catálogo</h3>
+                  <p className="text-sm text-[#6B6258]">
                     Elige tus perfumes favoritos y suma lo que necesites.
                   </p>
                 </div>
               </div>
-              {loadingProducts ? <span className="text-sm text-[#667085]">Cargando...</span> : null}
+              {loadingProducts ? <span className="text-sm text-[#6B6258]">Cargando...</span> : null}
             </div>
             {!loadingProducts && !serverError && products.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#d0d5dd] bg-[#f7f8fa] px-5 py-10 text-center text-sm leading-6 text-[#667085]">
+              <div className="rounded-2xl border border-dashed border-[#d0d5dd] bg-[#F7F1E8] px-5 py-10 text-center text-sm leading-6 text-[#6B6258]">
                 Estamos actualizando nuestro catálogo. Vuelve pronto para descubrir las fragancias disponibles.
               </div>
             ) : null}
@@ -838,20 +838,20 @@ export function OrderForm() {
             id="pedido-form"
             className={`space-y-5 rounded-2xl border bg-white p-5 shadow-soft sm:p-6 ${
               highlightedArea && highlightedArea !== "cart" && highlightedArea !== "stock"
-                ? "border-[#7357ff] ring-4 ring-[#eeebff]"
-                : "border-[#e4e7ec]"
+                ? "border-[#B88B58] ring-4 ring-[#F4E8DB]"
+                : "border-[#DDD0C1]"
             }`}
           >
             <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#7357ff] shadow-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#B88B58] shadow-sm">
                   <UserRound className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5434e6]">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6036]">
                     Paso 2
                   </div>
-                  <h3 className="text-lg font-semibold text-[#111318]">Tus datos</h3>
-                  <p className="text-sm text-[#667085]">
+                  <h3 className="text-lg font-semibold text-[#191714]">Tus datos</h3>
+                  <p className="text-sm text-[#6B6258]">
                     Los necesitamos para confirmar tu reserva y coordinar el despacho por WhatsApp.
                   </p>
                 </div>
@@ -860,16 +860,16 @@ export function OrderForm() {
             {autoFillMessage ? (
               <div
                 aria-live="polite"
-                className="flex items-start gap-2 rounded-2xl border border-[#e4e7ec] bg-white px-4 py-3 text-sm text-[#667085]"
+                className="flex items-start gap-2 rounded-2xl border border-[#DDD0C1] bg-white px-4 py-3 text-sm text-[#6B6258]"
               >
-                <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#7357ff]" />
+                <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#B88B58]" />
                 <span>{autoFillMessage}</span>
               </div>
             ) : null}
 
             {suggestedRecentCustomers.length > 0 ? (
-              <div className="rounded-[22px] border border-[#e4e7ec] bg-white px-4 py-4">
-                <div className="text-sm font-semibold text-[#111318]">
+              <div className="rounded-[22px] border border-[#DDD0C1] bg-white px-4 py-4">
+                <div className="text-sm font-semibold text-[#191714]">
                   Usar cliente existente
                 </div>
                 <div className="mt-3 flex flex-wrap gap-3">
@@ -878,7 +878,7 @@ export function OrderForm() {
                       key={`${customer.telefono}-${customer.nombre}`}
                       type="button"
                       onClick={() => applyRecentCustomer(customer)}
-                      className="rounded-full border border-[#e4e7ec] bg-[#f7f8fa] px-4 py-2 text-sm font-semibold text-[#5434e6] transition hover:border-[#7357ff]"
+                      className="rounded-full border border-[#DDD0C1] bg-[#F7F1E8] px-4 py-2 text-sm font-semibold text-[#8A6036] transition hover:border-[#B88B58]"
                     >
                       {customer.nombre}
                     </button>
@@ -990,7 +990,7 @@ export function OrderForm() {
             />
 
             <div className="space-y-2">
-              <span className="text-sm font-medium text-[#111318]">Método de despacho</span>
+              <span className="text-sm font-medium text-[#191714]">Método de despacho</span>
               <div className="grid gap-3 sm:grid-cols-2">
                 <DespachoOption
                   icon={<Truck className="h-4 w-4" />}
@@ -1067,17 +1067,17 @@ export function OrderForm() {
             />
           </div>
 
-          <div className="rounded-2xl border border-[#e4e7ec] bg-white p-5 shadow-soft">
+          <div className="rounded-2xl border border-[#DDD0C1] bg-white p-5 shadow-soft">
             <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#7357ff] shadow-sm">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#B88B58] shadow-sm">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5434e6]">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A6036]">
                   Paso 3
                 </div>
-                <h3 className="text-lg font-semibold text-[#111318]">Envía tu reserva</h3>
-                <p className="text-sm leading-6 text-[#667085]">
+                <h3 className="text-lg font-semibold text-[#191714]">Envía tu reserva</h3>
+                <p className="text-sm leading-6 text-[#6B6258]">
                   Esto es una solicitud de reserva de stock. Te contactaremos por WhatsApp para
                   confirmar disponibilidad y coordinar la transferencia bancaria.
                 </p>
@@ -1115,14 +1115,14 @@ export function OrderForm() {
             />
           </div>
 
-          <div className="rounded-[30px] border border-[#e4e7ec] bg-white/95 p-5 shadow-soft">
+          <div className="rounded-[30px] border border-[#DDD0C1] bg-white/95 p-5 shadow-soft">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f7f8fa] text-[#7357ff]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F7F1E8] text-[#B88B58]">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-[#111318]">Reserva de stock</h3>
-                <p className="text-sm text-[#667085]">
+                <h3 className="text-lg font-semibold text-[#191714]">Reserva de stock</h3>
+                <p className="text-sm text-[#6B6258]">
                   Tu reserva queda pendiente de confirmación. Revisamos disponibilidad y luego te
                   escribimos por WhatsApp.
                 </p>
@@ -1134,7 +1134,7 @@ export function OrderForm() {
 
       {itemCount > 0 ? (
         <div className="fixed inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-xl xl:hidden">
-          <div className="flex items-center justify-between gap-4 rounded-[26px] border border-[#c1b6ff] bg-[linear-gradient(135deg,#452bb8_0%,#5434e6_55%,#7357ff_100%)] px-4 py-3 text-white shadow-[0_22px_46px_rgba(17,19,24,0.28)]">
+          <div className="flex items-center justify-between gap-4 rounded-[26px] border border-[#D8BEA2] bg-[linear-gradient(135deg,#6F472C_0%,#8A6036_55%,#B88B58_100%)] px-4 py-3 text-white shadow-[0_22px_46px_rgba(17,19,24,0.28)]">
             <button
               type="button"
               onClick={() => setIsCartSheetOpen(true)}
@@ -1157,7 +1157,7 @@ export function OrderForm() {
               type="button"
               onClick={handleCartPrimaryAction}
               disabled={submitting || loadingProducts}
-              className="inline-flex min-h-11 shrink-0 items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#452bb8] shadow-[0_10px_24px_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex min-h-11 shrink-0 items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.12)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {submitting ? "Enviando..." : cartCtaCopy.buttonLabel}
             </button>
@@ -1166,19 +1166,19 @@ export function OrderForm() {
       ) : null}
 
       {isCartSheetOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-[#111318]/35 xl:hidden">
+        <div className="fixed inset-0 z-50 flex items-end bg-[#191714]/35 xl:hidden">
           <button
             type="button"
             className="absolute inset-0"
             aria-label="Cerrar resumen del pedido"
             onClick={() => setIsCartSheetOpen(false)}
           />
-          <div className="relative w-full rounded-t-[32px] border border-[#e4e7ec] bg-white px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-4 shadow-[0_-20px_50px_rgba(17, 19, 24,0.18)]">
-            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#e4e7ec]" />
+          <div className="relative w-full rounded-t-[32px] border border-[#DDD0C1] bg-white px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-4 shadow-[0_-20px_50px_rgba(17, 19, 24,0.18)]">
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#DDD0C1]" />
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-xl font-semibold text-[#111318]">Tu reserva</h3>
-                <p className="text-sm text-[#667085]">
+                <h3 className="text-xl font-semibold text-[#191714]">Tu reserva</h3>
+                <p className="text-sm text-[#6B6258]">
                   {isOrderReadyToSubmit
                     ? "Tu reserva está lista. Puedes enviarla desde aquí."
                     : "Revisa cantidades, total y después completa tus datos."}
@@ -1187,7 +1187,7 @@ export function OrderForm() {
               <button
                 type="button"
                 onClick={() => setIsCartSheetOpen(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e4e7ec] bg-white text-[#111318]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#DDD0C1] bg-white text-[#191714]"
                 aria-label="Cerrar carrito"
               >
                 <X className="h-4 w-4" />
@@ -1214,7 +1214,7 @@ export function OrderForm() {
                       <button
                         type="button"
                         onClick={() => setIsCartSheetOpen(false)}
-                        className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#e4e7ec] bg-white px-4 py-3 text-sm font-semibold text-[#111318]"
+                        className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#DDD0C1] bg-white px-4 py-3 text-sm font-semibold text-[#191714]"
                       >
                         Seguir agregando
                       </button>
@@ -1222,7 +1222,7 @@ export function OrderForm() {
                         type="button"
                         onClick={handleCartPrimaryAction}
                         disabled={submitting || loadingProducts}
-                        className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#7357ff] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#c1b6ff]"
+                        className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#B88B58] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#D8BEA2]"
                       >
                         {submitting ? "Enviando..." : cartCtaCopy.buttonLabel}
                       </button>
@@ -1241,45 +1241,45 @@ export function OrderForm() {
       />
 
       {submitted ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#111318]/30 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[32px] border border-[#e4e7ec] bg-white p-6 shadow-[0_24px_60px_rgba(17, 19, 24,0.18)]">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#191714]/30 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[32px] border border-[#DDD0C1] bg-white p-6 shadow-[0_24px_60px_rgba(17, 19, 24,0.18)]">
             <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5f3ff] text-success">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4E8DB] text-success">
                 <BadgeCheck className="h-6 w-6" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-[#111318]">
+                <h3 className="text-xl font-semibold text-[#191714]">
                   Reserva registrada correctamente
                 </h3>
-                <p className="text-sm leading-6 text-[#667085]">
+                <p className="text-sm leading-6 text-[#6B6258]">
                   Tu reserva quedó pendiente de confirmación. Revisaremos disponibilidad y te
                   avisaremos por WhatsApp para coordinar el pago.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-[22px] border border-[#e4e7ec] bg-[#f7f8fa] p-4">
+            <div className="mt-5 rounded-[22px] border border-[#DDD0C1] bg-[#F7F1E8] p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#667085]">Código</span>
-                <span className="font-medium text-[#111318]">
+                <span className="text-[#6B6258]">Código</span>
+                <span className="font-medium text-[#191714]">
                   {submitted.codigo ?? submitted.pedidoId}
                 </span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="text-[#667085]">Subtotal</span>
-                <span className="text-[#111318]">{formatCurrency(submitted.subtotal)}</span>
+                <span className="text-[#6B6258]">Subtotal</span>
+                <span className="text-[#191714]">{formatCurrency(submitted.subtotal)}</span>
               </div>
               <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="text-[#667085]">Despacho</span>
-                <span className="text-[#111318]">
+                <span className="text-[#6B6258]">Despacho</span>
+                <span className="text-[#191714]">
                   {submitted.metodoDespacho === METODO_DESPACHO_STARKEN_POR_PAGAR
                     ? "Por pagar"
                     : formatCurrency(submitted.costoDespacho)}
                 </span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="text-[#667085]">Total</span>
-                <span className="font-semibold text-[#7357ff]">
+                <span className="text-[#6B6258]">Total</span>
+                <span className="font-semibold text-[#B88B58]">
                   {formatCurrency(submitted.total)}
                 </span>
               </div>
@@ -1288,7 +1288,7 @@ export function OrderForm() {
             <button
               type="button"
               onClick={() => setSubmitted(null)}
-              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#7357ff] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#5434e6]"
+              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#B88B58] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#8A6036]"
             >
               Entendido
             </button>
@@ -1301,14 +1301,14 @@ export function OrderForm() {
 
 function StepChip({ step, title, text }: { step: string; title: string; text: string }) {
   return (
-    <div className="relative z-10 bg-[#f7f8fa] py-2 sm:text-center">
+    <div className="relative z-10 bg-[#F7F1E8] py-2 sm:text-center">
       <div className="flex items-center gap-3 sm:flex-col sm:gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full border-4 border-[#f7f8fa] bg-[#7357ff] text-sm font-bold text-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full border-4 border-[#F7F1E8] bg-[#B88B58] text-sm font-bold text-white">
           {step}
         </div>
         <div>
-          <div className="text-sm font-semibold text-[#111318]">{title}</div>
-          <div className="text-xs leading-5 text-[#667085]">{text}</div>
+          <div className="text-sm font-semibold text-[#191714]">{title}</div>
+          <div className="text-xs leading-5 text-[#6B6258]">{text}</div>
         </div>
       </div>
     </div>
@@ -1326,15 +1326,15 @@ function OrderTotalsSummary({
 }) {
   return (
     <div className="space-y-2 rounded-xl bg-[#f9fafb] px-4 py-3 text-sm">
-      <div className="flex items-center justify-between text-[#344054]">
+      <div className="flex items-center justify-between text-[#4D453D]">
         <span>Subtotal</span>
         <span>{formatCurrency(subtotal)}</span>
       </div>
-      <div className="flex items-center justify-between text-[#344054]">
+      <div className="flex items-center justify-between text-[#4D453D]">
         <span>Despacho</span>
         <span>{costoDespacho > 0 ? formatCurrency(costoDespacho) : "Por pagar"}</span>
       </div>
-      <div className="flex items-center justify-between border-t border-[#e4e7ec] pt-3 text-base font-bold text-[#111318]">
+      <div className="flex items-center justify-between border-t border-[#DDD0C1] pt-3 text-base font-bold text-[#191714]">
         <span>Total estimado</span>
         <span>{formatCurrency(total)}</span>
       </div>
@@ -1360,20 +1360,20 @@ function DespachoOption({ icon, label, helper, active, highlighted, onSelect }: 
       aria-checked={active}
       className={`flex min-h-[120px] flex-col gap-2 rounded-[14px] border p-4 text-left transition ${
         active
-          ? "border-[#7357ff] bg-[#f5f3ff] ring-2 ring-[#7357ff]"
+          ? "border-[#B88B58] bg-[#F4E8DB] ring-2 ring-[#B88B58]"
           : highlighted
-            ? "border-[#7357ff] ring-4 ring-[#eeebff]"
-            : "border-[#d0d5dd] bg-white hover:border-[#7357ff]"
+            ? "border-[#B88B58] ring-4 ring-[#F4E8DB]"
+            : "border-[#d0d5dd] bg-white hover:border-[#B88B58]"
       }`}
     >
-      <span className="flex items-center gap-2 text-sm font-semibold text-[#111318]">
-        <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${active ? "border-[#7357ff]" : "border-[#98a2b3]"}`}>
-          {active ? <span className="h-2.5 w-2.5 rounded-full bg-[#7357ff]" /> : null}
+      <span className="flex items-center gap-2 text-sm font-semibold text-[#191714]">
+        <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${active ? "border-[#B88B58]" : "border-[#8C8175]"}`}>
+          {active ? <span className="h-2.5 w-2.5 rounded-full bg-[#B88B58]" /> : null}
         </span>
         {icon}
         {label}
       </span>
-      <span className="pl-7 text-xs leading-5 text-[#667085]">{helper}</span>
+      <span className="pl-7 text-xs leading-5 text-[#6B6258]">{helper}</span>
     </button>
   );
 }
@@ -1407,7 +1407,7 @@ function SelectField({
 }: SelectFieldProps) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#111318]">{label}</span>
+      <span className="text-sm font-medium text-[#191714]">{label}</span>
       <select
         id={id}
         ref={selectRef}
@@ -1417,8 +1417,8 @@ function SelectField({
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         onChange={(event) => onChange(event.target.value)}
-        className={`app-input block w-full px-4 text-base outline-none disabled:cursor-not-allowed disabled:bg-[#f2f4f7] disabled:text-[#98a2b3] ${
-          highlighted ? "border-[#7357ff] ring-4 ring-[#eeebff]" : ""
+        className={`app-input block w-full px-4 text-base outline-none disabled:cursor-not-allowed disabled:bg-[#EEE5DA] disabled:text-[#8C8175] ${
+          highlighted ? "border-[#B88B58] ring-4 ring-[#F4E8DB]" : ""
         }`}
       >
         <option value="">{placeholder}</option>
@@ -1466,13 +1466,13 @@ function TextField({
 }: TextFieldProps) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#111318]">{label}</span>
+      <span className="text-sm font-medium text-[#191714]">{label}</span>
       <div
         className={`app-input flex items-center gap-3 px-4 transition ${
-          highlighted ? "border-[#7357ff] ring-4 ring-[#eeebff]" : ""
+          highlighted ? "border-[#B88B58] ring-4 ring-[#F4E8DB]" : ""
         }`}
       >
-        {icon ? <span className="text-[#667085]">{icon}</span> : null}
+        {icon ? <span className="text-[#6B6258]">{icon}</span> : null}
         <input
           id={id}
           ref={inputRef}
@@ -1481,7 +1481,7 @@ function TextField({
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className="w-full border-0 bg-transparent p-0 text-base text-[#111318] outline-none placeholder:text-[#98a2b3]"
+          className="w-full border-0 bg-transparent p-0 text-base text-[#191714] outline-none placeholder:text-[#8C8175]"
         />
       </div>
       {error ? <span className="text-sm text-danger">{error}</span> : null}
@@ -1510,14 +1510,14 @@ function PhoneField({
 }: PhoneFieldProps) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-[#111318]">{label}</span>
+      <span className="text-sm font-medium text-[#191714]">{label}</span>
       <div
         className={`app-input flex items-center gap-3 px-4 transition ${
-          highlighted ? "border-[#7357ff] ring-4 ring-[#eeebff]" : ""
+          highlighted ? "border-[#B88B58] ring-4 ring-[#F4E8DB]" : ""
         }`}
       >
-        <Phone className="h-4 w-4 text-[#667085]" />
-        <span className="text-sm font-semibold text-[#5434e6]">+56</span>
+        <Phone className="h-4 w-4 text-[#6B6258]" />
+        <span className="text-sm font-semibold text-[#8A6036]">+56</span>
         <input
           id={id}
           ref={inputRef}
@@ -1526,7 +1526,7 @@ function PhoneField({
           placeholder="9 1234 5678"
           autoComplete="tel"
           inputMode="tel"
-          className="w-full border-0 bg-transparent p-0 text-base text-[#111318] outline-none placeholder:text-[#98a2b3]"
+          className="w-full border-0 bg-transparent p-0 text-base text-[#191714] outline-none placeholder:text-[#8C8175]"
         />
       </div>
       {error ? <span className="text-sm text-danger">{error}</span> : null}

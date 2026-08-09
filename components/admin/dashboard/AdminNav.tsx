@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MoreHorizontal, X } from "lucide-react";
+import { MoreHorizontal, UsersRound, X } from "lucide-react";
 import { ADMIN_PRIMARY_NAV, ADMIN_MORE_NAV } from "@/components/admin/dashboard/admin-dashboard.constants";
 
 function isActive(pathname: string, href: string): boolean {
@@ -11,8 +11,8 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function isMoreActive(pathname: string): boolean {
-  return ADMIN_MORE_NAV.some((item) => isActive(pathname, item.href));
+function isMoreActive(pathname: string, isOwner: boolean): boolean {
+  return [...ADMIN_MORE_NAV, ...(isOwner ? [{ href: "/admin/usuarios" }] : [])].some((item) => isActive(pathname, item.href));
 }
 
 /**
@@ -24,7 +24,7 @@ function isMoreActive(pathname: string): boolean {
  * cliente para decidir que mostrar, asi se evita el salto entre una
  * pantalla vieja y la nueva al navegar (ver docs del fix de Stock).
  */
-export function AdminNav() {
+export function AdminNav({ isOwner = false }: { isOwner?: boolean }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -32,7 +32,7 @@ export function AdminNav() {
     <>
       <nav
         aria-label="Navegación principal"
-        className="sticky top-0 z-20 hidden max-w-full items-center gap-2 border-b border-[#e4e7ec] bg-[#f7f8fa]/95 px-1 py-2 backdrop-blur sm:flex"
+        className="sticky top-0 z-20 hidden max-w-full items-center gap-2 border-b border-[#DDD0C1] bg-[#F7F1E8]/95 px-1 py-2 backdrop-blur sm:flex"
       >
         {ADMIN_PRIMARY_NAV.map((item) => {
           const active = isActive(pathname, item.href);
@@ -43,8 +43,8 @@ export function AdminNav() {
               aria-current={active ? "page" : undefined}
               className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
                 active
-                  ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                  : "border-[#e4e7ec] bg-white text-[#344054] hover:border-[#c1b6ff]"
+                  ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]"
+                  : "border-[#DDD0C1] bg-white text-[#4D453D] hover:border-[#D8BEA2]"
               }`}
             >
               <item.icon className="h-4 w-4" />
@@ -60,9 +60,9 @@ export function AdminNav() {
             aria-expanded={moreOpen}
             aria-haspopup="menu"
             className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
-              moreOpen || isMoreActive(pathname)
-                ? "border-[#7357ff] bg-[#eeebff] text-[#5434e6]"
-                : "border-[#e4e7ec] bg-white text-[#344054] hover:border-[#c1b6ff]"
+              moreOpen || isMoreActive(pathname, isOwner)
+                ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]"
+                : "border-[#DDD0C1] bg-white text-[#4D453D] hover:border-[#D8BEA2]"
             }`}
           >
             <MoreHorizontal className="h-4 w-4" />
@@ -74,7 +74,7 @@ export function AdminNav() {
               <div
                 role="menu"
                 aria-label="Más secciones"
-                className="absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-[#e4e7ec] bg-white p-2 shadow-lg"
+                className="absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-[#DDD0C1] bg-white p-2 shadow-lg"
               >
                 {ADMIN_MORE_NAV.map((item) => (
                   <Link
@@ -82,12 +82,17 @@ export function AdminNav() {
                     href={item.href}
                     role="menuitem"
                     onClick={() => setMoreOpen(false)}
-                    className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-[#344054] hover:bg-[#f7f8fa]"
+                    className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-[#4D453D] hover:bg-[#F7F1E8]"
                   >
-                    <item.icon className="h-4 w-4 text-[#7357ff]" />
+                    <item.icon className="h-4 w-4 text-[#B88B58]" />
                     {item.label}
                   </Link>
                 ))}
+                {isOwner ? (
+                  <Link href="/admin/usuarios" role="menuitem" onClick={() => setMoreOpen(false)} className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-[#4D453D] hover:bg-[#F7F1E8]">
+                    <UsersRound className="h-4 w-4 text-[#B88B58]" /> Usuarios
+                  </Link>
+                ) : null}
               </div>
             </>
           ) : null}
@@ -96,7 +101,7 @@ export function AdminNav() {
 
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-[#e4e7ec] bg-white pb-[env(safe-area-inset-bottom)] sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-[#DDD0C1] bg-white pb-[env(safe-area-inset-bottom)] sm:hidden"
       >
         {ADMIN_PRIMARY_NAV.map((item) => {
           const active = isActive(pathname, item.href);
@@ -106,7 +111,7 @@ export function AdminNav() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-                active ? "text-[#5434e6]" : "text-[#667085]"
+                active ? "text-[#8A6036]" : "text-[#6B6258]"
               }`}
             >
               <item.icon className="h-5 w-5" />
@@ -119,7 +124,7 @@ export function AdminNav() {
           onClick={() => setMoreOpen(true)}
           aria-haspopup="dialog"
           className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${
-            isMoreActive(pathname) ? "text-[#5434e6]" : "text-[#667085]"
+            isMoreActive(pathname, isOwner) ? "text-[#8A6036]" : "text-[#6B6258]"
           }`}
         >
           <MoreHorizontal className="h-5 w-5" />
@@ -129,7 +134,7 @@ export function AdminNav() {
 
       {moreOpen ? (
         <div
-          className="fixed inset-0 z-40 flex items-end bg-[#111318]/40 sm:hidden"
+          className="fixed inset-0 z-40 flex items-end bg-[#191714]/40 sm:hidden"
           role="presentation"
           onClick={() => setMoreOpen(false)}
         >
@@ -141,12 +146,12 @@ export function AdminNav() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-bold text-[#111318]">Más</h2>
+              <h2 className="text-base font-bold text-[#191714]">Más</h2>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
                 aria-label="Cerrar"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e7ec]"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#DDD0C1]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -157,12 +162,17 @@ export function AdminNav() {
                   key={item.id}
                   href={item.href}
                   onClick={() => setMoreOpen(false)}
-                  className="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#e4e7ec] px-3 py-3 text-center text-xs font-semibold text-[#344054]"
+                  className="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DDD0C1] px-3 py-3 text-center text-xs font-semibold text-[#4D453D]"
                 >
-                  <item.icon className="h-5 w-5 text-[#7357ff]" />
+                  <item.icon className="h-5 w-5 text-[#B88B58]" />
                   {item.label}
                 </Link>
               ))}
+              {isOwner ? (
+                <Link href="/admin/usuarios" onClick={() => setMoreOpen(false)} className="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DDD0C1] px-3 py-3 text-center text-xs font-semibold text-[#4D453D]">
+                  <UsersRound className="h-5 w-5 text-[#B88B58]" /> Usuarios
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

@@ -51,12 +51,12 @@ begin
 end;
 $$;
 
-\echo '[2] service_role: SELECT=true, escritura=false'
+\echo '[2] service_role: SELECT/INSERT/UPDATE=true; DELETE=false'
 do $$
 begin
   perform pg_temp.assert_priv('service_role', 'SELECT', true);
-  perform pg_temp.assert_priv('service_role', 'INSERT', false);
-  perform pg_temp.assert_priv('service_role', 'UPDATE', false);
+  perform pg_temp.assert_priv('service_role', 'INSERT', true);
+  perform pg_temp.assert_priv('service_role', 'UPDATE', true);
   perform pg_temp.assert_priv('service_role', 'DELETE', false);
   perform pg_temp.assert_priv('service_role', 'TRUNCATE', false);
   perform pg_temp.assert_priv('service_role', 'REFERENCES', false);
