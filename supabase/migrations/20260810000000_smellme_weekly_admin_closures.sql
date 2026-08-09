@@ -98,6 +98,7 @@ create index if not exists cierres_semanales_periodo_idx
 
 alter table public.cierres_semanales enable row level security;
 
+drop policy if exists "admin_can_read_cierres_semanales" on public.cierres_semanales;
 create policy "admin_can_read_cierres_semanales"
 on public.cierres_semanales
 for select

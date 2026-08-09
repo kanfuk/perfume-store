@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { requestAdminPasswordRecovery } from "@/lib/admin/passwordRecovery";
+import { appInfo } from "@/lib/app-info";
 
 type AdminLoginFormProps = {
   nextPath: string;
@@ -80,6 +81,7 @@ export function AdminLoginForm({
         <span className="inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-[#B88B58]">
           Smellme.cl
         </span>
+        <p className="text-sm font-medium text-[#8A6036]">{appInfo.tagline}</p>
         <h1 className="text-3xl font-bold leading-tight text-[#191714] sm:text-4xl">
           Administración
         </h1>

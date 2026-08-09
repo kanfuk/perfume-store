@@ -90,7 +90,7 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
       ) : null}
 
       <p className="text-xs text-[#6B6258]">
-        Precio de venta calculado con el recargo vigente (salvo productos con precio manual, que se preservan).
+        El Precio Venta del CSV se guarda como MANUAL. El recargo vigente solo se usa como fallback cuando falta.
         Stock inicial para productos nuevos: 1.
       </p>
 
@@ -121,7 +121,7 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
 
       {expanded ? (
         <div className="overflow-x-auto rounded-xl border border-[#DDD0C1]">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
               <tr>
                 <th className="px-3 py-2">Filas origen</th>
@@ -129,7 +129,9 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
                 <th className="px-3 py-2">Acción final</th>
                 <th className="px-3 py-2">SKU final</th>
                 <th className="px-3 py-2">Costo</th>
-                <th className="px-3 py-2">Precio calculado</th>
+                <th className="px-3 py-2">Precio CSV</th>
+                <th className="px-3 py-2">Precio sugerido</th>
+                <th className="px-3 py-2">Precio final</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eef0f3]">
@@ -143,10 +145,14 @@ export function CatalogImportFinalSummary({ plan, summary, busy, onBack, onConfi
                   <td className="px-3 py-2 font-mono text-xs text-[#4D453D]">{row.sku}</td>
                   <td className="px-3 py-2 text-[#191714]">{formatCurrency(row.costoUnitario)}</td>
                   <td className="px-3 py-2 text-[#191714]">
+                    {row.precioVentaCsv !== null ? formatCurrency(row.precioVentaCsv) : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-[#6B6258]">{formatCurrency(row.precioVentaSugerido)}</td>
+                  <td className="px-3 py-2 text-[#191714]">
                     {formatCurrency(row.precioVentaFinal)}
                     {row.modoPrecio === "MANUAL" ? (
                       <span className="ml-1 rounded-full bg-[#fff3c4] px-1.5 py-0.5 text-[10px] font-semibold text-[#8a5a00]">
-                        MANUAL
+                        {row.precioVentaCsv !== null ? "MANUAL · Precio cliente" : "MANUAL"}
                       </span>
                     ) : null}
                   </td>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getAuthenticatedAdmin } from "@/lib/admin-auth";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { normalizeStockValue } from "@/lib/stock";
 import { createProductoService } from "@/services/productoService";
@@ -8,7 +9,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ productId: string }> }
 ) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
@@ -50,6 +52,7 @@ export async function PATCH(
     };
     const { productId } = await context.params;
     const productoService = createProductoService();
+    const before = await productoService.obtenerProductoAdminPorId(productId);
 
     if (body.mode === "toggle") {
       await productoService.cambiarEstadoProducto(productId, Boolean(body.activo));
@@ -80,6 +83,12 @@ export async function PATCH(
       });
     }
 
+    const after = await productoService.obtenerProductoAdminPorId(productId);
+    const changedPrice = before?.precioVenta !== after?.precioVenta;
+    const changedCost = before?.costoUnitario !== after?.costoUnitario;
+    const changedStock = before?.stockActual !== after?.stockActual;
+    await logAdminAction({ actor: admin, action: changedPrice ? "PRICE_CHANGED" : changedCost ? "COST_CHANGED" : changedStock ? "STOCK_CHANGED" : "PRODUCT_UPDATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), before, after });
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json(
@@ -98,7 +107,8 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ productId: string }> }
 ) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
@@ -111,7 +121,9 @@ export async function DELETE(
   try {
     const { productId } = await context.params;
     const productoService = createProductoService();
+    const before = await productoService.obtenerProductoAdminPorId(productId);
     await productoService.eliminarProductoAdmin(productId);
+    await logAdminAction({ actor: admin, action: "PRODUCT_UPDATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), before, after: { deleted: true } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message =

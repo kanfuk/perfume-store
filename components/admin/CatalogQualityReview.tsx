@@ -47,7 +47,7 @@ const TYPE_LABELS: Record<QualityFindingType, string> = {
 };
 
 function requiresDecision(finding: QualityFinding): boolean {
-  return finding.severity !== "INFO";
+  return finding.severity === "BLOCKER";
 }
 
 function tabsForFinding(finding: QualityFinding): TabId[] {
@@ -186,7 +186,7 @@ export function CatalogQualityReview({
         </button>
         <h2 className="text-xl font-bold text-[#191714]">Revisión del catálogo</h2>
         <p className="text-sm text-[#6B6258]">
-          Revisamos nombres, variantes y posibles duplicados antes de importar.
+          Primero mostramos solo los bloqueos reales. Las sugerencias e informativos quedan disponibles por categoría.
         </p>
       </div>
 

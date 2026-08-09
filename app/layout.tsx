@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     default: `${appInfo.name} — ${appInfo.tagline}`,
     template: `%s · ${appInfo.name}`
   },
-  description: "Perfumes, testers y fragancias exclusivas a precio conveniente.",
+  description: appInfo.tagline,
   keywords: ["perfumes", "fragancias", "testers", "Smellme", "perfumería"],
   alternates: { canonical: "/" },
   openGraph: {
@@ -19,13 +19,13 @@ export const metadata: Metadata = {
     url: "/",
     siteName: appInfo.name,
     title: `${appInfo.name} — ${appInfo.tagline}`,
-    description: "Perfumes, testers y ofertas seleccionadas con atención personalizada.",
+    description: appInfo.tagline,
     images: [{ url: "/brand/smellme-social.jpg", width: 1200, height: 630, alt: "Smellme.cl" }]
   },
   twitter: {
     card: "summary_large_image",
     title: `${appInfo.name} — ${appInfo.tagline}`,
-    description: "Perfumes, testers y ofertas seleccionadas con atención personalizada.",
+    description: appInfo.tagline,
     images: ["/brand/smellme-social.jpg"]
   },
   manifest: "/site.webmanifest",

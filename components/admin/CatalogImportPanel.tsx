@@ -52,6 +52,7 @@ type SupplierPlanRow = {
   marca: string;
   contenido: string;
   costoUnitario: number;
+  precioVentaCsv: number | null;
   precioVentaSugerido: number;
   precioVentaFinal: number;
   modoPrecio: "AUTO" | "MANUAL";
@@ -487,7 +488,7 @@ export function CatalogImportPanel() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="markup-percentage" className="text-xs font-semibold text-[#6B6258]">
-                    Recargo sobre costo (%)
+                    Recargo fallback (%)
                   </label>
                   <input
                     id="markup-percentage"
@@ -502,8 +503,8 @@ export function CatalogImportPanel() {
               </div>
 
               <p className="text-xs text-[#6B6258]">
-                El precio de venta se calcula agregando este porcentaje al costo. El archivo habitual del
-                proveedor no necesita SKU ni precio de venta: el sistema genera ambos automáticamente.
+                Si una fila incluye Precio Venta, se respetará como precio manual del cliente. Este porcentaje
+                solo calcula el precio de filas que no lo incluyan.
               </p>
 
               <div className="flex justify-end">
@@ -557,7 +558,7 @@ export function CatalogImportPanel() {
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-2 rounded-full bg-[#F4E8DB] px-4 py-1.5 text-xs font-semibold text-[#8A6036]">
                   Perfil detectado: {result.perfil === "proveedor" ? "CSV de proveedor" : "Catálogo canónico"}
-                  {result.perfil === "proveedor" ? ` · Recargo aplicado: ${result.preview.porcentajeAplicado}%` : null}
+                  {result.perfil === "proveedor" ? ` · Recargo fallback: ${result.preview.porcentajeAplicado}%` : null}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -766,52 +767,45 @@ function SupplierPlanTable({ plan }: { plan: SupplierPlanRow[] }) {
   if (plan.length === 0) return null;
   return (
     <div className="overflow-x-auto rounded-xl border border-[#DDD0C1]">
-      <table className="w-full min-w-[820px] text-left text-sm">
+      <table className="w-full min-w-[1180px] text-left text-sm">
         <thead className="bg-[#F7F1E8] text-xs font-semibold uppercase tracking-wide text-[#6B6258]">
           <tr>
-            <th className="px-4 py-3">Acción</th>
             <th className="px-4 py-3">SKU generado</th>
-            <th className="px-4 py-3">Nombre</th>
             <th className="px-4 py-3">Marca</th>
-            <th className="px-4 py-3">Costo</th>
+            <th className="px-4 py-3">Perfume</th>
+            <th className="px-4 py-3">Contenido</th>
+            <th className="px-4 py-3">Costo unitario</th>
+            <th className="px-4 py-3">Precio venta CSV</th>
+            <th className="px-4 py-3">Precio sugerido</th>
             <th className="px-4 py-3">Precio final</th>
-            <th className="px-4 py-3">Modo</th>
-            <th className="px-4 py-3">Stock</th>
-            <th className="px-4 py-3">Estado</th>
+            <th className="px-4 py-3">Modo precio</th>
+            <th className="px-4 py-3">Acción</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#eef0f3]">
           {plan.map((item) => (
             <tr key={item.sku}>
-              <td className="px-4 py-3">
-                <ActionBadge action={item.action} />
-              </td>
               <td className="px-4 py-3 font-mono text-xs text-[#4D453D]">{item.sku}</td>
-              <td className="px-4 py-3 text-[#191714]">{item.nombre}</td>
               <td className="px-4 py-3 text-[#6B6258]">{item.marca}</td>
+              <td className="px-4 py-3 text-[#191714]">{item.nombre}</td>
+              <td className="px-4 py-3 text-[#6B6258]">{item.contenido}</td>
               <td className="px-4 py-3 text-[#191714]">{formatCurrency(item.costoUnitario)}</td>
               <td className="px-4 py-3 text-[#191714]">
-                {formatCurrency(item.precioVentaFinal)}
-                {item.modoPrecio === "MANUAL" && item.precioVentaFinal !== item.precioVentaSugerido ? (
-                  <div className="text-xs text-[#8C8175]">
-                    Sugerido: {formatCurrency(item.precioVentaSugerido)}
-                  </div>
-                ) : null}
+                {item.precioVentaCsv !== null ? formatCurrency(item.precioVentaCsv) : "—"}
               </td>
+              <td className="px-4 py-3 text-[#6B6258]">{formatCurrency(item.precioVentaSugerido)}</td>
+              <td className="px-4 py-3 text-[#191714]">{formatCurrency(item.precioVentaFinal)}</td>
               <td className="px-4 py-3">
                 <span
                   className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                     item.modoPrecio === "MANUAL" ? "bg-[#fff3c4] text-[#8a5a00]" : "bg-[#F4E8DB] text-[#8A6036]"
                   }`}
                 >
-                  {item.modoPrecio}
+                  {item.precioVentaCsv !== null ? "MANUAL · Precio cliente" : "AUTO · Calculado por porcentaje"}
                 </span>
               </td>
-              <td className="px-4 py-3 text-[#6B6258]">
-                {item.action === "ACTUALIZAR" ? "Se conserva" : "Inicial: 1"}
-              </td>
-              <td className="px-4 py-3 text-[#6B6258]">
-                {item.action === "ACTUALIZAR" ? "Se conserva" : "Nuevo: activo"}
+              <td className="px-4 py-3">
+                <ActionBadge action={item.action} />
               </td>
             </tr>
           ))}

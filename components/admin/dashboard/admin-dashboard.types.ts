@@ -15,7 +15,7 @@ export type AdminView =
 export type StatusFilter = "pendientes" | "agendados" | "historial";
 export type StockFilter = "todos" | "activos" | "pausados";
 export type CustomerFilter = "todos" | "con-pedidos" | "con-fiado" | "recientes" | "bloqueados";
-export type ReportTab = "resumen" | "rentabilidad";
+export type ReportTab = "resumen" | "rentabilidad" | "cierres";
 export type ReportRangePreset = "today" | "week" | "month" | "last-month" | "custom";
 export type ReportSalesFilter =
   | "todos"

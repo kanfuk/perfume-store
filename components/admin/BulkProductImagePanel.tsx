@@ -70,6 +70,7 @@ export function BulkProductImagePanel() {
   const [files, setFiles] = useState<BulkImageInputFile[]>([]);
   const fileObjectsRef = useRef<Map<string, File>>(new Map());
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const previewUrlsRef = useRef<Record<string, string>>({});
   const [decisions, setDecisions] = useState<Record<string, BulkImageDecision>>({});
   const [globalReplaceAuthorized, setGlobalReplaceAuthorized] = useState(false);
   const [selectionError, setSelectionError] = useState("");
@@ -105,12 +106,19 @@ export function BulkProductImagePanel() {
     void loadProducts();
   }, []);
 
+  useEffect(() => {
+    previewUrlsRef.current = previewUrls;
+  }, [previewUrls]);
+
   // Libera todos los object URLs al desmontar el panel (seccion 16).
   useEffect(() => {
+    const fileObjects = fileObjectsRef.current;
     return () => {
-      for (const url of Object.values(previewUrls)) URL.revokeObjectURL(url);
+      for (const url of Object.values(previewUrlsRef.current)) URL.revokeObjectURL(url);
+      previewUrlsRef.current = {};
+      fileObjects.clear();
+      document.body.style.removeProperty("overflow");
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const liveRows = useMemo(
@@ -172,7 +180,8 @@ export function BulkProductImagePanel() {
   }
 
   function clearSelection() {
-    for (const url of Object.values(previewUrls)) URL.revokeObjectURL(url);
+    for (const url of Object.values(previewUrlsRef.current)) URL.revokeObjectURL(url);
+    previewUrlsRef.current = {};
     setFiles([]);
     setPreviewUrls({});
     setDecisions({});
@@ -231,7 +240,7 @@ export function BulkProductImagePanel() {
       return next;
     });
 
-    await runBulkImageUploadQueue(jobs, {
+    return runBulkImageUploadQueue(jobs, {
       uploadFn: uploadOne,
       isCancelled: () => cancelledRef.current,
       onItemStateChange: (job, state, result) => {
@@ -272,7 +281,20 @@ export function BulkProductImagePanel() {
       expectedImageStoragePath: row.expectedImageStoragePath
     }));
 
-    await runQueueFor(jobs);
+    const results = await runQueueFor(jobs);
+
+    // El resumen usa frozenRows; ya no necesita mantener archivos/miniaturas
+    // montados. Solo se conservan File reales fallidos para un retry manual.
+    for (const url of Object.values(previewUrlsRef.current)) URL.revokeObjectURL(url);
+    previewUrlsRef.current = {};
+    setPreviewUrls({});
+    setFiles([]);
+    setDecisions({});
+    setGlobalReplaceAuthorized(false);
+    for (const result of results) {
+      if (result.state !== "FAILED") fileObjectsRef.current.delete(result.fileId);
+    }
+    document.body.style.removeProperty("overflow");
     setStage("summary");
     void loadProducts();
   }
@@ -301,7 +323,11 @@ export function BulkProductImagePanel() {
         expectedImageStoragePath: row.expectedImageStoragePath
       }));
 
-    await runQueueFor(jobs);
+    const results = await runQueueFor(jobs);
+    for (const result of results) {
+      if (result.state !== "FAILED") fileObjectsRef.current.delete(result.fileId);
+    }
+    document.body.style.removeProperty("overflow");
     setRetrying(false);
     void loadProducts();
   }

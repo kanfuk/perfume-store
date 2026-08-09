@@ -223,8 +223,13 @@ export function SegmentedControl({
   onChange: (value: string) => void;
   options: Array<{ value: string; label: string }>;
 }) {
+  const gridColsClass =
+    options.length >= 3 ? "grid-cols-3" : options.length === 2 ? "grid-cols-2" : "grid-cols-1";
+
   return (
-    <div className="inline-grid min-h-12 w-full grid-cols-2 gap-1 rounded-[20px] border border-brand-100 bg-brand-50 p-1">
+    <div
+      className={`inline-grid min-h-12 w-full ${gridColsClass} gap-1 rounded-[20px] border border-brand-100 bg-brand-50 p-1`}
+    >
       {options.map((option) => (
         <button
           key={option.value}

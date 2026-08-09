@@ -11,6 +11,7 @@ import {
   createAdminPaymentMessageService
 } from "@/services/adminPaymentMessageService";
 import { createPedidoService } from "@/services/pedidoService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 /** Estados donde "Coordinar entrega por WhatsApp" sigue teniendo sentido. */
 const ESTADOS_CON_ENTREGA_COORDINABLE = new Set(["PAGADO", "PREPARANDO", "DESPACHADO"]);
@@ -232,6 +233,10 @@ export async function PATCH(
         );
     }
 
+    if (body.action !== "reenviar-transferencia" && body.action !== "coordinar-entrega") {
+      const after = pedidoRespuesta ?? await pedidoService.obtenerPedidoAdminPorId(pedidoId);
+      await logAdminAction({ actor: admin, action: body.action === "pagado" ? "PAYMENT_CONFIRMED" : "ORDER_UPDATED", entityType: "order", entityId: pedidoId, requestId: requestAuditId(request), after, metadata: { operation: body.action } });
+    }
     return NextResponse.json({ ok: true, pedido: pedidoRespuesta, whatsapp });
   } catch (error) {
     if (error instanceof AdminPaymentAccountServiceError) {

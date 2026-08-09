@@ -487,9 +487,9 @@ export function QuickPriceEditPanel({ embedded = false, initialSearch = "", init
                             type="button"
                             onClick={() => setCostEditProduct(product)}
                             title="Editar costo y precio"
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#DDD0C1] px-2.5 py-1.5 text-xs font-semibold text-[#4D453D]"
+                            className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#DDD0C1] px-3 text-xs font-semibold leading-none text-[#4D453D]"
                           >
-                            <Coins className="h-3 w-3" />
+                            <Coins className="h-3.5 w-3.5 shrink-0" />
                             Editar costo
                           </button>
                           <button

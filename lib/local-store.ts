@@ -110,6 +110,35 @@ export type LocalArchivedRecord<T> = {
   createdAt: string;
 };
 
+/** Cierres semanales administrativos (Fase 7.6A). Espejo de public.cierres_semanales. */
+export type LocalWeeklyClosureRecord = {
+  id: string;
+  periodStart: string;
+  periodEndExclusive: string;
+  version: number;
+  status: "CLOSED" | "REOPENED";
+  ordersCount: number;
+  cancelledOrdersCount: number;
+  pendingOrdersCount: number;
+  deliveredOrdersCount: number;
+  directSalesCount: number;
+  grossSales: number;
+  incomeAmount: number;
+  costAmount: number;
+  profitAmount: number;
+  outstandingAmount: number;
+  snapshotJson: Record<string, unknown>;
+  closedAt: string;
+  closedByEmail?: string | null;
+  closedByNombre?: string | null;
+  reopenedAt?: string | null;
+  reopenedByEmail?: string | null;
+  reopenedByNombre?: string | null;
+  reopenReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 /** Espejo en memoria de las columnas de pago de business_settings (fila singleton). */
 export type LocalBusinessSettingsRecord = {
   banco: string | null;
@@ -132,6 +161,7 @@ export const localStore = {
   fiados: [] as LocalFiadoRecord[],
   products: [...mockProducts],
   adminOperationLogs: [] as LocalAdminOperationLog[],
+  weeklyClosures: [] as LocalWeeklyClosureRecord[],
   businessSettings: {
     banco: null,
     tipoCuenta: null,

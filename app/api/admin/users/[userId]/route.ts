@@ -1,5 +1,6 @@
 import { authorizeAdminUsersRequest, adminUserErrorResponse, adminUsersJson } from "@/lib/admin-users-request";
 import { createAdminUserService } from "@/services/adminUserService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 type RouteContext = { params: Promise<{ userId: string }> };
 
@@ -30,6 +31,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       Object.keys(input).every((key) => key === "action" || key === "active")
     ) {
       await service.setActive(userId, input.active, authorization.admin.profileId);
+      if (!input.active) await logAdminAction({ actor: authorization.admin, action: "ADMIN_DISABLED", entityType: "admin_user", entityId: userId, requestId: requestAuditId(request), after: { active: false } });
     } else if (input.action === "set-role") {
       return adminUsersJson({
         error: "Smellme utiliza un único OWNER. Los usuarios operativos deben ser ADMIN."

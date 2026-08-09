@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getAuthenticatedAdmin, isAdminAuthenticated } from "@/lib/admin-auth";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { createProductoService, BULK_STOCK_OPERATION_TYPES, type BulkStockOperation } from "@/services/productoService";
 
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
   const trustedOriginError = validateTrustedOrigin(request);
   if (trustedOriginError) return trustedOriginError;
@@ -99,6 +102,7 @@ export async function POST(request: Request) {
     }
 
     const result = await productoService.confirmarAjusteMasivoStock(productIds, operation);
+    await logAdminAction({ actor: admin, action: "STOCK_CHANGED", entityType: "product_batch", requestId: requestAuditId(request), after: result, metadata: { productIds, operation } });
     return NextResponse.json({ ok: true, ...result, preview });
   } catch (error) {
     return NextResponse.json(

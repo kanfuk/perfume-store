@@ -88,10 +88,10 @@ async function deactivatePushSubscription(id: string) {
 
 function buildDeclarativePushPayload(args: SendPendingOrdersPushArgs) {
   const pendingCount = Math.max(0, Math.trunc(args.pendingCount));
-  const title = pendingCount > 0 ? "Nuevo pedido pendiente" : "Pedidos actualizados";
+  const title = pendingCount > 0 ? "Nuevo pedido en Smellme" : "Pedidos actualizados";
   const body =
     pendingCount > 0
-      ? `Hay ${pendingCount} pedido(s) por revisar en Smellme Admin.`
+      ? "Tienes un nuevo pedido pendiente de revisión."
       : "No quedan pedidos pendientes por revisar.";
   const navigateUrl = getAdminOrdersUrl();
 

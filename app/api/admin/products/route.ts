@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getAuthenticatedAdmin, isAdminAuthenticated } from "@/lib/admin-auth";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { normalizeStockValue } from "@/lib/stock";
 import { createProductoService } from "@/services/productoService";
@@ -33,7 +34,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
@@ -79,6 +81,7 @@ export async function POST(request: Request) {
       stockActual: normalizedStock,
       stockAgenda: normalizedStock
     });
+    await logAdminAction({ actor: admin, action: "PRODUCT_CREATED", entityType: "product", entityId: product.id, requestId: requestAuditId(request), after: product });
     return NextResponse.json({ ok: true, product }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

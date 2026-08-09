@@ -19,11 +19,11 @@ function parsePushPayload(event) {
   const title =
     declarativeNotification && typeof declarativeNotification.title === "string"
       ? declarativeNotification.title
-      : rawPayload.title || "Smellme Admin";
+      : rawPayload.title || "Nuevo pedido en Smellme";
   const body =
     declarativeNotification && typeof declarativeNotification.body === "string"
       ? declarativeNotification.body
-      : rawPayload.body || "Hay novedades en los pedidos.";
+      : rawPayload.body || "Tienes un nuevo pedido pendiente de revisión.";
   const url =
     (typeof fallbackData.url === "string" && fallbackData.url) ||
     (declarativeNotification && typeof declarativeNotification.navigate === "string"

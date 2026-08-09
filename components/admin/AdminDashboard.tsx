@@ -105,9 +105,14 @@ import {
   StatusBadge
 } from "@/components/admin/dashboard/DashboardPresentation";
 import { DashboardHomeView } from "@/components/admin/dashboard/DashboardHomeView";
+import { WeeklyClosuresPanel } from "@/components/admin/dashboard/WeeklyClosuresPanel";
 import { AdminNav } from "@/components/admin/dashboard/AdminNav";
 import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
+import {
+  filterOrdersByAccountingRange,
+  getSalesAccountingDateKey
+} from "@/lib/sales-accounting-date";
 import {
   getNewAdminOrders,
   getNewAdminOrdersCount
@@ -173,6 +178,7 @@ export function AdminDashboard({
   const refreshOrdersInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
   const orderActionsInFlightRef = useRef(new Set<string>());
+  const knownPendingOrderIdsRef = useRef(new Set(initialData.dashboard.pendientes.map((order) => order.id)));
   const [data, setData] = useState<AdminDashboardData>(initialData.dashboard);
   const [products, setProducts] = useState<AdminProductRecord[]>(initialData.productos);
   const [customers, setCustomers] = useState<AdminCustomerOption[]>(initialCustomers);
@@ -631,8 +637,7 @@ export function AdminDashboard({
   const weekSalesTotal = useMemo(() => {
     const { from, to } = getChileCurrentWeekRange();
     return data.finalizados.reduce((sum, order) => {
-      const baseDate = order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido;
-      const dateOnly = baseDate.slice(0, 10);
+      const dateOnly = getSalesAccountingDateKey(order);
       if (dateOnly < from || dateOnly > to) return sum;
       return sum + order.total;
     }, 0);
@@ -856,17 +861,7 @@ export function AdminDashboard({
   );
 
   const reportOrders = useMemo(() => {
-    return data.finalizados.filter((order) => {
-      const baseDate = order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido;
-      const dateOnly = baseDate.slice(0, 10);
-
-      if (reportFrom && dateOnly < reportFrom) {
-        return false;
-      }
-
-      if (reportTo && dateOnly > reportTo) {
-        return false;
-      }
+    return filterOrdersByAccountingRange(data.finalizados, reportFrom, reportTo).filter((order) => {
 
       if (reportSalesFilter === "pedido-cliente" && order.origenPedido !== "PUBLICO") {
         return false;
@@ -1213,6 +1208,19 @@ export function AdminDashboard({
 
       if (!response.ok) {
         throw new Error(currentData.error ?? "No fue posible cargar pedidos.");
+      }
+
+      for (const order of getNewAdminOrders(currentData.pendientes)) {
+        if (knownPendingOrderIdsRef.current.has(order.id)) continue;
+        knownPendingOrderIdsRef.current.add(order.id);
+        feedback.notify({
+          dedupeKey: `new-order:${order.id}`,
+          message: "Nuevo pedido recibido",
+          tone: "info",
+          durationMs: 8000,
+          actionLabel: "Ver pedido",
+          onAction: () => router.push(`/admin/pedidos#${order.id}`)
+        });
       }
 
       setData(currentData);
@@ -2497,27 +2505,30 @@ export function AdminDashboard({
                 onChange={(value) => setReportTab(value as ReportTab)}
                 options={[
                   { value: "resumen", label: "Resumen" },
-                  { value: "rentabilidad", label: "Rentabilidad" }
+                  { value: "rentabilidad", label: "Rentabilidad" },
+                  { value: "cierres", label: "Cierres" }
                 ]}
               />
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <CompactSelect
-                  label="Periodo"
-                  value={reportRangePreset}
-                  onChange={(value) => applyReportRangePreset(value as ReportRangePreset)}
-                  options={reportRangeOptions}
-                />
-                <CompactSelect
-                  label="Canal"
-                  value={reportSalesFilter}
-                  onChange={(value) => setReportSalesFilter(value as ReportSalesFilter)}
-                  options={reportSalesOptions}
-                />
-              </div>
+              {reportTab !== "cierres" ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <CompactSelect
+                    label="Periodo"
+                    value={reportRangePreset}
+                    onChange={(value) => applyReportRangePreset(value as ReportRangePreset)}
+                    options={reportRangeOptions}
+                  />
+                  <CompactSelect
+                    label="Canal"
+                    value={reportSalesFilter}
+                    onChange={(value) => setReportSalesFilter(value as ReportSalesFilter)}
+                    options={reportSalesOptions}
+                  />
+                </div>
+              ) : null}
             </div>
 
-            {reportRangePreset === "custom" ? (
+            {reportTab !== "cierres" && reportRangePreset === "custom" ? (
               <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
                 <ReportDateField
                   label="Desde"
@@ -2533,7 +2544,9 @@ export function AdminDashboard({
             ) : null}
           </section>
 
-          {reportTab === "resumen" ? (
+          {reportTab === "cierres" ? (
+            <WeeklyClosuresPanel />
+          ) : reportTab === "resumen" ? (
             <>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <HeroMetric
@@ -3755,10 +3768,6 @@ function ClientCard({
               <h3 className="text-xl font-bold text-[#191714]">{customer.nombre}</h3>
               <div className="flex flex-wrap gap-2">
                 <ClientPill label={`${customer.pedidos} pedido(s)`} tone="neutral" />
-                <ClientPill
-                  label={customer.pendiente > 0 ? "Fiado pendiente" : "Sin deuda"}
-                  tone={customer.pendiente > 0 ? "danger" : "success"}
-                />
                 {customer.isRecent ? <ClientPill label="Reciente" tone="accent" /> : null}
                 {customer.bloqueado ? <ClientPill label="Bloqueado" tone="danger" /> : null}
               </div>
@@ -3795,19 +3804,9 @@ function ClientCard({
         <div className="grid gap-3 sm:grid-cols-2">
           <ClientFact icon={Phone} label="Teléfono" value={customer.telefono || "Sin teléfono"} />
           <ClientFact
-            icon={Store}
-            label="Unidad"
-            value={customer.lugarTrabajo || "Sin unidad"}
-          />
-          <ClientFact
             icon={ReceiptText}
             label="Total comprado"
             value={formatCurrency(customer.totalComprado)}
-          />
-          <ClientFact
-            icon={HandCoins}
-            label="Deuda pendiente"
-            value={customer.pendiente > 0 ? formatCurrency(customer.pendiente) : "Sin deuda"}
           />
         </div>
 
@@ -3902,7 +3901,6 @@ function CustomerEditModal({
 }) {
   const [nombre, setNombre] = useState(state.customer.nombre);
   const [telefono, setTelefono] = useState(state.customer.telefono);
-  const [lugarTrabajo, setLugarTrabajo] = useState(state.customer.lugarTrabajo);
 
   return (
     <div className="fixed inset-0 z-[110] bg-[#191714]/35 p-4 backdrop-blur-[2px]">
@@ -3943,15 +3941,6 @@ function CustomerEditModal({
               <p className="text-xs text-[#6B6258]">Puedes dejarlo vacio si no corresponde.</p>
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#191714]">Unidad o lugar de trabajo</span>
-              <input
-                value={lugarTrabajo}
-                onChange={(event) => setLugarTrabajo(event.target.value)}
-                className="block min-h-11 w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
-                placeholder="Ejemplo: Finanzas"
-              />
-            </label>
           </div>
 
           <div className="flex flex-col-reverse gap-2 border-t border-[#DDD0C1] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
@@ -3970,7 +3959,7 @@ function CustomerEditModal({
                   id: state.customer.id,
                   nombre,
                   telefono,
-                  lugarTrabajo
+                  lugarTrabajo: state.customer.lugarTrabajo
                 })
               }
               className="min-h-11 rounded-[18px] bg-[#B88B58] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(115, 87, 255,0.2)] disabled:cursor-not-allowed disabled:opacity-70"

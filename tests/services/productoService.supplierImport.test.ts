@@ -187,7 +187,7 @@ describe("ProductoService - importacion de proveedor (preservacion de campos)", 
 
     const cambios = repository.actualizarProductoCalls[0].cambios as Record<string, unknown>;
     expect(Object.keys(cambios).sort()).toEqual(
-      ["nombre", "marca", "contenido", "costoUnitario", "precioVenta"].sort()
+      ["nombre", "marca", "contenido", "costoUnitario", "precioVenta", "modoPrecio"].sort()
     );
   });
 
@@ -217,6 +217,22 @@ describe("ProductoService - importacion de proveedor (preservacion de campos)", 
     expect(created?.esOfertaSemana).toBe(false);
     expect(created?.modoPrecio).toBe("AUTO");
     expect(created?.precioVenta).toBe(54000); // 40000 * 1.35
+  });
+
+  it("producto nuevo con Precio Venta CSV se crea MANUAL y no aplica markup", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+    const buffer = Buffer.from(
+      "Perfume;Marca;Contenido;Costo Unitario;Precio Venta\nProducto cliente;Marca Nueva;100ML;40000;$49.990",
+      "utf8"
+    );
+
+    const preview = await service.previsualizarImportacionProveedor(buffer, "proveedor.csv", 200, 35);
+    await service.confirmarImportacionProveedor(preview.plan);
+
+    const created = await repository.buscarProductoPorSku(preview.plan[0].sku);
+    expect(created?.precioVenta).toBe(49990);
+    expect(created?.modoPrecio).toBe("MANUAL");
   });
 
   it("nunca elimina productos ausentes del archivo", async () => {

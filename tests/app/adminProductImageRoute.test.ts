@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { isAdminAuthenticated } = vi.hoisted(() => ({
-  isAdminAuthenticated: vi.fn(async () => true)
+const { isAdminAuthenticated, getAuthenticatedAdmin } = vi.hoisted(() => ({
+  isAdminAuthenticated: vi.fn(async () => true),
+  getAuthenticatedAdmin: vi.fn(async () => ({ userId: "auth-1", profileId: "admin-1", rol: "ADMIN" }))
 }));
 const { validateTrustedOrigin, validateJsonRequest, validateMultipartRequest } = vi.hoisted(() => ({
   validateTrustedOrigin: vi.fn((): Response | null => null),
@@ -19,7 +20,8 @@ const { reemplazarImagenProducto, asignarImagenProductoSiAusente, reemplazarImag
   eliminarImagenProducto: vi.fn()
 }));
 
-vi.mock("@/lib/admin-auth", () => ({ isAdminAuthenticated }));
+vi.mock("@/lib/admin-auth", () => ({ isAdminAuthenticated, getAuthenticatedAdmin }));
+vi.mock("@/lib/admin-audit", () => ({ logAdminAction: vi.fn(), requestAuditId: () => "11111111-1111-4111-8111-111111111111" }));
 vi.mock("@/lib/http-security", () => ({
   validateTrustedOrigin,
   validateJsonRequest,

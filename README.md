@@ -1,8 +1,8 @@
-# Smellme.cl v2.0.0
+# Smellme.cl v2.1.0
 
 Aplicacion web responsive para una tienda de perfumes, testers y fragancias exclusivas, con flujo publico de pedidos y panel admin conectado a Supabase.
 
-Versión actual: `2.0.0`
+Versión estable actual: `2.1.0` (fuente de UI: `lib/app-info.ts`).
 
 ## Estado actual
 

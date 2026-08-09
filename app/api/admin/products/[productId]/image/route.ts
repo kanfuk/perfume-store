@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getAuthenticatedAdmin, isAdminAuthenticated } from "@/lib/admin-auth";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 import {
   validateJsonRequest,
   validateMultipartRequest,
@@ -33,6 +34,8 @@ export async function PATCH(
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
   const trustedOriginError = validateTrustedOrigin(request);
   if (trustedOriginError) return trustedOriginError;
@@ -46,6 +49,7 @@ export async function PATCH(
     const productoService = createProductoService();
 
     const result = await productoService.asignarImagenProducto(productId, body.imageUrl);
+    await logAdminAction({ actor: admin, action: "BULK_IMAGE_UPLOAD", entityType: "product_image", entityId: productId, requestId: requestAuditId(request), after: result, metadata: { operation: "assign_url" } });
     return NextResponse.json(
       { ok: true, ...result },
       { headers: { "Cache-Control": "no-store" } }
@@ -82,6 +86,8 @@ export async function POST(
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
   const trustedOriginError = validateTrustedOrigin(request);
   if (trustedOriginError) return trustedOriginError;
@@ -191,6 +197,7 @@ export async function POST(
     // campos a mano.
     const productoService = createProductoService();
     const product = await productoService.obtenerProductoAdminPorId(productId);
+    await logAdminAction({ actor: admin, action: "BULK_IMAGE_UPLOAD", entityType: "product_image", entityId: productId, requestId: requestAuditId(request), after: { imageStoragePath: image.storagePath, persisted: image.persisted }, metadata: { operation: replaceExisting ? "replace" : "upload", correlationId } });
 
     return NextResponse.json(
       {
@@ -240,6 +247,8 @@ export async function DELETE(
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
   const trustedOriginError = validateTrustedOrigin(request);
   if (trustedOriginError) return trustedOriginError;
@@ -251,6 +260,7 @@ export async function DELETE(
 
     const productoService = createProductoService();
     const product = await productoService.obtenerProductoAdminPorId(productId);
+    await logAdminAction({ actor: admin, action: "BULK_IMAGE_UPLOAD", entityType: "product_image", entityId: productId, requestId: requestAuditId(request), after: { removed: true }, metadata: { operation: "remove" } });
 
     return NextResponse.json(
       { ok: true, persisted: true, product, imageStoragePath: "", imageUrl: "" },

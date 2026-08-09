@@ -6,7 +6,8 @@ const mocks = vi.hoisted(() => ({
   invite: vi.fn(),
   resend: vi.fn(),
   setActive: vi.fn(),
-  setRole: vi.fn()
+  setRole: vi.fn(),
+  audit: vi.fn()
 }));
 
 vi.mock("@/lib/admin-users-request", async () => {
@@ -25,6 +26,10 @@ vi.mock("@/services/adminUserService", () => ({
     setActive: mocks.setActive,
     setRole: mocks.setRole
   })
+}));
+vi.mock("@/lib/admin-audit", () => ({
+  logAdminAction: mocks.audit,
+  requestAuditId: () => "11111111-1111-4111-8111-111111111111"
 }));
 
 import { GET, POST } from "@/app/api/admin/users/route";

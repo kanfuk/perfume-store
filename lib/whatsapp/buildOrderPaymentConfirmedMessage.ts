@@ -39,8 +39,8 @@ export function buildOrderPaymentConfirmedMessage(
     header,
     "",
     input.codigo
-      ? `¡Recibimos tu pago! Tu pedido ${input.codigo} quedo confirmado.`
-      : "¡Recibimos tu pago! Tu pedido quedo confirmado."
+      ? `¡Recibimos tu pago! Tu pedido ${input.codigo} quedó confirmado.`
+      : "¡Recibimos tu pago! Tu pedido quedó confirmado."
   ];
 
   if (typeof input.total === "number" && Number.isFinite(input.total)) {
@@ -54,18 +54,20 @@ export function buildOrderPaymentConfirmedMessage(
   }
 
   if (input.region?.trim()) {
-    deliveryLines.push(`Region: ${input.region.trim()}`);
+    deliveryLines.push(`Región: ${input.region.trim()}`);
   }
 
   if (input.comuna?.trim()) {
     deliveryLines.push(`Comuna: ${input.comuna.trim()}`);
   }
 
-  if (input.direccion?.trim()) {
-    deliveryLines.push(`Direccion: ${input.direccion.trim()}`);
+  const isPickup = input.metodoDespacho === METODO_DESPACHO_STARKEN_POR_PAGAR;
+
+  if (!isPickup && input.direccion?.trim()) {
+    deliveryLines.push(`Dirección: ${input.direccion.trim()}`);
   }
 
-  if (input.referenciaDireccion?.trim()) {
+  if (!isPickup && input.referenciaDireccion?.trim()) {
     deliveryLines.push(`Referencia: ${input.referenciaDireccion.trim()}`);
   }
 
@@ -74,10 +76,15 @@ export function buildOrderPaymentConfirmedMessage(
   }
 
   if (input.metodoDespacho === METODO_DESPACHO_STARKEN_POR_PAGAR) {
-    lines.push("", "Recuerda que el envio se paga directamente en la sucursal Starken al recibir.");
+    lines.push("", "Recuerda que el envío se paga directamente en la sucursal Starken al recibir.");
   }
 
-  lines.push("", "Te avisamos apenas tengamos novedades. Gracias por tu compra.");
+  lines.push(
+    "",
+    isPickup
+      ? "Te contactaremos para coordinar el retiro disponible. Gracias por tu compra."
+      : "Te contactaremos para el día de entrega disponible de la semana. Gracias por tu compra."
+  );
 
   return lines.join("\n");
 }
