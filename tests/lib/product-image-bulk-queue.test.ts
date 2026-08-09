@@ -51,6 +51,27 @@ describe("runBulkImageUploadQueue - concurrencia", () => {
 
     expect(maxInFlight).toBeLessThanOrEqual(2);
   });
+
+  it("mantiene el límite y completa un lote de 25 imágenes", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const uploadFn = vi.fn(async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return { imageUrl: "url", imageStoragePath: "path" };
+    });
+
+    const results = await runBulkImageUploadQueue(
+      Array.from({ length: 25 }, (_, index) => job(String(index))),
+      { uploadFn }
+    );
+
+    expect(results).toHaveLength(25);
+    expect(results.every((result) => result.state === "SUCCESS")).toBe(true);
+    expect(maxInFlight).toBeLessThanOrEqual(2);
+  });
 });
 
 describe("runBulkImageUploadQueue - exito y fallo", () => {
