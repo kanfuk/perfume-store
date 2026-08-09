@@ -29,10 +29,16 @@ export async function GET(request: Request) {
   if (from) query = query.gte("created_at", `${from}T00:00:00-04:00`);
   if (to) query = query.lt("created_at", `${to}T23:59:59.999-04:00`);
 
-  const { data, error } = await query;
+  const [{ data, error }, { data: actors, error: actorsError }] = await Promise.all([
+    query,
+    createSupabaseServerClient()
+      .from("usuarios_admin")
+      .select("id,nombre,email")
+      .order("nombre", { ascending: true })
+  ]);
   if (error) return NextResponse.json({ error: "No fue posible cargar la actividad." }, { status: 500 });
-  return NextResponse.json({ items: data ?? [], actions: ADMIN_AUDIT_ACTIONS }, {
+  if (actorsError) return NextResponse.json({ error: "No fue posible cargar los administradores." }, { status: 500 });
+  return NextResponse.json({ items: data ?? [], actions: ADMIN_AUDIT_ACTIONS, actors: actors ?? [] }, {
     headers: { "Cache-Control": "private, no-store" }
   });
 }
-
