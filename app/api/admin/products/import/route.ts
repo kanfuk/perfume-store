@@ -216,6 +216,7 @@ export async function POST(request: Request) {
         marca: row.marca,
         contenido: row.contenido,
         costoUnitario: row.costoUnitario,
+        precioVentaCsv: row.precioVentaCsv,
         precioVentaSugerido: row.precioVentaSugerido,
         precioVentaFinal: row.precioVentaFinal,
         modoPrecio: row.modoPrecio,

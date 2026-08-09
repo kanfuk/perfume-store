@@ -159,6 +159,7 @@ export type NormalizedRow = {
   nombre: string;
   contenido: string;
   costo: number;
+  precioVentaCsv: number | null;
   originalMarca: string;
   originalNombre: string;
   originalContenido: string;
@@ -184,6 +185,7 @@ export function buildNormalizedRow(row: SupplierImportRow): NormalizedRow {
     nombre: nombre.value,
     contenido: contenidoValue,
     costo: costo.value,
+    precioVentaCsv: row.precioVentaCsv ?? null,
     originalMarca: row.marca,
     originalNombre: row.perfume,
     originalContenido: row.contenido,
@@ -561,10 +563,9 @@ function nameIdentityKey(row: NormalizedRow): string {
   return `${normalizeMatchKey(row.marca)}|${normalizeMatchKey(row.nombre)}`;
 }
 
-export function detectVariants(rows: NormalizedRow[], excluded: Set<number>): QualityFinding[] {
+export function detectVariants(rows: NormalizedRow[]): QualityFinding[] {
   const groups = new Map<string, NormalizedRow[]>();
   for (const row of rows) {
-    if (excluded.has(row.rowNumber)) continue;
     const key = nameIdentityKey(row);
     const list = groups.get(key) ?? [];
     list.push(row);
@@ -573,10 +574,18 @@ export function detectVariants(rows: NormalizedRow[], excluded: Set<number>): Qu
 
   const findings: QualityFinding[] = [];
   for (const group of groups.values()) {
-    const distinctContenidos = new Set(group.map((r) => r.contenido));
-    if (group.length < 2 || distinctContenidos.size < 2) continue;
+    // Un duplicado exacto dentro de una familia no debe ocultar que el mismo
+    // perfume sí tiene presentaciones legítimas. Para esta INFO se conserva
+    // solo una fila representativa por contenido.
+    const representativeByContent = new Map<string, NormalizedRow>();
+    for (const row of group) {
+      if (!representativeByContent.has(row.contenido)) representativeByContent.set(row.contenido, row);
+    }
+    const representatives = [...representativeByContent.values()];
+    const distinctContenidos = new Set(representatives.map((r) => r.contenido));
+    if (representatives.length < 2) continue;
 
-    const rowNumbers = group.map((r) => r.rowNumber);
+    const rowNumbers = representatives.map((r) => r.rowNumber);
     findings.push({
       id: makeId("VARIANT", rowNumbers),
       type: "VARIANT",
@@ -585,7 +594,7 @@ export function detectVariants(rows: NormalizedRow[], excluded: Set<number>): Qu
       explanation: `Mismo perfume en diferentes contenidos (${[...distinctContenidos].join(
         ", "
       )}). Se importarán por separado, cada uno con su propio SKU, costo y stock.`,
-      rows: group.map(toSnapshot),
+      rows: representatives.map(toSnapshot),
       options: []
     });
   }
@@ -980,7 +989,7 @@ export function runQualityReview(
   const missingOrInvalidFields = detectMissingOrInvalidFields(normalizedRows);
   const safeNormalizations = detectSafeNormalizations(normalizedRows);
   const { findings: exactDuplicates, involvedRows } = detectExactDuplicates(normalizedRows);
-  const variants = detectVariants(normalizedRows, involvedRows);
+  const variants = detectVariants(normalizedRows);
   const possibleDuplicatesAndNames = detectPossibleDuplicatesAndNameIssues(normalizedRows, involvedRows);
   const brandInconsistencies = detectBrandInconsistencies(normalizedRows);
   const existingMatches = detectExistingCatalogMatches(normalizedRows, existingProducts);
@@ -1005,7 +1014,7 @@ export function runQualityReview(
     filasVacias: fileStats.filasVacias,
     filasUtiles: rows.length,
     normalizacionesSeguras: safeNormalizations.length,
-    variantesDetectadas: variants.reduce((acc, f) => acc + f.rowNumbers.length, 0),
+    variantesDetectadas: variants.length,
     posiblesDuplicados: exactDuplicates.length + possibleDuplicatesAndNames.filter((f) => f.type === "POSSIBLE_DUPLICATE").length,
     coincidenciasCatalogoExistente: existingMatches.length,
     incoherenciasNombreOMarca:
@@ -1036,6 +1045,7 @@ export type FinalPlanRow = {
   marca: string;
   contenido: string;
   costoUnitario: number;
+  precioVentaCsv: number | null;
   precioVentaSugerido: number;
   precioVentaFinal: number;
   modoPrecio: SupplierModoPrecio;
@@ -1074,6 +1084,7 @@ export function applyQualityDecisions(
   const brandOverrides = new Map<number, string>();
   const contentOverrides = new Map<number, string>();
   const costOverrides = new Map<number, number>();
+  const salePriceOverrides = new Map<number, number | null>();
   const productBindings = new Map<number, string>();
   /** Fila sobreviviente -> todas las filas originales que fusiono (para auditoria en el resumen final). */
   const unionOrigins = new Map<number, number[]>();
@@ -1291,6 +1302,12 @@ export function applyQualityDecisions(
       nameOverrides.set(rowB, canonicalName);
       costOverrides.set(rowA, decision.costFromRow === rowA ? (byRowNumber.get(rowA)?.costo ?? 0) : (byRowNumber.get(rowB)?.costo ?? 0));
       costOverrides.set(rowB, decision.costFromRow === rowA ? (byRowNumber.get(rowA)?.costo ?? 0) : (byRowNumber.get(rowB)?.costo ?? 0));
+      salePriceOverrides.set(
+        rowA,
+        decision.costFromRow === rowA
+          ? (byRowNumber.get(rowA)?.precioVentaCsv ?? null)
+          : (byRowNumber.get(rowB)?.precioVentaCsv ?? null)
+      );
       // La segunda fila del grupo se excluye; solo sobrevive rowA como representante.
       excludedRows.add(rowB);
     } else {
@@ -1312,6 +1329,9 @@ export function applyQualityDecisions(
       nombre: nameOverrides.get(r.rowNumber) ?? r.nombre,
       contenido: contentOverrides.get(r.rowNumber) ?? r.contenido,
       costo: costOverrides.get(r.rowNumber) ?? r.costo,
+      precioVentaCsv: salePriceOverrides.has(r.rowNumber)
+        ? (salePriceOverrides.get(r.rowNumber) ?? null)
+        : r.precioVentaCsv,
       targetProductId: productBindings.get(r.rowNumber)
     }));
 
@@ -1357,7 +1377,13 @@ export function applyQualityDecisions(
     const sku = boundProduct ? boundProduct.sku : skuMap.get(row)!;
     const existing = boundProduct ?? existingBySku.get(sku);
     const precioVentaSugerido = calculateSalePrice(row.costo, markupPercentage);
+    const esPrecioCliente = row.precioVentaCsv !== null;
     const esManualExistente = existing?.modoPrecio === "MANUAL";
+    const precioVentaFinal = esPrecioCliente
+      ? row.precioVentaCsv!
+      : esManualExistente
+        ? (existing as ExistingProductForReview).precioVenta
+        : precioVentaSugerido;
 
     const rowNumbers = unionOrigins.get(row.rowNumber) ?? [row.rowNumber];
     const corrections = rowNumbers.flatMap((rn) => fieldCorrections.get(rn) ?? []);
@@ -1369,9 +1395,10 @@ export function applyQualityDecisions(
       marca: row.marca,
       contenido: row.contenido,
       costoUnitario: row.costo,
+      precioVentaCsv: row.precioVentaCsv,
       precioVentaSugerido,
-      precioVentaFinal: esManualExistente ? (existing as ExistingProductForReview).precioVenta : precioVentaSugerido,
-      modoPrecio: esManualExistente ? "MANUAL" : "AUTO",
+      precioVentaFinal,
+      modoPrecio: esPrecioCliente || esManualExistente ? "MANUAL" : "AUTO",
       action: existing ? "ACTUALIZAR" : "CREAR",
       targetProductId: existing?.productId,
       corrections: corrections.length > 0 ? corrections : undefined

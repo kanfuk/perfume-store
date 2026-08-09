@@ -600,6 +600,11 @@ export class ProductoService {
    */
   async revisarCalidadImportacionProveedor(buffer: Buffer): Promise<QualityReviewResult> {
     const parsed = parseSupplierCsv(buffer);
+    if (parsed.globalErrors.length > 0 || parsed.errors.length > 0) {
+      throw new Error(
+        [...parsed.globalErrors, ...parsed.errors.map((error) => `Fila ${error.rowNumber}: ${error.message}`)].join(" ")
+      );
+    }
     const existingProducts = await this.obtenerProductosParaRevisionCalidad();
     return runQualityReview(parsed.rows, existingProducts, {
       filasFisicas: parsed.filasFisicas,
@@ -618,6 +623,20 @@ export class ProductoService {
     decisions: QualityDecision[]
   ): Promise<{ review: QualityReviewResult; applied: ApplyDecisionsResult }> {
     const parsed = parseSupplierCsv(buffer);
+    if (parsed.errors.length > 0 || parsed.globalErrors.length > 0) {
+      const review = runQualityReview(parsed.rows, [], {
+        filasFisicas: parsed.filasFisicas,
+        filasVacias: parsed.filasVacias
+      });
+      return {
+        review,
+        applied: {
+          plan: [],
+          unresolvedBlockers: [],
+          errors: [...parsed.globalErrors, ...parsed.errors.map((error) => `Fila ${error.rowNumber}: ${error.message}`)]
+        }
+      };
+    }
     const existingProducts = await this.obtenerProductosParaRevisionCalidad();
     const review = runQualityReview(parsed.rows, existingProducts, {
       filasFisicas: parsed.filasFisicas,
@@ -665,7 +684,8 @@ export class ProductoService {
           marca: row.marca,
           contenido: row.contenido,
           costoUnitario: row.costoUnitario,
-          precioVenta: row.precioVentaFinal
+          precioVenta: row.precioVentaFinal,
+          modoPrecio: row.modoPrecio
         });
         actualizados += 1;
         continue;
@@ -686,7 +706,7 @@ export class ProductoService {
         activo: true,
         esTop: false,
         esOfertaSemana: false,
-        modoPrecio: "AUTO",
+        modoPrecio: row.modoPrecio,
         tipoProducto: "simple"
       });
 

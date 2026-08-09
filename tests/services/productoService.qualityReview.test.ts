@@ -172,6 +172,34 @@ describe("ProductoService - asistente de calidad (Fase 2B.7)", () => {
     expect(created?.costoUnitario).toBe(62000);
   });
 
+  it("al resolver un duplicado conserva el Precio Venta CSV de la fila autorizada", async () => {
+    const repository = new FullProductRepositoryStub();
+    const service = new ProductoService(repository);
+    const buffer = Buffer.from(
+      [
+        "Perfume;Marca;Contenido;Costo Unitario;Precio Venta",
+        "One Million EDT;Paco Rabanne;50 ml;22000;42990",
+        "One million edt;Paco Rabanne;50 ml;20000;40990"
+      ].join("\n"),
+      "utf8"
+    );
+    const review = await service.revisarCalidadImportacionProveedor(buffer);
+    const duplicate = review.findings.find((finding) => finding.type === "EXACT_DUPLICATE")!;
+
+    const { applied } = await service.construirPlanConDecisiones(buffer, 35, [
+      { findingId: duplicate.id, optionId: "KEEP_SECOND" }
+    ]);
+
+    expect(applied.plan).toHaveLength(1);
+    expect(applied.plan[0]).toMatchObject({
+      rowNumbers: [3],
+      costoUnitario: 20000,
+      precioVentaCsv: 40990,
+      precioVentaFinal: 40990,
+      modoPrecio: "MANUAL"
+    });
+  });
+
   it("EXISTING_CATALOG_MATCH + decision UPDATE_EXISTING preserva stock/activo/imagen/Top12 del producto existente", async () => {
     const repository = new FullProductRepositoryStub();
     seedExistingProduct(repository, { sku: "SML-VIEJO-HISTORICO" });

@@ -2,10 +2,10 @@
  * Proyecto: Perfume Store (Smellme.cl)
  * Modulo: Catalog Import - Perfil "CSV de proveedor"
  * Descripcion: Acepta directamente el CSV real que entrega el proveedor
- * (Perfume;Marca;Contenido;Precio Compra, con variaciones razonables de
- * encabezado), lo normaliza al formato canonico, genera SKU deterministas
- * y calcula el precio de venta aplicando un recargo configurable sobre el
- * costo. Nunca confunde Precio Compra (costo) con precio de venta.
+ * (Perfume;Marca;Contenido;Precio Compra;Precio Venta, con variaciones
+ * razonables de encabezado), lo normaliza al formato canonico y genera SKU
+ * deterministas. El Precio Venta del cliente prevalece; el recargo sobre
+ * costo se usa solo como fallback cuando la fila no lo trae.
  */
 
 import { detectEncoding, decodeBuffer } from "./encoding.ts";
@@ -20,6 +20,7 @@ export type ImportProfile = "proveedor" | "canonico";
 const CANONICAL_HEADER_KEYS = new Set(["sku", "nombre"]);
 const SUPPLIER_REQUIRED_KEYS = new Set(["perfume", "marca", "contenido"]);
 const SUPPLIER_COST_ALIASES = new Set(["preciocompra", "costo", "costounitario"]);
+const SUPPLIER_SALE_PRICE_ALIASES = new Set(["precioventa", "preciodeventa", "venta", "pvp"]);
 
 /**
  * Detecta el perfil de un archivo a partir de sus encabezados normalizados.
@@ -45,6 +46,8 @@ export type SupplierImportRow = {
   marca: string;
   contenido: string;
   precioCompra: number;
+  /** Precio de venta entregado por el cliente; null activa el fallback de markup. */
+  precioVentaCsv?: number | null;
 };
 
 export type SupplierParseResult = {
@@ -61,6 +64,20 @@ function parseChileanCurrency(value: string): number | null {
   const digitsOnly = trimmed.replace(/[^0-9]/g, "");
   if (digitsOnly === "") return null;
   return Number.parseInt(digitsOnly, 10);
+}
+
+/**
+ * CLP estricto para Precio Venta. Admite "$40.990", "40.990", "40990" y
+ * "$ 40.990". Cualquier otro texto no vacio es invalido: no se extraen
+ * digitos silenciosamente desde contenido corrupto.
+ */
+export function parseChileanSalePrice(value: string): number | null {
+  const trimmed = normalizeDisplayText(value);
+  if (trimmed === "") return null;
+  if (!/^\$?\s*(?:\d+|\d{1,3}(?:\.\d{3})+)$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed.replace("$", "").replace(/\s/g, "").replace(/\./g, ""));
+  return Number.isFinite(parsed) && Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 /**
@@ -96,6 +113,7 @@ export function parseSupplierCsv(buffer: Buffer): SupplierParseResult {
   const idxMarca = indexOfAny(new Set(["marca"]));
   const idxContenido = indexOfAny(new Set(["contenido"]));
   const idxPrecioCompra = indexOfAny(SUPPLIER_COST_ALIASES);
+  const idxPrecioVenta = indexOfAny(SUPPLIER_SALE_PRICE_ALIASES);
 
   const missing: string[] = [];
   if (idxPerfume === -1) missing.push("Perfume");
@@ -123,7 +141,8 @@ export function parseSupplierCsv(buffer: Buffer): SupplierParseResult {
       fields[idxPerfume] ?? "",
       fields[idxMarca] ?? "",
       fields[idxContenido] ?? "",
-      fields[idxPrecioCompra] ?? ""
+      fields[idxPrecioCompra] ?? "",
+      idxPrecioVenta === -1 ? "" : fields[idxPrecioVenta] ?? ""
     ];
     if (relevant.every((f) => normalizeDisplayText(f) === "")) {
       filasVacias += 1;
@@ -135,12 +154,22 @@ export function parseSupplierCsv(buffer: Buffer): SupplierParseResult {
     const contenido = normalizeDisplayText(fields[idxContenido] ?? "");
     const precioCompraRaw = fields[idxPrecioCompra] ?? "";
     const precioCompraParsed = parseChileanCurrency(precioCompraRaw);
+    const precioVentaRaw = idxPrecioVenta === -1 ? "" : fields[idxPrecioVenta] ?? "";
+    const precioVentaCsv = parseChileanSalePrice(precioVentaRaw);
     // 0 es el centinela de "costo faltante o invalido": nunca es un costo real
     // valido (PRICE_ANOMALY ya bloquea costo <= 0), y evita que precioCompra
     // deba volverse nullable en todo el resto del pipeline (SKU, plan, etc).
     const precioCompra = precioCompraParsed !== null && precioCompraParsed > 0 ? precioCompraParsed : 0;
 
-    rows.push({ rowNumber, perfume, marca, contenido, precioCompra });
+    if (normalizeDisplayText(precioVentaRaw) !== "" && precioVentaCsv === null) {
+      errors.push({
+        rowNumber,
+        sku: "",
+        message: "Precio Venta inválido: usa un entero CLP mayor que 0 (por ejemplo, $40.990)."
+      });
+    }
+
+    rows.push({ rowNumber, perfume, marca, contenido, precioCompra, precioVentaCsv });
   });
 
   return { rows, errors, filasFisicas: dataLines.length, filasVacias, globalErrors: [] };
@@ -189,6 +218,8 @@ export type SupplierPlanRow = {
   marca: string;
   contenido: string;
   costoUnitario: number;
+  /** Valor original del CSV, o null cuando se usa el fallback por porcentaje. */
+  precioVentaCsv: number | null;
   /** Siempre el precio calculado con el recargo vigente, aunque no se aplique (referencia). */
   precioVentaSugerido: number;
   /** El precio que realmente se escribira: igual al sugerido salvo que el producto sea MANUAL. */
@@ -250,7 +281,14 @@ export function buildSupplierImportPlan(
     const sku = skuMap.get(row)!;
     const existing = existingProducts.get(sku);
     const precioVentaSugerido = calculateSalePrice(row.precioCompra, markupPercentage);
+    const precioVentaCsv = row.precioVentaCsv ?? null;
+    const esPrecioCliente = precioVentaCsv !== null;
     const esManualExistente = existing?.modoPrecio === "MANUAL";
+    const precioVentaFinal = esPrecioCliente
+      ? precioVentaCsv
+      : esManualExistente
+        ? (existing as ExistingProductPriceInfo).precioVenta
+        : precioVentaSugerido;
 
     return {
       rowNumber: row.rowNumber,
@@ -259,9 +297,10 @@ export function buildSupplierImportPlan(
       marca: normalizeDisplayText(row.marca),
       contenido: normalizeContenido(row.contenido),
       costoUnitario: row.precioCompra,
+      precioVentaCsv,
       precioVentaSugerido,
-      precioVentaFinal: esManualExistente ? (existing as ExistingProductPriceInfo).precioVenta : precioVentaSugerido,
-      modoPrecio: esManualExistente ? "MANUAL" : "AUTO",
+      precioVentaFinal,
+      modoPrecio: esPrecioCliente || esManualExistente ? "MANUAL" : "AUTO",
       action: existing ? "ACTUALIZAR" : "CREAR"
     };
   });

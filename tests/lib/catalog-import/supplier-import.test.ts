@@ -135,6 +135,39 @@ describe("supplier-import - parseSupplierCsv", () => {
     expect(result.rows).toHaveLength(1);
     expect(result.rows[0].precioCompra).toBe(58000);
   });
+
+  it.each(["$40.990", "40.990", "40990", "$ 40.990"])(
+    "parsea Precio Venta CLP válido: %s",
+    (precio) => {
+      const buffer = Buffer.from(
+        `Perfume;Marca;Contenido;Costo Unitario;Precio Venta\nLa Bomba;Carolina Herrera;80ML;22000;${precio}`,
+        "utf8"
+      );
+      const result = parseSupplierCsv(buffer);
+      expect(result.errors).toHaveLength(0);
+      expect(result.rows[0].precioVentaCsv).toBe(40990);
+    }
+  );
+
+  it("acepta los alias oficiales de Precio Venta", () => {
+    for (const header of ["precio venta", "precio de venta", "PrecioVenta", "venta", "pvp"]) {
+      const buffer = Buffer.from(
+        `Perfume;Marca;Contenido;Costo Unitario;${header}\nLa Bomba;Carolina Herrera;80ML;22000;40990`,
+        "utf8"
+      );
+      expect(parseSupplierCsv(buffer).rows[0].precioVentaCsv).toBe(40990);
+    }
+  });
+
+  it("bloquea Precio Venta corrupto sin extraer dígitos silenciosamente", () => {
+    const buffer = Buffer.from(
+      "Perfume;Marca;Contenido;Costo Unitario;Precio Venta\nLa Bomba;Carolina Herrera;80ML;22000;CLP 40.990 roto",
+      "utf8"
+    );
+    const result = parseSupplierCsv(buffer);
+    expect(result.rows[0].precioVentaCsv).toBeNull();
+    expect(result.errors[0].message).toMatch(/Precio Venta inválido/);
+  });
 });
 
 describe("supplier-import - validateMarkupPercentage", () => {
@@ -235,6 +268,24 @@ describe("supplier-import - buildSupplierImportPlan / SKU", () => {
     expect(plan[0].precioVentaFinal).toBe(65000); // preservado, NUNCA sobrescrito
     expect(plan[0].precioVentaSugerido).toBe(78300); // referencia informativa
     expect(plan[0].modoPrecio).toBe("MANUAL");
+  });
+
+  it("Precio Venta CSV prevalece sobre markup y precio manual existente", () => {
+    const buffer = Buffer.from(
+      "Perfume;Marca;Contenido;Costo Unitario;Precio Venta\nLa Bomba;Carolina Herrera;80ML;58000;$74.990",
+      "utf8"
+    );
+    const parsed = parseSupplierCsv(buffer);
+    const existing = new Map([
+      ["SML-CAROLINA-HERRERA-LA-BOMBA-80ML", { modoPrecio: "MANUAL" as const, precioVenta: 65000 }]
+    ]);
+    const { plan } = buildSupplierImportPlan(parsed.rows, 35, existing);
+    expect(plan[0]).toMatchObject({
+      precioVentaCsv: 74990,
+      precioVentaSugerido: 78300,
+      precioVentaFinal: 74990,
+      modoPrecio: "MANUAL"
+    });
   });
 
   it("bloquea filas cuyo SKU quedaria duplicado dentro del mismo archivo", () => {
