@@ -3,9 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Fase 7.6A: la migracion de cierres semanales queda preparada en el
- * repositorio pero NUNCA se aplico contra Supabase remoto (ver
- * docs/SMELLME_WEEKLY_CLOSURES_DESIGN.md). Mismo patron de inspeccion
+ * Inspección estática de la migración de cierres semanales. Mismo patrón
  * estatica que tests/supabase/customerBanlistMigration.test.ts.
  */
 const migrationPath = path.join(
@@ -103,9 +101,10 @@ describe("migracion de cierres semanales (20260810000000_smellme_weekly_admin_cl
   });
 });
 
-describe("Fase 7.6A: la migracion NO fue aplicada remotamente", () => {
-  it("el documento de diseño confirma explicitamente que no se aplico", () => {
+describe("estado documentado de la migración de cierres", () => {
+  it("el documento refleja su integración remota sin automatizar cierres", () => {
     const design = readFileSync(path.join(process.cwd(), "docs/SMELLME_WEEKLY_CLOSURES_DESIGN.md"), "utf8");
-    expect(design).toMatch(/no se ejecut[oó]|no fue aplicada/i);
+    expect(design).toMatch(/están aplicadas|está aplicada/i);
+    expect(design).toMatch(/nunca se ejecutan automáticamente/i);
   });
 });

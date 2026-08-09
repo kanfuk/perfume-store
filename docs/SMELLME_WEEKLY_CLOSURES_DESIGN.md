@@ -1,8 +1,8 @@
 # Cierres semanales administrativos — diseño (Fase 7.6A)
 
-Rama: `feature/weekly-admin-closures`. Implementación local únicamente: **la
-migración y las funciones SQL descritas aquí no fueron aplicadas en
-Supabase remoto** — ver sección "Migración preparada, no aplicada".
+Implementación recuperada desde `feature/weekly-admin-closures` e integrada
+en V2.2. La migración y sus funciones están aplicadas en el proyecto remoto
+`nxgkudvrotlaqvvhygem`.
 
 ## Alcance
 
@@ -235,9 +235,9 @@ Archivo: `supabase/migrations/20260810000000_smellme_weekly_admin_closures.sql`.
   `service_role` tiene `execute`, igual que el resto de las RPC del
   proyecto — la escritura real (cerrar/reabrir) siempre pasa por el
   servidor (rutas API), nunca directamente desde el navegador.
-- **No se ejecutó** `supabase db push` ni SQL alguno contra Supabase
-  remoto. El esquema remoto permanece exactamente como estaba antes de esta
-  fase (ver Fase 7.5B-2: `cierres_semanales` no existe todavía en remoto).
+- La migración aditiva está aplicada en remoto; no modifica datos
+  comerciales existentes y los cierres siguen requiriendo confirmación
+  explícita del administrador (nunca se ejecutan automáticamente).
 
 ## Exportación CSV
 
@@ -264,13 +264,12 @@ PII de clientes en absoluto, solo agregados numéricos).
 
 ## Fuera de alcance de esta fase
 
-- Aplicación remota de la migración y las funciones (Fase 7.6B-1).
-- Preview, QA autenticado y despliegue productivo (Fases 7.6B-1/7.6B-2).
+- QA visual autenticado en el Preview de la rama.
 - Una consulta de repositorio con rango de fechas real a nivel de base de
   datos: por ahora el cálculo del snapshot reutiliza el mismo patrón
   "traer todo por estado, filtrar en servicio" que ya usa
   `PedidoService.obtenerDashboardAdmin()` — funciona correctamente con el
-  volumen de datos actual (catálogo productivo vacío) pero es una
+  volumen de datos actual pero es una
   limitación de escalabilidad conocida y documentada, no un error: una fase
   futura debería añadir una consulta indexada por rango de fechas si el
   volumen de pedidos lo justifica.

@@ -4,8 +4,8 @@
  * Descripcion: Acceso a cierres semanales desde memoria local o Supabase.
  * La version Supabase delega la atomicidad (version + duplicado) a las RPC
  * create_weekly_closure_v1 / reopen_weekly_closure_v1 (migracion
- * 20260810000000_smellme_weekly_admin_closures.sql, NO aplicada en esta
- * fase); la version en memoria reproduce la misma logica en TypeScript
+ * 20260810000000_smellme_weekly_admin_closures.sql); la version en memoria
+ * reproduce la misma logica en TypeScript
  * unicamente para pruebas y desarrollo local sin Supabase configurado.
  * Buenas practicas: Codigo modular, validado y orientado a mantenibilidad.
  * Seguridad: No incluir claves ni datos sensibles en este archivo.
