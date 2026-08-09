@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { ArrowDown, ArrowRight, Sparkles } from "lucide-react";
 import { OrderForm } from "@/components/OrderForm";
+import { appInfo } from "@/lib/app-info";
 
 export default function HomePage() {
   return (
@@ -15,7 +16,10 @@ export default function HomePage() {
               <span className="relative h-11 w-11 overflow-hidden rounded-xl border border-[#e8c79e]/25 bg-[#101010] shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
                 <Image src="/brand/smellme-monogram.webp" alt="" fill sizes="44px" className="object-cover" priority />
               </span>
-              <span className="text-base font-semibold tracking-[0.01em] text-[#f7f1e8]">Smellme.cl</span>
+              <span>
+                <span className="block text-base font-semibold tracking-[0.01em] text-[#f7f1e8]">Smellme.cl</span>
+                <span className="block text-[10px] tracking-wide text-[#e8ded0]/65">{appInfo.tagline}</span>
+              </span>
             </a>
             <a href="#como-comprar" className="text-sm font-medium text-[#e8ded0]/75 transition hover:text-[#e8c79e]">
               Cómo comprar
@@ -32,7 +36,7 @@ export default function HomePage() {
                 Tu próxima fragancia, elegida con intención.
               </h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-[#e8ded0]/70 sm:text-lg">
-                Perfumes, testers y selecciones especiales con atención cercana y despacho coordinado.
+                {appInfo.tagline} Perfumes, testers y selecciones especiales con atención cercana y despacho coordinado.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#catalogo-section" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#e8c79e,#cb9478)] px-6 text-sm font-bold text-[#191714] shadow-[0_12px_28px_rgba(113,75,45,0.3)] transition hover:-translate-y-0.5 hover:brightness-105">

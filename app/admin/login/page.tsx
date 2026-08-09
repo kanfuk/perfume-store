@@ -4,6 +4,7 @@ import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { AppFooter } from "@/components/AppFooter";
 import { SmellmeLogo, SmellmeMonogram } from "@/components/SmellmeBrand";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { appInfo } from "@/lib/app-info";
 
 type AdminLoginPageProps = {
   searchParams: Promise<{ next?: string }>;
@@ -24,7 +25,10 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
           <div className="max-w-xl">
             <div className="flex items-center gap-3">
               <SmellmeMonogram className="h-12 w-12" priority />
-              <span className="font-semibold tracking-wide text-[#f7f1e8]">Smellme.cl</span>
+              <span>
+                <span className="block font-semibold tracking-wide text-[#f7f1e8]">Smellme.cl</span>
+                <span className="block text-xs text-[#e8ded0]/65">{appInfo.tagline}</span>
+              </span>
             </div>
             <div className="mt-16 hidden lg:block">
               <SmellmeLogo className="mb-8 h-32 w-44 border border-[#e8c79e]/15 shadow-[0_24px_60px_rgba(0,0,0,0.4)]" priority />

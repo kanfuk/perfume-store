@@ -34,9 +34,9 @@ describe("buildOrderPaymentConfirmedMessage", () => {
       total: 15000
     });
 
-    expect(message).not.toContain("Region:");
+    expect(message).not.toContain("Región:");
     expect(message).not.toContain("Comuna:");
-    expect(message).not.toContain("Direccion:");
+    expect(message).not.toContain("Dirección:");
     expect(message).not.toContain("Referencia:");
   });
 
@@ -56,6 +56,45 @@ describe("buildOrderPaymentConfirmedMessage", () => {
     });
 
     expect(message).not.toContain("sucursal Starken");
+  });
+
+  it("usa el copy aprobado, con acentos, para despacho semanal", () => {
+    const message = buildOrderPaymentConfirmedMessage({
+      customerName: "Erick Aguilera Flores",
+      codigo: "PERF-2026-000001",
+      total: 74990,
+      metodoDespacho: METODO_DESPACHO_DOMICILIO_SEMANAL,
+      region: "Región Metropolitana de Santiago",
+      comuna: "El Bosque",
+      direccion: "Gran Av. José Miguel Carrera"
+    });
+
+    expect(message).toBe(
+      [
+        "Hola Erick Aguilera Flores",
+        "",
+        "¡Recibimos tu pago! Tu pedido PERF-2026-000001 quedó confirmado.",
+        "",
+        "Total pagado: $74.990",
+        "",
+        "Coordinemos la entrega:",
+        "Modalidad: Despacho a domicilio (semanal)",
+        "Región: Región Metropolitana de Santiago",
+        "Comuna: El Bosque",
+        "Dirección: Gran Av. José Miguel Carrera",
+        "",
+        "Te contactaremos para el día de entrega disponible de la semana. Gracias por tu compra."
+      ].join("\n")
+    );
+  });
+
+  it("para retiro omite dirección y adapta el cierre", () => {
+    const message = buildOrderPaymentConfirmedMessage({
+      metodoDespacho: METODO_DESPACHO_STARKEN_POR_PAGAR,
+      direccion: "No debe aparecer"
+    });
+    expect(message).not.toContain("No debe aparecer");
+    expect(message).toContain("coordinar el retiro disponible");
   });
 
   it("nunca muestra 'undefined' o 'null' aunque falten campos opcionales", () => {
