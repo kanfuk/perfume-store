@@ -13,6 +13,7 @@
 
 import { ESTADO_PAGO_PAGADO, ESTADO_PEDIDO_CANCELADO } from "@/lib/constants";
 import type { AdminOrderSummary, OrderOrigin } from "@/lib/types";
+import { getSalesAccountingDate } from "@/lib/sales-accounting-date";
 
 const CONFIRMED_SALE_ORIGINS: ReadonlySet<OrderOrigin> = new Set(["PUBLICO", "ADMIN_DIRECTO", "PERSONALIZADO"]);
 
@@ -22,11 +23,6 @@ export type ConfirmedSalesSummary = {
   /** Las `limit` mas recientes, orden descendente por fecha efectiva. */
   recent: AdminOrderSummary[];
 };
-
-/** Misma fecha efectiva que usa el resto del dashboard para ordenar: entrega, si no pago, si no el pedido. */
-function effectiveDate(order: AdminOrderSummary): string {
-  return order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido;
-}
 
 /**
  * Ventas confirmadas: pagadas (estadoPago PAGADO), no canceladas, de
@@ -46,7 +42,9 @@ export function selectRecentConfirmedSales(
       CONFIRMED_SALE_ORIGINS.has(order.origenPedido)
   );
 
-  const sorted = [...confirmed].sort((a, b) => effectiveDate(b).localeCompare(effectiveDate(a)));
+  const sorted = [...confirmed].sort((a, b) =>
+    getSalesAccountingDate(b).localeCompare(getSalesAccountingDate(a))
+  );
 
   return { total: sorted.length, recent: sorted.slice(0, limit) };
 }

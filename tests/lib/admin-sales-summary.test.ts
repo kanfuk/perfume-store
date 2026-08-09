@@ -117,15 +117,20 @@ describe("selectRecentConfirmedSales", () => {
     expect(result.recent.map((o) => o.id)).toEqual(["nuevo", "medio", "viejo"]);
   });
 
-  it("usa fechaEntrega por sobre fechaPago y fechaPedido para ordenar (fecha efectiva)", () => {
+  it("usa fechaPago y nunca fechaEntrega para ordenar contablemente", () => {
     const finalizados = [
-      buildOrder({ id: "a", fechaPedido: "2026-08-01T00:00:00.000Z", fechaEntrega: "2026-08-05T00:00:00.000Z" }),
+      buildOrder({
+        id: "a",
+        fechaPedido: "2026-08-01T00:00:00.000Z",
+        fechaPago: "2026-08-02T00:00:00.000Z",
+        fechaEntrega: "2026-08-20T00:00:00.000Z"
+      }),
       buildOrder({ id: "b", fechaPedido: "2026-08-04T00:00:00.000Z" })
     ];
 
     const result = selectRecentConfirmedSales(finalizados);
 
-    expect(result.recent.map((o) => o.id)).toEqual(["a", "b"]);
+    expect(result.recent.map((o) => o.id)).toEqual(["b", "a"]);
   });
 
   it("no muta la lista original recibida", () => {

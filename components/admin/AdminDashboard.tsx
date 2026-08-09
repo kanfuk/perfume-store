@@ -109,6 +109,10 @@ import { AdminNav } from "@/components/admin/dashboard/AdminNav";
 import { useAppFeedback } from "@/hooks/useAppFeedback";
 import { formatChileanMobileInput, parseChileanMobilePhone } from "@/lib/chile-phone";
 import {
+  filterOrdersByAccountingRange,
+  getSalesAccountingDateKey
+} from "@/lib/sales-accounting-date";
+import {
   getNewAdminOrders,
   getNewAdminOrdersCount
 } from "@/lib/admin/getPendingAdminOrders";
@@ -631,8 +635,7 @@ export function AdminDashboard({
   const weekSalesTotal = useMemo(() => {
     const { from, to } = getChileCurrentWeekRange();
     return data.finalizados.reduce((sum, order) => {
-      const baseDate = order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido;
-      const dateOnly = baseDate.slice(0, 10);
+      const dateOnly = getSalesAccountingDateKey(order);
       if (dateOnly < from || dateOnly > to) return sum;
       return sum + order.total;
     }, 0);
@@ -856,17 +859,7 @@ export function AdminDashboard({
   );
 
   const reportOrders = useMemo(() => {
-    return data.finalizados.filter((order) => {
-      const baseDate = order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido;
-      const dateOnly = baseDate.slice(0, 10);
-
-      if (reportFrom && dateOnly < reportFrom) {
-        return false;
-      }
-
-      if (reportTo && dateOnly > reportTo) {
-        return false;
-      }
+    return filterOrdersByAccountingRange(data.finalizados, reportFrom, reportTo).filter((order) => {
 
       if (reportSalesFilter === "pedido-cliente" && order.origenPedido !== "PUBLICO") {
         return false;
@@ -3755,10 +3748,6 @@ function ClientCard({
               <h3 className="text-xl font-bold text-[#191714]">{customer.nombre}</h3>
               <div className="flex flex-wrap gap-2">
                 <ClientPill label={`${customer.pedidos} pedido(s)`} tone="neutral" />
-                <ClientPill
-                  label={customer.pendiente > 0 ? "Fiado pendiente" : "Sin deuda"}
-                  tone={customer.pendiente > 0 ? "danger" : "success"}
-                />
                 {customer.isRecent ? <ClientPill label="Reciente" tone="accent" /> : null}
                 {customer.bloqueado ? <ClientPill label="Bloqueado" tone="danger" /> : null}
               </div>
@@ -3795,19 +3784,9 @@ function ClientCard({
         <div className="grid gap-3 sm:grid-cols-2">
           <ClientFact icon={Phone} label="Teléfono" value={customer.telefono || "Sin teléfono"} />
           <ClientFact
-            icon={Store}
-            label="Unidad"
-            value={customer.lugarTrabajo || "Sin unidad"}
-          />
-          <ClientFact
             icon={ReceiptText}
             label="Total comprado"
             value={formatCurrency(customer.totalComprado)}
-          />
-          <ClientFact
-            icon={HandCoins}
-            label="Deuda pendiente"
-            value={customer.pendiente > 0 ? formatCurrency(customer.pendiente) : "Sin deuda"}
           />
         </div>
 
@@ -3902,7 +3881,6 @@ function CustomerEditModal({
 }) {
   const [nombre, setNombre] = useState(state.customer.nombre);
   const [telefono, setTelefono] = useState(state.customer.telefono);
-  const [lugarTrabajo, setLugarTrabajo] = useState(state.customer.lugarTrabajo);
 
   return (
     <div className="fixed inset-0 z-[110] bg-[#191714]/35 p-4 backdrop-blur-[2px]">
@@ -3943,15 +3921,6 @@ function CustomerEditModal({
               <p className="text-xs text-[#6B6258]">Puedes dejarlo vacio si no corresponde.</p>
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-[#191714]">Unidad o lugar de trabajo</span>
-              <input
-                value={lugarTrabajo}
-                onChange={(event) => setLugarTrabajo(event.target.value)}
-                className="block min-h-11 w-full rounded-[18px] border border-[#DDD0C1] bg-white px-4 py-3 text-base text-[#191714] outline-none"
-                placeholder="Ejemplo: Finanzas"
-              />
-            </label>
           </div>
 
           <div className="flex flex-col-reverse gap-2 border-t border-[#DDD0C1] bg-white/95 px-5 py-4 sm:flex-row sm:justify-end">
@@ -3970,7 +3939,7 @@ function CustomerEditModal({
                   id: state.customer.id,
                   nombre,
                   telefono,
-                  lugarTrabajo
+                  lugarTrabajo: state.customer.lugarTrabajo
                 })
               }
               className="min-h-11 rounded-[18px] bg-[#B88B58] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(115, 87, 255,0.2)] disabled:cursor-not-allowed disabled:opacity-70"

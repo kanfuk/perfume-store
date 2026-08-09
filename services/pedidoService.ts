@@ -61,6 +61,7 @@ import {
 import { getNewAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
 import { getAvailableProductStock, shouldDecreaseStock } from "@/lib/stock";
 import { sendPendingOrdersPushToAdmins } from "@/lib/pwa/sendWebPush";
+import { getSalesAccountingDate } from "@/lib/sales-accounting-date";
 import type { ClienteRepository } from "@/repositories/clienteRepository";
 import { getClienteRepository } from "@/repositories/clienteRepository";
 import type { PedidoRepository } from "@/repositories/pedidoRepository";
@@ -428,11 +429,7 @@ export class PedidoService {
     const finalizadosEnriched = finalizadosRaw
       .map((order) => byId.get(order.id))
       .filter((order): order is AdminOrderSummary => Boolean(order))
-      .sort((a, b) =>
-        (b.fechaEntrega ?? b.fechaPago ?? b.fechaPedido).localeCompare(
-          a.fechaEntrega ?? a.fechaPago ?? a.fechaPedido
-        )
-      );
+      .sort((a, b) => getSalesAccountingDate(b).localeCompare(getSalesAccountingDate(a)));
 
     const pendientesEnriched = nuevos
       .map((order) => byId.get(order.id))

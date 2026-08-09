@@ -5,6 +5,7 @@ import type {
   LocalOrderRecord
 } from "@/lib/local-store";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
+import { getSalesAccountingDate } from "@/lib/sales-accounting-date";
 
 export const TOP_RANKING_MODES = ["MANUAL", "AUTOMATIC", "HYBRID"] as const;
 export type TopRankingMode = (typeof TOP_RANKING_MODES)[number];
@@ -83,7 +84,7 @@ export function computeEffectiveTopRanking(input: {
       ? []
       : orders
           .filter((order) => {
-            const date = Date.parse(order.fechaEntrega ?? order.fechaPago ?? order.fechaPedido);
+            const date = Date.parse(getSalesAccountingDate(order));
             const isDeliveredDirectFiado =
               order.estadoPedido === "ENTREGADO" &&
               order.estadoPago === "SIN_PAGO" &&
