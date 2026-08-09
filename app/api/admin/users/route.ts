@@ -1,6 +1,7 @@
 import { authorizeAdminUsersRequest, adminUserErrorResponse, adminUsersJson } from "@/lib/admin-users-request";
 import { validateInviteAdminUserInput } from "@/lib/admin-users";
 import { createAdminUserService } from "@/services/adminUserService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
 
   try {
     await createAdminUserService().invite(validation.data, new URL(request.url).origin);
+    await logAdminAction({ actor: authorization.admin!, action: "ADMIN_INVITED", entityType: "admin_user", entityId: validation.data.email, requestId: requestAuditId(request), after: { email: validation.data.email, role: "ADMIN" } });
     return adminUsersJson({ ok: true }, 201);
   } catch (error) {
     return adminUserErrorResponse(error);

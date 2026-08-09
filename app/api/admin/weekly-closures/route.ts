@@ -11,6 +11,7 @@ import { getAuthenticatedAdmin, isAdminAuthenticated } from "@/lib/admin-auth";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { WeeklyClosureError, httpStatusForWeeklyClosureError } from "@/lib/weeklyClosureErrors";
 import { createCierreSemanalService } from "@/services/cierreSemanalService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 export async function GET(request: Request) {
   if (!(await isAdminAuthenticated())) {
@@ -71,6 +72,8 @@ export async function POST(request: Request) {
       email: admin?.email ?? null,
       nombre: admin?.nombre ?? null
     });
+
+    await logAdminAction({ actor: admin, action: "WEEKLY_CLOSURE", entityType: "weekly_closure", entityId: closure.id, requestId: requestAuditId(request), after: closure, metadata: { operation: "close" } });
 
     return NextResponse.json({ closure }, { status: 201 });
   } catch (error) {

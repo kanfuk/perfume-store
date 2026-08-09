@@ -4,6 +4,7 @@ import type { BusinessPaymentSettingsFormInput } from "@/lib/businessPaymentSett
 import { getBusinessPaymentSettingsCompleteness } from "@/lib/businessPaymentSettings";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { createBusinessSettingsService } from "@/services/businessSettingsService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 const PAYMENT_SETTINGS_FIELDS = new Set([
   "banco",
@@ -122,6 +123,8 @@ export async function PUT(request: Request) {
     if (!result.valid) {
       return noStoreJson({ errors: result.errors }, { status: 400 });
     }
+
+    await logAdminAction({ actor: admin, action: "SETTINGS_UPDATED", entityType: "payment_settings", requestId: requestAuditId(request), after: { complete: true }, metadata: { fieldsUpdated: PAYMENT_SETTINGS_FIELDS.size } });
 
     return noStoreJson({ settings: result.data, completa: true });
   } catch (error) {

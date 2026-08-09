@@ -16,6 +16,7 @@ const { obtenerEstadoConfiguracionPago, guardarConfiguracionPago } = vi.hoisted(
 );
 
 vi.mock("@/lib/admin-auth", () => ({ getAuthenticatedAdmin }));
+vi.mock("@/lib/admin-audit", () => ({ logAdminAction: vi.fn(), requestAuditId: () => "11111111-1111-4111-8111-111111111111" }));
 vi.mock("@/lib/http-security", () => ({
   validateTrustedOrigin,
   validateJsonRequest

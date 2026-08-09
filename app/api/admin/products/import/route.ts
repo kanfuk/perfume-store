@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getAuthenticatedAdmin, isAdminAuthenticated } from "@/lib/admin-auth";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { createProductoService } from "@/services/productoService";
 import { parseCsvLines, detectEncoding, decodeBuffer, detectDelimiter } from "@/lib/catalog-import/index.ts";
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  const admin = await getAuthenticatedAdmin();
+  if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
   const trustedOriginError = validateTrustedOrigin(request);
   if (trustedOriginError) return trustedOriginError;
@@ -224,6 +227,7 @@ export async function POST(request: Request) {
       }));
 
       const result = await productoService.confirmarImportacionProveedor(finalPlan);
+      await logAdminAction({ actor: admin, action: "CATALOG_IMPORT", entityType: "catalog", requestId: requestAuditId(request), after: { profile: "proveedor", ...result }, metadata: { fileName, rows: finalPlan.length } });
       return NextResponse.json({ ok: true, ...result, perfil: "proveedor", plan: applied.plan });
     }
 
@@ -256,6 +260,7 @@ export async function POST(request: Request) {
     }
 
     const result = await productoService.confirmarImportacionCsv(preview.filasValidas);
+    await logAdminAction({ actor: admin, action: "CATALOG_IMPORT", entityType: "catalog", requestId: requestAuditId(request), after: { profile: "canonico", ...result }, metadata: { fileName, rows: preview.filasValidas.length } });
     return NextResponse.json({ ok: true, ...result, perfil: "canonico", preview });
   } catch (error) {
     return NextResponse.json(

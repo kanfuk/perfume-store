@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedAdmin, isAdminAuthenticated } from "@/lib/admin-auth";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { createAdminCustomerService } from "@/services/adminCustomerService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 type RouteContext = {
   params: Promise<{
@@ -20,6 +21,8 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  const authenticatedAdmin = await getAuthenticatedAdmin();
+  if (!authenticatedAdmin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
 
   const trustedOriginError = validateTrustedOrigin(request);
 
@@ -58,6 +61,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         motivo: body.reason,
         bloqueadoPor: admin?.userId ?? null
       });
+      await logAdminAction({ actor: authenticatedAdmin, action: "CUSTOMER_BLOCKED", entityType: "customer", entityId: customerId, requestId: requestAuditId(request), after: customer, metadata: { reason: body.reason } });
       return NextResponse.json({ customer });
     }
 
@@ -78,6 +82,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       referenciaDireccion: body.referenciaDireccion,
       lugarTrabajo: body.lugarTrabajo ?? ""
     });
+
+    await logAdminAction({ actor: authenticatedAdmin, action: "CUSTOMER_UPDATED", entityType: "customer", entityId: customerId, requestId: requestAuditId(request), after: customer });
 
     return NextResponse.json({ customer });
   } catch (error) {

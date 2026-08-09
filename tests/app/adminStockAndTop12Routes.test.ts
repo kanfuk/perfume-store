@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { BulkStockPreview } from "@/services/productoService";
 
-const { isAdminAuthenticated } = vi.hoisted(() => ({
-  isAdminAuthenticated: vi.fn(async () => true)
+const { isAdminAuthenticated, getAuthenticatedAdmin } = vi.hoisted(() => ({
+  isAdminAuthenticated: vi.fn(async () => true),
+  getAuthenticatedAdmin: vi.fn(async () => ({ userId: "auth-1", profileId: "admin-1", rol: "ADMIN" }))
 }));
 
-vi.mock("@/lib/admin-auth", () => ({ isAdminAuthenticated }));
+vi.mock("@/lib/admin-auth", () => ({ isAdminAuthenticated, getAuthenticatedAdmin }));
+vi.mock("@/lib/admin-audit", () => ({ logAdminAction: vi.fn(), requestAuditId: () => "11111111-1111-4111-8111-111111111111" }));
 vi.mock("@/lib/http-security", () => ({
   validateTrustedOrigin: () => null,
   validateJsonRequest: () => null

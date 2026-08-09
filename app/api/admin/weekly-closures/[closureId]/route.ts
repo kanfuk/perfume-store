@@ -12,6 +12,7 @@ import { getAuthenticatedAdmin, isAdminAuthenticated } from "@/lib/admin-auth";
 import { validateJsonRequest, validateTrustedOrigin } from "@/lib/http-security";
 import { WeeklyClosureError, httpStatusForWeeklyClosureError } from "@/lib/weeklyClosureErrors";
 import { createCierreSemanalService } from "@/services/cierreSemanalService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 type RouteContext = {
   params: Promise<{ closureId: string }>;
@@ -78,6 +79,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       email: admin?.email ?? null,
       nombre: admin?.nombre ?? null
     });
+
+    await logAdminAction({ actor: admin, action: "WEEKLY_CLOSURE", entityType: "weekly_closure", entityId: closureId, requestId: requestAuditId(request), after: closure, metadata: { operation: "reopen", reason: body.reason } });
 
     return NextResponse.json({ closure });
   } catch (error) {

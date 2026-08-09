@@ -7,6 +7,7 @@ import {
   AdminPaymentAccountServiceError,
   createAdminPaymentAccountService
 } from "@/services/adminPaymentAccountService";
+import { logAdminAction, requestAuditId } from "@/lib/admin-audit";
 
 type RouteContext = { params: Promise<{ userId: string }> };
 
@@ -82,6 +83,7 @@ export async function PUT(request: Request, context: RouteContext) {
     const { userId } = await context.params;
     const result = await createAdminPaymentAccountService().saveForOwner(userId, input);
     if (!result.valid) return adminUsersJson({ errors: result.errors }, 400);
+    await logAdminAction({ actor: authorization.admin!, action: "PAYMENT_ACCOUNT_UPDATED", entityType: "admin_payment_account", entityId: userId, requestId: requestAuditId(request), after: { active: input.active }, metadata: { ownerManaged: true } });
     return adminUsersJson({ ok: true });
   } catch (error) {
     return accountError(error);

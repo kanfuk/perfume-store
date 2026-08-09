@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MoreHorizontal, UsersRound, X } from "lucide-react";
+import { Activity, MoreHorizontal, UsersRound, X } from "lucide-react";
 import { ADMIN_PRIMARY_NAV, ADMIN_MORE_NAV } from "@/components/admin/dashboard/admin-dashboard.constants";
 
 function isActive(pathname: string, href: string): boolean {
@@ -12,7 +12,7 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 function isMoreActive(pathname: string, isOwner: boolean): boolean {
-  return [...ADMIN_MORE_NAV, ...(isOwner ? [{ href: "/admin/usuarios" }] : [])].some((item) => isActive(pathname, item.href));
+  return [...ADMIN_MORE_NAV, ...(isOwner ? [{ href: "/admin/usuarios" }, { href: "/admin/actividad" }] : [])].some((item) => isActive(pathname, item.href));
 }
 
 /**
@@ -89,9 +89,14 @@ export function AdminNav({ isOwner = false }: { isOwner?: boolean }) {
                   </Link>
                 ))}
                 {isOwner ? (
-                  <Link href="/admin/usuarios" role="menuitem" onClick={() => setMoreOpen(false)} className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-[#4D453D] hover:bg-[#F7F1E8]">
-                    <UsersRound className="h-4 w-4 text-[#B88B58]" /> Usuarios
-                  </Link>
+                  <>
+                    <Link href="/admin/usuarios" role="menuitem" onClick={() => setMoreOpen(false)} className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-[#4D453D] hover:bg-[#F7F1E8]">
+                      <UsersRound className="h-4 w-4 text-[#B88B58]" /> Usuarios
+                    </Link>
+                    <Link href="/admin/actividad" role="menuitem" onClick={() => setMoreOpen(false)} className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-[#4D453D] hover:bg-[#F7F1E8]">
+                      <Activity className="h-4 w-4 text-[#B88B58]" /> Actividad
+                    </Link>
+                  </>
                 ) : null}
               </div>
             </>
@@ -169,9 +174,14 @@ export function AdminNav({ isOwner = false }: { isOwner?: boolean }) {
                 </Link>
               ))}
               {isOwner ? (
-                <Link href="/admin/usuarios" onClick={() => setMoreOpen(false)} className="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DDD0C1] px-3 py-3 text-center text-xs font-semibold text-[#4D453D]">
-                  <UsersRound className="h-5 w-5 text-[#B88B58]" /> Usuarios
-                </Link>
+                <>
+                  <Link href="/admin/usuarios" onClick={() => setMoreOpen(false)} className="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DDD0C1] px-3 py-3 text-center text-xs font-semibold text-[#4D453D]">
+                    <UsersRound className="h-5 w-5 text-[#B88B58]" /> Usuarios
+                  </Link>
+                  <Link href="/admin/actividad" onClick={() => setMoreOpen(false)} className="flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#DDD0C1] px-3 py-3 text-center text-xs font-semibold text-[#4D453D]">
+                    <Activity className="h-5 w-5 text-[#B88B58]" /> Actividad
+                  </Link>
+                </>
               ) : null}
             </div>
           </div>
