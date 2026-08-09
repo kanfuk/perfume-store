@@ -178,6 +178,7 @@ export function AdminDashboard({
   const refreshOrdersInFlightRef = useRef<Promise<void> | null>(null);
   const refreshRetryTimeoutRef = useRef<number | null>(null);
   const orderActionsInFlightRef = useRef(new Set<string>());
+  const knownPendingOrderIdsRef = useRef(new Set(initialData.dashboard.pendientes.map((order) => order.id)));
   const [data, setData] = useState<AdminDashboardData>(initialData.dashboard);
   const [products, setProducts] = useState<AdminProductRecord[]>(initialData.productos);
   const [customers, setCustomers] = useState<AdminCustomerOption[]>(initialCustomers);
@@ -1207,6 +1208,19 @@ export function AdminDashboard({
 
       if (!response.ok) {
         throw new Error(currentData.error ?? "No fue posible cargar pedidos.");
+      }
+
+      for (const order of getNewAdminOrders(currentData.pendientes)) {
+        if (knownPendingOrderIdsRef.current.has(order.id)) continue;
+        knownPendingOrderIdsRef.current.add(order.id);
+        feedback.notify({
+          dedupeKey: `new-order:${order.id}`,
+          message: "Nuevo pedido recibido",
+          tone: "info",
+          durationMs: 8000,
+          actionLabel: "Ver pedido",
+          onAction: () => router.push(`/admin/pedidos#${order.id}`)
+        });
       }
 
       setData(currentData);

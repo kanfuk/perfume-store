@@ -112,10 +112,11 @@ export function BulkProductImagePanel() {
 
   // Libera todos los object URLs al desmontar el panel (seccion 16).
   useEffect(() => {
+    const fileObjects = fileObjectsRef.current;
     return () => {
       for (const url of Object.values(previewUrlsRef.current)) URL.revokeObjectURL(url);
       previewUrlsRef.current = {};
-      fileObjectsRef.current.clear();
+      fileObjects.clear();
       document.body.style.removeProperty("overflow");
     };
   }, []);

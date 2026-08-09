@@ -13,6 +13,7 @@ type ConfirmOptions = {
 };
 
 type NotifyOptions = {
+  dedupeKey?: string;
   message: string;
   tone?: AppToastTone;
   durationMs?: number;
@@ -41,6 +42,7 @@ export function AppFeedbackProvider({ children }: { children: React.ReactNode })
   const [confirmState, setConfirmState] = useState<ConfirmDialogState>(null);
   const lastFocusRef = useRef<HTMLElement | null>(null);
   const dismissTimeoutsRef = useRef<number[]>([]);
+  const seenDedupeKeysRef = useRef(new Set<string>());
 
   useEffect(() => {
     return () => {
@@ -51,8 +53,9 @@ export function AppFeedbackProvider({ children }: { children: React.ReactNode })
 
   const api = useMemo<AppFeedbackContextValue>(
     () => ({
-      notify({ message, tone = "info", durationMs = 3600, actionLabel, onAction }) {
+      notify({ message, tone = "info", durationMs = 3600, actionLabel, onAction, dedupeKey }) {
         setToasts((current) => {
+          if (dedupeKey && seenDedupeKeysRef.current.has(dedupeKey)) return current;
           const duplicated = current.some((item) => item.message === message && item.tone === tone);
 
           if (duplicated) {
@@ -60,12 +63,13 @@ export function AppFeedbackProvider({ children }: { children: React.ReactNode })
           }
 
           const id = createToastId();
+          if (dedupeKey) seenDedupeKeysRef.current.add(dedupeKey);
           const timeoutId = window.setTimeout(() => {
             setToasts((activeToasts) => activeToasts.filter((item) => item.id !== id));
           }, durationMs);
           dismissTimeoutsRef.current.push(timeoutId);
 
-          return [...current, { id, message, tone, actionLabel, onAction }];
+          return [...current, { id, message, tone, actionLabel, onAction, dedupeKey }];
         });
       },
       success(message) {

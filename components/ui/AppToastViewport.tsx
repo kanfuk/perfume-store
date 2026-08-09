@@ -6,6 +6,7 @@ export type AppToastTone = "success" | "error" | "info" | "warning" | "loading";
 
 export type AppToastItem = {
   id: string;
+  dedupeKey?: string;
   message: string;
   tone: AppToastTone;
   actionLabel?: string;

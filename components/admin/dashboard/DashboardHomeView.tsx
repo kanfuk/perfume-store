@@ -182,7 +182,7 @@ export function DashboardHomeView({
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <SimpleFact label="Soporte" value={badgeSupported ? "Disponible" : "No compatible"} />
+            <SimpleFact label="Soporte" value={badgeSupported ? "Disponible" : "Este dispositivo no admite esta función"} />
             <SimpleFact
               label="Modo app"
               value={isInstalledPwa ? "Desde icono" : "Abrir desde inicio"}
@@ -195,13 +195,19 @@ export function DashboardHomeView({
             <SimpleFact
               label="Push"
               value={
-                !pushSupported ? "No compatible" : pushSubscriptionActive ? "Activo" : "Pendiente"
+                !pushSupported
+                  ? "Este dispositivo no admite esta función"
+                  : pushSubscriptionActive
+                    ? "Notificaciones activas"
+                    : isInstalledPwa
+                      ? "Notificaciones desactivadas"
+                      : "Instala Smellme para activar notificaciones"
               }
             />
           </div>
 
           <div className="mt-4 space-y-2 text-sm text-brand-900/75">
-            {!badgeSupported ? <p>Este navegador no soporta badge en el icono.</p> : null}
+            {!badgeSupported ? <p>Este dispositivo no admite badge en el icono; el panel seguirá actualizándose en tiempo real.</p> : null}
             {!isInstalledPwa ? (
               <p>
                 Para ver el badge en el icono, instala Smellme.cl en la pantalla de inicio y abre
@@ -209,7 +215,7 @@ export function DashboardHomeView({
               </p>
             ) : null}
             {!pushSupported ? (
-              <p>Este navegador no soporta notificaciones push web para esta app.</p>
+              <p>Este dispositivo no admite esta función; Realtime, polling, badge compatible y avisos dentro de la app siguen disponibles.</p>
             ) : null}
             {notificationPermission === "denied" ? (
               <p>
@@ -222,7 +228,7 @@ export function DashboardHomeView({
               <p>Activa el badge desde este dispositivo para sincronizarlo con los pedidos.</p>
             )}
             {pushSubscriptionActive ? (
-              <p>Las notificaciones push estan activas para este dispositivo.</p>
+              <p>Notificaciones activas para este dispositivo.</p>
             ) : null}
             {badgeDeviceSetting?.lastSyncAt ? (
               <p>Ultima sincronizacion: {formatShortDateTime(badgeDeviceSetting.lastSyncAt)}.</p>

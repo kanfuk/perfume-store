@@ -13,6 +13,7 @@ vi.mock("@/services/adminPaymentAccountService", () => ({
   AdminPaymentAccountServiceError: class AdminPaymentAccountServiceError extends Error { constructor(public code: string) { super(code); } },
   createAdminPaymentAccountService: () => ({ getForOwner: mocks.getForOwner, saveForOwner: mocks.saveForOwner })
 }));
+vi.mock("@/lib/admin-audit", () => ({ logAdminAction: vi.fn(), requestAuditId: () => "11111111-1111-4111-8111-111111111111" }));
 
 import { GET, PUT } from "@/app/api/admin/users/[userId]/payment-account/route";
 

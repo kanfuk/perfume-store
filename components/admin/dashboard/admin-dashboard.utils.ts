@@ -10,23 +10,23 @@ import type {
 
 export function formatBadgePermission(value: NotificationPermission | "unsupported") {
   if (value === "granted") {
-    return "Permitido";
+    return "Notificaciones activas";
   }
 
   if (value === "denied") {
-    return "Denegado";
+    return "Permiso denegado";
   }
 
   if (value === "default") {
-    return "Pendiente";
+    return "Notificaciones desactivadas";
   }
 
-  return "Sin soporte";
+  return "Este dispositivo no admite esta función";
 }
 
 export function resolveBadgeActivationErrorMessage(error: string | null) {
   if (error === "BADGE_NOT_SUPPORTED") {
-    return "Este navegador no soporta badge en el icono.";
+    return "Este dispositivo no admite esta función.";
   }
 
   if (error === "NOTIFICATION_PERMISSION_DENIED") {
