@@ -39,6 +39,13 @@ export type ProductoProps = {
    * por el admin; las importaciones futuras solo actualizan el costo.
    */
   modoPrecio?: ModoPrecio;
+  /**
+   * Distingue ARCHIVADO (retirado del catalogo, con historia comercial
+   * preservada) de simplemente PAUSADO (activo=false manual, sin historia).
+   * null limpia explicitamente el archivo (usado al reactivar).
+   */
+  archivedAt?: Date | null;
+  archivedReason?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -55,6 +62,8 @@ export class Producto {
   readonly badgeLabel: string;
   readonly tipoProducto: string;
   readonly ordenDestacado?: number | null;
+  readonly archivedAt?: Date | null;
+  readonly archivedReason?: string | null;
   readonly createdAt?: Date;
   private _precioVenta: number;
   private _precioAnterior?: number | null;
@@ -80,6 +89,8 @@ export class Producto {
     this.badgeLabel = (props.badgeLabel ?? "").trim();
     this.tipoProducto = (props.tipoProducto ?? "simple").trim();
     this.ordenDestacado = props.ordenDestacado;
+    this.archivedAt = props.archivedAt;
+    this.archivedReason = props.archivedReason;
     this.createdAt = props.createdAt;
     this._precioVenta = props.precioVenta;
     this._precioAnterior = props.precioAnterior;
@@ -229,5 +240,9 @@ export class Producto {
 
   obtenerDescripcionComercial() {
     return this.descripcion || this.nombre;
+  }
+
+  estaArchivado() {
+    return this.archivedAt != null;
   }
 }

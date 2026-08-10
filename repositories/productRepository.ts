@@ -9,8 +9,11 @@
 import type { ProductoProps } from "@/domain/Producto";
 import { isSupabaseConfigured } from "@/lib/env";
 import { localStore } from "@/lib/local-store";
+import { mapProductRemovalRpcError } from "@/lib/productRemovalErrors";
 import { getUnifiedProductStock } from "@/lib/stock";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const ACTIVE_ORDER_STATES = new Set(["NUEVO", "AGENDADO", "PAGADO", "PREPARANDO", "DESPACHADO"]);
 
 export interface ProductRepository {
   buscarProductosActivos(): Promise<ProductoProps[]>;
@@ -18,7 +21,19 @@ export interface ProductRepository {
   buscarProductoPorId(id: string): Promise<ProductoProps | null>;
   buscarProductoPorSku(sku: string): Promise<ProductoProps | null>;
   crearProducto(producto: Omit<ProductoProps, "id"> & { id?: string }): Promise<ProductoProps>;
-  eliminarProducto(id: string): Promise<void>;
+  /**
+   * V2.2.1 (eliminacion segura): revalida en el momento exacto de la
+   * escritura (sin confiar en una elegibilidad calculada antes) que el
+   * producto no tiene pedidos activos ni stock reservado, y lo archiva.
+   * Lanza PRODUCT_HAS_ACTIVE_ORDERS si la revalidacion falla.
+   */
+  archivarProductoSeguro(id: string, reason?: string): Promise<{ alreadyArchived: boolean }>;
+  /**
+   * V2.2.1: revalida que el producto no tenga NINGUN historial de
+   * pedido_items ni stock reservado, y lo elimina fisicamente. Lanza
+   * PRODUCT_HAS_HISTORY o PRODUCT_HAS_ACTIVE_ORDERS si la revalidacion falla.
+   */
+  eliminarProductoSeguro(id: string): Promise<{ imageStoragePath?: string }>;
   actualizarProducto(
     id: string,
     cambios: Partial<Omit<ProductoProps, "id">>
@@ -71,14 +86,55 @@ class MockProductRepository implements ProductRepository {
     return record;
   }
 
-  async eliminarProducto(id: string) {
-    const index = localStore.products.findIndex((product) => product.id === id);
+  async archivarProductoSeguro(id: string, reason?: string) {
+    const product = localStore.products.find((item) => item.id === id);
+    if (!product) {
+      throw new Error("Producto no encontrado.");
+    }
+    if (product.archivedAt) {
+      return { alreadyArchived: true };
+    }
 
+    const hasActiveOrders =
+      (product.stockReservado ?? 0) > 0 ||
+      localStore.orderItems.some((item) => {
+        if (item.productoId !== id) return false;
+        const order = localStore.orders.find((candidate) => candidate.id === item.pedidoId);
+        return order ? ACTIVE_ORDER_STATES.has(order.estadoPedido) : false;
+      });
+
+    if (hasActiveOrders) {
+      throw new Error("PRODUCT_HAS_ACTIVE_ORDERS");
+    }
+
+    product.activo = false;
+    product.archivedAt = new Date();
+    product.archivedReason = reason ?? undefined;
+    product.esTop = false;
+    product.esOfertaSemana = false;
+    product.ordenDestacado = undefined;
+    product.stockActual = 0;
+    product.stockAgenda = 0;
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro(id: string) {
+    const index = localStore.products.findIndex((item) => item.id === id);
     if (index === -1) {
       throw new Error("Producto no encontrado.");
     }
+    const product = localStore.products[index];
+
+    const hasHistory = localStore.orderItems.some((item) => item.productoId === id);
+    if (hasHistory) {
+      throw new Error("PRODUCT_HAS_HISTORY");
+    }
+    if ((product.stockReservado ?? 0) > 0) {
+      throw new Error("PRODUCT_HAS_ACTIVE_ORDERS");
+    }
 
     localStore.products.splice(index, 1);
+    return { imageStoragePath: product.imageStoragePath };
   }
 
   async actualizarProducto(
@@ -159,6 +215,8 @@ type SupabaseProductRow = {
   orden_destacado: number | null;
   tipo_producto: string | null;
   modo_precio?: string | null;
+  archived_at?: string | null;
+  archived_reason?: string | null;
 };
 
 class SupabaseProductRepository implements ProductRepository {
@@ -251,21 +309,29 @@ class SupabaseProductRepository implements ProductRepository {
     return mapSupabaseProduct(response.data);
   }
 
-  async eliminarProducto(id: string) {
+  async archivarProductoSeguro(id: string, reason?: string) {
     const supabase = createSupabaseServerClient();
-    const response = await supabase.from("productos").delete().eq("id", id);
+    const { data, error } = await supabase.rpc("archive_product_v1", {
+      p_product_id: id,
+      p_reason: reason ?? null
+    });
 
-    if (response.error) {
-      if (response.error.code === "23503") {
-        throw new Error(
-          "Este producto ya tiene pedidos asociados. Para conservar historial, dejalo pausado en vez de eliminarlo."
-        );
-      }
-
-      throw new Error(
-        `No fue posible eliminar el producto. ${response.error.message}`.trim()
-      );
+    if (error) {
+      throw mapProductRemovalRpcError(error);
     }
+
+    return { alreadyArchived: Boolean((data as { alreadyArchived?: boolean } | null)?.alreadyArchived) };
+  }
+
+  async eliminarProductoSeguro(id: string) {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase.rpc("hard_delete_product_v1", { p_product_id: id });
+
+    if (error) {
+      throw mapProductRemovalRpcError(error);
+    }
+
+    return { imageStoragePath: (data as { imageStoragePath?: string } | null)?.imageStoragePath ?? undefined };
   }
 
   async actualizarProducto(
@@ -303,6 +369,9 @@ class SupabaseProductRepository implements ProductRepository {
     if (cambios.tipoProducto !== undefined)
       payload.tipo_producto = cambios.tipoProducto;
     if (cambios.modoPrecio !== undefined) payload.modo_precio = cambios.modoPrecio;
+    if (cambios.archivedAt !== undefined)
+      payload.archived_at = cambios.archivedAt ? cambios.archivedAt.toISOString() : null;
+    if (cambios.archivedReason !== undefined) payload.archived_reason = cambios.archivedReason ?? null;
 
     const response = await supabase
       .from("productos")
@@ -428,7 +497,9 @@ function mapSupabaseProduct(data: SupabaseProductRow): ProductoProps {
     esOfertaSemana: data.es_oferta_semana ?? false,
     ordenDestacado: data.orden_destacado ?? undefined,
     tipoProducto: data.tipo_producto ?? "simple",
-    modoPrecio: data.modo_precio === "MANUAL" ? "MANUAL" : "AUTO"
+    modoPrecio: data.modo_precio === "MANUAL" ? "MANUAL" : "AUTO",
+    archivedAt: data.archived_at ? new Date(data.archived_at) : null,
+    archivedReason: data.archived_reason ?? null
   };
 }
 
