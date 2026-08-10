@@ -65,6 +65,12 @@ export type PedidoListItemRecord = {
   stockRepuesto?: boolean;
 };
 
+export type ProductoVentaRecord = {
+  estadoPedido: string;
+  fechaPedido: string;
+  fechaPago?: string;
+};
+
 export type PedidoPagoRecord = {
   id: string;
   pedidoId: string;
@@ -164,6 +170,14 @@ export interface PedidoRepository {
     productoId?: string | null;
   }): Promise<{ id: string }>;
   buscarPedidosPorEstado(estadoPedido: string): Promise<PedidoListItemRecord[]>;
+  /**
+   * Fase 8 (V2.2.1, eliminacion segura de productos): una fila por cada
+   * pedido_items que referencia este producto, con el estado y las fechas
+   * del pedido contenedor -- lo minimo que necesita la clasificacion de
+   * elegibilidad (bloqueo por pedidos activos / venta en semana abierta).
+   * No incluye montos: esta consulta no es para reportes.
+   */
+  buscarVentasPorProducto(productId: string): Promise<ProductoVentaRecord[]>;
   actualizarEstadoPedido(args: {
     pedidoId: string;
     estadoPedido: string;
@@ -312,6 +326,18 @@ class MemoryPedidoRepository implements PedidoRepository {
     });
 
     return { id };
+  }
+
+  async buscarVentasPorProducto(productId: string): Promise<ProductoVentaRecord[]> {
+    return localStore.orderItems
+      .filter((item) => item.productoId === productId)
+      .map((item) => localStore.orders.find((order) => order.id === item.pedidoId))
+      .filter((order): order is (typeof localStore.orders)[number] => Boolean(order))
+      .map((order) => ({
+        estadoPedido: order.estadoPedido,
+        fechaPedido: order.fechaPedido,
+        fechaPago: order.fechaPago
+      }));
   }
 
   async buscarPedidosPorEstado(estadoPedido: string) {
@@ -1202,6 +1228,27 @@ class SupabasePedidoRepository implements PedidoRepository {
     }
 
     return { id: response.data.id };
+  }
+
+  async buscarVentasPorProducto(productId: string): Promise<ProductoVentaRecord[]> {
+    const supabase = createSupabaseServerClient();
+    const response = await supabase
+      .from("pedido_items")
+      .select("pedidos!inner(estado_pedido, fecha_pedido, fecha_pago)")
+      .eq("producto_id", productId);
+
+    if (response.error) {
+      throw new Error(`No fue posible consultar las ventas del producto. ${response.error.message}`);
+    }
+
+    return (response.data ?? []).map((row) => {
+      const order = Array.isArray(row.pedidos) ? row.pedidos[0] : row.pedidos;
+      return {
+        estadoPedido: order.estado_pedido,
+        fechaPedido: order.fecha_pedido,
+        fechaPago: order.fecha_pago ?? undefined
+      };
+    });
   }
 
   async buscarPedidosPorEstado(estadoPedido: string) {

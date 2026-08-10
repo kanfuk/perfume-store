@@ -109,6 +109,14 @@ class ProductRepositoryStub implements ProductRepository {
     return;
   }
 
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro() {
+    return {};
+  }
+
   async crearProducto(producto: {
     id?: string;
     nombre: string;
@@ -278,6 +286,10 @@ class PedidoRepositoryStub implements PedidoRepository {
   }
 
   async buscarPedidosPorEstado() {
+    return [];
+  }
+
+  async buscarVentasPorProducto() {
     return [];
   }
 

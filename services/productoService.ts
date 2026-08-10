@@ -118,7 +118,9 @@ function mapProductoToAdminRecord(domainProduct: Producto): AdminProductRecord {
     ordenDestacado: domainProduct.ordenDestacado ?? undefined,
     tipoProducto: domainProduct.tipoProducto,
     utilidadUnitaria: domainProduct.calcularUtilidadUnitaria(),
-    modoPrecio: domainProduct.modoPrecio
+    modoPrecio: domainProduct.modoPrecio,
+    archivedAt: domainProduct.archivedAt ? domainProduct.archivedAt.toISOString() : null,
+    archivedReason: domainProduct.archivedReason ?? null
   };
 }
 
@@ -394,6 +396,12 @@ export class ProductoService {
     });
   }
 
+  /**
+   * Tambien es la via de reactivacion manual de un producto ARCHIVADO
+   * (V2.2.1, ver services/productRemovalService.ts): activar=true sobre un
+   * producto con `archivedAt` limpia el archivo en la misma escritura y el
+   * endpoint registra `PRODUCT_REACTIVATED` en vez de `PRODUCT_UPDATED`.
+   */
   async cambiarEstadoProducto(id: string, activo: boolean) {
     const current = await this.productRepository.buscarProductoPorId(id);
 
@@ -412,17 +420,13 @@ export class ProductoService {
       domainProduct.desactivar();
     }
 
-    await this.productRepository.actualizarProducto(id, { activo: domainProduct.activo });
-  }
-
-  async eliminarProductoAdmin(id: string) {
-    const current = await this.productRepository.buscarProductoPorId(id);
-
-    if (!current) {
-      throw new Error("Producto no encontrado.");
+    const cambios: Partial<Omit<ProductoProps, "id">> = { activo: domainProduct.activo };
+    if (activo && current.archivedAt) {
+      cambios.archivedAt = null;
+      cambios.archivedReason = null;
     }
 
-    await this.productRepository.eliminarProducto(id);
+    await this.productRepository.actualizarProducto(id, cambios);
   }
 
   /**
@@ -472,18 +476,35 @@ export class ProductoService {
 
     const existingProducts = await this.productRepository.buscarTodosProductos();
     const existingSkus = new Set(existingProducts.map((p) => p.sku).filter(Boolean) as string[]);
+    const archivedSkus = new Set(
+      existingProducts.filter((p) => p.archivedAt).map((p) => p.sku).filter(Boolean) as string[]
+    );
 
-    return buildAdminImportPreview(buffer, existingSkus);
+    const preview = buildAdminImportPreview(buffer, existingSkus);
+    const archivedConflicts = preview.filasValidas
+      .map((row) => row.sku)
+      .filter((sku) => archivedSkus.has(sku));
+
+    return archivedConflicts.length > 0 ? { ...preview, archivedConflicts } : preview;
   }
 
   /**
    * Ejecuta el upsert por SKU de las filas ya validadas (crear/actualizar).
    * NUNCA elimina productos ausentes del archivo. Requiere confirmacion
    * explicita desde el llamador (no se invoca automaticamente tras preview).
+   *
+   * V2.2.1: si el SKU de una fila coincide con un producto ARCHIVADO
+   * existente, la fila se omite por defecto (se mantiene archivado, sin
+   * ningun cambio) salvo que su SKU venga incluido en `reactivarSkus` --
+   * decision humana explicita, nunca reactivacion silenciosa. Ver seccion
+   * 16 del encargo y docs/SMELLME_SAFE_PRODUCT_REMOVAL_DESIGN.md.
    */
-  async confirmarImportacionCsv(rows: AdminImportRow[]) {
+  async confirmarImportacionCsv(rows: AdminImportRow[], reactivarSkus: string[] = []) {
     let creados = 0;
     let actualizados = 0;
+    let archivadosOmitidos = 0;
+    const reactivados: string[] = [];
+    const reactivarSet = new Set(reactivarSkus);
 
     for (const row of rows) {
       const existing = await this.productRepository.buscarProductoPorSku(row.sku);
@@ -507,7 +528,17 @@ export class ProductoService {
       };
 
       if (existing) {
-        await this.productRepository.actualizarProducto(existing.id, payload);
+        if (existing.archivedAt && !reactivarSet.has(row.sku)) {
+          archivadosOmitidos += 1;
+          continue;
+        }
+        const updatePayload: Partial<Omit<ProductoProps, "id">> = existing.archivedAt
+          ? { ...payload, archivedAt: null, archivedReason: null }
+          : payload;
+        if (existing.archivedAt) {
+          reactivados.push(existing.id);
+        }
+        await this.productRepository.actualizarProducto(existing.id, updatePayload);
         actualizados += 1;
       } else {
         const domainProduct = new Producto({ id: crypto.randomUUID(), ...payload });
@@ -534,7 +565,7 @@ export class ProductoService {
       }
     }
 
-    return { creados, actualizados };
+    return { creados, actualizados, archivadosOmitidos, reactivados };
   }
 
   /**
@@ -559,16 +590,20 @@ export class ProductoService {
 
     const existingProducts = await this.productRepository.buscarTodosProductos();
     const existingBySku = new Map<string, ExistingProductPriceInfo>();
+    const archivedSkus = new Set<string>();
     for (const p of existingProducts) {
       if (p.sku) {
         existingBySku.set(p.sku, {
           modoPrecio: p.modoPrecio === "MANUAL" ? "MANUAL" : "AUTO",
           precioVenta: p.precioVenta
         });
+        if (p.archivedAt) archivedSkus.add(p.sku);
       }
     }
 
-    return buildSupplierImportPreview(buffer, markupPercentage, existingBySku);
+    const preview = buildSupplierImportPreview(buffer, markupPercentage, existingBySku);
+    const archivedConflicts = preview.plan.map((row) => row.sku).filter((sku) => archivedSkus.has(sku));
+    return archivedConflicts.length > 0 ? { ...preview, archivedConflicts } : preview;
   }
 
   /**
@@ -671,22 +706,35 @@ export class ProductoService {
    * debe aparecer de inmediato en el catalogo publico y en stock rapido para
    * revision, sin bloquear la operacion diaria del admin).
    */
-  async confirmarImportacionProveedor(plan: SupplierPlanRow[]) {
+  async confirmarImportacionProveedor(plan: SupplierPlanRow[], reactivarSkus: string[] = []) {
     let creados = 0;
     let actualizados = 0;
+    let archivadosOmitidos = 0;
+    const reactivados: string[] = [];
+    const reactivarSet = new Set(reactivarSkus);
 
     for (const row of plan) {
       const existing = await this.productRepository.buscarProductoPorSku(row.sku);
 
       if (existing) {
-        await this.productRepository.actualizarProducto(existing.id, {
+        if (existing.archivedAt && !reactivarSet.has(row.sku)) {
+          archivadosOmitidos += 1;
+          continue;
+        }
+        const payload: Partial<Omit<ProductoProps, "id">> = {
           nombre: row.nombre,
           marca: row.marca,
           contenido: row.contenido,
           costoUnitario: row.costoUnitario,
           precioVenta: row.precioVentaFinal,
           modoPrecio: row.modoPrecio
-        });
+        };
+        if (existing.archivedAt) {
+          payload.archivedAt = null;
+          payload.archivedReason = null;
+          reactivados.push(existing.id);
+        }
+        await this.productRepository.actualizarProducto(existing.id, payload);
         actualizados += 1;
         continue;
       }
@@ -732,7 +780,7 @@ export class ProductoService {
       creados += 1;
     }
 
-    return { creados, actualizados };
+    return { creados, actualizados, archivadosOmitidos, reactivados };
   }
 
   /**

@@ -53,6 +53,24 @@ export type AdminProductRecord = {
   tipoProducto: string;
   utilidadUnitaria: number;
   modoPrecio: ModoPrecio;
+  archivedAt?: string | null;
+  archivedReason?: string | null;
+};
+
+export type ProductRemovalMode = "HARD_DELETE" | "ARCHIVE" | "BLOCKED";
+
+export type ProductRemovalReason =
+  | "NO_COMMERCIAL_HISTORY"
+  | "HISTORICAL_SALES_CLOSED"
+  | "PRODUCT_HAS_ACTIVE_ORDERS"
+  | "PRODUCT_HAS_OPEN_WEEK_SALES";
+
+export type ProductRemovalEligibility = {
+  mode: ProductRemovalMode;
+  reason: ProductRemovalReason;
+  openWeekSales: number;
+  activeOrders: number;
+  historicalSales: number;
 };
 
 export type CustomerOrderLineInput = {

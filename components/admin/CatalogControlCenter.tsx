@@ -1162,6 +1162,13 @@ function IncompleteBadge({ product }: { product: AdminProductRecord }) {
 }
 
 function EstadoBadge({ product }: { product: AdminProductRecord }) {
+  if (product.archivedAt) {
+    return (
+      <span className="inline-flex rounded-full bg-[#fdf1ef] px-2.5 py-0.5 text-xs font-semibold text-[#8a2c22]">
+        Archivado
+      </span>
+    );
+  }
   if (!product.activo) {
     return (
       <span className="inline-flex rounded-full bg-[#EEE5DA] px-2.5 py-0.5 text-xs font-semibold text-[#475467]">

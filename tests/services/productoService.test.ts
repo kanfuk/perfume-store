@@ -18,6 +18,8 @@ class ProductRepositoryStub implements ProductRepository {
       stockAgenda: number;
       activo: boolean;
       tipoProducto: string;
+      archivedAt?: Date | null;
+      archivedReason?: string | null;
     }
   >();
 
@@ -95,6 +97,8 @@ class ProductRepositoryStub implements ProductRepository {
       stockAgenda?: number;
       activo?: boolean;
       tipoProducto?: string;
+      archivedAt?: Date | null;
+      archivedReason?: string | null;
     }
   ) {
     const current = this.products.get(id);
@@ -140,6 +144,14 @@ class ProductRepositoryStub implements ProductRepository {
   async eliminarProducto(id: string) {
     this.eliminarProductoCalls.push(id);
     this.products.delete(id);
+  }
+
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro() {
+    return {};
   }
 }
 
@@ -236,7 +248,7 @@ describe("ProductoService - importacion CSV masiva", () => {
     );
     const result = await service.confirmarImportacionCsv(preview.filasValidas);
 
-    expect(result).toEqual({ creados: 1, actualizados: 0 });
+    expect(result).toEqual({ creados: 1, actualizados: 0, archivadosOmitidos: 0, reactivados: [] });
     const created = await repository.buscarProductoPorSku("SML-NUEVO");
     expect(created?.nombre).toBe("La Bomba");
   });
@@ -259,7 +271,7 @@ describe("ProductoService - importacion CSV masiva", () => {
     );
     const result = await service.confirmarImportacionCsv(preview.filasValidas);
 
-    expect(result).toEqual({ creados: 0, actualizados: 1 });
+    expect(result).toEqual({ creados: 0, actualizados: 1, archivadosOmitidos: 0, reactivados: [] });
     const updated = await repository.buscarProductoPorId("existente-1");
     expect(updated?.nombre).toBe("Nombre nuevo");
     expect(updated?.precioVenta).toBe(70000);
@@ -285,6 +297,53 @@ describe("ProductoService - importacion CSV masiva", () => {
     expect(afterCount).toBe(beforeCount + 1);
     // El producto preexistente ("producto-1") sigue intacto: no fue tocado ni eliminado.
     expect(await repository.buscarProductoPorId("producto-1")).not.toBeNull();
+  });
+
+  // J: un producto ARCHIVADO que reaparece en un CSV futuro nunca se reactiva silenciosamente.
+  it("confirmarImportacionCsv omite por completo un SKU archivado sin reactivarSkus explicito", async () => {
+    const repository = new ProductRepositoryStub();
+    await repository.crearProducto({ id: "archivado-1", sku: "SML-ARCHIVADO", nombre: "Nombre viejo", precioVenta: 1000 });
+    await repository.actualizarProducto("archivado-1", { archivedAt: new Date("2026-01-01"), activo: false });
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarImportacionCsv(
+      csvBuffer("SML-ARCHIVADO,Nombre nuevo del CSV,Carolina Herrera,80ML,45000,70000,8,true,false,,false,,"),
+      "catalogo.csv",
+      100
+    );
+    expect(preview.archivedConflicts).toEqual(["SML-ARCHIVADO"]);
+
+    const result = await service.confirmarImportacionCsv(preview.filasValidas);
+
+    expect(result).toEqual({ creados: 0, actualizados: 0, archivadosOmitidos: 1, reactivados: [] });
+    const stillArchived = await repository.buscarProductoPorId("archivado-1");
+    expect(stillArchived?.nombre).toBe("Nombre viejo"); // no se toco ningun campo
+    expect(stillArchived?.archivedAt).not.toBeNull();
+    expect(stillArchived?.activo).toBe(false);
+  });
+
+  it("confirmarImportacionCsv reactiva un SKU archivado SOLO si viene en reactivarSkus (decision humana explicita)", async () => {
+    const repository = new ProductRepositoryStub();
+    await repository.crearProducto({ id: "archivado-2", sku: "SML-ARCHIVADO-2", nombre: "Nombre viejo", precioVenta: 1000 });
+    await repository.actualizarProducto("archivado-2", { archivedAt: new Date("2026-01-01"), activo: false });
+    const service = new ProductoService(repository);
+
+    const preview = await service.previsualizarImportacionCsv(
+      csvBuffer("SML-ARCHIVADO-2,Nombre reactivado,Carolina Herrera,80ML,45000,70000,8,true,false,,false,,"),
+      "catalogo.csv",
+      100
+    );
+    const result = await service.confirmarImportacionCsv(preview.filasValidas, ["SML-ARCHIVADO-2"]);
+
+    expect(result).toEqual({ creados: 0, actualizados: 1, archivadosOmitidos: 0, reactivados: ["archivado-2"] });
+    const reactivated = await repository.buscarProductoPorId("archivado-2");
+    expect(reactivated?.nombre).toBe("Nombre reactivado");
+    expect(reactivated?.archivedAt).toBeNull();
+    expect(reactivated?.activo).toBe(true);
+
+    // No se crea un producto duplicado con otro id: sigue siendo la misma fila.
+    const allWithSku = (await repository.buscarTodosProductos()).filter((p) => p.sku === "SML-ARCHIVADO-2");
+    expect(allWithSku).toHaveLength(1);
   });
 
   it("productos bloqueados/incompletos (activo=false tras la importacion) no se exponen publicamente", async () => {

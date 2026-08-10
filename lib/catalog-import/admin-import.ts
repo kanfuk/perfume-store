@@ -56,6 +56,13 @@ export type AdminImportPreview = {
     bloqueado: number;
   };
   erroresGlobales: string[];
+  /**
+   * V2.2.1 (eliminacion segura de productos): SKU del archivo que coincide
+   * con un producto ARCHIVADO existente. `confirmarImportacionCsv` nunca
+   * los reactiva salvo que se incluyan explicitamente en `reactivarSkus`
+   * (decision humana, ver docs/SMELLME_SAFE_PRODUCT_REMOVAL_DESIGN.md).
+   */
+  archivedConflicts?: string[];
 };
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MiB

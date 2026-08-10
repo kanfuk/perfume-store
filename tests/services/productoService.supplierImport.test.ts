@@ -66,6 +66,14 @@ class FullProductRepositoryStub implements ProductRepository {
     this.eliminarProductoCalls.push(id);
     this.products.delete(id);
   }
+
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro() {
+    return {};
+  }
 }
 
 const HEADER = "Perfume;Marca;Contenido;Precio Compra";

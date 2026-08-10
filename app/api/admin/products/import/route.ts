@@ -22,6 +22,12 @@ type ImportRequestBody = {
   previewHash?: string;
   reviewHash?: string;
   decisions?: QualityDecision[];
+  /**
+   * V2.2.1: SKUs de productos ARCHIVADOS que el admin decidio explicitamente
+   * reactivar durante esta confirmacion (ver seccion 16 del encargo). Sin
+   * esto, un SKU archivado que reaparece en el CSV se omite por completo.
+   */
+  reactivarSkus?: string[];
 };
 
 function computePreviewHash(buffer: Buffer, profile: string, markupPercentage: unknown): string {
@@ -84,6 +90,9 @@ export async function POST(request: Request) {
     const requestedProfile: ImportProfileParam | undefined =
       body.profile === "proveedor" || body.profile === "canonico" ? body.profile : "auto";
     const markupPercentage = body.markupPercentage;
+    const reactivarSkus = Array.isArray(body.reactivarSkus)
+      ? body.reactivarSkus.filter((sku): sku is string => typeof sku === "string")
+      : [];
 
     if (!fileName || !fileBase64) {
       return NextResponse.json({ error: "Falta el archivo a importar." }, { status: 400 });
@@ -226,8 +235,11 @@ export async function POST(request: Request) {
         action: row.action
       }));
 
-      const result = await productoService.confirmarImportacionProveedor(finalPlan);
+      const result = await productoService.confirmarImportacionProveedor(finalPlan, reactivarSkus);
       await logAdminAction({ actor: admin, action: "CATALOG_IMPORT", entityType: "catalog", requestId: requestAuditId(request), after: { profile: "proveedor", ...result }, metadata: { fileName, rows: finalPlan.length } });
+      for (const productId of result.reactivados ?? []) {
+        await logAdminAction({ actor: admin, action: "PRODUCT_REACTIVATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), metadata: { via: "catalog-import", profile: "proveedor" } });
+      }
       return NextResponse.json({ ok: true, ...result, perfil: "proveedor", plan: applied.plan });
     }
 
@@ -259,8 +271,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No hay filas válidas para importar.", preview }, { status: 400 });
     }
 
-    const result = await productoService.confirmarImportacionCsv(preview.filasValidas);
+    const result = await productoService.confirmarImportacionCsv(preview.filasValidas, reactivarSkus);
     await logAdminAction({ actor: admin, action: "CATALOG_IMPORT", entityType: "catalog", requestId: requestAuditId(request), after: { profile: "canonico", ...result }, metadata: { fileName, rows: preview.filasValidas.length } });
+    for (const productId of result.reactivados ?? []) {
+      await logAdminAction({ actor: admin, action: "PRODUCT_REACTIVATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), metadata: { via: "catalog-import", profile: "canonico" } });
+    }
     return NextResponse.json({ ok: true, ...result, perfil: "canonico", preview });
   } catch (error) {
     return NextResponse.json(

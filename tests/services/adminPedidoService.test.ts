@@ -67,6 +67,14 @@ class ProductRepositoryStub implements ProductRepository {
     return;
   }
 
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro() {
+    return {};
+  }
+
   async crearProducto(producto: {
     id?: string;
     nombre: string;
@@ -218,6 +226,10 @@ class AdminPedidoRepositoryStub implements PedidoRepository {
     return allOrders.filter(
       (order) => this.pedidos.get(order.id)?.estadoPedido === estadoPedido
     );
+  }
+
+  async buscarVentasPorProducto() {
+    return [];
   }
 
   async actualizarEstadoPedido(args: {

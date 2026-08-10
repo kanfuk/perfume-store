@@ -133,7 +133,11 @@ export function CatalogImportPanel() {
   const [stageIndex, setStageIndex] = useState(0);
   const [error, setError] = useState("");
   const [lastAction, setLastAction] = useState<LastAction>(null);
-  const [confirmResult, setConfirmResult] = useState<{ creados: number; actualizados: number } | null>(null);
+  const [confirmResult, setConfirmResult] = useState<{
+    creados: number;
+    actualizados: number;
+    archivadosOmitidos?: number;
+  } | null>(null);
 
   const [reviewHash, setReviewHash] = useState("");
   const [findings, setFindings] = useState<QualityFinding[]>([]);
@@ -403,7 +407,11 @@ export function CatalogImportPanel() {
         return;
       }
 
-      setConfirmResult({ creados: data.creados, actualizados: data.actualizados });
+      setConfirmResult({
+        creados: data.creados,
+        actualizados: data.actualizados,
+        archivadosOmitidos: data.archivadosOmitidos
+      });
       setStep("done");
     } catch {
       setError("No fue posible conectar con el servidor.");
@@ -726,6 +734,18 @@ export function CatalogImportPanel() {
                 actualizados.
               </span>
             </div>
+            {confirmResult.archivadosOmitidos ? (
+              <div className="flex items-start gap-2 rounded-lg border border-[#f3d9a8] bg-[#fff8ec] px-3 py-2 text-[#8a5a00]">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {confirmResult.archivadosOmitidos}{" "}
+                  {confirmResult.archivadosOmitidos === 1
+                    ? "fila no se aplicó porque su SKU pertenece a un producto archivado"
+                    : "filas no se aplicaron porque sus SKU pertenecen a productos archivados"}
+                  . Para reactivarlos, hazlo manualmente desde Catálogo → Stock antes de reimportar.
+                </span>
+              </div>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/admin/catalogo/stock"

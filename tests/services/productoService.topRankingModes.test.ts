@@ -27,6 +27,12 @@ class ProductRepositoryStub implements ProductRepository {
   async eliminarProducto(id: string) {
     this.products = this.products.filter((product) => product.id !== id);
   }
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+  async eliminarProductoSeguro() {
+    return {};
+  }
   async actualizarProducto(id: string, changes: Partial<Omit<ProductoProps, "id">>) {
     const product = await this.buscarProductoPorId(id);
     if (!product) throw new Error("Producto no encontrado.");

@@ -239,6 +239,8 @@ export type SupplierImportPreview = {
   plan: SupplierPlanRow[];
   resumen: { crear: number; actualizar: number; bloqueado: number };
   erroresGlobales: string[];
+  /** V2.2.1: ver AdminImportPreview.archivedConflicts (mismo criterio). */
+  archivedConflicts?: string[];
 };
 
 /**

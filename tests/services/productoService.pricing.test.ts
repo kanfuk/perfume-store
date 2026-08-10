@@ -55,6 +55,14 @@ class FullProductRepositoryStub implements ProductRepository {
   async eliminarProducto() {
     // no usado en estos tests
   }
+
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro() {
+    return {};
+  }
 }
 
 function seedProduct(repository: FullProductRepositoryStub, overrides: Partial<ProductoProps> = {}) {
