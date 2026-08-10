@@ -75,6 +75,14 @@ class ProductRepositoryStub implements ProductRepository {
     return;
   }
 
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro() {
+    return {};
+  }
+
   async actualizarProducto(id: string, cambios: Partial<Omit<ProductoProps, "id">>) {
     this.actualizarCalls.push({ id, cambios });
 

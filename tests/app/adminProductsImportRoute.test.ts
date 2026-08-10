@@ -28,7 +28,7 @@ const {
     resumen: { crear: 1, actualizar: 0, bloqueado: 0 },
     erroresGlobales: [] as string[]
   })),
-  confirmarImportacionCsv: vi.fn(async () => ({ creados: 1, actualizados: 0 })),
+  confirmarImportacionCsv: vi.fn(async () => ({ creados: 1, actualizados: 0, archivadosOmitidos: 0, reactivados: [] })),
   previsualizarImportacionProveedor: vi.fn(async () => ({
     perfil: "proveedor",
     porcentajeAplicado: 35,
@@ -51,7 +51,7 @@ const {
     resumen: { crear: 1, actualizar: 0, bloqueado: 0 },
     erroresGlobales: [] as string[]
   })),
-  confirmarImportacionProveedor: vi.fn(async () => ({ creados: 1, actualizados: 0 })),
+  confirmarImportacionProveedor: vi.fn(async () => ({ creados: 1, actualizados: 0, archivadosOmitidos: 0, reactivados: [] })),
   revisarCalidadImportacionProveedor: vi.fn(async () => ({
     findings: [] as unknown[],
     summary: {

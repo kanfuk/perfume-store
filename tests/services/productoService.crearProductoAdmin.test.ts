@@ -62,6 +62,14 @@ class InMemoryProductRepository implements ProductRepository {
   async eliminarProducto(id: string) {
     this.products.delete(id);
   }
+
+  async archivarProductoSeguro() {
+    return { alreadyArchived: false };
+  }
+
+  async eliminarProductoSeguro() {
+    return {};
+  }
 }
 
 class InMemoryProductImageRepository implements ProductImageRepository {
