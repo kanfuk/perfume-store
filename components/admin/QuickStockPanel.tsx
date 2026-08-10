@@ -21,6 +21,7 @@ import {
   getMasterCheckboxState
 } from "@/lib/bulk-selection";
 import { LoadingOverlay } from "@/components/shared/LoadingOverlay";
+import { ProductRemovalAction } from "@/components/admin/ProductRemovalAction";
 import { AppToast } from "@/components/shared/AppToast";
 import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
@@ -261,6 +262,10 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
 
   function patchLocalProduct(id: string, patch: Partial<AdminProductRecord>) {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }
+
+  function removeLocalProduct(id: string) {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
   async function applyStockChange(
@@ -711,10 +716,14 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                       </div>
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          product.activo ? "bg-[#eefbf1] text-[#1f6d33]" : "bg-[#EEE5DA] text-[#475467]"
+                          product.activo
+                            ? "bg-[#eefbf1] text-[#1f6d33]"
+                            : product.archivedAt
+                              ? "bg-[#fdf1ef] text-[#8a2c22]"
+                              : "bg-[#EEE5DA] text-[#475467]"
                         }`}
                       >
-                        {product.activo ? "Activo" : "Pausado"}
+                        {product.activo ? "Activo" : product.archivedAt ? "Archivado" : "Pausado"}
                       </span>
                     </div>
 
@@ -782,14 +791,23 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                       >
                         Agotar
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleActivo(product)}
-                        disabled={saving || (!product.activo && product.stockActual <= 0)}
-                        className="min-h-9 rounded-lg border border-[#DDD0C1] px-3 py-1.5 text-xs font-semibold text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {product.activo ? "Pausar" : "Activar"}
-                      </button>
+                      {!product.archivedAt ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleActivo(product)}
+                          disabled={saving || (!product.activo && product.stockActual <= 0)}
+                          className="min-h-9 rounded-lg border border-[#DDD0C1] px-3 py-1.5 text-xs font-semibold text-[#4D453D] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {product.activo ? "Pausar" : "Activar"}
+                        </button>
+                      ) : null}
+                      <ProductRemovalAction
+                        product={product}
+                        disabled={saving}
+                        onArchived={(id) => patchLocalProduct(id, { activo: false, archivedAt: new Date().toISOString() })}
+                        onDeleted={(id) => removeLocalProduct(id)}
+                        onReactivated={(id) => patchLocalProduct(id, { activo: true, archivedAt: null, archivedReason: null })}
+                      />
                       {saving ? <span className="self-center text-xs text-[#8C8175]">Guardando…</span> : null}
                     </div>
                   </div>
