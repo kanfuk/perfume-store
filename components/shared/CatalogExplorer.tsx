@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import type { ProductRecord } from "@/lib/types";
-import { CompactFamilyCatalog } from "@/components/shared/CompactFamilyCatalog";
+import { ProductFamilyCard } from "@/components/shared/ProductFamilyCard";
 import {
   groupProductsIntoFamilies,
   getVisibleFamilies,
@@ -11,6 +11,12 @@ import {
   getAvailableFamilyBrands,
   type FamilySortOption
 } from "@/lib/product-families";
+import {
+  CATALOG_INITIAL_VISIBLE_COUNT,
+  hasMoreCatalogItems,
+  isFirstCatalogExpansion,
+  nextCatalogVisibleCount
+} from "@/lib/catalog-pagination";
 
 type SortOption = FamilySortOption;
 
@@ -20,50 +26,32 @@ type CatalogExplorerProps = {
   onAdd: (productId: string) => void;
   onDecrease?: (productId: string) => void;
   onRemove?: (productId: string) => void;
-  /** Claves de familia del Top (para el chip discreto "Top {TOP_PRODUCTS_LIMIT}" en la lista compacta). */
+  /** Compatibilidad con el llamador (Top 15): no se usa visualmente aqui, el catalogo completo no repite el numero de ranking. */
   top12Keys?: ReadonlySet<string>;
 };
 
-const PAGE_SIZE = 25;
-/** Catalogo sin busqueda/marca/orden aplicado: solo 5 por defecto (Fase 2B.12), para no desplegar un muro completo apenas se abre la pagina. */
-const DEFAULT_UNFILTERED_COUNT = 5;
-/** Chips de marca visibles antes de "+N marcas" (mantiene el bloque ordenado incluso con muchas marcas). */
-const INITIAL_BRAND_COUNT = 8;
-
-function brandChipClass(active: boolean): string {
-  return `flex h-9 w-full items-center justify-center truncate rounded-full border px-2.5 text-xs font-semibold transition ${
-    active ? "border-[#B88B58] bg-[#F4E8DB] text-[#8A6036]" : "border-[#DDD0C1] bg-white text-[#6B6258] hover:border-[#c9bdff]"
-  }`;
-}
+const sortSelectClassName =
+  "min-h-11 rounded-xl border border-[#DDD0C1] bg-white px-3 py-2 text-sm text-[#191714] shadow-sm outline-none transition focus:border-[#B88B58] focus:ring-2 focus:ring-[#F4E8DB]";
 
 /**
- * Directorio "Encuentra tu perfume" (Fase 2B.10): search-first, compacto y
- * sin fotografias grandes. Reemplaza la antigua grilla de tarjetas densas
- * (FamilyCatalog `dense`) por CompactFamilyCatalog para no renderizar cien
- * imagenes/fallbacks. El Top 12 sigue siendo la unica galeria visual.
+ * Catalogo publico completo (Fase catalogo-completo): grid de tarjetas con
+ * imagen (reutiliza ProductFamilyCard, el mismo componente del Top 15, en
+ * modo `imageFit="contain"` para una tarjeta mas compacta), con buscador,
+ * filtro de marca y orden. Vive INMEDIATAMENTE debajo de Top 15 + Ofertas en
+ * OrderForm.tsx, reemplazando la version anterior en filas compactas sin
+ * imagen. Nunca reimplementa reglas de negocio: agrupacion por familia,
+ * visibilidad (activo/archivado/stock) y busqueda/orden vienen intactas de
+ * lib/product-families.ts, las mismas que ya usan Top 15 y el buscador de
+ * venta directa admin.
  */
-export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRemove, top12Keys }: CatalogExplorerProps) {
+export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRemove }: CatalogExplorerProps) {
   const [query, setQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [sort, setSort] = useState<SortOption>("recomendados");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [showAllBrands, setShowAllBrands] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(CATALOG_INITIAL_VISIBLE_COUNT);
 
   const families = useMemo(() => getVisibleFamilies(groupProductsIntoFamilies(products)), [products]);
   const brands = useMemo(() => getAvailableFamilyBrands(families), [families]);
-
-  // Marcas visibles: ordenadas A-Z (ya lo hace getAvailableFamilyBrands), acotadas a
-  // INITIAL_BRAND_COUNT salvo que el usuario expanda o que la marca activa quede fuera
-  // de ese recorte inicial (nunca se oculta la marca actualmente seleccionada).
-  const visibleBrands = useMemo(() => {
-    if (showAllBrands || brands.length <= INITIAL_BRAND_COUNT) return brands;
-    const initial = brands.slice(0, INITIAL_BRAND_COUNT);
-    if (brandFilter && !initial.includes(brandFilter)) {
-      return [...initial, brandFilter].sort((a, b) => a.localeCompare(b));
-    }
-    return initial;
-  }, [brands, brandFilter, showAllBrands]);
-  const hiddenBrandCount = brands.length - visibleBrands.length;
 
   const filtered = useMemo(
     () => filterAndSortFamilies(families, { query, brand: brandFilter, sort }),
@@ -71,33 +59,49 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
   );
 
   const hasActiveFilters = query.trim() !== "" || brandFilter !== "" || sort !== "recomendados";
-  const isSearching = query.trim() !== "";
-  // Sin busqueda/marca/orden aplicado, el listado dinamico queda acotado a
-  // DEFAULT_UNFILTERED_COUNT (seccion C, Fase 2B.12): la paginacion progresiva
-  // (25 + "Ver mas") solo se habilita una vez que el usuario busca, filtra por
-  // marca u ordena, para no desplegar el catalogo completo apenas se abre la pagina.
-  const effectiveVisibleCount = hasActiveFilters ? visibleCount : DEFAULT_UNFILTERED_COUNT;
-  const visibleFamilies = filtered.slice(0, effectiveVisibleCount);
-  const hasMore = hasActiveFilters && visibleCount < filtered.length;
-  const hiddenByDefaultCount = !hasActiveFilters ? Math.max(0, filtered.length - DEFAULT_UNFILTERED_COUNT) : 0;
 
-  function clearQuery() {
-    setQuery("");
-    setVisibleCount(PAGE_SIZE);
+  const visibleFamilies = filtered.slice(0, visibleCount);
+  const hasMore = hasMoreCatalogItems(filtered.length, visibleCount);
+  const isFirstExpansion = isFirstCatalogExpansion(visibleCount);
+
+  // Al cambiar busqueda/marca/orden se restablece la cantidad visible
+  // (seccion 5 del encargo) para evitar estados extranos (ej. quedar con 42
+  // visibles tras un filtro que solo devuelve 8 resultados). Se resetea en
+  // cada handler de cambio (no en un efecto) para no encadenar renders.
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    setVisibleCount(CATALOG_INITIAL_VISIBLE_COUNT);
+  }
+
+  function handleBrandChange(value: string) {
+    setBrandFilter(value);
+    setVisibleCount(CATALOG_INITIAL_VISIBLE_COUNT);
+  }
+
+  function handleSortChange(value: SortOption) {
+    setSort(value);
+    setVisibleCount(CATALOG_INITIAL_VISIBLE_COUNT);
   }
 
   function clearFilters() {
     setQuery("");
     setBrandFilter("");
     setSort("recomendados");
-    setVisibleCount(PAGE_SIZE);
-    setShowAllBrands(false);
+    setVisibleCount(CATALOG_INITIAL_VISIBLE_COUNT);
   }
 
   if (families.length === 0) {
     return (
-      <div className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
-        <h4 className="text-base font-semibold text-[#191714]">No hay perfumes disponibles por ahora</h4>
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold text-[#191714]">Explora todo nuestro catálogo</h3>
+          <p className="text-sm text-[#6B6258]">
+            Encuentra tu próxima fragancia entre todas nuestras opciones disponibles.
+          </p>
+        </div>
+        <div className="flex min-h-40 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
+          <h4 className="text-base font-semibold text-[#191714]">No hay perfumes disponibles por ahora</h4>
+        </div>
       </div>
     );
   }
@@ -105,8 +109,10 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-[#191714]">Encuentra tu perfume</h3>
-        <p className="text-sm text-[#6B6258]">Busca por nombre, marca o tamaño.</p>
+        <h3 className="text-lg font-semibold text-[#191714]">Explora todo nuestro catálogo</h3>
+        <p className="text-sm text-[#6B6258]">
+          Encuentra tu próxima fragancia entre todas nuestras opciones disponibles.
+        </p>
       </div>
 
       <div className="relative">
@@ -114,18 +120,15 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
         <input
           type="search"
           value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setVisibleCount(PAGE_SIZE);
-          }}
-          placeholder="Busca tu perfume o marca"
-          aria-label="Buscar en el catálogo"
+          onChange={(event) => handleQueryChange(event.target.value)}
+          placeholder="Buscar perfume o marca..."
+          aria-label="Buscar perfume o marca"
           className="w-full rounded-2xl border border-[#DDD0C1] bg-white py-3.5 pl-12 pr-11 text-base text-[#191714] shadow-sm outline-none transition focus:border-[#B88B58] focus:ring-2 focus:ring-[#F4E8DB]"
         />
-        {isSearching ? (
+        {query ? (
           <button
             type="button"
-            onClick={clearQuery}
+            onClick={() => handleQueryChange("")}
             aria-label="Limpiar búsqueda"
             className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#8C8175] hover:bg-[#EEE5DA] hover:text-[#4D453D]"
           >
@@ -134,114 +137,92 @@ export function CatalogExplorer({ products, quantities, onAdd, onDecrease, onRem
         ) : null}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-[#DDD0C1] bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8C8175]">
-            Filtrar por marca
-          </span>
-          <div className="flex items-center gap-3">
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value as SortOption)}
-              aria-label="Ordenar catálogo"
-              className="rounded-xl border border-[#DDD0C1] bg-white px-3 py-2 text-sm text-[#191714] shadow-sm outline-none transition focus:border-[#B88B58] focus:ring-2 focus:ring-[#F4E8DB]"
-            >
-              <option value="recomendados">Recomendados</option>
-              <option value="nombre-asc">Nombre A-Z</option>
-              <option value="precio-asc">Menor precio</option>
-              <option value="precio-desc">Mayor precio</option>
-            </select>
-            {hasActiveFilters ? (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="shrink-0 text-sm font-semibold text-[#8A6036] hover:text-[#6F472C]"
-              >
-                Limpiar filtros
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-          <button
-            type="button"
-            onClick={() => {
-              setBrandFilter("");
-              setVisibleCount(PAGE_SIZE);
-            }}
-            className={brandChipClass(brandFilter === "")}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <label className="flex flex-1 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#8C8175] sm:max-w-xs">
+          Marca
+          <select
+            value={brandFilter}
+            onChange={(event) => handleBrandChange(event.target.value)}
+            aria-label="Filtrar por marca"
+            className={sortSelectClassName}
           >
-            Todas las marcas
-          </button>
-          {visibleBrands.map((brand) => (
-            <button
-              key={brand}
-              type="button"
-              onClick={() => {
-                setBrandFilter(brand);
-                setVisibleCount(PAGE_SIZE);
-                setShowAllBrands(false);
-              }}
-              className={brandChipClass(brandFilter === brand)}
-              title={brand}
-            >
-              {brand}
-            </button>
-          ))}
-          {brands.length > INITIAL_BRAND_COUNT ? (
-            <button
-              type="button"
-              onClick={() => setShowAllBrands((current) => !current)}
-              aria-expanded={showAllBrands}
-              className="flex h-9 w-full items-center justify-center truncate rounded-full border border-dashed border-[#c9bdff] bg-[#faf9ff] px-2.5 text-xs font-semibold text-[#8A6036] transition hover:border-[#B88B58]"
-            >
-              {showAllBrands ? "Ver menos" : `+${hiddenBrandCount} marcas`}
-            </button>
-          ) : null}
-        </div>
-      </div>
+            <option value="">Todos</option>
+            {brands.map((brand) => (
+              <option key={brand} value={brand}>
+                {brand}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <p className="text-sm text-[#6B6258]" aria-live="polite">
-        {isSearching
-          ? `${filtered.length} ${filtered.length === 1 ? "perfume encontrado" : "perfumes encontrados"}`
-          : hiddenByDefaultCount > 0
-            ? `Mostrando ${DEFAULT_UNFILTERED_COUNT} de ${filtered.length} perfumes. Usa la búsqueda o los filtros para explorar el resto del catálogo.`
-            : `${filtered.length} ${filtered.length === 1 ? "perfume" : "perfumes"}`}
-      </p>
+        <label className="flex flex-1 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#8C8175] sm:max-w-xs">
+          Ordenar
+          <select
+            value={sort}
+            onChange={(event) => handleSortChange(event.target.value as SortOption)}
+            aria-label="Ordenar catálogo"
+            className={sortSelectClassName}
+          >
+            <option value="recomendados">Recomendados</option>
+            <option value="nombre-asc">Nombre A-Z</option>
+            <option value="nombre-desc">Nombre Z-A</option>
+            <option value="precio-asc">Precio: menor a mayor</option>
+            <option value="precio-desc">Precio: mayor a menor</option>
+          </select>
+        </label>
 
-      {filtered.length === 0 ? (
-        <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
-          <h4 className="text-base font-semibold text-[#191714]">No encontramos ese perfume</h4>
-          <p className="max-w-md text-sm leading-6 text-[#6B6258]">
-            Prueba con otra marca, una parte del nombre o el tamaño.
-          </p>
+        {hasActiveFilters ? (
           <button
             type="button"
             onClick={clearFilters}
-            className="rounded-xl border border-[#DDD0C1] bg-white px-4 py-2 text-sm font-semibold text-[#8A6036] shadow-sm hover:border-[#B88B58]"
+            className="self-start text-sm font-semibold text-[#8A6036] hover:text-[#6F472C] sm:self-end"
+          >
+            Limpiar filtros
+          </button>
+        ) : null}
+      </div>
+
+      {hasActiveFilters ? (
+        <p className="text-sm text-[#6B6258]" aria-live="polite">
+          {filtered.length} {filtered.length === 1 ? "perfume encontrado" : "perfumes encontrados"}
+        </p>
+      ) : null}
+
+      {filtered.length === 0 ? (
+        <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#d0d5dd] bg-white px-5 py-8 text-center">
+          <h4 className="text-base font-semibold text-[#191714]">No encontramos perfumes para tu búsqueda.</h4>
+          <p className="max-w-md text-sm leading-6 text-[#6B6258]">Prueba buscando por nombre o marca.</p>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="mt-1 rounded-xl border border-[#DDD0C1] bg-white px-4 py-2 text-sm font-semibold text-[#8A6036] shadow-sm hover:border-[#B88B58]"
           >
             Limpiar búsqueda
           </button>
         </div>
       ) : (
         <>
-          <CompactFamilyCatalog
-            families={visibleFamilies}
-            quantities={quantities}
-            onAdd={onAdd}
-            onDecrease={onDecrease}
-            onRemove={onRemove}
-            top12Keys={top12Keys}
-          />
+          <div className="grid w-full max-w-full min-w-0 grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {visibleFamilies.map((family) => (
+              <ProductFamilyCard
+                key={family.key}
+                family={family}
+                imageFit="contain"
+                quantities={quantities}
+                onAdd={onAdd}
+                onDecrease={onDecrease}
+                onRemove={onRemove}
+              />
+            ))}
+          </div>
           {hasMore ? (
             <div className="flex justify-center pt-2">
               <button
                 type="button"
-                onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                onClick={() => setVisibleCount(nextCatalogVisibleCount)}
                 className="rounded-xl border border-[#DDD0C1] bg-white px-5 py-2.5 text-sm font-semibold text-[#8A6036] shadow-sm transition hover:border-[#B88B58] hover:bg-[#f7f5ff]"
               >
-                Ver {Math.min(PAGE_SIZE, filtered.length - visibleCount)} más
+                {isFirstExpansion ? "Ver catálogo completo" : "Mostrar más"}
               </button>
             </div>
           ) : null}
