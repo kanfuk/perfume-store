@@ -2,7 +2,7 @@ export const appInfo = {
   name: "Smellme.cl",
   shortName: "Smellme",
   tagline: "Atrae sin decir una palabra.",
-  version: "2.3.0",
+  version: "2.3.1",
   developer: "Riedmann Apps",
   copyright: "Todos los derechos reservados"
 } as const;
