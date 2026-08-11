@@ -4,7 +4,7 @@ import { appInfo } from "@/lib/app-info";
 
 describe("versión de release", () => {
   it("mantiene package y metadata sincronizados", () => {
-    expect(packageJson.version).toBe("2.2.1");
+    expect(packageJson.version).toBe("2.3.0");
     expect(appInfo.version).toBe(packageJson.version);
     expect(packageJson.dependencies.next).toBe("16.2.12");
     expect(packageJson.dependencies.sharp).toBe("0.35.3");
