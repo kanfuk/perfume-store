@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { ProductImageFrame } from "@/components/shared/ProductImageFrame";
+import { getProductImageVisualScale } from "@/lib/product-image-visual-scale";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableProductStock } from "@/lib/stock";
 import { resolveCardMetadata, hasVisiblePreviousPrice } from "@/lib/product-card-metadata";
@@ -54,6 +55,7 @@ export function ProductCard({
           alt={product.nombre}
           brand={product.marca}
           sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
+          visualScale={getProductImageVisualScale(product.id)}
         >
           <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-2.5 sm:p-4">
             <div className="flex items-center gap-2">
