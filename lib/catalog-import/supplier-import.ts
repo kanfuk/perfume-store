@@ -241,6 +241,8 @@ export type SupplierImportPreview = {
   erroresGlobales: string[];
   /** V2.2.1: ver AdminImportPreview.archivedConflicts (mismo criterio). */
   archivedConflicts?: string[];
+  /** Ver AdminImportPreview.nameConflicts (mismo criterio). */
+  nameConflicts?: string[];
 };
 
 /**

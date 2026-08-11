@@ -46,6 +46,12 @@ export type ProductoProps = {
    */
   archivedAt?: Date | null;
   archivedReason?: string | null;
+  /**
+   * true si el nombre actual fue corregido manualmente desde Admin: protege
+   * el campo `nombre` frente a reimportaciones de CSV (ver
+   * services/productoService.ts, confirmarImportacionCsv/Proveedor).
+   */
+  nombreBloqueado?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -64,6 +70,7 @@ export class Producto {
   readonly ordenDestacado?: number | null;
   readonly archivedAt?: Date | null;
   readonly archivedReason?: string | null;
+  readonly nombreBloqueado: boolean;
   readonly createdAt?: Date;
   private _precioVenta: number;
   private _precioAnterior?: number | null;
@@ -91,6 +98,7 @@ export class Producto {
     this.ordenDestacado = props.ordenDestacado;
     this.archivedAt = props.archivedAt;
     this.archivedReason = props.archivedReason;
+    this.nombreBloqueado = props.nombreBloqueado ?? false;
     this.createdAt = props.createdAt;
     this._precioVenta = props.precioVenta;
     this._precioAnterior = props.precioAnterior;

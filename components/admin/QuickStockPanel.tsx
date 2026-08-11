@@ -22,6 +22,7 @@ import {
 } from "@/lib/bulk-selection";
 import { LoadingOverlay } from "@/components/shared/LoadingOverlay";
 import { ProductRemovalAction } from "@/components/admin/ProductRemovalAction";
+import { ProductRenameAction } from "@/components/admin/ProductRenameAction";
 import { AppToast } from "@/components/shared/AppToast";
 import { getMissingCatalogFields, describeMissingCatalogFields } from "@/lib/catalog-completeness";
 import { TOP_PRODUCTS_LIMIT } from "@/lib/constants";
@@ -801,6 +802,11 @@ export function QuickStockPanel({ embedded = false, initialSearch = "", initialF
                           {product.activo ? "Pausar" : "Activar"}
                         </button>
                       ) : null}
+                      <ProductRenameAction
+                        product={product}
+                        disabled={saving}
+                        onRenamed={(id, nuevoNombre) => patchLocalProduct(id, { nombre: nuevoNombre, nombreBloqueado: true })}
+                      />
                       <ProductRemovalAction
                         product={product}
                         disabled={saving}

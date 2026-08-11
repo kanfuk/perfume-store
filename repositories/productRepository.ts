@@ -217,6 +217,7 @@ type SupabaseProductRow = {
   modo_precio?: string | null;
   archived_at?: string | null;
   archived_reason?: string | null;
+  nombre_bloqueado?: boolean | null;
 };
 
 class SupabaseProductRepository implements ProductRepository {
@@ -372,6 +373,7 @@ class SupabaseProductRepository implements ProductRepository {
     if (cambios.archivedAt !== undefined)
       payload.archived_at = cambios.archivedAt ? cambios.archivedAt.toISOString() : null;
     if (cambios.archivedReason !== undefined) payload.archived_reason = cambios.archivedReason ?? null;
+    if (cambios.nombreBloqueado !== undefined) payload.nombre_bloqueado = cambios.nombreBloqueado;
 
     const response = await supabase
       .from("productos")
@@ -499,7 +501,8 @@ function mapSupabaseProduct(data: SupabaseProductRow): ProductoProps {
     tipoProducto: data.tipo_producto ?? "simple",
     modoPrecio: data.modo_precio === "MANUAL" ? "MANUAL" : "AUTO",
     archivedAt: data.archived_at ? new Date(data.archived_at) : null,
-    archivedReason: data.archived_reason ?? null
+    archivedReason: data.archived_reason ?? null,
+    nombreBloqueado: data.nombre_bloqueado ?? false
   };
 }
 

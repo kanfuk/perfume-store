@@ -104,12 +104,16 @@ describe("catálogo público completo (debajo de Top 15 / Ofertas)", () => {
   it("no crea ninguna migration Supabase nueva para esta feature (100% presentación)", () => {
     // Esta feature reutiliza /api/products tal cual; no debe introducir
     // migraciones nuevas. La ultima migracion conocida antes de esta fase es
-    // la de eliminacion segura de productos (V2.2.1).
+    // la de eliminacion segura de productos (V2.2.1). La unica migracion mas
+    // reciente permitida es la de edicion segura de nombre (Parte A de esta
+    // misma rama, ver docs/SMELLME_SAFE_PRODUCT_RENAME_DESIGN.md) -- no
+    // pertenece al catalogo publico, por eso se excluye explicitamente aqui.
     const baselineMigration = "20260814000000_smellme_safe_product_removal.sql";
+    const knownRenameMigration = "20260815000000_smellme_product_name_manual_lock.sql";
     const allMigrations = readdirSync("supabase/migrations");
     expect(allMigrations).toContain(baselineMigration);
     const newerThanKnownBaseline = allMigrations.filter(
-      (name) => name.endsWith(".sql") && name > baselineMigration
+      (name) => name.endsWith(".sql") && name > baselineMigration && name !== knownRenameMigration
     );
     expect(newerThanKnownBaseline).toEqual([]);
   });

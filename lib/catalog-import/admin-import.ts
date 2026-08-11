@@ -63,6 +63,14 @@ export type AdminImportPreview = {
    * (decision humana, ver docs/SMELLME_SAFE_PRODUCT_REMOVAL_DESIGN.md).
    */
   archivedConflicts?: string[];
+  /**
+   * SKU del archivo cuyo producto existente tiene el nombre protegido
+   * (`nombreBloqueado`) y el CSV propone un nombre distinto.
+   * `confirmarImportacionCsv` nunca lo reemplaza salvo que se incluya
+   * explicitamente en `overrideNombreSkus` -- decision humana, ver
+   * docs/SMELLME_SAFE_PRODUCT_RENAME_DESIGN.md.
+   */
+  nameConflicts?: string[];
 };
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MiB

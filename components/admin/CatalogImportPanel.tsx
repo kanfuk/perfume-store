@@ -137,6 +137,7 @@ export function CatalogImportPanel() {
     creados: number;
     actualizados: number;
     archivadosOmitidos?: number;
+    nombresProtegidos?: number;
   } | null>(null);
 
   const [reviewHash, setReviewHash] = useState("");
@@ -410,7 +411,8 @@ export function CatalogImportPanel() {
       setConfirmResult({
         creados: data.creados,
         actualizados: data.actualizados,
-        archivadosOmitidos: data.archivadosOmitidos
+        archivadosOmitidos: data.archivadosOmitidos,
+        nombresProtegidos: data.nombresProtegidos
       });
       setStep("done");
     } catch {
@@ -743,6 +745,18 @@ export function CatalogImportPanel() {
                     ? "fila no se aplicó porque su SKU pertenece a un producto archivado"
                     : "filas no se aplicaron porque sus SKU pertenecen a productos archivados"}
                   . Para reactivarlos, hazlo manualmente desde Catálogo → Stock antes de reimportar.
+                </span>
+              </div>
+            ) : null}
+            {confirmResult.nombresProtegidos ? (
+              <div className="flex items-start gap-2 rounded-lg border border-[#f3d9a8] bg-[#fff8ec] px-3 py-2 text-[#8a5a00]">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {confirmResult.nombresProtegidos}{" "}
+                  {confirmResult.nombresProtegidos === 1
+                    ? "nombre no se actualizó porque fue corregido manualmente y está protegido"
+                    : "nombres no se actualizaron porque fueron corregidos manualmente y están protegidos"}
+                  . Para reemplazarlos, hazlo manualmente desde Catálogo → Stock antes de reimportar.
                 </span>
               </div>
             ) : null}

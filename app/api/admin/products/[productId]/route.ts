@@ -29,9 +29,10 @@ export async function PATCH(
 
   try {
     const body = (await request.json()) as {
-      mode?: "update" | "toggle";
+      mode?: "update" | "toggle" | "rename";
       sku?: string;
       nombre?: string;
+      nuevoNombre?: string;
       marca?: string;
       contenido?: string;
       descripcion?: string;
@@ -54,6 +55,24 @@ export async function PATCH(
     const { productId } = await context.params;
     const productoService = createProductoService();
     const before = await productoService.obtenerProductoAdminPorId(productId);
+
+    if (body.mode === "rename") {
+      const oldName = before?.nombre ?? "";
+      const after = await productoService.renombrarProductoAdmin(productId, body.nuevoNombre ?? "");
+
+      await logAdminAction({
+        actor: admin,
+        action: "PRODUCT_NAME_UPDATED",
+        entityType: "product",
+        entityId: productId,
+        requestId: requestAuditId(request),
+        before,
+        after,
+        metadata: { productId, oldName, newName: after.nombre }
+      });
+
+      return NextResponse.json({ ok: true });
+    }
 
     if (body.mode === "toggle") {
       await productoService.cambiarEstadoProducto(productId, Boolean(body.activo));

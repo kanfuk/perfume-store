@@ -81,6 +81,32 @@ export type ProductoAdminInput = {
   tipoProducto?: string;
 };
 
+const MAX_PRODUCT_NAME_LENGTH = 150;
+const PRODUCT_NAME_CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
+
+/**
+ * Validacion de entrada del rename seguro (seccion A5 del encargo): trim,
+ * no vacio, longitud razonable, sin caracteres de control, no solo
+ * espacios. Lanza un Error con mensaje seguro para mostrar directamente al
+ * admin (nunca detalles tecnicos).
+ */
+function validateProductNameInput(rawInput: string): string {
+  if (typeof rawInput !== "string") {
+    throw new Error("El nombre no es válido.");
+  }
+  if (PRODUCT_NAME_CONTROL_CHAR_PATTERN.test(rawInput)) {
+    throw new Error("El nombre contiene caracteres no válidos.");
+  }
+  const trimmed = rawInput.trim();
+  if (trimmed.length === 0) {
+    throw new Error("El nombre no puede estar vacío.");
+  }
+  if (trimmed.length > MAX_PRODUCT_NAME_LENGTH) {
+    throw new Error(`El nombre no puede superar los ${MAX_PRODUCT_NAME_LENGTH} caracteres.`);
+  }
+  return trimmed;
+}
+
 /**
  * Mapeo compartido Producto (dominio) -> AdminProductRecord (forma que
  * consume el admin). Extraido para que `obtenerCatalogoAdmin` y
@@ -120,7 +146,8 @@ function mapProductoToAdminRecord(domainProduct: Producto): AdminProductRecord {
     utilidadUnitaria: domainProduct.calcularUtilidadUnitaria(),
     modoPrecio: domainProduct.modoPrecio,
     archivedAt: domainProduct.archivedAt ? domainProduct.archivedAt.toISOString() : null,
-    archivedReason: domainProduct.archivedReason ?? null
+    archivedReason: domainProduct.archivedReason ?? null,
+    nombreBloqueado: domainProduct.nombreBloqueado
   };
 }
 
@@ -430,6 +457,34 @@ export class ProductoService {
   }
 
   /**
+   * Edicion segura de nombre (rename): toca UNICAMENTE `nombre` y
+   * `nombreBloqueado`. Nunca cambia id, sku, stock, stockReservado,
+   * stockAgenda, costo, precio, imagenes, Top ni Ofertas -- el nombre no es
+   * identidad comercial (ver docs/SMELLME_SAFE_PRODUCT_RENAME_DESIGN.md).
+   * Marca `nombreBloqueado = true` para proteger el nombre corregido frente
+   * a reimportaciones de CSV (seccion A4 del encargo).
+   */
+  async renombrarProductoAdmin(id: string, nuevoNombreInput: string): Promise<AdminProductRecord> {
+    const current = await this.productRepository.buscarProductoPorId(id);
+    if (!current) {
+      throw new Error("Producto no encontrado.");
+    }
+
+    const nuevoNombre = validateProductNameInput(nuevoNombreInput);
+    if (nuevoNombre === current.nombre.trim()) {
+      throw new Error("El nombre ingresado es igual al actual.");
+    }
+
+    await this.productRepository.actualizarProducto(id, { nombre: nuevoNombre, nombreBloqueado: true });
+
+    const updated = await this.productRepository.buscarProductoPorId(id);
+    if (!updated) {
+      throw new Error("Producto no encontrado.");
+    }
+    return mapProductoToAdminRecord(new Producto(updated));
+  }
+
+  /**
    * Genera un preview (dry-run) del CSV de importacion masiva: no escribe
    * nada. Devuelve filas validas/bloqueadas y el plan crear/actualizar.
    */
@@ -479,13 +534,25 @@ export class ProductoService {
     const archivedSkus = new Set(
       existingProducts.filter((p) => p.archivedAt).map((p) => p.sku).filter(Boolean) as string[]
     );
+    const lockedNameBySku = new Map(
+      existingProducts.filter((p) => p.nombreBloqueado && p.sku).map((p) => [p.sku as string, p.nombre])
+    );
 
     const preview = buildAdminImportPreview(buffer, existingSkus);
     const archivedConflicts = preview.filasValidas
       .map((row) => row.sku)
       .filter((sku) => archivedSkus.has(sku));
+    // Solo es conflicto real si el CSV realmente propone un nombre distinto
+    // al ya corregido manualmente -- si coinciden, no hay nada que proteger.
+    const nameConflicts = preview.filasValidas
+      .filter((row) => lockedNameBySku.has(row.sku) && lockedNameBySku.get(row.sku) !== row.nombre)
+      .map((row) => row.sku);
 
-    return archivedConflicts.length > 0 ? { ...preview, archivedConflicts } : preview;
+    return {
+      ...preview,
+      ...(archivedConflicts.length > 0 ? { archivedConflicts } : {}),
+      ...(nameConflicts.length > 0 ? { nameConflicts } : {})
+    };
   }
 
   /**
@@ -499,19 +566,34 @@ export class ProductoService {
    * decision humana explicita, nunca reactivacion silenciosa. Ver seccion
    * 16 del encargo y docs/SMELLME_SAFE_PRODUCT_REMOVAL_DESIGN.md.
    */
-  async confirmarImportacionCsv(rows: AdminImportRow[], reactivarSkus: string[] = []) {
+  async confirmarImportacionCsv(
+    rows: AdminImportRow[],
+    reactivarSkus: string[] = [],
+    overrideNombreSkus: string[] = []
+  ) {
     let creados = 0;
     let actualizados = 0;
     let archivadosOmitidos = 0;
+    let nombresProtegidos = 0;
     const reactivados: string[] = [];
+    const nombresReemplazados: string[] = [];
     const reactivarSet = new Set(reactivarSkus);
+    const overrideNombreSet = new Set(overrideNombreSkus);
 
     for (const row of rows) {
       const existing = await this.productRepository.buscarProductoPorSku(row.sku);
       const stock = normalizeStockValue(row.stock ?? 0);
+      // El CSV nunca pisa un nombre corregido manualmente (nombreBloqueado)
+      // salvo decision humana explicita (overrideNombreSkus) -- seccion A4
+      // del encargo. El resto de los campos (precio/costo/stock/Top/
+      // Ofertas) se actualiza normalmente en cualquier caso.
+      const nameIsLocked = Boolean(existing?.nombreBloqueado) && !overrideNombreSet.has(row.sku);
+      if (nameIsLocked && existing && row.nombre !== existing.nombre) {
+        nombresProtegidos += 1;
+      }
       const payload = {
         sku: row.sku,
-        nombre: row.nombre,
+        nombre: nameIsLocked && existing ? existing.nombre : row.nombre,
         marca: row.marca,
         contenido: row.contenido,
         precioVenta: row.precioVenta ?? 0,
@@ -537,6 +619,13 @@ export class ProductoService {
           : payload;
         if (existing.archivedAt) {
           reactivados.push(existing.id);
+        }
+        // Override explicito: el CSV reemplaza el nombre corregido a mano y
+        // la proteccion se libera (decision humana consumida, igual que
+        // reactivarSkus para archivados).
+        if (existing.nombreBloqueado && overrideNombreSet.has(row.sku)) {
+          updatePayload.nombreBloqueado = false;
+          nombresReemplazados.push(existing.id);
         }
         await this.productRepository.actualizarProducto(existing.id, updatePayload);
         actualizados += 1;
@@ -565,7 +654,7 @@ export class ProductoService {
       }
     }
 
-    return { creados, actualizados, archivadosOmitidos, reactivados };
+    return { creados, actualizados, archivadosOmitidos, reactivados, nombresProtegidos, nombresReemplazados };
   }
 
   /**
@@ -591,6 +680,7 @@ export class ProductoService {
     const existingProducts = await this.productRepository.buscarTodosProductos();
     const existingBySku = new Map<string, ExistingProductPriceInfo>();
     const archivedSkus = new Set<string>();
+    const lockedNameBySku = new Map<string, string>();
     for (const p of existingProducts) {
       if (p.sku) {
         existingBySku.set(p.sku, {
@@ -598,12 +688,21 @@ export class ProductoService {
           precioVenta: p.precioVenta
         });
         if (p.archivedAt) archivedSkus.add(p.sku);
+        if (p.nombreBloqueado) lockedNameBySku.set(p.sku, p.nombre);
       }
     }
 
     const preview = buildSupplierImportPreview(buffer, markupPercentage, existingBySku);
     const archivedConflicts = preview.plan.map((row) => row.sku).filter((sku) => archivedSkus.has(sku));
-    return archivedConflicts.length > 0 ? { ...preview, archivedConflicts } : preview;
+    const nameConflicts = preview.plan
+      .filter((row) => lockedNameBySku.has(row.sku) && lockedNameBySku.get(row.sku) !== row.nombre)
+      .map((row) => row.sku);
+
+    return {
+      ...preview,
+      ...(archivedConflicts.length > 0 ? { archivedConflicts } : {}),
+      ...(nameConflicts.length > 0 ? { nameConflicts } : {})
+    };
   }
 
   /**
@@ -706,12 +805,19 @@ export class ProductoService {
    * debe aparecer de inmediato en el catalogo publico y en stock rapido para
    * revision, sin bloquear la operacion diaria del admin).
    */
-  async confirmarImportacionProveedor(plan: SupplierPlanRow[], reactivarSkus: string[] = []) {
+  async confirmarImportacionProveedor(
+    plan: SupplierPlanRow[],
+    reactivarSkus: string[] = [],
+    overrideNombreSkus: string[] = []
+  ) {
     let creados = 0;
     let actualizados = 0;
     let archivadosOmitidos = 0;
+    let nombresProtegidos = 0;
     const reactivados: string[] = [];
+    const nombresReemplazados: string[] = [];
     const reactivarSet = new Set(reactivarSkus);
+    const overrideNombreSet = new Set(overrideNombreSkus);
 
     for (const row of plan) {
       const existing = await this.productRepository.buscarProductoPorSku(row.sku);
@@ -721,8 +827,12 @@ export class ProductoService {
           archivadosOmitidos += 1;
           continue;
         }
+        const nameIsLocked = Boolean(existing.nombreBloqueado) && !overrideNombreSet.has(row.sku);
+        if (nameIsLocked && row.nombre !== existing.nombre) {
+          nombresProtegidos += 1;
+        }
         const payload: Partial<Omit<ProductoProps, "id">> = {
-          nombre: row.nombre,
+          nombre: nameIsLocked ? existing.nombre : row.nombre,
           marca: row.marca,
           contenido: row.contenido,
           costoUnitario: row.costoUnitario,
@@ -733,6 +843,10 @@ export class ProductoService {
           payload.archivedAt = null;
           payload.archivedReason = null;
           reactivados.push(existing.id);
+        }
+        if (existing.nombreBloqueado && overrideNombreSet.has(row.sku)) {
+          payload.nombreBloqueado = false;
+          nombresReemplazados.push(existing.id);
         }
         await this.productRepository.actualizarProducto(existing.id, payload);
         actualizados += 1;
@@ -780,7 +894,7 @@ export class ProductoService {
       creados += 1;
     }
 
-    return { creados, actualizados, archivadosOmitidos, reactivados };
+    return { creados, actualizados, archivadosOmitidos, reactivados, nombresProtegidos, nombresReemplazados };
   }
 
   /**

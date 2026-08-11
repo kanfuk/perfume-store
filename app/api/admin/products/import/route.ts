@@ -28,6 +28,13 @@ type ImportRequestBody = {
    * esto, un SKU archivado que reaparece en el CSV se omite por completo.
    */
   reactivarSkus?: string[];
+  /**
+   * A6: SKUs con nombre protegido (`nombreBloqueado`) que el admin decidio
+   * explicitamente reemplazar por el nombre del CSV en esta confirmacion.
+   * Sin esto, un SKU con nombre bloqueado conserva su nombre actual aunque
+   * el CSV traiga uno distinto (ver docs/SMELLME_SAFE_PRODUCT_RENAME_DESIGN.md).
+   */
+  overrideNombreSkus?: string[];
 };
 
 function computePreviewHash(buffer: Buffer, profile: string, markupPercentage: unknown): string {
@@ -92,6 +99,9 @@ export async function POST(request: Request) {
     const markupPercentage = body.markupPercentage;
     const reactivarSkus = Array.isArray(body.reactivarSkus)
       ? body.reactivarSkus.filter((sku): sku is string => typeof sku === "string")
+      : [];
+    const overrideNombreSkus = Array.isArray(body.overrideNombreSkus)
+      ? body.overrideNombreSkus.filter((sku): sku is string => typeof sku === "string")
       : [];
 
     if (!fileName || !fileBase64) {
@@ -235,10 +245,13 @@ export async function POST(request: Request) {
         action: row.action
       }));
 
-      const result = await productoService.confirmarImportacionProveedor(finalPlan, reactivarSkus);
+      const result = await productoService.confirmarImportacionProveedor(finalPlan, reactivarSkus, overrideNombreSkus);
       await logAdminAction({ actor: admin, action: "CATALOG_IMPORT", entityType: "catalog", requestId: requestAuditId(request), after: { profile: "proveedor", ...result }, metadata: { fileName, rows: finalPlan.length } });
       for (const productId of result.reactivados ?? []) {
         await logAdminAction({ actor: admin, action: "PRODUCT_REACTIVATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), metadata: { via: "catalog-import", profile: "proveedor" } });
+      }
+      for (const productId of result.nombresReemplazados ?? []) {
+        await logAdminAction({ actor: admin, action: "PRODUCT_NAME_UPDATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), metadata: { via: "catalog-import", profile: "proveedor" } });
       }
       return NextResponse.json({ ok: true, ...result, perfil: "proveedor", plan: applied.plan });
     }
@@ -271,10 +284,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No hay filas válidas para importar.", preview }, { status: 400 });
     }
 
-    const result = await productoService.confirmarImportacionCsv(preview.filasValidas, reactivarSkus);
+    const result = await productoService.confirmarImportacionCsv(preview.filasValidas, reactivarSkus, overrideNombreSkus);
     await logAdminAction({ actor: admin, action: "CATALOG_IMPORT", entityType: "catalog", requestId: requestAuditId(request), after: { profile: "canonico", ...result }, metadata: { fileName, rows: preview.filasValidas.length } });
     for (const productId of result.reactivados ?? []) {
       await logAdminAction({ actor: admin, action: "PRODUCT_REACTIVATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), metadata: { via: "catalog-import", profile: "canonico" } });
+    }
+    for (const productId of result.nombresReemplazados ?? []) {
+      await logAdminAction({ actor: admin, action: "PRODUCT_NAME_UPDATED", entityType: "product", entityId: productId, requestId: requestAuditId(request), metadata: { via: "catalog-import", profile: "canonico" } });
     }
     return NextResponse.json({ ok: true, ...result, perfil: "canonico", preview });
   } catch (error) {
