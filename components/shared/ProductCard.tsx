@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
+import { ProductImageFrame } from "@/components/shared/ProductImageFrame";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableProductStock } from "@/lib/stock";
 import { resolveCardMetadata, hasVisiblePreviousPrice } from "@/lib/product-card-metadata";
@@ -47,53 +48,60 @@ export function ProductCard({
 
   return (
     <article className="interactive-card flex h-full max-w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-[#DDD0C1] bg-white shadow-sm">
-      <div
-        className={`relative min-w-0 ${
-          imageFit === "contain" ? "aspect-square bg-white sm:aspect-[3/4]" : "aspect-[4/3] bg-[#F7F1E8]"
-        }`}
-      >
-        <ProductImage
+      {imageFit === "contain" ? (
+        <ProductImageFrame
           src={product.imageUrl}
           alt={product.nombre}
           brand={product.marca}
           sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
-          className={imageFit === "contain" ? "object-contain" : "object-cover"}
-        />
-        {imageFit !== "contain" ? (
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
-        ) : null}
-        <div
-          className={`absolute inset-x-0 top-0 flex items-start justify-between gap-3 ${
-            imageFit === "contain" ? "p-2.5 sm:p-4" : "p-4"
-          }`}
         >
-          <div className="flex items-center gap-2">
-            {typeof rank === "number" ? (
-              <span
-                className={`flex items-center justify-center rounded-full bg-[#B88B58] font-bold text-white shadow-sm ${
-                  imageFit === "contain" ? "h-6 w-6 text-xs sm:h-8 sm:w-8 sm:text-sm" : "h-8 w-8 text-sm"
-                }`}
-              >
-                {rank}
+          <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-2.5 sm:p-4">
+            <div className="flex items-center gap-2">
+              {typeof rank === "number" ? (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#B88B58] text-xs font-bold text-white shadow-sm sm:h-8 sm:w-8 sm:text-sm">
+                  {rank}
+                </span>
+              ) : null}
+              <span className="hidden rounded-full border border-[#DDD0C1] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#191714] shadow-sm backdrop-blur-md sm:inline-block">
+                {product.badgeLabel || product.tipoProducto || "PERFUME"}
+              </span>
+            </div>
+            {quantity > 0 ? (
+              <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
+                En carrito x{quantity}
               </span>
             ) : null}
-            <span
-              className={`rounded-full border font-semibold uppercase tracking-wide shadow-sm backdrop-blur-md ${
-                imageFit === "contain"
-                  ? "hidden border-[#DDD0C1] bg-white/90 px-3 py-1 text-xs text-[#191714] sm:inline-block"
-                  : "border-white/15 bg-[#191714]/82 px-3 py-1 text-xs text-white"
-              }`}
-            >
-              {product.badgeLabel || product.tipoProducto || "PERFUME"}
-            </span>
           </div>
-          {quantity > 0 ? (
-            <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
-              En carrito x{quantity}
-            </span>
-          ) : null}
+        </ProductImageFrame>
+      ) : (
+        <div className="relative min-w-0 aspect-[4/3] bg-[#F7F1E8]">
+          <ProductImage
+            src={product.imageUrl}
+            alt={product.nombre}
+            brand={product.marca}
+            sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
+          <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
+            <div className="flex items-center gap-2">
+              {typeof rank === "number" ? (
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#B88B58] text-sm font-bold text-white shadow-sm">
+                  {rank}
+                </span>
+              ) : null}
+              <span className="rounded-full border border-white/15 bg-[#191714]/82 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-md">
+                {product.badgeLabel || product.tipoProducto || "PERFUME"}
+              </span>
+            </div>
+            {quantity > 0 ? (
+              <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
+                En carrito x{quantity}
+              </span>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
       <div
         className={`flex flex-1 flex-col ${
           imageFit === "contain" ? "space-y-2 p-3 sm:space-y-3 sm:p-4" : "space-y-3 p-4"
