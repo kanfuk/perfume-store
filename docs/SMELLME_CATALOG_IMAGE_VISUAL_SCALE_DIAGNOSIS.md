@@ -84,3 +84,26 @@ basado en productId/SKU"), (2) es más simple de razonar y probar sin
 `ResizeObserver`/medición en runtime, y (3) evita reintroducir una capa de
 cálculo dinámico justo después de comprobar que una solución "automática"
 (el trim) no entregó el beneficio esperado.
+
+## Resultado en Preview y pivote final: `visualScale` también se revirtió
+
+El OWNER revisó el Preview con `visualScale` y reportó que las fotos
+quedaban peor: "encajadas" dentro de un bloque visible más chico -- el
+padding + fondo neutro + el propio `ProductImageFrame` (aunque resolvía la
+inconsistencia de tamaño relativo entre fotos) sacrificaba la sensación de
+"foto hero" que tenía el catálogo antes de toda esta serie de cambios.
+
+Se revirtió `ProductImageFrame` y `lib/product-image-visual-scale.ts` por
+completo (eliminados, no dejados como código muerto) y se adoptó en su
+lugar el mismo tratamiento que ya usaba la sección Ofertas: `object-cover`
+a pantalla completa del bloque multimedia (`aspect-[4/3]`), sin padding, sin
+caja secundaria, imagen pegada al borde superior de la card, badges
+superpuestos directamente sobre la foto. Este es ahora el único tratamiento
+de imagen en `ProductCard`, usado por Top 15, catálogo completo y Ofertas
+por igual.
+
+`object-position`: se probó `top` vs `center` recortando fotos reales
+(`Le beau Le parfum`, vertical, `Sauvage Elixir`, casi cuadrada) al ratio
+4:3 objetivo. `top` cortaba la base/reflejo de las botellas más verticales;
+`center` conserva frasco + estuche completos en todas las fotos probadas.
+Se usó `object-center`, no `object-top`.

@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
-import { ProductImageFrame } from "@/components/shared/ProductImageFrame";
-import { getProductImageVisualScale } from "@/lib/product-image-visual-scale";
 import { formatCurrency } from "@/lib/format";
 import { getAvailableProductStock } from "@/lib/stock";
 import { resolveCardMetadata, hasVisiblePreviousPrice } from "@/lib/product-card-metadata";
@@ -19,7 +17,13 @@ type ProductCardProps = {
   actionLabel?: string;
   footerLabel?: string;
   showStockCount?: boolean;
-  /** "contain" muestra la imagen completa sin recortar (usado en el Top 12). */
+  /**
+   * "contain" activa la variante compacta de la card (Top 15/catalogo
+   * completo): tipografia/espaciado/botones mas chicos para que quepan mas
+   * columnas por fila. El nombre es historico -- la FOTO en si siempre usa
+   * object-cover a pantalla completa del bloque multimedia en ambas
+   * variantes, ver el bloque de imagen mas abajo.
+   */
   imageFit?: "cover" | "contain";
   /** Numero de posicion a mostrar como insignia (Top 12). */
   rank?: number;
@@ -49,61 +53,44 @@ export function ProductCard({
 
   return (
     <article className="interactive-card flex h-full max-w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-[#DDD0C1] bg-white shadow-sm">
-      {imageFit === "contain" ? (
-        <ProductImageFrame
+      {/*
+        Bloque multimedia "hero": misma estructura y proporcion en Top 15,
+        catalogo completo y Ofertas -- la foto ocupa el 100% del ancho y
+        alto del bloque (object-cover, sin padding ni caja interna), pegada
+        al borde superior de la card. object-center (no object-top): en
+        inspeccion real, recortar por arriba cortaba la base/reflejo de las
+        botellas mas verticales (ej. Le beau Le parfum), mientras que el
+        centro conserva frasco + estuche completos en todas las fotos
+        probadas. Los overlays (rank, categoria, carrito) se posicionan
+        encima de la foto, nunca dentro de una caja separada.
+      */}
+      <div className="relative min-w-0 aspect-[4/3] overflow-hidden bg-[#F7F1E8]">
+        <ProductImage
           src={product.imageUrl}
           alt={product.nombre}
           brand={product.marca}
           sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
-          visualScale={getProductImageVisualScale(product.id)}
-        >
-          <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-2.5 sm:p-4">
-            <div className="flex items-center gap-2">
-              {typeof rank === "number" ? (
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#B88B58] text-xs font-bold text-white shadow-sm sm:h-8 sm:w-8 sm:text-sm">
-                  {rank}
-                </span>
-              ) : null}
-              <span className="hidden rounded-full border border-[#DDD0C1] bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#191714] shadow-sm backdrop-blur-md sm:inline-block">
-                {product.badgeLabel || product.tipoProducto || "PERFUME"}
-              </span>
-            </div>
-            {quantity > 0 ? (
-              <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
-                En carrito x{quantity}
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
+          <div className="flex items-center gap-2">
+            {typeof rank === "number" ? (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#B88B58] text-sm font-bold text-white shadow-sm">
+                {rank}
               </span>
             ) : null}
+            <span className="rounded-full border border-white/15 bg-[#191714]/82 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-md">
+              {product.badgeLabel || product.tipoProducto || "PERFUME"}
+            </span>
           </div>
-        </ProductImageFrame>
-      ) : (
-        <div className="relative min-w-0 aspect-[4/3] bg-[#F7F1E8]">
-          <ProductImage
-            src={product.imageUrl}
-            alt={product.nombre}
-            brand={product.marca}
-            sizes="(max-width: 768px) calc(100vw - 3rem), 50vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 via-black/25 to-transparent" />
-          <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
-            <div className="flex items-center gap-2">
-              {typeof rank === "number" ? (
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#B88B58] text-sm font-bold text-white shadow-sm">
-                  {rank}
-                </span>
-              ) : null}
-              <span className="rounded-full border border-white/15 bg-[#191714]/82 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-md">
-                {product.badgeLabel || product.tipoProducto || "PERFUME"}
-              </span>
-            </div>
-            {quantity > 0 ? (
-              <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
-                En carrito x{quantity}
-              </span>
-            ) : null}
-          </div>
+          {quantity > 0 ? (
+            <span className="cart-badge-pop rounded-full border border-white/70 bg-white/95 px-3 py-1 text-xs font-bold text-[#6F472C] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md">
+              En carrito x{quantity}
+            </span>
+          ) : null}
         </div>
-      )}
+      </div>
       <div
         className={`flex flex-1 flex-col ${
           imageFit === "contain" ? "space-y-2 p-3 sm:space-y-3 sm:p-4" : "space-y-3 p-4"
