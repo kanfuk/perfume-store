@@ -327,8 +327,41 @@ describe("product-families - filterAndSortFamilies / getAvailableFamilyBrands", 
     expect(result.map((f) => f.nombre)).toEqual(["La Bomba", "Lady Million"]);
   });
 
+  it("ordena por nombre Z-A usando el nombre de la familia (catalogo completo publico)", () => {
+    const result = filterAndSortFamilies(families(), { sort: "nombre-desc" });
+    expect(result.map((f) => f.nombre)).toEqual(["Lady Million", "La Bomba"]);
+  });
+
+  it("busqueda es insensible a tildes/mayusculas (catalogo completo publico)", () => {
+    const withAccent = groupProductsIntoFamilies([
+      product({ id: "acqua", nombre: "Acqua di Giò", marca: "Armani", contenido: "100ML" })
+    ]);
+    expect(filterAndSortFamilies(withAccent, { query: "acqua di gio" }).map((f) => f.nombre)).toEqual([
+      "Acqua di Giò"
+    ]);
+    expect(filterAndSortFamilies(withAccent, { query: "ACQUA DI GIÒ" }).map((f) => f.nombre)).toEqual([
+      "Acqua di Giò"
+    ]);
+  });
+
+  it("busqueda normaliza espacios repetidos/extremos", () => {
+    expect(filterAndSortFamilies(families(), { query: "  lady   million  " }).map((f) => f.nombre)).toEqual([
+      "Lady Million"
+    ]);
+  });
+
+  it("busqueda de un termino inexistente no encuentra nada", () => {
+    expect(filterAndSortFamilies(families(), { query: "perfume-que-no-existe" })).toEqual([]);
+  });
+
   it("getAvailableFamilyBrands devuelve marcas unicas ordenadas", () => {
     expect(getAvailableFamilyBrands(families())).toEqual(["Carolina Herrera", "Paco Rabanne"]);
+  });
+
+  it("filtro de marca 'Todos' (brand vacio) devuelve todas las familias visibles", () => {
+    expect(filterAndSortFamilies(families(), { brand: "" }).map((f) => f.nombre).sort()).toEqual(
+      ["La Bomba", "Lady Million"].sort()
+    );
   });
 });
 

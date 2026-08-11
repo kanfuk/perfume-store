@@ -55,6 +55,8 @@ export type AdminProductRecord = {
   modoPrecio: ModoPrecio;
   archivedAt?: string | null;
   archivedReason?: string | null;
+  /** true si el nombre fue corregido manualmente y esta protegido frente a reimportaciones CSV. */
+  nombreBloqueado?: boolean;
 };
 
 export type ProductRemovalMode = "HARD_DELETE" | "ARCHIVE" | "BLOCKED";

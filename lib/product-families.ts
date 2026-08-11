@@ -260,7 +260,7 @@ export function getFamilySearchHaystack(family: ProductFamily): string {
 // familia) y no debe modificarse para esta fase.
 // ---------------------------------------------------------------------------
 
-export type FamilySortOption = "recomendados" | "nombre-asc" | "precio-asc" | "precio-desc";
+export type FamilySortOption = "recomendados" | "nombre-asc" | "nombre-desc" | "precio-asc" | "precio-desc";
 
 export type FamilyFilterOptions = {
   query?: string;
@@ -273,7 +273,8 @@ function normalizeSearchText(value: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
-    .trim();
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export function getAvailableFamilyBrands(families: ProductFamily[]): string[] {
@@ -308,6 +309,7 @@ export function filterAndSortFamilies(
     if (sort === "precio-asc") return getFamilyMinPrice(a) - getFamilyMinPrice(b);
     if (sort === "precio-desc") return getFamilyMaxPrice(b) - getFamilyMaxPrice(a);
     if (sort === "recomendados") return 0; // preserva el orden recibido (curado en el origen)
+    if (sort === "nombre-desc") return b.nombre.localeCompare(a.nombre);
     return a.nombre.localeCompare(b.nombre);
   });
 
