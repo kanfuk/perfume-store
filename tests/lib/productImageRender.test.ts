@@ -51,15 +51,6 @@ describe("buildSameOriginProductImageUrl", () => {
     expect(url).toBe(`/api/product-images/${MANAGED_PATH}`);
     expect(url.split("/").filter(Boolean)).toHaveLength(5); // api, product-images, products, abc, uuid-1.webp
   });
-
-  it("trimMargins=false (default): sin query string, comportamiento identico al de siempre", () => {
-    expect(buildSameOriginProductImageUrl(MANAGED_PATH)).toBe(`/api/product-images/${MANAGED_PATH}`);
-    expect(buildSameOriginProductImageUrl(MANAGED_PATH, false)).toBe(`/api/product-images/${MANAGED_PATH}`);
-  });
-
-  it("trimMargins=true: agrega ?fit=trim (variante opt-in de Top 15/catalogo)", () => {
-    expect(buildSameOriginProductImageUrl(MANAGED_PATH, true)).toBe(`/api/product-images/${MANAGED_PATH}?fit=trim`);
-  });
 });
 
 describe("extractManagedProductImagePath", () => {
@@ -150,25 +141,5 @@ describe("getProductImageRenderConfig: unica fuente de verdad para preloadImage 
     const external = getProductImageRenderConfig("https://cdn.example.com/foto.webp", SUPABASE_URL);
     expect(managed.unoptimized).toBe(managed.isManagedStorageImage);
     expect(external.unoptimized).toBe(external.isManagedStorageImage);
-  });
-
-  it("trimMargins por defecto (sin pasar el 3er argumento): src identico al de siempre, sin ?fit=trim", () => {
-    expect(getProductImageRenderConfig(MANAGED_URL, SUPABASE_URL).src).toBe(`/api/product-images/${MANAGED_PATH}`);
-  });
-
-  it("trimMargins=true en una imagen administrada: src incluye ?fit=trim", () => {
-    expect(getProductImageRenderConfig(MANAGED_URL, SUPABASE_URL, true).src).toBe(
-      `/api/product-images/${MANAGED_PATH}?fit=trim`
-    );
-  });
-
-  it("trimMargins=true en una imagen externa no administrada: no tiene efecto (no hay proxy same-origin al que agregarlo)", () => {
-    const externalUrl = "https://cdn.example.com/foto.webp";
-    expect(getProductImageRenderConfig(externalUrl, SUPABASE_URL, true)).toEqual({
-      originalSrc: externalUrl,
-      src: externalUrl,
-      isManagedStorageImage: false,
-      unoptimized: false
-    });
   });
 });

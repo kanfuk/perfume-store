@@ -26,13 +26,6 @@ type ProductImageProps = {
    * se ven como un error en vez de una decisión de diseño intencional).
    */
   compact?: boolean;
-  /**
-   * Solicita la variante same-origin con margen de fondo recortado (ver
-   * lib/product-image-trim.ts) para normalizar el tamano visual del
-   * producto entre fotos. Opt-in: por defecto es `false` y el
-   * comportamiento es identico al de siempre (usado por admin/carrito).
-   */
-  trimMargins?: boolean;
 };
 
 function getInitials(value: string): string {
@@ -68,8 +61,7 @@ function ProductImageInstance({
   className = "object-cover",
   fallbackClassName = "",
   brand,
-  compact = false,
-  trimMargins = false
+  compact = false
 }: ProductImageProps) {
   const [state, dispatch] = useReducer(imageLoadReducer, INITIAL_IMAGE_LOAD_STATE);
   const timerRef = useRef<number | null>(null);
@@ -154,7 +146,7 @@ function ProductImageInstance({
   // getProductImageRenderConfig es la MISMA funcion que usa preloadImage
   // (ver CatalogControlCenter/AddPerfumeModal): nunca se verifica una URL y
   // se renderiza otra distinta.
-  const renderConfig = getProductImageRenderConfig(trimmedSrc as string, undefined, trimMargins);
+  const renderConfig = getProductImageRenderConfig(trimmedSrc as string);
 
   return (
     <Image

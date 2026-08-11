@@ -70,24 +70,15 @@ export function isManagedProductImageUrl(
   return extractManagedProductImagePath(url, supabaseUrl) !== null;
 }
 
-/**
- * Construye la URL same-origin (`/api/product-images/...`), codificando cada
- * segmento por separado -- nunca el path completo (eso codificaria las `/` y
- * rompería la ruta). `trimMargins` agrega `?fit=trim` (ver
- * lib/product-image-trim.ts): variante opt-in, de solo lectura, que recorta
- * el margen de fondo casi uniforme alrededor del producto para que se vea
- * de un tamano visual mas parecido entre fotos. Nunca se usa por defecto.
- */
-export function buildSameOriginProductImageUrl(managedPath: string, trimMargins = false): string {
+/** Construye la URL same-origin (`/api/product-images/...`), codificando cada segmento por separado -- nunca el path completo (eso codificaria las `/` y rompería la ruta). */
+export function buildSameOriginProductImageUrl(managedPath: string): string {
   const encodedSegments = managedPath.split("/").map((segment) => encodeURIComponent(segment));
-  const base = `/api/product-images/${encodedSegments.join("/")}`;
-  return trimMargins ? `${base}?fit=trim` : base;
+  return `/api/product-images/${encodedSegments.join("/")}`;
 }
 
 export function getProductImageRenderConfig(
   url: string,
-  supabaseUrl: string | undefined = getSupabaseUrl(),
-  trimMargins = false
+  supabaseUrl: string | undefined = getSupabaseUrl()
 ): ProductImageRenderConfig {
   const trimmed = url?.trim() ?? "";
   const managedPath = trimmed ? extractManagedProductImagePath(trimmed, supabaseUrl) : null;
@@ -95,7 +86,7 @@ export function getProductImageRenderConfig(
   if (managedPath) {
     return {
       originalSrc: trimmed,
-      src: buildSameOriginProductImageUrl(managedPath, trimMargins),
+      src: buildSameOriginProductImageUrl(managedPath),
       isManagedStorageImage: true,
       unoptimized: true
     };
