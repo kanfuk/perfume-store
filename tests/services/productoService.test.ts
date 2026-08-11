@@ -248,7 +248,14 @@ describe("ProductoService - importacion CSV masiva", () => {
     );
     const result = await service.confirmarImportacionCsv(preview.filasValidas);
 
-    expect(result).toEqual({ creados: 1, actualizados: 0, archivadosOmitidos: 0, reactivados: [] });
+    expect(result).toEqual({
+      creados: 1,
+      actualizados: 0,
+      archivadosOmitidos: 0,
+      reactivados: [],
+      nombresProtegidos: 0,
+      nombresReemplazados: []
+    });
     const created = await repository.buscarProductoPorSku("SML-NUEVO");
     expect(created?.nombre).toBe("La Bomba");
   });
@@ -271,7 +278,14 @@ describe("ProductoService - importacion CSV masiva", () => {
     );
     const result = await service.confirmarImportacionCsv(preview.filasValidas);
 
-    expect(result).toEqual({ creados: 0, actualizados: 1, archivadosOmitidos: 0, reactivados: [] });
+    expect(result).toEqual({
+      creados: 0,
+      actualizados: 1,
+      archivadosOmitidos: 0,
+      reactivados: [],
+      nombresProtegidos: 0,
+      nombresReemplazados: []
+    });
     const updated = await repository.buscarProductoPorId("existente-1");
     expect(updated?.nombre).toBe("Nombre nuevo");
     expect(updated?.precioVenta).toBe(70000);
@@ -315,7 +329,14 @@ describe("ProductoService - importacion CSV masiva", () => {
 
     const result = await service.confirmarImportacionCsv(preview.filasValidas);
 
-    expect(result).toEqual({ creados: 0, actualizados: 0, archivadosOmitidos: 1, reactivados: [] });
+    expect(result).toEqual({
+      creados: 0,
+      actualizados: 0,
+      archivadosOmitidos: 1,
+      reactivados: [],
+      nombresProtegidos: 0,
+      nombresReemplazados: []
+    });
     const stillArchived = await repository.buscarProductoPorId("archivado-1");
     expect(stillArchived?.nombre).toBe("Nombre viejo"); // no se toco ningun campo
     expect(stillArchived?.archivedAt).not.toBeNull();
@@ -335,7 +356,14 @@ describe("ProductoService - importacion CSV masiva", () => {
     );
     const result = await service.confirmarImportacionCsv(preview.filasValidas, ["SML-ARCHIVADO-2"]);
 
-    expect(result).toEqual({ creados: 0, actualizados: 1, archivadosOmitidos: 0, reactivados: ["archivado-2"] });
+    expect(result).toEqual({
+      creados: 0,
+      actualizados: 1,
+      archivadosOmitidos: 0,
+      reactivados: ["archivado-2"],
+      nombresProtegidos: 0,
+      nombresReemplazados: []
+    });
     const reactivated = await repository.buscarProductoPorId("archivado-2");
     expect(reactivated?.nombre).toBe("Nombre reactivado");
     expect(reactivated?.archivedAt).toBeNull();
