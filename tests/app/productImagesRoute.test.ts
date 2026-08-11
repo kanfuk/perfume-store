@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import sharp from "sharp";
 
 const { isSupabaseConfigured } = vi.hoisted(() => ({
   isSupabaseConfigured: vi.fn(() => true)
@@ -175,6 +176,74 @@ describe("GET/HEAD /api/product-images/[...path]", () => {
       const response = await HEAD(REQUEST, ctx(VALID_SEGMENTS));
       expect(response.status).toBe(404);
       expect(response.headers.get("Cache-Control")).toBe("no-store");
+    });
+  });
+
+  describe("?fit=trim (normalizacion visual opt-in usada por Top 15/catalogo)", () => {
+    async function realWebpWithLargeMargin(): Promise<number[]> {
+      const subject = await sharp({
+        create: { width: 40, height: 40, channels: 3, background: { r: 20, g: 20, b: 20 } }
+      })
+        .png()
+        .toBuffer();
+      const buffer = await sharp({
+        create: { width: 200, height: 200, channels: 3, background: { r: 255, g: 255, b: 255 } }
+      })
+        .composite([{ input: subject, gravity: "center" }])
+        .webp({ quality: 90 })
+        .toBuffer();
+      return Array.from(buffer);
+    }
+
+    it("sin ?fit=trim (default): comportamiento identico al de siempre, bytes sin tocar", async () => {
+      const bytes = validWebpBytes(1, 2, 3, 4);
+      download.mockResolvedValueOnce({ data: fakeBlob(bytes), error: null });
+      const response = await GET(new Request("http://localhost/api/product-images/x"), ctx(VALID_SEGMENTS));
+
+      expect(response.status).toBe(200);
+      const body = new Uint8Array(await response.arrayBuffer());
+      expect(Array.from(body)).toEqual(bytes);
+    });
+
+    it("con ?fit=trim sobre una imagen real con mucho margen: los bytes servidos son distintos y mas chicos (recorte aplicado)", async () => {
+      const bytes = await realWebpWithLargeMargin();
+      download.mockResolvedValueOnce({ data: fakeBlob(bytes), error: null });
+      const response = await GET(new Request("http://localhost/api/product-images/x?fit=trim"), ctx(VALID_SEGMENTS));
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type")).toBe("image/webp");
+      expect(response.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+      const body = new Uint8Array(await response.arrayBuffer());
+      expect(body.length).not.toBe(bytes.length);
+      expect(body.length).toBeLessThan(bytes.length);
+    });
+
+    it("con ?fit=trim sobre bytes no decodificables como imagen: cae de vuelta a los bytes originales, sin romper la respuesta", async () => {
+      const bytes = validWebpBytes(1, 2, 3, 4);
+      download.mockResolvedValueOnce({ data: fakeBlob(bytes), error: null });
+      const response = await GET(new Request("http://localhost/api/product-images/x?fit=trim"), ctx(VALID_SEGMENTS));
+
+      expect(response.status).toBe(200);
+      const body = new Uint8Array(await response.arrayBuffer());
+      expect(Array.from(body)).toEqual(bytes);
+    });
+
+    it("un objeto corrupto (sin cabecera RIFF/WEBP valida) sigue devolviendo 404 incluso con ?fit=trim", async () => {
+      download.mockResolvedValueOnce({
+        data: fakeBlob([0x52, 0x49, 0x46, 0x46, 0xef, 0xbf, 0xbd, 0xef, 0xbf, 0xbd, 0x01, 0x00]),
+        error: null
+      });
+      const response = await GET(new Request("http://localhost/api/product-images/x?fit=trim"), ctx(VALID_SEGMENTS));
+      expect(response.status).toBe(404);
+    });
+
+    it("HEAD tambien respeta ?fit=trim sin romper (200, sin cuerpo)", async () => {
+      const bytes = await realWebpWithLargeMargin();
+      download.mockResolvedValueOnce({ data: fakeBlob(bytes), error: null });
+      const response = await HEAD(new Request("http://localhost/api/product-images/x?fit=trim"), ctx(VALID_SEGMENTS));
+      expect(response.status).toBe(200);
+      const body = await response.arrayBuffer();
+      expect(body.byteLength).toBe(0);
     });
   });
 

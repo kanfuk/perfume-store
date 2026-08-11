@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PRODUCT_IMAGE_CONFIG } from "@/lib/product-image-config";
 import { MANAGED_PRODUCT_IMAGE_CONTENT_TYPE, isValidProductImageStoragePath } from "@/lib/product-image-storage-path";
 import { hasValidWebpHeader } from "@/lib/product-image-integrity";
+import { trimProductImageMargins } from "@/lib/product-image-trim";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -38,7 +39,17 @@ type ManagedImageResult =
   /** noStore: el objeto existe pero su cabecera RIFF/WEBP es invalida -- nunca se debe cachear un 404 asi, podria auto-repararse subiendo una imagen nueva. */
   | { ok: false; status: 400 | 404 | 500; noStore?: boolean };
 
-async function loadManagedImage(context: RouteContext): Promise<ManagedImageResult> {
+/**
+ * `trimMargins`: variante opt-in usada UNICAMENTE por las tarjetas publicas
+ * de Top 15/catalogo completo (ver components/shared/ProductImageFrame.tsx)
+ * para normalizar cuanto "aire" trae cada foto alrededor del producto. El
+ * objeto en Storage nunca se modifica; el recorte se calcula en memoria en
+ * cada solicitud y se sirve con el mismo Cache-Control immutable (query
+ * string distinto -> entrada de cache distinta). Si falla o resulta
+ * sospechoso, `trimProductImageMargins` devuelve la imagen original intacta
+ * -- esta ruta nunca deja de responder por culpa del recorte.
+ */
+async function loadManagedImage(context: RouteContext, trimMargins: boolean): Promise<ManagedImageResult> {
   const path = await resolveValidatedPath(context);
   if (!path) {
     return { ok: false, status: 400 };
@@ -66,7 +77,14 @@ async function loadManagedImage(context: RouteContext): Promise<ManagedImageResu
       return { ok: false, status: 404, noStore: true };
     }
 
-    return { ok: true, body };
+    if (!trimMargins) {
+      return { ok: true, body };
+    }
+
+    const { buffer: trimmedBuffer } = await trimProductImageMargins(bodyBuffer);
+    const trimmedArrayBuffer = new ArrayBuffer(trimmedBuffer.length);
+    new Uint8Array(trimmedArrayBuffer).set(trimmedBuffer);
+    return { ok: true, body: trimmedArrayBuffer };
   } catch {
     // Nunca exponer el mensaje/stack real (podria filtrar detalles de Supabase).
     return { ok: false, status: 500 };
@@ -86,8 +104,12 @@ function errorBody(status: 400 | 404 | 500, noStore?: boolean) {
   );
 }
 
-export async function GET(_request: Request, context: RouteContext) {
-  const result = await loadManagedImage(context);
+function shouldTrimMargins(request: Request): boolean {
+  return new URL(request.url).searchParams.get("fit") === "trim";
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  const result = await loadManagedImage(context, shouldTrimMargins(request));
   if (!result.ok) {
     return errorBody(result.status, result.noStore);
   }
@@ -103,8 +125,8 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 }
 
-export async function HEAD(_request: Request, context: RouteContext) {
-  const result = await loadManagedImage(context);
+export async function HEAD(request: Request, context: RouteContext) {
+  const result = await loadManagedImage(context, shouldTrimMargins(request));
   if (!result.ok) {
     return new NextResponse(null, {
       status: result.status,
