@@ -870,18 +870,36 @@ export class PedidoService {
   }
 
   private async notifyPendingOrdersBadgeChange(pedidoId?: string) {
+    let pendingCount: number | undefined;
+
     try {
       const pendingOrders = await this.pedidoRepository.buscarPedidosPorEstado(
         ESTADO_PEDIDO_NUEVO
       );
-      const pendingCount = getNewAdminOrdersCount(pendingOrders);
+      pendingCount = getNewAdminOrdersCount(pendingOrders);
 
-      await sendPendingOrdersPushToAdmins({
+      const pushResult = await sendPendingOrdersPushToAdmins({
         pendingCount,
         pedidoId
       });
-    } catch {
-      // No bloquear pedidos por una falla externa de push/badge.
+
+      if (pushResult.skipped || pushResult.failed > 0 || pushResult.sent === 0) {
+        console.warn("[push] admin pending-orders push incomplete", {
+          pedidoId,
+          pendingCount,
+          sent: pushResult.sent,
+          failed: pushResult.failed,
+          expired: pushResult.expired,
+          reason: pushResult.reason
+        });
+      }
+    } catch (error) {
+      // No bloquear pedidos por una falla externa de push/badge (fail-open).
+      console.error("[push] admin pending-orders push threw", {
+        pedidoId,
+        pendingCount,
+        reason: error instanceof Error ? error.message : "UNKNOWN_ERROR"
+      });
     }
   }
 }
