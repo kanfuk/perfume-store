@@ -165,108 +165,108 @@ export function DashboardHomeView({
         </div>
       </section>
 
-      {!badgeDeviceSetting?.badgeEnabled ? (
-        <section className="rounded-[24px] border border-brand-100 bg-white/95 p-5 shadow-soft">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-bold text-brand-950">Badge del icono</h2>
-              <p className="mt-1 text-sm text-brand-900/65">
-                Activa el contador de pedidos pendientes en el icono de la app de tu iPhone.
-              </p>
-            </div>
-            {badgeDeviceSetting?.badgeEnabled ? (
-              <StatusBadge tone="pedido" label="ACTIVO" />
-            ) : (
-              <StatusBadge tone="neutral" label="POR ACTIVAR" />
-            )}
+      <section className="rounded-[24px] border border-brand-100 bg-white/95 p-5 shadow-soft">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-brand-950">Badge del icono</h2>
+            <p className="mt-1 text-sm text-brand-900/65">
+              Activa el contador de pedidos pendientes en el icono de la app de tu iPhone.
+            </p>
           </div>
+          {badgeDeviceSetting?.badgeEnabled ? (
+            <StatusBadge tone="pedido" label="ACTIVO" />
+          ) : (
+            <StatusBadge tone="neutral" label="POR ACTIVAR" />
+          )}
+        </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <SimpleFact label="Soporte" value={badgeSupported ? "Disponible" : "Este dispositivo no admite esta función"} />
-            <SimpleFact
-              label="Modo app"
-              value={isInstalledPwa ? "Desde icono" : "Abrir desde inicio"}
-            />
-            <SimpleFact
-              label="Permiso"
-              value={formatBadgePermission(notificationPermission)}
-            />
-            <SimpleFact label="Contador actual" value={String(attentionCount)} />
-            <SimpleFact
-              label="Push"
-              value={
-                !pushSupported
-                  ? "Este dispositivo no admite esta función"
-                  : pushSubscriptionActive
-                    ? "Notificaciones activas"
-                    : isInstalledPwa
-                      ? "Notificaciones desactivadas"
-                      : "Instala Smellme para activar notificaciones"
-              }
-            />
-          </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <SimpleFact label="Soporte" value={badgeSupported ? "Disponible" : "Este dispositivo no admite esta función"} />
+          <SimpleFact
+            label="Modo app"
+            value={isInstalledPwa ? "Desde icono" : "Abrir desde inicio"}
+          />
+          <SimpleFact
+            label="Permiso"
+            value={formatBadgePermission(notificationPermission)}
+          />
+          <SimpleFact label="Contador actual" value={String(attentionCount)} />
+          <SimpleFact
+            label="Push"
+            value={
+              !pushSupported
+                ? "Este dispositivo no admite esta función"
+                : pushSubscriptionActive
+                  ? "Notificaciones activas"
+                  : isInstalledPwa
+                    ? "Notificaciones desactivadas"
+                    : "Instala Smellme para activar notificaciones"
+            }
+          />
+        </div>
 
-          <div className="mt-4 space-y-2 text-sm text-brand-900/75">
-            {!badgeSupported ? <p>Este dispositivo no admite badge en el icono; el panel seguirá actualizándose en tiempo real.</p> : null}
-            {!isInstalledPwa ? (
-              <p>
-                Para ver el badge en el icono, instala Smellme.cl en la pantalla de inicio y abre
-                la app desde ese icono.
-              </p>
-            ) : null}
-            {!pushSupported ? (
-              <p>Este dispositivo no admite esta función; Realtime, polling, badge compatible y avisos dentro de la app siguen disponibles.</p>
-            ) : null}
-            {notificationPermission === "denied" ? (
-              <p>
-                El permiso fue denegado. Debes activarlo desde Ajustes del iPhone para esta app.
-              </p>
-            ) : null}
-            {badgeDeviceSetting?.badgeEnabled ? (
-              <p>Badge activo en este dispositivo.</p>
-            ) : (
-              <p>Activa el badge desde este dispositivo para sincronizarlo con los pedidos.</p>
-            )}
-            {pushSubscriptionActive ? (
-              <p>Notificaciones activas para este dispositivo.</p>
-            ) : null}
-            {badgeDeviceSetting?.lastSyncAt ? (
-              <p>Ultima sincronizacion: {formatShortDateTime(badgeDeviceSetting.lastSyncAt)}.</p>
-            ) : null}
-          </div>
+        <div className="mt-4 space-y-2 text-sm text-brand-900/75">
+          {!badgeSupported ? <p>Este dispositivo no admite badge en el icono; el panel seguirá actualizándose en tiempo real.</p> : null}
+          {!isInstalledPwa ? (
+            <p>
+              Para ver el badge en el icono, instala Smellme.cl en la pantalla de inicio y abre
+              la app desde ese icono.
+            </p>
+          ) : null}
+          {!pushSupported ? (
+            <p>Este dispositivo no admite esta función; Realtime, polling, badge compatible y avisos dentro de la app siguen disponibles.</p>
+          ) : null}
+          {notificationPermission === "denied" ? (
+            <p>
+              El permiso fue denegado. Debes activarlo desde Ajustes del iPhone para esta app.
+            </p>
+          ) : null}
+          {badgeDeviceSetting?.badgeEnabled ? (
+            <p>Badge activo en este dispositivo.</p>
+          ) : (
+            <p>Activa el badge desde este dispositivo para sincronizarlo con los pedidos.</p>
+          )}
+          {pushSubscriptionActive ? (
+            <p>Notificaciones activas para este dispositivo.</p>
+          ) : null}
+          {badgeDeviceSetting?.lastSyncAt ? (
+            <p>Ultima sincronizacion: {formatShortDateTime(badgeDeviceSetting.lastSyncAt)}.</p>
+          ) : null}
+        </div>
 
-          <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-5 flex flex-wrap gap-3">
+          {!badgeDeviceSetting?.badgeEnabled ? (
             <button
               type="button"
               disabled={badgeActionLoading || badgeCardLoading || !badgeDeviceId}
               onClick={onActivateBadgeForCurrentDevice}
               className="inline-flex min-h-11 items-center justify-center rounded-[18px] bg-brand-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-brand-200"
             >
-              {badgeActionLoading ? "Activando..." : "Activar badge en este iPhone"}
+              {badgeActionLoading ? "Activando..." : "Activar badge y notificaciones"}
             </button>
-            {badgeDeviceSetting?.badgeEnabled ? (
-              <button
-                type="button"
-                disabled={badgeActionLoading}
-                onClick={onTestBadgeOnCurrentDevice}
-                className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-brand-200 bg-white px-4 py-3 text-sm font-semibold text-brand-900 disabled:cursor-not-allowed disabled:bg-brand-50"
-              >
-                Probar badge
-              </button>
-            ) : null}
-            {pushSupported && pushSubscriptionActive ? (
-              <button
-                type="button"
-                disabled={badgeActionLoading}
-                onClick={onTestPushOnCurrentDevice}
-                className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-brand-200 bg-white px-4 py-3 text-sm font-semibold text-brand-900 disabled:cursor-not-allowed disabled:bg-brand-50"
-              >
-                Probar notificacion
-              </button>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
+          ) : null}
+          {badgeDeviceSetting?.badgeEnabled ? (
+            <button
+              type="button"
+              disabled={badgeActionLoading}
+              onClick={onTestBadgeOnCurrentDevice}
+              className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-brand-200 bg-white px-4 py-3 text-sm font-semibold text-brand-900 disabled:cursor-not-allowed disabled:bg-brand-50"
+            >
+              Probar badge
+            </button>
+          ) : null}
+          {pushSupported && pushSubscriptionActive ? (
+            <button
+              type="button"
+              disabled={badgeActionLoading}
+              onClick={onTestPushOnCurrentDevice}
+              className="inline-flex min-h-11 items-center justify-center rounded-[18px] border border-brand-200 bg-white px-4 py-3 text-sm font-semibold text-brand-900 disabled:cursor-not-allowed disabled:bg-brand-50"
+            >
+              Probar notificacion
+            </button>
+          ) : null}
+        </div>
+      </section>
 
       <section className="rounded-[24px] border border-brand-100 bg-white/95 p-5 shadow-soft">
         <div className="flex flex-wrap items-start justify-between gap-3">
