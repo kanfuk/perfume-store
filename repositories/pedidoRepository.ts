@@ -366,18 +366,24 @@ class MemoryPedidoRepository implements PedidoRepository {
           throw new Error("El pedido local esta inconsistente.");
         }
 
+        // Snapshot-first (hotfix integridad de identidad): un pedido
+        // historico debe conservar siempre la identidad con la que fue
+        // creado, aunque la ficha cliente cambie despues (edicion admin,
+        // o -- el caso del incidente real -- reutilizacion incorrecta por
+        // otro pedido). Fallback a la ficha viva SOLO para pedidos legacy
+        // creados antes de este hotfix (snapshot undefined).
         return {
           id: order.id,
           codigo: order.codigo,
           clienteId: order.clienteId,
-          clienteNombre: customer.nombre,
-          clienteTelefono: customer.telefono,
+          clienteNombre: order.clienteNombreSnapshot ?? customer.nombre,
+          clienteTelefono: order.clienteTelefonoSnapshot ?? customer.telefono,
           clienteLugarTrabajo: customer.lugarTrabajo,
-          clienteRut: customer.rut,
-          clienteEmail: customer.email,
-          clienteRegion: customer.region,
-          clienteComuna: customer.comuna,
-          clienteDireccion: customer.direccion,
+          clienteRut: order.clienteRutSnapshot ?? customer.rut,
+          clienteEmail: order.clienteEmailSnapshot ?? customer.email,
+          clienteRegion: order.clienteRegionSnapshot ?? customer.region,
+          clienteComuna: order.clienteComunaSnapshot ?? customer.comuna,
+          clienteDireccion: order.clienteDireccionSnapshot ?? customer.direccion,
           productoId: firstItem?.productoId ?? "",
           productoNombre:
             normalizedItems.length > 1
@@ -608,23 +614,35 @@ class MemoryPedidoRepository implements PedidoRepository {
       input.metodoDespacho === "STARKEN_POR_PAGAR" ? 0 : DOMICILIO_SEMANAL_COSTO_FALLBACK;
     const total = subtotal + costoDespacho;
 
-    let cliente = input.cliente.telefono
-      ? localStore.customers.find((item) => item.telefono === input.cliente.telefono)
-      : undefined;
+    // Regla de identidad segura (hotfix integridad de identidad, espejo de
+    // create_perfume_order_v1 en
+    // supabase/migrations/20260816000000_smellme_customer_order_identity_integrity.sql):
+    // el checkout publico exige RUT valido, asi que NUNCA se reutiliza un
+    // cliente solo porque coincide telefono o solo porque coincide correo.
+    // Solo se reutiliza cuando el RUT coincide Y ADEMAS coincide telefono o
+    // correo exactos (en ese orden). Si el RUT coincide pero ni telefono ni
+    // correo coinciden, es un conflicto de identidad: se crea una ficha
+    // cliente nueva en vez de mezclar dos personas distintas.
+    let cliente: (typeof localStore.customers)[number] | undefined;
 
-    if (!cliente && input.cliente.rut) {
-      cliente = localStore.customers.find((item) => item.rut === input.cliente.rut);
-    }
+    if (input.cliente.rut) {
+      if (input.cliente.telefono) {
+        cliente = localStore.customers.find(
+          (item) => item.rut === input.cliente.rut && item.telefono === input.cliente.telefono
+        );
+      }
 
-    if (!cliente && input.cliente.email) {
-      cliente = localStore.customers.find((item) => item.email === input.cliente.email);
+      if (!cliente && input.cliente.email) {
+        cliente = localStore.customers.find(
+          (item) => item.rut === input.cliente.rut && item.email === input.cliente.email
+        );
+      }
     }
 
     let clienteId: string;
 
     if (cliente) {
       cliente.nombre = input.cliente.nombre;
-      cliente.rut = input.cliente.rut ?? cliente.rut;
       cliente.email = input.cliente.email ?? cliente.email;
       cliente.telefono = input.cliente.telefono ?? cliente.telefono;
       cliente.region = input.cliente.region ?? cliente.region;
@@ -666,7 +684,18 @@ class MemoryPedidoRepository implements PedidoRepository {
       observacion: input.observacion,
       stockRepuesto: false,
       adminSeen: false,
-      fechaPedido: new Date().toISOString()
+      fechaPedido: new Date().toISOString(),
+      // Snapshot historico: valores de ESTE pedido, no lo que termine
+      // quedando en localStore.customers despues (que puede cambiar si
+      // otra persona reutiliza o edita esa misma ficha mas adelante).
+      clienteNombreSnapshot: input.cliente.nombre,
+      clienteRutSnapshot: input.cliente.rut,
+      clienteEmailSnapshot: input.cliente.email,
+      clienteTelefonoSnapshot: input.cliente.telefono,
+      clienteRegionSnapshot: input.cliente.region,
+      clienteComunaSnapshot: input.cliente.comuna,
+      clienteDireccionSnapshot: input.cliente.direccion,
+      clienteReferenciaDireccionSnapshot: input.cliente.referenciaDireccion
     });
 
     const responseItems: PedidoTransaccionalItem[] = [];
@@ -1279,6 +1308,13 @@ class SupabasePedidoRepository implements PedidoRepository {
         fecha_cancelacion,
         motivo_cancelacion,
         stock_repuesto,
+        cliente_nombre_snapshot,
+        cliente_rut_snapshot,
+        cliente_email_snapshot,
+        cliente_telefono_snapshot,
+        cliente_region_snapshot,
+        cliente_comuna_snapshot,
+        cliente_direccion_snapshot,
         clientes:cliente_id (nombre, telefono, lugar_trabajo, rut, email, region, comuna, direccion),
         pedido_items (
           cantidad,
@@ -1331,18 +1367,24 @@ class SupabasePedidoRepository implements PedidoRepository {
           ? firstItem?.productoNombre ?? "Producto"
           : `${normalizedItems.length} productos`;
 
+      // Snapshot-first (hotfix integridad de identidad): un pedido
+      // historico debe conservar siempre la identidad con la que fue
+      // creado, aunque la ficha cliente cambie despues (edicion admin, o
+      // -- el caso del incidente real -- reutilizacion incorrecta por otro
+      // pedido). Fallback a la ficha viva (clientes:cliente_id) SOLO para
+      // pedidos legacy creados antes de este hotfix (snapshot null).
       return {
         id: order.id,
         codigo: order.codigo ?? undefined,
         clienteId: order.cliente_id,
-        clienteNombre: customer?.nombre ?? "Sin nombre",
-        clienteTelefono: customer?.telefono ?? "",
+        clienteNombre: order.cliente_nombre_snapshot ?? customer?.nombre ?? "Sin nombre",
+        clienteTelefono: order.cliente_telefono_snapshot ?? customer?.telefono ?? "",
         clienteLugarTrabajo: customer?.lugar_trabajo ?? "",
-        clienteRut: customer?.rut ?? undefined,
-        clienteEmail: customer?.email ?? undefined,
-        clienteRegion: customer?.region ?? undefined,
-        clienteComuna: customer?.comuna ?? undefined,
-        clienteDireccion: customer?.direccion ?? undefined,
+        clienteRut: order.cliente_rut_snapshot ?? customer?.rut ?? undefined,
+        clienteEmail: order.cliente_email_snapshot ?? customer?.email ?? undefined,
+        clienteRegion: order.cliente_region_snapshot ?? customer?.region ?? undefined,
+        clienteComuna: order.cliente_comuna_snapshot ?? customer?.comuna ?? undefined,
+        clienteDireccion: order.cliente_direccion_snapshot ?? customer?.direccion ?? undefined,
         productoId: firstItem?.productoId ?? "",
         productoNombre: summaryProductName,
         cantidad: totalCantidad,

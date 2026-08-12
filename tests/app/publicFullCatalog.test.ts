@@ -104,16 +104,24 @@ describe("catálogo público completo (debajo de Top 15 / Ofertas)", () => {
   it("no crea ninguna migration Supabase nueva para esta feature (100% presentación)", () => {
     // Esta feature reutiliza /api/products tal cual; no debe introducir
     // migraciones nuevas. La ultima migracion conocida antes de esta fase es
-    // la de eliminacion segura de productos (V2.2.1). La unica migracion mas
-    // reciente permitida es la de edicion segura de nombre (Parte A de esta
-    // misma rama, ver docs/SMELLME_SAFE_PRODUCT_RENAME_DESIGN.md) -- no
-    // pertenece al catalogo publico, por eso se excluye explicitamente aqui.
+    // la de eliminacion segura de productos (V2.2.1). Las siguientes
+    // migraciones mas recientes son de otras ramas/fases -- no pertenecen al
+    // catalogo publico, por eso se excluyen explicitamente aqui:
+    //  - edicion segura de nombre (Parte A de esta misma rama, ver
+    //    docs/SMELLME_SAFE_PRODUCT_RENAME_DESIGN.md);
+    //  - hotfix de integridad de identidad del comprador (rama
+    //    hotfix/customer-order-identity-integrity, snapshot historico en
+    //    pedidos + regla de identidad segura en create_perfume_order_v1).
     const baselineMigration = "20260814000000_smellme_safe_product_removal.sql";
-    const knownRenameMigration = "20260815000000_smellme_product_name_manual_lock.sql";
+    const knownUnrelatedMigrations = new Set([
+      "20260815000000_smellme_product_name_manual_lock.sql",
+      "20260816000000_smellme_customer_order_identity_integrity.sql"
+    ]);
     const allMigrations = readdirSync("supabase/migrations");
     expect(allMigrations).toContain(baselineMigration);
     const newerThanKnownBaseline = allMigrations.filter(
-      (name) => name.endsWith(".sql") && name > baselineMigration && name !== knownRenameMigration
+      (name) =>
+        name.endsWith(".sql") && name > baselineMigration && !knownUnrelatedMigrations.has(name)
     );
     expect(newerThanKnownBaseline).toEqual([]);
   });
