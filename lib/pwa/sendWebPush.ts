@@ -17,6 +17,14 @@ type PushSubscriptionRow = {
   auth: string;
 };
 
+export type SendPendingOrdersPushResult = {
+  sent: number;
+  failed: number;
+  expired: number;
+  skipped: boolean;
+  reason?: string;
+};
+
 let vapidConfigured = false;
 
 function getAdminOrdersUrl() {
@@ -119,10 +127,35 @@ function buildDeclarativePushPayload(args: SendPendingOrdersPushArgs) {
   });
 }
 
-export async function sendPendingOrdersPushToAdmins(args: SendPendingOrdersPushArgs) {
+type SubscriptionSendOutcome = "sent" | "expired" | "failed";
+
+async function sendToSubscription(subscriptionRow: PushSubscriptionRow, payload: string): Promise<SubscriptionSendOutcome> {
+  try {
+    await webpush.sendNotification(buildPushSubscription(subscriptionRow), payload);
+    return "sent";
+  } catch (error) {
+    const statusCode =
+      typeof error === "object" && error && "statusCode" in error
+        ? Number((error as { statusCode?: number }).statusCode)
+        : 0;
+
+    if (statusCode === 404 || statusCode === 410) {
+      await deactivatePushSubscription(subscriptionRow.id);
+      return "expired";
+    }
+
+    return "failed";
+  }
+}
+
+export async function sendPendingOrdersPushToAdmins(
+  args: SendPendingOrdersPushArgs
+): Promise<SendPendingOrdersPushResult> {
   if (!ensureVapidDetails()) {
     return {
       sent: 0,
+      failed: 0,
+      expired: 0,
       skipped: true,
       reason: "VAPID_NOT_CONFIGURED"
     };
@@ -137,8 +170,10 @@ export async function sendPendingOrdersPushToAdmins(args: SendPendingOrdersPushA
   if (error) {
     return {
       sent: 0,
+      failed: 0,
+      expired: 0,
       skipped: true,
-      reason: error.message
+      reason: "SUBSCRIPTIONS_QUERY_FAILED"
     };
   }
 
@@ -157,6 +192,8 @@ export async function sendPendingOrdersPushToAdmins(args: SendPendingOrdersPushA
   if (filteredSubscriptions.length === 0) {
     return {
       sent: 0,
+      failed: 0,
+      expired: 0,
       skipped: true,
       reason: "NO_ACTIVE_SUBSCRIPTIONS"
     };
@@ -164,28 +201,14 @@ export async function sendPendingOrdersPushToAdmins(args: SendPendingOrdersPushA
 
   const payload = buildDeclarativePushPayload(args);
 
-  const results = await Promise.allSettled(
-    filteredSubscriptions.map(async (subscriptionRow) => {
-      try {
-        await webpush.sendNotification(buildPushSubscription(subscriptionRow), payload);
-        return true;
-      } catch (error) {
-        const statusCode =
-          typeof error === "object" && error && "statusCode" in error
-            ? Number((error as { statusCode?: number }).statusCode)
-            : 0;
-
-        if (statusCode === 404 || statusCode === 410) {
-          await deactivatePushSubscription(subscriptionRow.id);
-        }
-
-        throw error;
-      }
-    })
+  const outcomes = await Promise.all(
+    filteredSubscriptions.map((subscriptionRow) => sendToSubscription(subscriptionRow, payload))
   );
 
   return {
-    sent: results.filter((result) => result.status === "fulfilled").length,
+    sent: outcomes.filter((outcome) => outcome === "sent").length,
+    failed: outcomes.filter((outcome) => outcome === "failed").length,
+    expired: outcomes.filter((outcome) => outcome === "expired").length,
     skipped: false
   };
 }
