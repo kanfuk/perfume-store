@@ -46,7 +46,7 @@ import {
 } from "./cache";
 import { getDefaultRecheckSeconds, getDependencyErrorBackoffSeconds, getEntitlementConfig, isProductionRuntime } from "./config";
 import { getMockEntitlementResponse } from "./mock";
-import type { EntitlementCheckResponse, EntitlementNoticePayload } from "./schema";
+import type { EntitlementCheckResponse, EntitlementNoticePayload, EntitlementStatus } from "./schema";
 
 export type AdminEntitlementReason =
   | "authoritative-allow"
@@ -65,6 +65,8 @@ export type AdminEntitlementReason =
 export type AdminEntitlementDecision = {
   blocked: boolean;
   notice: EntitlementNoticePayload | null;
+  /** Estado autoritativo de Control; null para bloqueos/fallbacks tecnicos. */
+  status: EntitlementStatus | null;
   /** Motivo interno para logging/tests -- nunca se muestra tal cual al usuario final. */
   reason: AdminEntitlementReason;
 };
@@ -78,16 +80,17 @@ function fromAuthoritativeResponse(
   return {
     blocked,
     notice: blocked ? null : response.notice,
+    status: response.status,
     reason: blocked ? reasonWhenDeny : reasonWhenAllow
   };
 }
 
 function reuseFreshCacheEntry(entry: CachedEntitlementEntry): AdminEntitlementDecision {
   if (entry.source === "token-invalid") {
-    return { blocked: true, notice: null, reason: "cache-hit-token-invalid" };
+    return { blocked: true, notice: null, status: null, reason: "cache-hit-token-invalid" };
   }
   if (entry.source === "fallback-allow") {
-    return { blocked: false, notice: null, reason: "cache-hit-fallback-allow" };
+    return { blocked: false, notice: null, status: null, reason: "cache-hit-fallback-allow" };
   }
   // source === "authoritative"
   return fromAuthoritativeResponse(entry.response as EntitlementCheckResponse, "cache-hit-allow", "cache-hit-deny");
@@ -105,7 +108,7 @@ function reuseStaleDecision(cached: CachedEntitlementEntry): AdminEntitlementDec
   });
 
   if (cached.source === "token-invalid") {
-    return { blocked: true, notice: null, reason: "dependency-error-stale-deny" };
+    return { blocked: true, notice: null, status: null, reason: "dependency-error-stale-deny" };
   }
   return fromAuthoritativeResponse(
     cached.response as EntitlementCheckResponse,
@@ -123,12 +126,12 @@ function missingConfigDecision(): AdminEntitlementDecision {
     // mostrar un mensaje de configuracion, no uno de suspension comercial,
     // y para que ningun log/metric lo confunda con una decision real de
     // Control.
-    return { blocked: true, notice: null, reason: "configuration-error" };
+    return { blocked: true, notice: null, status: null, reason: "configuration-error" };
   }
   // Desarrollo/test sin config real ni mock explicito: no bloquear el
   // trabajo local (Fase 7A: mientras no exista un token real, el entorno
   // local no debe quedar inutilizable).
-  return { blocked: false, notice: null, reason: "not-configured-fail-open" };
+  return { blocked: false, notice: null, status: null, reason: "not-configured-fail-open" };
 }
 
 export async function evaluateAdminEntitlement(): Promise<AdminEntitlementDecision> {
@@ -165,7 +168,7 @@ export async function evaluateAdminEntitlement(): Promise<AdminEntitlementDecisi
   if (result.kind === "unauthorized") {
     // FAIL CLOSED: token invalido/revocado no es transitorio (seccion 9).
     setCachedEntitlement({ response: null, source: "token-invalid", recheckAfterSeconds: getDefaultRecheckSeconds() });
-    return { blocked: true, notice: null, reason: "token-invalid" };
+    return { blocked: true, notice: null, status: null, reason: "token-invalid" };
   }
 
   if (result.kind === "not-configured") {
@@ -186,5 +189,5 @@ export async function evaluateAdminEntitlement(): Promise<AdminEntitlementDecisi
   // Sin ninguna decision previa util: fail-open temporal (seccion 11.2),
   // cacheado brevemente para no reintentar Control en cada request.
   setCachedEntitlement({ response: null, source: "fallback-allow", recheckAfterSeconds: getDependencyErrorBackoffSeconds() });
-  return { blocked: false, notice: null, reason: "dependency-error-fail-open-no-previous" };
+  return { blocked: false, notice: null, status: null, reason: "dependency-error-fail-open-no-previous" };
 }

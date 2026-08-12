@@ -37,7 +37,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
         <AdminPwaInitializer />
         <SuspendedAdminScreen
           notice={entitlement.notice}
-          variant={entitlement.reason === "configuration-error" ? "configuration-error" : "suspended"}
+          variant={entitlement.status === "SUSPENDED" ? "suspended" : "technical"}
         />
       </>
     );
