@@ -21,23 +21,12 @@ function getPublicVapidKey() {
   return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() || "";
 }
 
-function getWindowPushManager(): PushManagerLike | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const windowWithPushManager = window as Window & {
-    pushManager?: PushManagerLike;
-  };
-
-  return windowWithPushManager.pushManager ?? null;
-}
-
 export function isPushNotificationsSupported() {
   return (
     typeof window !== "undefined" &&
     "Notification" in window &&
-    (Boolean(getWindowPushManager()) || ("serviceWorker" in navigator && "PushManager" in window))
+    "serviceWorker" in navigator &&
+    "PushManager" in window
   );
 }
 
@@ -54,17 +43,7 @@ function base64UrlToUint8Array(base64UrlString: string) {
   return outputArray;
 }
 
-async function getPreferredPushManager() {
-  const windowPushManager = getWindowPushManager();
-
-  if (windowPushManager) {
-    void registerAdminServiceWorker().catch(() => {
-      // El registro del service worker sigue siendo util para clicks y fallback,
-      // pero no bloquea la suscripcion declarativa en Safari/iPhone.
-    });
-    return windowPushManager;
-  }
-
+async function getPreferredPushManager(): Promise<PushManagerLike | null> {
   const registration = await registerAdminServiceWorker();
   return registration?.pushManager ?? null;
 }

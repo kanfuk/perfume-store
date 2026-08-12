@@ -24,6 +24,19 @@ describe("PWA Smellme y avisos de pedidos", () => {
     expect(worker).toContain('self.addEventListener("notificationclick"');
   });
 
+  it("el service worker conserva setAppBadge/clearAppBadge/showNotification y abre /admin/pedidos al click", () => {
+    expect(worker).toContain("navigator.setAppBadge(payload.pendingCount)");
+    expect(worker).toContain("navigator.clearAppBadge()");
+    expect(worker).toContain("self.registration.showNotification(payload.title");
+    expect(worker).toContain('self.addEventListener("notificationclick"');
+    expect(worker).toContain('event.notification.data?.url || "/admin/pedidos"');
+  });
+
+  it("usa el mismo tag de notificacion en servidor y service worker para evitar duplicados por pedido", () => {
+    expect(push).toContain('tag: "smellme-admin-pending-orders"');
+    expect(worker).toContain('"smellme-admin-pending-orders"');
+  });
+
   it("ambos manifests declaran nombre, slogan, colores e iconos maskable", () => {
     for (const file of ["public/site.webmanifest", "public/admin.webmanifest"]) {
       const manifest = JSON.parse(readFileSync(file, "utf8")) as { name: string; description: string; theme_color: string; background_color: string; icons: Array<{ purpose?: string; sizes: string }> };
