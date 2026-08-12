@@ -45,6 +45,22 @@ export type LocalOrderRecord = {
   fechaDespacho?: string;
   fechaEntrega?: string;
   fechaCancelacion?: string;
+  /**
+   * Identidad del comprador congelada al crear el pedido (hotfix
+   * integridad de identidad). Fuente de verdad para mostrar el pedido;
+   * clienteId sigue siendo la relacion con la ficha maestra, que puede
+   * cambiar de datos despues sin alterar estos snapshots. undefined en
+   * pedidos creados antes del hotfix: el codigo de lectura hace fallback
+   * a la ficha cliente viva solo en ese caso.
+   */
+  clienteNombreSnapshot?: string;
+  clienteRutSnapshot?: string;
+  clienteEmailSnapshot?: string;
+  clienteTelefonoSnapshot?: string;
+  clienteRegionSnapshot?: string;
+  clienteComunaSnapshot?: string;
+  clienteDireccionSnapshot?: string;
+  clienteReferenciaDireccionSnapshot?: string;
 };
 
 export type LocalOrderItemRecord = {
