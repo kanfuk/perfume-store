@@ -87,8 +87,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (pushResult.sent === 0) {
+      return NextResponse.json(
+        {
+          error: "No fue posible entregar la notificación al servicio push del dispositivo."
+        },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({
-      message: "Notificación de prueba enviada al dispositivo actual."
+      message: "El servicio push aceptó la notificación de prueba para este dispositivo."
     });
   } catch (error) {
     return NextResponse.json(
