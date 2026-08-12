@@ -3,17 +3,21 @@ import { SmellmeMonogram } from "@/components/SmellmeBrand";
 import { EntitlementNotice } from "@/components/admin/EntitlementNotice";
 import type { EntitlementNoticePayload } from "@/lib/entitlements";
 
-type SuspendedAdminScreenVariant = "suspended" | "configuration-error";
+type SuspendedAdminScreenVariant = "suspended" | "technical";
+
+const WHATSAPP_MESSAGE =
+  "Hola, necesito regularizar la mensualidad de mi aplicación para reactivar el acceso administrativo.";
+const WHATSAPP_URL = `https://wa.me/56994348554?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 
 const COPY: Record<SuspendedAdminScreenVariant, { title: string; description: string }> = {
   suspended: {
-    title: "Acceso administrativo temporalmente suspendido",
+    title: "Acceso administrativo suspendido",
     description:
-      "El acceso administrativo se encuentra temporalmente suspendido. Regulariza el estado del servicio para recuperar el acceso."
+      "Tu acceso al panel administrativo se encuentra temporalmente suspendido por una situación pendiente con el servicio."
   },
-  "configuration-error": {
+  technical: {
     title: "Acceso administrativo temporalmente no disponible",
-    description: "Existe un problema de configuración del servicio. Contacta al administrador del sistema."
+    description: "Existe un problema de configuración o disponibilidad del servicio. Contacta a Riedmann Apps."
   }
 };
 
@@ -25,13 +29,10 @@ const COPY: Record<SuspendedAdminScreenVariant, { title: string; description: st
  * variable de entorno faltante, URL interna, stack trace, ni ningun detalle
  * interno de Control.
  *
- * - "suspended": Control respondio DENY autoritativo (SUSPENDED/CANCELLED)
- *   o el token es invalido/revocado (401) -- hay integracion real y una
- *   decision (o falta de credencial) que resolver del lado comercial.
- * - "configuration-error": Production no tiene el installation
- *   token/URL configurados. NO es una decision de Control -- es un error de
- *   configuracion de Perfume Store, y se comunica como tal para no
- *   confundir a nadie con una suspension comercial que no ocurrio.
+ * - "suspended": Control respondio DENY autoritativo con status SUSPENDED.
+ * - "technical": cualquier otro bloqueo (CANCELLED, token invalido,
+ *   configuracion ausente u otro fail-closed) usa copy neutral, sin afirmar
+ *   deuda ni solicitar un pago.
  *
  * No cierra sesion (seccion 26): el layout que renderiza esta pantalla
  * (app/admin/layout.tsx) no toca cookies ni Supabase Auth, solo deja de
@@ -61,13 +62,46 @@ export function SuspendedAdminScreen({
       <h1 className="mt-6 max-w-lg text-2xl font-bold text-[#191714]">{copy.title}</h1>
       <p className="mt-3 max-w-md text-sm leading-6 text-[#6B6258]">{copy.description}</p>
 
+      {variant === "suspended" ? (
+        <>
+          <p className="mt-6 max-w-md rounded-2xl border border-[#D8C5AE] bg-white/70 px-5 py-4 text-sm font-semibold leading-6 text-[#4D3528] shadow-sm">
+            Actualiza tu situación de pago para reactivar el acceso.
+          </p>
+          <p className="mt-4 max-w-md text-sm leading-6 text-[#6B6258]">
+            Tus datos, catálogo y tienda pública se mantienen disponibles.
+          </p>
+          <div className="mt-7 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+            <a
+              className="rounded-xl bg-[#191714] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#352f29] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#191714]"
+              href={WHATSAPP_URL}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Regularizar por WhatsApp
+            </a>
+            <a
+              className="rounded-xl border border-[#CDBEAD] bg-white/60 px-5 py-3 text-sm font-semibold text-[#352f29] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6B6258]"
+              href="https://riedmannapps.com"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Visitar Riedmann Apps
+            </a>
+          </div>
+        </>
+      ) : null}
+
       {notice ? (
         <div className="mt-6 w-full max-w-md overflow-hidden rounded-2xl border border-[#DDD0C1]">
           <EntitlementNotice notice={notice} />
         </div>
       ) : null}
 
-      <p className="mt-10 text-xs text-[#8C8175]">Riedmann Apps</p>
+      <p className="mt-10 max-w-md text-xs leading-5 text-[#8C8175]">
+        {variant === "suspended"
+          ? "Una vez regularizada la situación, el acceso se reactivará automáticamente."
+          : "Riedmann Apps"}
+      </p>
     </main>
   );
 }

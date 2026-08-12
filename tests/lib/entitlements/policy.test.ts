@@ -32,12 +32,22 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
   // Seccion 8: semantica autoritativa de cada estado.
   it("ACTIVE -> ALLOW, sin notice", async () => {
     checkAdminEntitlement.mockResolvedValue({ kind: "success", response: MOCK_ENTITLEMENT_RESPONSES.ACTIVE });
-    expect(await evaluateAdminEntitlement()).toEqual({ blocked: false, notice: null, reason: "authoritative-allow" });
+    expect(await evaluateAdminEntitlement()).toEqual({
+      blocked: false,
+      notice: null,
+      status: "ACTIVE",
+      reason: "authoritative-allow"
+    });
   });
 
   it("OVERDUE -> ALLOW, admin sigue operativo", async () => {
     checkAdminEntitlement.mockResolvedValue({ kind: "success", response: MOCK_ENTITLEMENT_RESPONSES.OVERDUE });
-    expect(await evaluateAdminEntitlement()).toEqual({ blocked: false, notice: null, reason: "authoritative-allow" });
+    expect(await evaluateAdminEntitlement()).toEqual({
+      blocked: false,
+      notice: null,
+      status: "OVERDUE",
+      reason: "authoritative-allow"
+    });
   });
 
   it("GRACE_PERIOD -> ALLOW + notice validado por Control (nunca inventado)", async () => {
@@ -49,18 +59,33 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
 
   it("SUSPENDED ADMIN_ONLY -> DENY, bloquea admin", async () => {
     checkAdminEntitlement.mockResolvedValue({ kind: "success", response: MOCK_ENTITLEMENT_RESPONSES.SUSPENDED });
-    expect(await evaluateAdminEntitlement()).toEqual({ blocked: true, notice: null, reason: "authoritative-deny" });
+    expect(await evaluateAdminEntitlement()).toEqual({
+      blocked: true,
+      notice: null,
+      status: "SUSPENDED",
+      reason: "authoritative-deny"
+    });
   });
 
   it("CANCELLED -> DENY, respeta el DENY segun contrato", async () => {
     checkAdminEntitlement.mockResolvedValue({ kind: "success", response: MOCK_ENTITLEMENT_RESPONSES.CANCELLED });
-    expect(await evaluateAdminEntitlement()).toEqual({ blocked: true, notice: null, reason: "authoritative-deny" });
+    expect(await evaluateAdminEntitlement()).toEqual({
+      blocked: true,
+      notice: null,
+      status: "CANCELLED",
+      reason: "authoritative-deny"
+    });
   });
 
   // Seccion 9: fail closed.
   it("401 -> FAIL CLOSED (token invalido no es transitorio)", async () => {
     checkAdminEntitlement.mockResolvedValue({ kind: "unauthorized" });
-    expect(await evaluateAdminEntitlement()).toEqual({ blocked: true, notice: null, reason: "token-invalid" });
+    expect(await evaluateAdminEntitlement()).toEqual({
+      blocked: true,
+      notice: null,
+      status: null,
+      reason: "token-invalid"
+    });
   });
 
   // Fase 7A: config faltante (aun sin token real) nunca bloquea el rollout.
@@ -69,6 +94,7 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
     expect(await evaluateAdminEntitlement()).toEqual({
       blocked: false,
       notice: null,
+      status: null,
       reason: "not-configured-fail-open"
     });
   });
@@ -92,6 +118,7 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
     expect(await evaluateAdminEntitlement()).toEqual({
       blocked: false,
       notice: null,
+      status: null,
       reason: "dependency-error-fail-open-no-previous"
     });
   });
@@ -106,7 +133,12 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
     checkAdminEntitlement.mockResolvedValueOnce({ kind: "dependency-error", reason: "http-error", httpStatus: 503 });
     const result = await evaluateAdminEntitlement();
 
-    expect(result).toEqual({ blocked: false, notice: null, reason: "dependency-error-stale-allow" });
+    expect(result).toEqual({
+      blocked: false,
+      notice: null,
+      status: "ACTIVE",
+      reason: "dependency-error-stale-allow"
+    });
   });
 
   it("503 con un DENY autoritativo previo cacheado -> mantiene el DENY, NUNCA lo convierte en ALLOW (seccion 14, critico)", async () => {
@@ -119,7 +151,12 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
     checkAdminEntitlement.mockResolvedValueOnce({ kind: "dependency-error", reason: "network" });
     const result = await evaluateAdminEntitlement();
 
-    expect(result).toEqual({ blocked: true, notice: null, reason: "dependency-error-stale-deny" });
+    expect(result).toEqual({
+      blocked: true,
+      notice: null,
+      status: "SUSPENDED",
+      reason: "dependency-error-stale-deny"
+    });
   });
 
   it("503 con un token-invalid previo cacheado -> mantiene el DENY", async () => {
@@ -132,7 +169,12 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
     checkAdminEntitlement.mockResolvedValueOnce({ kind: "dependency-error", reason: "timeout" });
     const result = await evaluateAdminEntitlement();
 
-    expect(result).toEqual({ blocked: true, notice: null, reason: "dependency-error-stale-deny" });
+    expect(result).toEqual({
+      blocked: true,
+      notice: null,
+      status: null,
+      reason: "dependency-error-stale-deny"
+    });
   });
 
   // Seccion 12: cache hit nunca vuelve a consultar Control.
@@ -177,7 +219,12 @@ describe("entitlements/policy - evaluateAdminEntitlement", () => {
     checkAdminEntitlement.mockResolvedValueOnce({ kind: "success", response: MOCK_ENTITLEMENT_RESPONSES.ACTIVE });
     const reactivated = await evaluateAdminEntitlement();
 
-    expect(reactivated).toEqual({ blocked: false, notice: null, reason: "authoritative-allow" });
+    expect(reactivated).toEqual({
+      blocked: false,
+      notice: null,
+      status: "ACTIVE",
+      reason: "authoritative-allow"
+    });
   });
 
   // Modo mock de dev/test (secciones 33-34): nunca llama al cliente HTTP real.
@@ -215,7 +262,7 @@ describe("entitlements/policy - configuracion ausente en Production (patch de se
 
     const result = await evaluateAdminEntitlement();
 
-    expect(result).toEqual({ blocked: true, notice: null, reason: "configuration-error" });
+    expect(result).toEqual({ blocked: true, notice: null, status: null, reason: "configuration-error" });
   });
 
   it("NODE_ENV=production + token ausente -> admin fail-closed (configuration-error)", async () => {
@@ -225,7 +272,7 @@ describe("entitlements/policy - configuracion ausente en Production (patch de se
 
     const result = await evaluateAdminEntitlement();
 
-    expect(result).toEqual({ blocked: true, notice: null, reason: "configuration-error" });
+    expect(result).toEqual({ blocked: true, notice: null, status: null, reason: "configuration-error" });
   });
 
   it("NODE_ENV=production + ambas variables ausentes -> admin fail-closed (configuration-error)", async () => {
@@ -235,7 +282,7 @@ describe("entitlements/policy - configuracion ausente en Production (patch de se
 
     const result = await evaluateAdminEntitlement();
 
-    expect(result).toEqual({ blocked: true, notice: null, reason: "configuration-error" });
+    expect(result).toEqual({ blocked: true, notice: null, status: null, reason: "configuration-error" });
   });
 
   // Test 11 del patch: nunca se etiqueta como decision autoritativa de Control.
@@ -260,7 +307,7 @@ describe("entitlements/policy - configuracion ausente en Production (patch de se
   it("NODE_ENV=development sin config real ni mock -> fail-open (no bloquea el trabajo local)", async () => {
     vi.stubEnv("NODE_ENV", "development");
     const result = await evaluateAdminEntitlement();
-    expect(result).toEqual({ blocked: false, notice: null, reason: "not-configured-fail-open" });
+    expect(result).toEqual({ blocked: false, notice: null, status: null, reason: "not-configured-fail-open" });
     expect(checkAdminEntitlement).not.toHaveBeenCalled();
   });
 
@@ -268,7 +315,7 @@ describe("entitlements/policy - configuracion ausente en Production (patch de se
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("RIEDMANN_APPS_MOCK_STATUS", "SUSPENDED");
     const result = await evaluateAdminEntitlement();
-    expect(result).toEqual({ blocked: true, notice: null, reason: "authoritative-deny" });
+    expect(result).toEqual({ blocked: true, notice: null, status: "SUSPENDED", reason: "authoritative-deny" });
     expect(checkAdminEntitlement).not.toHaveBeenCalled();
   });
 
@@ -290,7 +337,7 @@ describe("entitlements/policy - configuracion ausente en Production (patch de se
     vi.stubEnv("RIEDMANN_APPS_INSTALLATION_TOKEN", "token-real");
     checkAdminEntitlement.mockResolvedValueOnce({ kind: "success", response: MOCK_ENTITLEMENT_RESPONSES.ACTIVE });
     const withConfig = await evaluateAdminEntitlement();
-    expect(withConfig).toEqual({ blocked: false, notice: null, reason: "authoritative-allow" });
+    expect(withConfig).toEqual({ blocked: false, notice: null, status: "ACTIVE", reason: "authoritative-allow" });
 
     // 2) La config desaparece (ej. redeploy sin las env vars), TODAVIA
     // dentro de la ventana fresca del cache (recheckAfterSeconds no vencio).
@@ -299,7 +346,7 @@ describe("entitlements/policy - configuracion ausente en Production (patch de se
 
     const withoutConfig = await evaluateAdminEntitlement();
 
-    expect(withoutConfig).toEqual({ blocked: true, notice: null, reason: "configuration-error" });
+    expect(withoutConfig).toEqual({ blocked: true, notice: null, status: null, reason: "configuration-error" });
   });
 
   // Test 5 del patch: el storefront nunca invoca este codigo, config Production ausente o no.
