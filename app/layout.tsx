@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { AppFeedbackProvider } from "@/components/ui/AppFeedbackProvider";
 import { appInfo } from "@/lib/app-info";
+import { publicOrigin } from "@/lib/public-url";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://smellme.cl"),
+  metadataBase: new URL(publicOrigin),
   applicationName: appInfo.name,
   title: {
     default: `${appInfo.name} — ${appInfo.tagline}`,

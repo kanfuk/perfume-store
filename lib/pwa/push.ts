@@ -1,4 +1,5 @@
 import { getCurrentDeviceLabel, getOrCreateDeviceId } from "@/lib/pwa/device";
+import { shouldRequestNotificationPermission } from "@/lib/pwa/admin-push-state";
 import {
   getNotificationPermissionState,
   isRunningAsInstalledPwa,
@@ -83,7 +84,7 @@ export async function subscribeCurrentDeviceToPush() {
   }
 
   const nextPermission =
-    notificationPermission === "default"
+    shouldRequestNotificationPermission(notificationPermission)
       ? await requestNotificationPermission()
       : notificationPermission;
 
@@ -147,12 +148,7 @@ export async function subscribeCurrentDeviceToPush() {
 export async function unsubscribeCurrentDeviceFromPush() {
   const currentSubscription = await getCurrentPushSubscription();
   const notificationPermission = await getNotificationPermissionState();
-
-  if (currentSubscription) {
-    await currentSubscription.unsubscribe();
-  }
-
-  await fetch("/api/admin/push-subscriptions", {
+  const response = await fetch("/api/admin/push-subscriptions", {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json"
@@ -161,6 +157,15 @@ export async function unsubscribeCurrentDeviceFromPush() {
       deviceId: getOrCreateDeviceId()
     })
   });
+  const data = (await response.json()) as { error?: string };
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "No fue posible desactivar la suscripción push.");
+  }
+
+  if (currentSubscription) {
+    await currentSubscription.unsubscribe();
+  }
 
   return {
     notificationPermission

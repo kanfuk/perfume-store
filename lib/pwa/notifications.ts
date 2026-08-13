@@ -77,7 +77,7 @@ export async function requestBadgePermissionForCurrentDevice(): Promise<BadgePer
     if (result.notificationSupported) {
       const currentPermission = Notification.permission;
       result.notificationPermission =
-        currentPermission === "default"
+        shouldRequestNotificationPermission(currentPermission)
           ? await Notification.requestPermission()
           : currentPermission;
 
@@ -104,3 +104,4 @@ export async function requestBadgePermissionForCurrentDevice(): Promise<BadgePer
     return result;
   }
 }
+import { shouldRequestNotificationPermission } from "@/lib/pwa/admin-push-state";

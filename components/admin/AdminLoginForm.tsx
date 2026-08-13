@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { requestAdminPasswordRecovery } from "@/lib/admin/passwordRecovery";
 import { appInfo } from "@/lib/app-info";
+import { getAdminUrl } from "@/lib/public-url";
 
 type AdminLoginFormProps = {
   nextPath: string;
@@ -63,7 +64,7 @@ export function AdminLoginForm({
       const result = await requestAdminPasswordRecovery(
         email,
         supabase.auth,
-        `${window.location.origin}/admin/set-password`
+        getAdminUrl("/admin/set-password")
       );
       setRecoveryMessage(result.message);
     } finally {

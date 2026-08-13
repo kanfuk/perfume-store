@@ -40,9 +40,9 @@ describe("URLs WhatsApp centralizadas", () => {
   });
 
   it.each([
-    ["https://preview-actual.vercel.app/admin/pedidos?token=no", "https://preview-actual.vercel.app/"],
+    ["https://smellme-store.vercel.app/admin/pedidos?token=no", "https://smellme-store.vercel.app/"],
     ["https://smellme.cl/configuracion", "https://smellme.cl/"]
-  ])("resuelve home dinámico para Preview y producción", (origin, root) => {
+  ])("resuelve el home publico sin rutas administrativas", (origin, root) => {
     expect(resolveStorefrontRoot(origin)).toBe(root);
     const message = buildStorefrontShareMessage("Conoce mi tiendita 👋", origin);
     expect(message).toContain(root);

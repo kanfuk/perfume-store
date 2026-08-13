@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import { BusinessSettingsPanel } from "@/components/admin/BusinessSettingsPanel";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getAdminPageData } from "@/lib/admin-dashboard-data";
+import { getNewAdminOrdersCount } from "@/lib/admin/getPendingAdminOrders";
 
 const SETTINGS_SECTIONS = new Set([
   "transferencia",
   "contacto",
   "despacho",
-  "notificaciones",
+  "notificaciones-push",
   "seguridad"
 ]);
 
@@ -25,9 +27,17 @@ export default async function AdminConfiguracionPage({
         | "transferencia"
         | "contacto"
         | "despacho"
-        | "notificaciones"
+        | "notificaciones-push"
         | "seguridad")
     : "transferencia";
 
-  return <BusinessSettingsPanel initialSection={initialSection} />;
+  const initialData = await getAdminPageData();
+  const pendingCount = getNewAdminOrdersCount(initialData.dashboard.pendientes);
+
+  return (
+    <BusinessSettingsPanel
+      initialSection={initialSection}
+      pendingCount={pendingCount}
+    />
+  );
 }

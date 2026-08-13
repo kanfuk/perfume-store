@@ -1,3 +1,5 @@
+import { getAdminUrl } from "@/lib/public-url";
+
 export const ADMIN_USER_ROLES = ["OWNER", "ADMIN"] as const;
 
 export type AdminUserRole = (typeof ADMIN_USER_ROLES)[number];
@@ -46,8 +48,8 @@ export function canResendAdminInvitation(onboardingCompletedAt: string | null) {
   return onboardingCompletedAt === null;
 }
 
-export function buildAdminInviteRedirectUrl(origin: string) {
-  return new URL("/admin/set-password", origin).toString();
+export function buildAdminInviteRedirectUrl(_requestOrigin?: string) {
+  return getAdminUrl("/admin/set-password");
 }
 
 export function validateInviteAdminUserInput(value: unknown):

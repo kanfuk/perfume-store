@@ -149,6 +149,8 @@ describe("sendPendingOrdersPushToAdmins", () => {
     const [, payload] = sendNotification.mock.calls[0] as [unknown, string];
     expect(payload).toContain("Nuevo pedido en Smellme");
     expect(payload).toContain("Tienes un nuevo pedido pendiente de revisión.");
+    expect(payload).toContain("https://smellme-store.vercel.app/admin/pedidos");
+    expect(payload).not.toContain("perfume-store-");
     expect(payload).not.toMatch(/clienteNombre|telefono|direccion|precio|rut/i);
   });
 });

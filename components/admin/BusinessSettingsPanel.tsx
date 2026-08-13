@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Truck
 } from "lucide-react";
+import { AdminPushSettingsPanel } from "@/components/admin/AdminPushSettingsPanel";
 import {
   CHILEAN_ACCOUNT_TYPES,
   OTRA_CUENTA_VALUE
@@ -36,7 +37,7 @@ type SettingsSection =
   | "transferencia"
   | "contacto"
   | "despacho"
-  | "notificaciones"
+  | "notificaciones-push"
   | "seguridad";
 
 const EMPTY_FORM: BusinessPaymentSettingsFormInput = {
@@ -58,14 +59,16 @@ const SECTIONS: Array<{
   { key: "transferencia", label: "Datos de transferencia", icon: CreditCard },
   { key: "contacto", label: "Datos de contacto", icon: Contact },
   { key: "despacho", label: "Despacho", icon: Truck },
-  { key: "notificaciones", label: "Notificaciones", icon: Bell },
+  { key: "notificaciones-push", label: "Notificaciones push", icon: Bell },
   { key: "seguridad", label: "Seguridad", icon: ShieldCheck }
 ];
 
 export function BusinessSettingsPanel({
-  initialSection = "transferencia"
+  initialSection = "transferencia",
+  pendingCount = 0
 }: {
   initialSection?: SettingsSection;
+  pendingCount?: number;
 }) {
   const feedback = useAppFeedback();
   const [section, setSection] = useState<SettingsSection>(initialSection);
@@ -283,6 +286,8 @@ export function BusinessSettingsPanel({
               onChange={updateField}
               onSubmit={savePaymentSettings}
             />
+          ) : section === "notificaciones-push" ? (
+            <AdminPushSettingsPanel pendingCount={pendingCount} />
           ) : section === "seguridad" ? (
             <section className="rounded-[24px] border border-[#DDD0C1] bg-white p-5 shadow-soft sm:p-7">
               <h2 className="text-xl font-bold">Seguridad</h2>

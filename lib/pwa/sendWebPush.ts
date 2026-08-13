@@ -1,4 +1,5 @@
 import webpush, { type PushSubscription } from "web-push";
+import { getAdminUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type SendPendingOrdersPushArgs = {
@@ -26,25 +27,6 @@ export type SendPendingOrdersPushResult = {
 };
 
 let vapidConfigured = false;
-
-function getAdminOrdersUrl() {
-  const configuredBaseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
-    process.env.VERCEL_URL?.trim() ||
-    "";
-
-  if (!configuredBaseUrl) {
-    return "/admin/pedidos";
-  }
-
-  const normalizedBaseUrl = configuredBaseUrl.startsWith("http")
-    ? configuredBaseUrl
-    : `https://${configuredBaseUrl}`;
-
-  return new URL("/admin/pedidos", normalizedBaseUrl).toString();
-}
 
 function getVapidConfig() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
@@ -101,7 +83,7 @@ function buildDeclarativePushPayload(args: SendPendingOrdersPushArgs) {
     pendingCount > 0
       ? "Tienes un nuevo pedido pendiente de revisión."
       : "No quedan pedidos pendientes por revisar.";
-  const navigateUrl = getAdminOrdersUrl();
+  const navigateUrl = getAdminUrl("/admin/pedidos");
 
   return JSON.stringify({
     web_push: 8030,

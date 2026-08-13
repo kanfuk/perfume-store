@@ -1,14 +1,10 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
-import { useSyncExternalStore } from "react";
 import { buildReservationInviteMessage } from "@/lib/whatsapp/buildReservationInviteMessage";
 import { buildWhatsAppShareUrl } from "@/lib/whatsapp/buildWhatsAppShareUrl";
+import { getStorefrontUrl } from "@/lib/public-url";
 import { buildStorefrontShareMessage } from "@/lib/whatsapp/url";
-
-function subscribeToOrigin() { return () => undefined; }
-function getBrowserOrigin() { return window.location.origin; }
-function getServerOrigin() { return ""; }
 
 type WhatsAppFloatingButtonProps = {
   hidden?: boolean;
@@ -19,15 +15,13 @@ export function WhatsAppFloatingButton({
   hidden = false,
   bottomOffsetClassName = "bottom-[calc(24px+env(safe-area-inset-bottom))]"
 }: WhatsAppFloatingButtonProps) {
-  const origin = useSyncExternalStore(subscribeToOrigin, getBrowserOrigin, getServerOrigin);
-
   if (hidden) {
     return null;
   }
 
   const approvedCopy = process.env.NEXT_PUBLIC_WHATSAPP_SHARE_URL?.trim();
-  const shareMessage = approvedCopy || buildReservationInviteMessage();
-  const message = origin && shareMessage ? buildStorefrontShareMessage(shareMessage, origin) : null;
+  const shareMessage = approvedCopy || buildReservationInviteMessage() || "";
+  const message = buildStorefrontShareMessage(shareMessage, getStorefrontUrl());
   const href = message ? buildWhatsAppShareUrl(message) : null;
 
   return (

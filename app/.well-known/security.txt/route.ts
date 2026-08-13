@@ -1,7 +1,9 @@
+import { getPublicUrl } from "@/lib/public-url";
+
 const securityTxt = [
   "Contact: mailto:kanfuk@gmail.com",
   "Preferred-Languages: es, en",
-  "Canonical: https://perfume-store-mu-smoky.vercel.app/.well-known/security.txt",
+  `Canonical: ${getPublicUrl("/.well-known/security.txt")}`,
   "Expires: 2027-06-16T00:00:00.000Z"
 ].join("\n");
 

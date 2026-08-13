@@ -34,8 +34,9 @@ describe("flujo móvil seguro de WhatsApp", () => {
     expect(dashboard).toContain("min-h-11");
   });
 
-  it("comparte el home dinámico sin URL fija ni pestaña auxiliar", () => {
-    expect(floating).toContain("window.location.origin");
+  it("comparte el home publico estable sin origen Preview ni pestaña auxiliar", () => {
+    expect(floating).toContain("getStorefrontUrl");
+    expect(floating).not.toContain("window.location.origin");
     expect(floating).toContain("buildStorefrontShareMessage");
     expect(floating).toContain("Compartir mi tiendita");
     expect(floating).not.toContain("target=\"_blank\"");

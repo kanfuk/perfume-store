@@ -5,8 +5,7 @@ import {
   useEffectEvent,
   useMemo,
   useRef,
-  useState,
-  useSyncExternalStore
+  useState
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -39,6 +38,7 @@ import {
 import { AppFooter } from "@/components/AppFooter";
 import { SmellmeMonogram } from "@/components/SmellmeBrand";
 import { AdminNotificationBadge } from "@/components/admin/AdminNotificationBadge";
+import { AdminPushDashboardPrompt } from "@/components/admin/AdminPushDashboardPrompt";
 import { WhatsAppFloatingButton } from "@/components/shared/WhatsAppFloatingButton";
 import {
   ADMIN_VIEW_META,
@@ -76,7 +76,6 @@ import {
   formatPercent,
   formatShortDateTime,
   getCostStatusLabel,
-  getCurrentDeviceLabel,
   getLastDebtPaymentDate,
   getReportRangePresetValues,
   getSalesFilterLabel,
@@ -84,12 +83,10 @@ import {
   mapOrderOriginToReportFilter,
   mergeOrderItems,
   renderGroupedItemLines,
-  resolveBadgeActivationErrorMessage,
   resolveOrderItemProfitabilityCost,
   todayDateValue
 } from "@/components/admin/dashboard/admin-dashboard.utils";
 import {
-  BadgeStatusChip,
   CompactHistorySection,
   CompactSelect,
   CostStatusBadge,
@@ -128,19 +125,6 @@ import {
 import { formatCurrency } from "@/lib/format";
 import { copyTextWithFallback } from "@/lib/clipboard";
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
-import {
-  getNotificationPermissionState,
-  isAppBadgeSupported,
-  isRunningAsInstalledPwa,
-  requestBadgePermissionForCurrentDevice
-} from "@/lib/pwa/notifications";
-import { getOrCreateDeviceId } from "@/lib/pwa/device";
-import {
-  isPushNotificationsSupported,
-  sendCurrentDevicePushTest,
-  subscribeCurrentDeviceToPush
-} from "@/lib/pwa/push";
-import { updateAppBadge } from "@/lib/pwa/updateAppBadge";
 import { normalizeChilePhone } from "@/lib/phone/normalizeChilePhone";
 import { getUnifiedProductStock } from "@/lib/stock";
 import {
@@ -158,7 +142,6 @@ import { getChileCurrentMonthRange, getChileCurrentWeekRange } from "@/lib/date"
 import type {
   AdminCustomerOption,
   AdminMaintenanceAction,
-  AdminBadgeDeviceSetting,
   AdminDashboardData,
   AdminOrderSummary,
   AdminOrdersAction,
@@ -216,10 +199,6 @@ export function AdminDashboard({
   const [reportFrom, setReportFrom] = useState(() => getChileCurrentMonthRange().from);
   const [reportTo, setReportTo] = useState(() => getChileCurrentMonthRange().to);
   const [todayDate, setTodayDate] = useState("");
-  const [notificationPermission, setNotificationPermission] = useState<
-    NotificationPermission | "unsupported"
-  >("unsupported");
-
   useEffect(() => {
     if (!whatsAppFallback) return;
     const originalOverflow = document.body.style.overflow;
@@ -233,22 +212,6 @@ export function AdminDashboard({
       window.removeEventListener("keydown", closeOnEscape);
     };
   }, [whatsAppFallback]);
-  const badgeDeviceId = useSyncExternalStore(
-    subscribeToClientSnapshot,
-    getOrCreateDeviceId,
-    getEmptyClientSnapshot
-  );
-  const [badgeDeviceSetting, setBadgeDeviceSetting] = useState<AdminBadgeDeviceSetting | null>(
-    null
-  );
-  const [badgeCardLoading, setBadgeCardLoading] = useState(false);
-  const [badgeActionLoading, setBadgeActionLoading] = useState(false);
-  const isInstalledPwa = useSyncExternalStore(
-    subscribeToClientSnapshot,
-    isRunningAsInstalledPwa,
-    getFalseClientSnapshot
-  );
-
   useEffect(() => {
     let cancelled = false;
 
@@ -302,18 +265,6 @@ export function AdminDashboard({
     void loadPaymentReceivers();
     return () => { cancelled = true; };
   }, [isOwner]);
-  const badgeSupported = useSyncExternalStore(
-    subscribeToClientSnapshot,
-    isAppBadgeSupported,
-    getFalseClientSnapshot
-  );
-  const pushSupported = useSyncExternalStore(
-    subscribeToClientSnapshot,
-    isPushNotificationsSupported,
-    getFalseClientSnapshot
-  );
-  const [pushSubscriptionActive, setPushSubscriptionActive] = useState(false);
-
   const allOrders = useMemo(
     () => [
       ...data.pendientes,
@@ -424,97 +375,6 @@ export function AdminDashboard({
   }, []);
 
   useEffect(() => {
-    void getNotificationPermissionState().then(setNotificationPermission);
-  }, []);
-
-  useEffect(() => {
-    if (!badgeDeviceId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadBadgeSetting() {
-      try {
-        setBadgeCardLoading(true);
-        const response = await fetch(
-          `/api/admin/badge-settings?deviceId=${encodeURIComponent(badgeDeviceId)}`,
-          { cache: "no-store" }
-        );
-        const currentData = (await response.json()) as {
-          error?: string;
-          setting?: AdminBadgeDeviceSetting | null;
-        };
-
-        if (!response.ok) {
-          throw new Error(currentData.error ?? "No fue posible cargar el badge.");
-        }
-
-        if (!cancelled) {
-          setBadgeDeviceSetting(currentData.setting ?? null);
-        }
-      } catch (currentError) {
-        if (!cancelled) {
-          setError(
-            currentError instanceof Error
-              ? currentError.message
-              : "No fue posible cargar el badge."
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setBadgeCardLoading(false);
-        }
-      }
-    }
-
-    void loadBadgeSetting();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [badgeDeviceId]);
-
-  useEffect(() => {
-    if (!badgeDeviceId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadPushSubscription() {
-      try {
-        const response = await fetch(
-          `/api/admin/push-subscriptions?deviceId=${encodeURIComponent(badgeDeviceId)}`,
-          { cache: "no-store" }
-        );
-        const currentData = (await response.json()) as {
-          error?: string;
-          subscription?: { isActive?: boolean } | null;
-        };
-
-        if (!response.ok) {
-          throw new Error(currentData.error ?? "No fue posible cargar las notificaciones.");
-        }
-
-        if (!cancelled) {
-          setPushSubscriptionActive(currentData.subscription?.isActive === true);
-        }
-      } catch {
-        if (!cancelled) {
-          setPushSubscriptionActive(false);
-        }
-      }
-    }
-
-    void loadPushSubscription();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [badgeDeviceId]);
-
-  useEffect(() => {
     let cancelled = false;
     let realtimeConnected = false;
 
@@ -558,7 +418,7 @@ export function AdminDashboard({
     try {
       const supabase = createSupabaseBrowserClient();
       const channel = supabase
-        .channel(`admin-pending-orders-${badgeDeviceId || "default"}`)
+        .channel("admin-pending-orders")
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "pedidos" },
@@ -604,7 +464,7 @@ export function AdminDashboard({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       removeRealtimeSubscription?.();
     };
-  }, [badgeDeviceId]);
+  }, []);
 
   const homeSummary = useMemo(() => {
     const agendaHoy = todayDate
@@ -657,58 +517,6 @@ export function AdminDashboard({
         .slice(0, 4),
     [data.pendientes]
   );
-
-  useEffect(() => {
-    if (!badgeDeviceSetting?.badgeEnabled) {
-      return;
-    }
-
-    async function syncBadge() {
-      await updateAppBadge(attentionCount);
-
-      if (!badgeDeviceId) {
-        return;
-      }
-
-      const lastSyncAt = new Date().toISOString();
-
-      setBadgeDeviceSetting((current) =>
-        current
-          ? {
-              ...current,
-              lastBadgeCount: attentionCount,
-              lastSyncAt
-            }
-          : current
-      );
-
-      void fetch("/api/admin/badge-settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          deviceId: badgeDeviceId,
-          deviceLabel: getCurrentDeviceLabel(),
-          badgeEnabled: true,
-          badgeSupported,
-          notificationPermission,
-          runningAsPwa: isInstalledPwa,
-          lastBadgeCount: attentionCount,
-          lastSyncAt
-        })
-      });
-    }
-
-    void syncBadge();
-  }, [
-    attentionCount,
-    badgeDeviceId,
-    badgeDeviceSetting?.badgeEnabled,
-    badgeSupported,
-    isInstalledPwa,
-    notificationPermission
-  ]);
 
   const customerCards = useMemo(() => {
     const metricsByCustomerId = new Map<
@@ -1336,127 +1144,6 @@ export function AdminDashboard({
     return refreshPromise;
   });
 
-  async function enableHomeScreenBadge() {
-    await activateBadgeForCurrentDevice();
-  }
-
-  async function activateBadgeForCurrentDevice() {
-    try {
-      setBadgeActionLoading(true);
-      setError("");
-      setSuccessMessage("");
-
-      const result = await requestBadgePermissionForCurrentDevice();
-      setNotificationPermission(result.notificationPermission);
-
-      const response = await fetch("/api/admin/badge-settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          deviceId: badgeDeviceId,
-          deviceLabel: getCurrentDeviceLabel(),
-          badgeEnabled: result.enabled,
-          badgeSupported: result.badgeSupported,
-          notificationPermission: result.notificationPermission,
-          runningAsPwa: result.runningAsPwa,
-          lastBadgeCount: result.enabled ? attentionCount : 0,
-          lastSyncAt: new Date().toISOString()
-        })
-      });
-      const currentData = (await response.json()) as {
-        error?: string;
-        setting?: AdminBadgeDeviceSetting;
-      };
-
-      if (!response.ok) {
-        throw new Error(currentData.error ?? "No fue posible guardar el badge.");
-      }
-
-      setBadgeDeviceSetting(currentData.setting ?? null);
-
-      if (pushSupported) {
-        const pushResult = await subscribeCurrentDeviceToPush();
-        setNotificationPermission(pushResult.notificationPermission);
-
-        if (pushResult.ok) {
-          setPushSubscriptionActive(true);
-
-          if (result.enabled) {
-            await updateAppBadge(attentionCount);
-            setSuccessMessage("Badge y notificaciones activados en este dispositivo.");
-            return;
-          }
-
-          setSuccessMessage(
-            "Las notificaciones push quedaron activas. El badge no esta disponible en este navegador."
-          );
-          return;
-        }
-      }
-
-      if (result.enabled) {
-        await updateAppBadge(attentionCount);
-        setSuccessMessage("Badge activo en este dispositivo.");
-        return;
-      }
-
-      setError(resolveBadgeActivationErrorMessage(result.error));
-    } catch (currentError) {
-      setError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No se pudo activar el badge. Revisa permisos del iPhone."
-      );
-    } finally {
-      setBadgeActionLoading(false);
-    }
-  }
-
-  async function testBadgeOnCurrentDevice() {
-    try {
-      setBadgeActionLoading(true);
-      setError("");
-      setSuccessMessage("");
-
-      if ("setAppBadge" in navigator) {
-        await navigator.setAppBadge(1);
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 1000));
-      await updateAppBadge(attentionCount);
-      setSuccessMessage("Badge probado y sincronizado con los pedidos pendientes.");
-    } catch (currentError) {
-      setError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No fue posible probar el badge en este dispositivo."
-      );
-    } finally {
-      setBadgeActionLoading(false);
-    }
-  }
-
-  async function testPushOnCurrentDevice() {
-    try {
-      setBadgeActionLoading(true);
-      setError("");
-      setSuccessMessage("");
-
-      const message = await sendCurrentDevicePushTest();
-      setSuccessMessage(message);
-    } catch (currentError) {
-      setError(
-        currentError instanceof Error
-          ? currentError.message
-          : "No fue posible probar las notificaciones push."
-      );
-    } finally {
-      setBadgeActionLoading(false);
-    }
-  }
-
   async function runMaintenanceAction(action: AdminMaintenanceAction) {
     const confirmed = await feedback.confirm({
       title: feedbackMessages.confirmMaintenanceTitle,
@@ -1846,34 +1533,10 @@ export function AdminDashboard({
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
                 Smellme.cl admin
               </p>
-              {isInstalledPwa &&
-              attentionCount > 0 &&
-              !badgeDeviceSetting?.badgeEnabled ? (
-                <button
-                  type="button"
-                  onClick={() => void enableHomeScreenBadge()}
-                  className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#F0D69B] bg-[#FFF8DE] px-4 py-2 text-sm font-semibold text-[#7A5A10] shadow-[0_10px_22px_rgba(122,90,16,0.12)]"
-                >
-                  Activar badge en icono
-                </button>
-              ) : null}
             </div>
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-            <BadgeStatusChip
-              badgeEnabled={badgeDeviceSetting?.badgeEnabled === true}
-              badgeSupported={badgeSupported}
-              notificationPermission={notificationPermission}
-              isInstalledPwa={isInstalledPwa}
-              onClick={
-                badgeDeviceSetting?.badgeEnabled
-                  ? undefined
-                  : () => void enableHomeScreenBadge()
-              }
-              pendingCount={attentionCount}
-              accessibilityLabel="Notificaciones"
-            />
             <HeaderIconButton
               label="Actualizar"
               title="Actualizar"
@@ -1892,6 +1555,10 @@ export function AdminDashboard({
       </section>
 
       <AdminNav isOwner={isOwner} />
+      <AdminPushDashboardPrompt
+        pendingCount={attentionCount}
+        showPrompt={view === "home"}
+      />
 
       {error ? (
         <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -1934,29 +1601,17 @@ export function AdminDashboard({
       {view === "home" ? (
         <DashboardHomeView
           attentionCount={attentionCount}
-          badgeActionLoading={badgeActionLoading}
-          badgeCardLoading={badgeCardLoading}
-          badgeDeviceId={badgeDeviceId}
-          badgeDeviceSetting={badgeDeviceSetting}
-          badgeSupported={badgeSupported}
           homeSummary={homeSummary}
-          isInstalledPwa={isInstalledPwa}
-          notificationPermission={notificationPermission}
           pendingUnseenOrders={pendingUnseenOrders}
           paymentSettingsComplete={paymentSettingsComplete}
-          pushSubscriptionActive={pushSubscriptionActive}
-          pushSupported={pushSupported}
           weekSalesTotal={weekSalesTotal}
           renderNewOrderWhatsAppButton={(order) => <NewOrderWhatsAppButton order={order} />}
-          onActivateBadgeForCurrentDevice={() => void activateBadgeForCurrentDevice()}
           onMarkOrderSeen={(order) => void runAction(order.id, "visto", order)}
           onOpenAttentionOrders={openAttentionOrders}
           onOpenPendingOrderDetail={(orderId) => {
             openAttentionOrders();
             setSelectedOrderId(orderId);
           }}
-          onTestBadgeOnCurrentDevice={() => void testBadgeOnCurrentDevice()}
-          onTestPushOnCurrentDevice={() => void testPushOnCurrentDevice()}
         />
       ) : null}
 
@@ -4286,16 +3941,4 @@ function getOrderActionSuccessMessage(action: AdminOrdersAction) {
     default:
       return "Operación completada.";
   }
-}
-
-function subscribeToClientSnapshot() {
-  return () => undefined;
-}
-
-function getEmptyClientSnapshot() {
-  return "";
-}
-
-function getFalseClientSnapshot() {
-  return false;
 }
