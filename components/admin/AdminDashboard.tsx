@@ -2573,11 +2573,7 @@ export function AdminDashboard({
       <AppFooter className="pb-24 md:pb-8" />
       <WhatsAppFloatingButton
         hidden={Boolean(orderModalState || customerEditModalState || customerBlockModalState)}
-        bottomOffsetClassName={
-          view === "home"
-            ? "bottom-[calc(24px+env(safe-area-inset-bottom))]"
-            : "bottom-[calc(88px+env(safe-area-inset-bottom))]"
-        }
+        bottomOffsetClassName="bottom-[calc(72px+env(safe-area-inset-bottom))] sm:bottom-[calc(24px+env(safe-area-inset-bottom))]"
       />
     </main>
   );
